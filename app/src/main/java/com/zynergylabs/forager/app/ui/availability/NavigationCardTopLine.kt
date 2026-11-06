@@ -42,7 +42,8 @@ internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, 
     val kind = readout.distanceKindText
     val place = if (kind == null) KindPlace.NONE else fit.kindPlace
     Layout(
-        modifier = modifier.fillMaxWidth(),
+        // The tag is on the whole line, the left part's full width, so a test reads the left part's own bounds.
+        modifier = modifier.fillMaxWidth().testTag(NAVIGATION_HUD_TOP_LINE_TAG),
         contents = listOf(
             {
                 WordSwap(text = columnFigure(readout, fit.figureShort)) { shown ->
@@ -132,6 +133,9 @@ private fun KindWords(kind: String, place: KindPlace, color: Color) {
         )
     }
 }
+
+/** Dispatch 2026-11-05-10: the top line, as wide as the left part. */
+internal const val NAVIGATION_HUD_TOP_LINE_TAG = "navigation-hud-top-line"
 
 /** Dispatch 2026-11-05-10: each of the stacked kind's two words, "by" and "trail", so a test can read where each sits. */
 internal const val NAVIGATION_HUD_DISTANCE_KIND_WORD_TAG = "navigation-hud-distance-kind-word"

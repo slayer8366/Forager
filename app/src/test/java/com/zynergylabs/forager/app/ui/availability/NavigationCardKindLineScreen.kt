@@ -17,6 +17,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.ComposeContentTestRule
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -58,11 +59,12 @@ import kotlin.math.abs
  *
  * The states, each through the screen's own inputs: the way home along a route ("1280 ft", "by trail"); a waypoint with no route
  * (the straight line, "≈ 1250 ft", "straight"); arrived at the start ("Arrived", no kind); the way home before its first route (the
- * dash, no kind). The turn is "sharp right 169°" in the first two, the longest turn words. Each state is settled before it is read,
- * and every reading names the state it was taken in.
+ * dash, no kind). The turn is "sharp right 169°" in the first two ([Facing.TURN]), the longest turn words, unless a case faces the
+ * target ([Facing.AHEAD]) or has no compass ([Facing.NO_COMPASS]). Each state is settled before it is read, and every reading names
+ * the state it was taken in.
  *
- * The point is P, a made-up test point; the targets are offsets from it. No evening line unless a case asks for one: at this hour
- * the screen's own sundown line has not opened, which each reading checks (no evening piece drawn).
+ * The point is P, a made-up test point; the targets are offsets from it. No evening line unless a case asks for one ([Evening]): at
+ * this hour the screen's own sundown line has not opened, which each reading checks (no evening piece drawn).
  *
  * Native graphics (set by each subclass): without it Robolectric measures text at a few dp wide. Robolectric reports no insets
  * (CLAUDE.md, "Known pitfalls"), which this card's widths do not depend on; the S22 check covers the phone.
@@ -84,8 +86,21 @@ abstract class NavigationCardKindLineScreen {
     /** 2026-10-03T18:00:00Z, mid-morning at P: no sundown window open. */
     private val t = 1_791_050_400_000L
 
-    /** Dusk at 17:23 UTC, for "Dark since 5:23 PM" (the owner's screenshot) where a case asks for an evening line. */
-    private val dusk = t - 37 * 60_000L
+    /** The evening line in the right part, each through the screen's own sundown line, its times in UTC. */
+    protected enum class Evening(val line: ((Long) -> SundownLine)?) {
+        NONE(null),
+        /** "Dark since 5:23 PM", the owner's screenshot. */
+        DARK_SINCE({ t -> SundownLine.DarkSince(t - 37 * 60_000L) }),
+        /** "Dark since 10:23 PM": a two-digit hour, one digit wider (the widest piece "Dark since" shows). */
+        DARK_SINCE_LONG({ t -> SundownLine.DarkSince(t - (19 * 60 + 37) * 60_000L) }),
+        /** Before sunset: "Sunset 8:28 PM · in 2 h 28 min · dark 9:00". */
+        BEFORE_SUNSET({ t -> SundownLine.BeforeSunset(t, t + 148 * 60_000L, t + 180 * 60_000L, null) }),
+        /** Between sunset and dusk: the sun set ten minutes ago, dark in 21 min. */
+        AFTER_SUNSET({ t -> SundownLine.AfterSunset(t, t - 10 * 60_000L, t + 21 * 60_000L) }),
+    }
+
+    /** Which way the phone faces: 169° right of the aim, 1° right of it, or no compass at all. */
+    protected enum class Facing { TURN, AHEAD, NO_COMPASS }
 
     private val here = LatLng(45.3736, -121.6959)
     private val metresPerDegreeLat = 111_195.0
@@ -112,7 +127,7 @@ abstract class NavigationCardKindLineScreen {
     }
 
     private var state by mutableStateOf(State.TRAIL)
-    private var evening by mutableStateOf(false)
+    private var evening by mutableStateOf(Evening.NONE)
     private val compass = MutableStateFlow<CompassReading?>(CompassReading(281f, HeadingUncertainty.Estimated(2f), 0L))
 
     private fun fix(): LocationFix.Update {
@@ -132,7 +147,7 @@ abstract class NavigationCardKindLineScreen {
                             liveFix = fix(),
                             waypointNavigation = WaypointNavigation(waypoint.id, resumesReturn = false).takeIf { straight },
                         ).withFixHeight(),
-                        recording = AvailabilityScreenRecording(isRecording = true, recordingSundownLine = SundownLine.DarkSince(dusk).takeIf { evening }),
+                        recording = AvailabilityScreenRecording(isRecording = true, recordingSundownLine = evening.line?.invoke(t)),
                         navigation = AvailabilityScreenNavigation(
                             isReturning = !straight,
                             navigationTarget = start.takeIf { !straight },
@@ -164,32 +179,47 @@ abstract class NavigationCardKindLineScreen {
     }
 
     /** Shows [s] (with "Dark since 5:23 PM" in the right part when [withEvening]) and settles it: 3 s of the test clock. */
-    protected fun show(s: State, withEvening: Boolean = false) {
+    protected fun show(s: State, withEvening: Boolean = false) = show(s, if (withEvening) Evening.DARK_SINCE else Evening.NONE)
+
+    /** Shows [s] with [e] in the right part, facing [facing], and settles it: 3 s of the test clock. */
+    protected fun show(s: State, e: Evening, facing: Facing = Facing.TURN) {
         if (!composed) compose()
         composeRule.runOnIdle {
             state = s
-            evening = withEvening
-            // The way home's lookahead is due east, the waypoint due north: each 169° to the right of the way the phone faces.
-            compass.value = CompassReading(if (s == State.STRAIGHT) 191f else 281f, HeadingUncertainty.Estimated(2f), 0L)
+            evening = e
+            // The way home's lookahead is due east, the waypoint due north. Facing 281° (191° for the waypoint) the aim is 169° to
+            // the right; facing 89° (359°), 1° to the right.
+            val aim = if (s == State.STRAIGHT) 0f else 90f
+            compass.value = when (facing) {
+                Facing.TURN -> CompassReading((aim + 191f) % 360f, HeadingUncertainty.Estimated(2f), 0L)
+                Facing.AHEAD -> CompassReading((aim + 359f) % 360f, HeadingUncertainty.Estimated(2f), 0L)
+                Facing.NO_COMPASS -> null
+            }
         }
         composeRule.mainClock.advanceTimeBy(3_000)
         composeRule.waitForIdle()
     }
 
-    /** A text node in the card: its bounds, its words, its first baseline in the root, its type size. */
-    protected class Laid(val bounds: DpRect, val text: String, val baseline: Dp, val fontSp: Float)
+    /** A text node in the card: its bounds, its words, its first baseline in the root, its type size, and how it was laid out. */
+    protected class Laid(val bounds: DpRect, val text: String, val baseline: Dp, val fontSp: Float, val layout: TextLayoutResult?)
 
     protected class Card(
         val hud: DpRect,
         val divider: DpRect,
         val figure: Laid,
-        /** The kind, `null` where none is drawn. */
+        /** The kind, `null` where none is drawn. Stacked, it is the column of the two words, whose text is the whole kind. */
         val kind: Laid?,
         val turn: Laid?,
         val needle: DpRect,
         val heading: Laid?,
         val status: String,
         val eveningPieces: Int,
+        /** The top line, the left part's whole width. */
+        val topLine: DpRect,
+        /** "by" and "trail" where the kind is stacked, top first; empty otherwise. */
+        val kindWords: List<Laid>,
+        val pieces: List<Laid>,
+        val exit: DpRect,
     ) {
         /** The turn row's left: its words, or the needle where the words are empty (an empty text reports no place). */
         val turnRowLeft: Dp get() = if (turn == null || turn.text.isEmpty()) needle.left else turn.bounds.left
@@ -214,7 +244,7 @@ abstract class NavigationCardKindLineScreen {
         val text = n.config.getOrNull(SemanticsProperties.Text)?.joinToString { it.text } ?: ""
         val b = rect(n)
         val baseline = with(composeRule.density) { b.top + (layout?.firstBaseline ?: Float.NaN).toDp() }
-        return Laid(b, text, baseline, layout?.layoutInput?.style?.fontSize?.value ?: Float.NaN)
+        return Laid(b, text, baseline, layout?.layoutInput?.style?.fontSize?.value ?: Float.NaN, layout)
     }
 
     private fun single(tag: String, where: String): SemanticsNode = nodes(tag).let { found ->
@@ -236,12 +266,27 @@ abstract class NavigationCardKindLineScreen {
             heading = nodes(NAVIGATION_HUD_HEADING_TAG).singleOrNull()?.let(::laid),
             status = nodes(NAVIGATION_HUD_STATUS_TAG).singleOrNull()?.let { laid(it).text } ?: "",
             eveningPieces = nodes(NAVIGATION_HUD_EVENING_PIECE_TAG).size,
+            topLine = rect(single(NAVIGATION_HUD_TOP_LINE_TAG, where)),
+            kindWords = nodes(NAVIGATION_HUD_DISTANCE_KIND_WORD_TAG).map(::laid).sortedBy { it.bounds.top },
+            pieces = nodes(NAVIGATION_HUD_EVENING_PIECE_TAG).map(::laid),
+            exit = rect(single(NAVIGATION_HUD_EXIT_TAG, where)),
         )
     }
 
+    /** [text]'s width in pixels in [like]'s own type, measured as the card measures (one line, no wrapping). */
+    protected fun widthPx(like: Laid, text: String): Int {
+        val input = checkNotNull(like.layout) { "<${like.text}> reports no text layout to measure in" }.layoutInput
+        return TextMeasurer(input.fontFamilyResolver, input.density, input.layoutDirection)
+            .measure(text, input.style, maxLines = 1, softWrap = false).size.width
+    }
+
+    protected val densityPx: Float get() = composeRule.density.density
+
     protected fun printed(where: String, s: State, c: Card) = println(
         "TOPLINE|$where|$s|figure=<${c.figure.text}> ${c.figure.bounds} base ${c.figure.baseline}|kind=<${c.kind?.text}> ${c.kind?.bounds} base ${c.kind?.baseline}|" +
-            "middle ${c.middle}|turn row ${c.turnRowLeft}..${c.turnRowRight}, ${c.turnRowTop}..${c.turnRowBottom}|divider ${c.divider}|card height ${c.hud.bottom - c.hud.top}|status <${c.status}>|pieces ${c.eveningPieces}",
+            "words=${c.kindWords.map { "<${it.text}> ${it.bounds} base ${it.baseline}" }}|top line ${c.topLine}|" +
+            "middle ${c.middle}|turn row ${c.turnRowLeft}..${c.turnRowRight}, ${c.turnRowTop}..${c.turnRowBottom}|turn <${c.turn?.text}>|heading <${c.heading?.text}>|" +
+            "divider ${c.divider}|exit ${c.exit}|card height ${c.hud.bottom - c.hud.top}|status <${c.status}>|pieces ${c.pieces.map { "<${it.text}> ${it.bounds.right - it.bounds.left}" }}",
     )
 
     /** The word gap, centred on the middle (Spacing.xs): the figure ends this far left of it, the kind starts this far right. */
