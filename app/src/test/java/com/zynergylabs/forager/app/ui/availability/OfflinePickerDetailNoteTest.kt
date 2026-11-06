@@ -68,10 +68,10 @@ abstract class OfflinePickerDetailNoteTests(private val landscape: Boolean) {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(RealSearchScreenRig.touchModeHost()).around(composeRule)
 
-    protected val server = FakeTileServer(TestMvt.DETAIL)
+    private val server = FakeTileServer(TestMvt.DETAIL)
     private val logs: MutableList<String> = Collections.synchronizedList(mutableListOf())
     private var noSignal = false
-    protected val rig = RealSearchScreenRig(
+    private val rig = RealSearchScreenRig(
         composeRule,
         trailMapDetail = WorkerTrailMapDetail(server.client, FakeTileServer.TEMPLATE, io = Dispatchers.Unconfined),
         noSignal = { noSignal },
