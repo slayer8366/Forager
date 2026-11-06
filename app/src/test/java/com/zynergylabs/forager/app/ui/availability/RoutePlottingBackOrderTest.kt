@@ -59,7 +59,7 @@ class RoutePlottingBackOrderTest {
         listOf(
             StubGlyph(MapLayerIds.WAYPOINTS, CREEK.id, 60.dp, 300.dp, LatLng(CREEK.lat, CREEK.lng)),
             StubGlyph(MapLayerIds.WAYPOINTS, RIDGE.id, 60.dp, 360.dp, LatLng(RIDGE.lat, RIDGE.lng)),
-            StubGlyph(MapLayerIds.KEPT_TRACKS, track.id, 60.dp, 420.dp, LatLng(45.505, -122.6)),
+            StubGlyph(MapLayerIds.KEPT_TRACKS, track.id, 60.dp, 420.dp, LatLng(45.505, -121.6)),
         ),
     )
     private val plotting = RoutePlottingViewModel(

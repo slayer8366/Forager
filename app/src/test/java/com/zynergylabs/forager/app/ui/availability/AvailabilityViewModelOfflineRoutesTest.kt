@@ -137,7 +137,7 @@ private object RoutesStubAppThemePreferenceRepository : AppThemePreferenceReposi
 
 
 private fun summary(id: Long, routeData: RegionRouteData) = OfflineRegionSummary(
-    id = id, name = "Region $id", region = Region(45.3, -122.6, 8), minZoom = OfflineMapRepository.MIN_ZOOM,
+    id = id, name = "Region $id", region = Region(46.29, -121.19375, 8), minZoom = OfflineMapRepository.MIN_ZOOM,
     maxZoom = OfflineMapRepository.MAX_ZOOM, tileCount = 100, sizeBytes = 1_000L, createdAtEpochMillis = 1_000L, routeData = routeData,
 )
 
@@ -382,8 +382,8 @@ class AvailabilityViewModelOfflineRoutesTest {
         val vm = viewModel(repository)
         advanceUntilIdle()
 
-        vm.onOfflineMapLatChanged("45.3")
-        vm.onOfflineMapLngChanged("-122.6")
+        vm.onOfflineMapLatChanged("46.29")
+        vm.onOfflineMapLngChanged("-121.19375")
         vm.onOfflineMapRadiusChanged(8)
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
@@ -401,8 +401,8 @@ class AvailabilityViewModelOfflineRoutesTest {
         var seen: OfflineMapStatus? = null
         repository.duringRouteStep = { seen = vm.uiState.value.offlineDownloadStatus }
 
-        vm.onOfflineMapLatChanged("45.3")
-        vm.onOfflineMapLngChanged("-122.6")
+        vm.onOfflineMapLatChanged("46.29")
+        vm.onOfflineMapLngChanged("-121.19375")
         vm.onOfflineMapRadiusChanged(8)
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
@@ -418,8 +418,8 @@ class AvailabilityViewModelOfflineRoutesTest {
         val vm = viewModel(repository)
         advanceUntilIdle()
 
-        vm.onOfflineMapLatChanged("45.3")
-        vm.onOfflineMapLngChanged("-122.6")
+        vm.onOfflineMapLatChanged("46.29")
+        vm.onOfflineMapLngChanged("-121.19375")
         vm.onOfflineMapRadiusChanged(8)
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()

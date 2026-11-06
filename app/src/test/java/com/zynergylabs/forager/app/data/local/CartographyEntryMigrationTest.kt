@@ -67,7 +67,7 @@ class CartographyEntryMigrationTest {
     fun `a pre-existing mushroom log entry survives the 10 to 11 migration intact, and every new cartography_entry table round-trips through the real repository`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
-        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -122.6), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -121.19375), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV10::class.java, dbFile.absolutePath).build()
         try {
@@ -102,8 +102,8 @@ class CartographyEntryMigrationTest {
                     TrackDecision(trackId = "track-1", name = "Ridge Loop", distanceMeters = 3200.0, durationMillis = 5_400_000L, pointCount = 240, kept = true),
                     TrackDecision(trackId = "track-2", name = "Withheld Loop", distanceMeters = 800.0, durationMillis = 900_000L, pointCount = 60, kept = false),
                 ),
-                waypointDecisions = listOf(WaypointDecision(waypointId = "waypoint-1", name = "Trailhead", lat = 45.4, lng = -122.6, kept = true)),
-                offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.4, lng = -122.6, radiusKm = 10, kept = true)),
+                waypointDecisions = listOf(WaypointDecision(waypointId = "waypoint-1", name = "Trailhead", lat = 45.4, lng = -121.19375, kept = true)),
+                offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.4, lng = -121.19375, radiusKm = 10, kept = true)),
                 photos = listOf(PhotoAttachment(photoId = "photo-1", attachedAtEpochMillis = 6_000L)),
             )
             repository.save(entry).getOrThrow()
@@ -156,8 +156,8 @@ class CartographyEntryMigrationTest {
                 updatedAtEpochMillis = 1_000L,
                 findDecisions = emptyList(),
                 trackDecisions = listOf(TrackDecision(trackId = "track-1", name = "Ridge Loop", distanceMeters = 3200.0, durationMillis = 5_400_000L, pointCount = 240, kept = true)),
-                waypointDecisions = listOf(WaypointDecision(waypointId = "waypoint-1", name = "Trailhead", lat = 45.4, lng = -122.6, kept = true)),
-                offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.4, lng = -122.6, radiusKm = 10, kept = true)),
+                waypointDecisions = listOf(WaypointDecision(waypointId = "waypoint-1", name = "Trailhead", lat = 45.4, lng = -121.19375, kept = true)),
+                offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.4, lng = -121.19375, radiusKm = 10, kept = true)),
                 photos = listOf(PhotoAttachment(photoId = "photo-1", attachedAtEpochMillis = 2_000L)),
             )
             repository.save(draft).getOrThrow()

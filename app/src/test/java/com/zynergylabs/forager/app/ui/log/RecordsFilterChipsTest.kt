@@ -143,7 +143,7 @@ class RecordsFilterChipsTest {
                 onOpenCameraForAlbum = {},
                 onOpenCameraForCartographyEntry = {},
                 mapSlot = CHIPS_STUB_MAP,
-                pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
+                pickerRegion = Region(lat = 45.3736, lng = -120.28965, radiusKm = 15),
                 basemap = Basemap.DEFAULT,
                 onOpenEntry = { id -> uiState = uiState.copy(editingEntry = uiState.entries.first { it.id == id }) },
                 onCloseEntry = { uiState = uiState.copy(editingEntry = null) },
@@ -331,7 +331,7 @@ class RecordsFilterChipsTest {
 
     @Test
     fun `EDIT_NEW_FIND lands on Finds editing with the Finds chip selected`() {
-        val newFind = MushroomLogEntry.draft(id = "new-find", location = LatLng(45.5, -122.5), date = LocalDate.of(2026, 8, 1))
+        val newFind = MushroomLogEntry.draft(id = "new-find", location = LatLng(45.5, -121.09375), date = LocalDate.of(2026, 8, 1))
         setScreen(
             MushroomLogUiState(entries = listOf(CHIPS_FIND), editingEntry = newFind),
             pendingDestination = PendingJournalDestination.EDIT_NEW_FIND,
@@ -341,7 +341,7 @@ class RecordsFilterChipsTest {
         composeRule.onNodeWithText("Records").assertIsSelected()
         chip(FINDS_CHIP).assertIsSelected()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
-        composeRule.onNodeWithText("Found at 45.5000, -122.5000").assertIsDisplayed()
+        composeRule.onNodeWithText("Found at 45.5000, -121.0938").assertIsDisplayed()
     }
 
     @Test
@@ -389,8 +389,8 @@ class RecordsFilterChipsTest {
     private val logDraft = MushroomLogEntry.draft(id = "D1", location = null, date = d1)
 
     private fun logWaypoints() = listOf(
-        Waypoint(id = "W1", lat = 45.5, lng = -122.6, altitude = null, name = "Morning pin", note = "", createdAtEpochMillis = localMillis(d1, 9)),
-        Waypoint(id = "W2", lat = 45.6, lng = -122.7, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = localMillis(d2, 10)),
+        Waypoint(id = "W1", lat = 45.5, lng = -121.19375, altitude = null, name = "Morning pin", note = "", createdAtEpochMillis = localMillis(d1, 9)),
+        Waypoint(id = "W2", lat = 45.6, lng = -121.29375, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = localMillis(d2, 10)),
     )
 
     private fun logTracks() = listOf(
@@ -398,7 +398,7 @@ class RecordsFilterChipsTest {
     )
 
     private fun logRegions() = listOf(
-        OfflineRegionSummary(id = 7L, name = "Noon region", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = localMillis(d1, 12)),
+        OfflineRegionSummary(id = 7L, name = "Noon region", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = localMillis(d1, 12)),
     )
 
     /** The logbook data, on All: Records opens on Finds since RECORD -868, so All is touched first. */
@@ -739,8 +739,8 @@ private val TOUCH_SAMPLES = listOf(Offset(0.12f, 0.3f), Offset(0.5f, 0.5f), Offs
 private val CHIPS_FIND = MushroomLogEntry.draft(id = "find-1", location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
 
 private val CHIPS_WAYPOINTS = listOf(
-    Waypoint(id = "w1", lat = 45.5, lng = -122.6, altitude = null, name = "Alpha", note = "", createdAtEpochMillis = 1_758_000_000_000L),
-    Waypoint(id = "w2", lat = 45.6, lng = -122.7, altitude = null, name = "Bravo", note = "", createdAtEpochMillis = 1_758_100_000_000L),
+    Waypoint(id = "w1", lat = 45.5, lng = -121.19375, altitude = null, name = "Alpha", note = "", createdAtEpochMillis = 1_758_000_000_000L),
+    Waypoint(id = "w2", lat = 45.6, lng = -121.29375, altitude = null, name = "Bravo", note = "", createdAtEpochMillis = 1_758_100_000_000L),
 )
 
 private val CHIPS_TRACKS = listOf(
@@ -748,9 +748,9 @@ private val CHIPS_TRACKS = listOf(
 )
 
 private val CHIPS_REGIONS = listOf(
-    OfflineRegionSummary(id = 1L, name = "Ridge", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_300_000_000L),
-    OfflineRegionSummary(id = 2L, name = "Creek", region = Region(45.4, -122.5, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_400_000_000L),
-    OfflineRegionSummary(id = 3L, name = "Saddle", region = Region(45.3, -122.4, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_500_000_000L),
+    OfflineRegionSummary(id = 1L, name = "Ridge", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_300_000_000L),
+    OfflineRegionSummary(id = 2L, name = "Creek", region = Region(45.4, -121.09375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_400_000_000L),
+    OfflineRegionSummary(id = 3L, name = "Saddle", region = Region(45.37, -120.99375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_500_000_000L),
 )
 
 private val CHIPS_EMPTY_MAP_DATA = CartographyEntryMapData(

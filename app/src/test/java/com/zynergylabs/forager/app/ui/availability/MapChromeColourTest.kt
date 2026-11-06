@@ -88,7 +88,7 @@ private fun ColourRule.touchCentreOfTag(tag: String) {
 
 private fun chromeColourGlyphs(x: Dp, firstY: Dp, step: Dp) = listOf(
     StubGlyph(MapLayerIds.WAYPOINTS, BUBBLE_WAYPOINT.id, x, firstY, LatLng(BUBBLE_WAYPOINT.lat, BUBBLE_WAYPOINT.lng)),
-    StubGlyph(MapLayerIds.KEPT_TRACKS, BUBBLE_TRACK.id, x, firstY + step, LatLng(45.505, -122.6)),
+    StubGlyph(MapLayerIds.KEPT_TRACKS, BUBBLE_TRACK.id, x, firstY + step, LatLng(45.505, -121.6)),
 )
 
 // ---------------------------------------------------------------------------------------------------
@@ -294,7 +294,7 @@ abstract class MapChromeColourEntryAndDialogTests(private val dark: Boolean) {
     /** Owner, verbatim, on dialogs: "Dialogs ... 80% over the map" (the edge-case ruling, journal-redesign.md); "Download this area?" was opaque over the picker's map. */
     @Test
     fun `Download this area is the token at 0_8 over the offline picker's map`() {
-        state.ui = state.ui.copy(offlineMapLatText = "45.5", offlineMapLngText = "-122.6", offlineMapRadiusKm = 10, offlineMapRadiusTouched = true)
+        state.ui = state.ui.copy(offlineMapLatText = "45.5", offlineMapLngText = "-121.6", offlineMapRadiusKm = 10, offlineMapRadiusTouched = true)
         composeRule.setContent { MapChromeTestScreen(state, map, roles, darkTheme = dark) }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Journal").performClick()

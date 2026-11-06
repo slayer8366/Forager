@@ -61,7 +61,7 @@ import org.maplibre.geojson.Point
  */
 class SightingsMapOverlayDataTest {
 
-    private val region = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+    private val region = Region(lat = 45.3736, lng = -120.28965, radiusKm = 15)
 
     private val sightings = listOf(
         Sighting(
@@ -70,7 +70,7 @@ class SightingsMapOverlayDataTest {
             scientificName = "Cantharellus formosus",
             commonName = "Chanterelle",
             lat = 45.38,
-            lng = -121.70,
+            lng = -120.29375,
             observedOn = LocalDate.of(2024, 8, 1),
             photoUrl = null,
         ),
@@ -80,7 +80,7 @@ class SightingsMapOverlayDataTest {
             scientificName = "Morchella americana",
             commonName = null,
             lat = 45.39,
-            lng = -121.71,
+            lng = -120.30375,
             observedOn = null,
             photoUrl = null,
         ),
@@ -90,7 +90,7 @@ class SightingsMapOverlayDataTest {
         PlannedTrip(
             id = "trip-1",
             name = "Trip 1",
-            location = LatLng(45.40, -121.72),
+            location = LatLng(45.40, -120.31375),
             date = LocalDate.of(2026, 9, 1),
         ),
     )
@@ -389,9 +389,9 @@ class SightingsMapOverlayDataTest {
     }
 
     private val breadcrumbPoints = listOf(
-        LatLng(45.3736, -121.6959),
-        LatLng(45.3776, -121.7019),
-        LatLng(45.3826, -121.7069),
+        LatLng(45.3736, -120.28965),
+        LatLng(45.3776, -120.29565),
+        LatLng(45.3826, -120.30065),
     )
 
     @Test
@@ -420,8 +420,8 @@ class SightingsMapOverlayDataTest {
     }
 
     private val waypoints = listOf(
-        Waypoint(id = "w1", lat = 45.40, lng = -122.70, altitude = null, name = "Trailhead", note = "Gravel lot", createdAtEpochMillis = 1_000L),
-        Waypoint(id = "w2", lat = 45.41, lng = -122.71, altitude = 812.0, name = "Big oak", note = "", createdAtEpochMillis = 2_000L),
+        Waypoint(id = "w1", lat = 45.40, lng = -121.29375, altitude = null, name = "Trailhead", note = "Gravel lot", createdAtEpochMillis = 1_000L),
+        Waypoint(id = "w2", lat = 45.41, lng = -121.30375, altitude = 812.0, name = "Big oak", note = "", createdAtEpochMillis = 2_000L),
     )
 
     @Test
@@ -454,8 +454,8 @@ class SightingsMapOverlayDataTest {
     // Journal Stage 2d: the Cartography entry map's own feature builders — pure GeoJSON, same
     // reasoning as the rest of this file for why these are testable off a device at all.
 
-    private val trackOne = RecordPolyline("track-1", listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51), LatLng(45.22, -122.52)))
-    private val trackTwo = RecordPolyline("track-2", listOf(LatLng(46.00, -123.00), LatLng(46.01, -123.01)))
+    private val trackOne = RecordPolyline("track-1", listOf(LatLng(45.20, -121.09375), LatLng(45.21, -121.10375), LatLng(45.22, -121.11375)))
+    private val trackTwo = RecordPolyline("track-2", listOf(LatLng(46.00, -121.59375), LatLng(46.01, -121.60375)))
 
     @Test
     fun `two kept tracks become two separate LineStrings, not one joined trail`() {
@@ -471,7 +471,7 @@ class SightingsMapOverlayDataTest {
 
     @Test
     fun `a track with fewer than two points produces no LineString`() {
-        val features = keptTracksFeatureCollection(listOf(trackOne, RecordPolyline("one-point", listOf(LatLng(45.0, -122.0))), RecordPolyline("empty", emptyList()))).features()!!
+        val features = keptTracksFeatureCollection(listOf(trackOne, RecordPolyline("one-point", listOf(LatLng(45.0, -120.59375))), RecordPolyline("empty", emptyList()))).features()!!
         assertEquals(
             "Only trackOne has two or more points -- the single-point and empty tracks must be silently dropped, not error.",
             1,
@@ -486,7 +486,7 @@ class SightingsMapOverlayDataTest {
 
     @Test
     fun `pointsFeatureCollection places one point feature per marker at its own coordinates`() {
-        val markers = listOf(LatLng(45.5, -122.5), LatLng(45.6, -122.6))
+        val markers = listOf(LatLng(45.5, -121.09375), LatLng(45.6, -121.19375))
         val features = pointsFeatureCollection(markers.mapIndexed { i, at -> RecordPoint("find-$i", at) }).features()!!
         assertEquals(2, features.size)
 
@@ -504,7 +504,7 @@ class SightingsMapOverlayDataTest {
 
     @Test
     fun `each offline region becomes a closed polygon ring centred on its own coordinates`() {
-        val region = Region(lat = 45.5, lng = -122.5, radiusKm = 5)
+        val region = Region(lat = 45.5, lng = -121.09375, radiusKm = 5)
         val feature = offlineRegionCirclesFeatureCollection(listOf(RecordRegion("1", region))).features()!!.single()
         val polygon = feature.geometry() as org.maplibre.geojson.Polygon
         val ring = polygon.coordinates().single()

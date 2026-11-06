@@ -287,8 +287,8 @@ private fun ChromeRule.assertSolid(tag: String, role: Color) {
 /** A waypoint, a track and a region glyph, one below the other from ([x], [firstY]), [step] apart. */
 private fun chromeGlyphs(x: Dp, firstY: Dp, step: Dp) = listOf(
     StubGlyph(MapLayerIds.WAYPOINTS, BUBBLE_WAYPOINT.id, x, firstY, LatLng(BUBBLE_WAYPOINT.lat, BUBBLE_WAYPOINT.lng)),
-    StubGlyph(MapLayerIds.KEPT_TRACKS, BUBBLE_TRACK.id, x, firstY + step, LatLng(45.505, -122.6)),
-    StubGlyph(MapLayerIds.OFFLINE_REGION_OUTLINE, BUBBLE_REGION.id.toString(), x, firstY + step * 2, LatLng(45.6, -122.67)),
+    StubGlyph(MapLayerIds.KEPT_TRACKS, BUBBLE_TRACK.id, x, firstY + step, LatLng(45.505, -121.6)),
+    StubGlyph(MapLayerIds.OFFLINE_REGION_OUTLINE, BUBBLE_REGION.id.toString(), x, firstY + step * 2, LatLng(45.6, -121.67)),
 )
 
 // ---------------------------------------------------------------------------------------------------

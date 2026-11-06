@@ -313,7 +313,7 @@ class JournalPendingDeleteTest {
                     onOpenCameraForAlbum = {},
                     onOpenCameraForCartographyEntry = {},
                     mapSlot = PD_STUB_MAP,
-                    pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
+                    pickerRegion = Region(lat = 45.3736, lng = -120.28965, radiusKm = 15),
                     basemap = Basemap.DEFAULT,
                     onOpenEntry = logViewModel::onOpenEntry,
                     onCloseEntry = logViewModel::onCloseEntry,
@@ -1438,8 +1438,8 @@ private const val SNACKBAR_LONG_MILLIS = 10_000L
 private val PD_TIME = CurrentTimeProvider { 1_000L }
 
 private val PD_WAYPOINTS = listOf(
-    Waypoint(id = "wp-creek", lat = 45.5, lng = -122.6, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = 1_758_100_000_000L),
-    Waypoint(id = "wp-oak", lat = 45.6, lng = -122.7, altitude = null, name = "Big oak", note = "", createdAtEpochMillis = 1_758_000_000_000L),
+    Waypoint(id = "wp-creek", lat = 45.5, lng = -121.19375, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = 1_758_100_000_000L),
+    Waypoint(id = "wp-oak", lat = 45.6, lng = -121.29375, altitude = null, name = "Big oak", note = "", createdAtEpochMillis = 1_758_000_000_000L),
 )
 
 private val PD_EMPTY_MAP_DATA = CartographyEntryMapData(
@@ -1500,8 +1500,8 @@ private class PendingDeleteTrackRepository : TrackRepository {
 }
 
 private val PD_REGIONS = listOf(
-    OfflineRegionSummary(id = 7L, name = "Ridge", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 100, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_300_000_000L),
-    OfflineRegionSummary(id = 8L, name = "Saddle", region = Region(45.3, -122.4, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 50, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_200_000_000L),
+    OfflineRegionSummary(id = 7L, name = "Ridge", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 100, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_300_000_000L),
+    OfflineRegionSummary(id = 8L, name = "Saddle", region = Region(45.37, -120.99375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 50, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_200_000_000L),
 )
 
 /** Regions kept in memory; every [deleteRegion] call (MapLibre's tile delete and the row, in the real one) is recorded. */

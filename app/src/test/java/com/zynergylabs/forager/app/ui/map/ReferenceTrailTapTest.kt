@@ -33,7 +33,7 @@ class ReferenceTrailTapTest {
                 else -> json.addProperty(name, value.toString())
             }
         }
-        return Feature.fromGeometry(LineString.fromLngLats(listOf(Point.fromLngLat(-115.0, 45.3), Point.fromLngLat(-115.1, 45.4))), json)
+        return Feature.fromGeometry(LineString.fromLngLats(listOf(Point.fromLngLat(-115.0, 45.4), Point.fromLngLat(-115.1, 45.5))), json)
     }
 
     @Test
@@ -73,7 +73,7 @@ class ReferenceTrailTapTest {
     @Test
     fun `a band tap becomes its own bubble target, and the bubble is the record's two lines`() {
         val record = ReferenceTrailRecord(ReferenceAgency.FOREST_SERVICE, "017", "Three Blaze")
-        val at = LatLng(45.3, -115.0)
+        val at = LatLng(45.4, -115.0)
         val tapped = tappedThingOf(MapFeatureTap.forReferenceTrail(MapLayerIds.REFERENCE_FS_BAND, record, Offset(10f, 20f), 30f, at))
         assertEquals(TappedMapThing(MapBubbleTarget.ReferenceTrailTarget(MapLayerIds.REFERENCE_FS_BAND, record, at), Offset(10f, 20f), 30f), tapped)
         assertEquals(

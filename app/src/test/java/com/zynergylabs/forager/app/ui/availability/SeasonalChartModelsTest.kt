@@ -104,7 +104,7 @@ class SeasonalChartModelsTest {
     fun `dates read Oct 7, 2026, in the no-window message as well`() {
         assertEquals("Oct 7, 2026", displayDate(LocalDate.of(2026, 10, 7)))
         val report = TripWindowReport(
-            region = Region(lat = 45.5, lng = -122.6, radiusKm = 10),
+            region = Region(lat = 45.5, lng = -121.19375, radiusKm = 10),
             referenceDay = LocalDate.of(2026, 10, 7),
             horizonEnd = LocalDate.of(2026, 10, 14),
             rainEvents = emptyList(),

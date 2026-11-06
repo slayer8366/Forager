@@ -103,7 +103,7 @@ internal object GpxImportFixtures {
             <trkpt lat="45.21" lon="-121.31"><time>2026-09-24T10:30:00Z</time></trkpt>
           </trkseg></trk>
           <trk><name>Day three</name><trkseg>
-            <trkpt lat="45.3" lon="-122.3"><time>2026-09-25T10:00:00Z</time></trkpt>
+            <trkpt lat="45.28" lon="-122.3"><time>2026-09-25T10:00:00Z</time></trkpt>
             <trkpt lat="45.31" lon="-122.31"><time>2026-09-25T10:45:00Z</time></trkpt>
           </trkseg></trk>
         </gpx>

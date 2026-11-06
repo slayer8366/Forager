@@ -189,7 +189,7 @@ class PhotoViewerSaveToGalleryTest {
         // import carries stays in the copy; the stored file must not change either way.
         val file = File(context().filesDir, "photos/save-import.jpg").apply { parentFile?.mkdirs(); writeBytes(EXPORT_TEST_JPEG) }
         ExifInterface(file.absolutePath).apply {
-            setLatLong(45.5, -122.6)
+            setLatLong(45.5, -121.6)
             saveAttributes()
         }
         val storedBefore = file.readBytes()
