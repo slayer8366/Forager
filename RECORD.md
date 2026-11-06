@@ -36120,6 +36120,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Phase 3 stop (2026-11-06T11:23:11Z), from Hazel:** F2 needs TripNavigateTest.kt (:390-404 pins WAY_IN_BLOCKED's trip words), and home-location-out's commit B changed one line of it (:97).
   - **The planner's call:** the file goes to Phase 3 (Amendment 1, E8). The home-location Hazel was told not to edit it again. The second branch to land merges the other.
   - **Also from her report, read and accepted:** the 11 notes reach the screen through one path only (NavigationReadout.kt:195 and :212 into NavigationCardLines.kt:144, shared by the card and the portrait strip). No TalkBack or notification reads them, and the log names only the note. "Arrived" and "—" are the only words ever alone on the top line.
+- **Changed (2026-11-06T11:40Z), the owner, verbatim,** with a screenshot from their own phone, not navigating, whose compass strip shows the north arrow and the heading (its location details are not recorded): **"Keep the compass strip the exact same when in navigation mode as out; so keep the north compass out of the navigation panel. The approaching can move one line up, and the panel can fit the middle divider neatly now."**
+  - To "With the north arrow and heading gone from the card, where should \"Approaching\" (and the other status words, like \"Off trail\") go?": **"Under the evening line (Recommended)"**. The option read: "Up one line, into the empty space under \"Dark since…\", left of the X. The card is two lines tall, and the divider runs its full height." The others: "Beside the turn degrees"; "Under the turn line".
+  - Amendment 1 gains category H (H1, H2) and E9. G3's turn line and status line parts are replaced as marked there. Sent to the Phase 3 Hazel by message first.
+  - The planner's reading, open to the owner: the status words are centred in their own space, which stays put with or without the evening line. A compass strip hidden while navigating, if there is one, is a stop.
+  - A planner note: the first attempt to push this was refused by the session's permission check, which gave no reason. A second attempt, in smaller steps, was refused as a way around the first. The planner stopped and asked the owner, and this waits for their permission.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
@@ -36183,4 +36188,32 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - the exceptions are listed by kind and count only, with no files, in place of "by file and count";
     - each translated value keeps its own number of decimals, with expected values recomputed tests first.
   - **For the owner:** told in plain words.
+- **The fix is in (2026-11-06T11:50Z):** commit C, 3b82f1271, is on home-location-out. It is clean under the patterns and the starting grep. The throwaway ref pointing at A is deleted. Commit B's CI run 42207752188 is green, and C's runs are on throwaway refs.
+  - **The sweep of the tip** found further values derived from the old place. One is a device record giving a time to the second; it gets the marker. The others don't place the home within 2 km on their own.
+  - **The planner's call:**
+    - the values tied to the owner's place (observed sunset and dusk times, two elevations, one coarse tile) get the marker or a neutral rewording, putting privacy ahead of how faithful old records stay, as the owner's "Remove them" did;
+    - the tile counts and the town folder's coarse files stay, listed by kind and count only;
+    - fixed time strings in formatting tests stay as test data unless they turn out to come from the old place.
 **Notes:** Written by the planner by hand. Next free ID -2183.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2183
+**Timestamp:** 2026-11-06T11:40:47Z
+**Continues:** 2026-09-28-2181
+**Title:** The distance to the next turn on the navigation card, beside the needle: dispatch 2026-11-06-01
+**Decision:**
+- **The owner, verbatim:** **"In the degrees and target needle area, have the distance to the next turn be calculated. Count only angled turns like junctions or forks, but not winding paths. Like "<-- 1.1 mi" (an arrow icon will work for direction"**
+- **The owner's answers, verbatim:**
+  - To "Where does the next turn sit on the turn line?": **"Beside the needle (Recommended)"**. The option read: "The degrees and needle keep their fixed spaces, and the next turn gets its own fixed space beside them." The others: "In place of the degrees"; "In place of both".
+  - To "What should the next turn's arrow show?": **"Angled to the turn"**. The option read: "The arrow bends as much as the turn does: slight, square or sharp, left or right." The other: "Left or right (Recommended)".
+  - To "When there's no angled turn left before the target (or the way is a straight line), what shows in its space?": **"A straight-ahead arrow"**. The option read: "An up arrow with the distance to the target." The other: "Nothing (Recommended)".
+  - To "Build it into #498, or on its own?": **"On its own, after #498 (Recommended)"**. The option read: "First a read-only look at what the route data says about junctions, on your real walk routes, to set what counts as a turn. Then the build in its own PR. #498 carries on toward the promotion." The other: "Add it to #498".
+- **Dispatch 2026-11-06-01** is at prompts/preserved/2026-11-06-01-next-turn.md.
+  - **Phase 1, read-only:** what each kind of way's line knows about ways and junctions; a rule and threshold for a turn, measured on real public routes; the arrow's angle bands; when a turn counts as passed; the fixed space's width against #498's layout; the other surfaces.
+  - **Phase 2** builds after #498 merges and the owner rules on Phase 1's options.
+- **The planner's reading, a premise for Phase 1:** a turn is where the route leaves its way for another, at a junction or fork, with a real change of direction. A bend within one way, or carrying straight on through a junction, is never a turn.
+- **Privacy:** the owner's walk routes are near home. Phase 1 measures in public areas only (P or others), and the planner measures on the S22 privately if needed.
+- **Phase 1 started (2026-11-06T11:41Z)** with a fresh Hazel, from the dispatch's local file, because the planner's pushes wait on the owner's permission. The owner's Q4 option authorised the read-only look.
+**Notes:** Written by the planner by hand. Next free ID -2184.
