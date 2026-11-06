@@ -1,0 +1,85 @@
+== FS management fields, box 3 chamberlain-basin (TrailNFS_MGMT)
+  allowed_terra_use: {'21': 10}
+  hiker_pedestrian_managed: {'None': 9, '01/01-12/31': 1}
+  hiker_pedestrian_accpt: {'None': 10}
+  hiker_pedestrian_restricted: {'None': 10}
+  pack_saddle_managed: {'01/01-12/31': 9, 'None': 1}
+  bicycle_managed: {'None': 10}
+  motorcycle_managed: {'None': 10}
+  trail_class: {'3': 4, '2': 3, '1': 3}
+  typical_trail_grade: {'TRAIL_GRADE': 10}
+  accessibility_status: {'None': 10}
+  special_mgmt_area: {'None': 10}
+== FS management fields, box 5 cape-perpetua
+  allowed_terra_use: {'321': 7, '21': 1}
+  hiker_pedestrian_managed: {'01/01-12/31': 8}
+  hiker_pedestrian_restricted: {'None': 8}
+  bicycle_managed: {'None': 7, '01/01-12/31': 1}
+  bicycle_restricted: {'None': 7, '01/01-12/31': 1}
+  trail_class: {'3': 6, '4': 1, '1': 1}
+  accessibility_status: {'NOT ACCESSIBLE': 8}
+== FS management fields, box 7 three-sisters
+  allowed_terra_use: {'21': 15}
+  hiker_pedestrian_managed: {'None': 10, '06/15-10/31': 3, '01/01-12/31': 1, '06/01-10/31': 1}
+  hiker_pedestrian_restricted: {'None': 15}
+  pack_saddle_restricted: {'None': 15}
+  bicycle_managed: {'None': 15}
+  trail_class: {'3': 11, '2': 4}
+  special_mgmt_area: {'None': 15}
+== FS basic fields, box 1 mount-hood (TrailNFS_Basic)
+  allowed_terra_use: {'N/A': 71}
+  hiker_pedestrian_managed: {'N/A': 71}
+  hiker_pedestrian_restricted: {'N/A': 71}
+  trail_class: {'3': 49, '2': 21, '5': 1}
+  trail_type: {'TERRA': 37, 'SNOW': 34}
+  admin_org: {'060609': 71}
+== BLM fields, box 4 oregon-badlands (layers 4 and 5)
+  PLAN_ALLOW_MODE_TRNSPRT: {'BIKE_HIK_ONLY': 2}
+  PLAN_MODE_TRNSPRT: {'Non-Motorized': 2}
+  PLAN_OHV_ROUTE_DSGNTN: {'Closed': 2}
+  PLAN_SEASON_RSTRCT_CODE: {'NO': 2}
+  PLAN_ACCESS_RSTRCT: {'NONE': 2}
+  OBSRVE_ROUTE_USE_CLASS: {'Non-Motorized': 2}
+  OBSRVE_SRFCE_TYPE: {'Natural': 2}
+  ACCURACY_FT: {'20': 2}
+  COORD_SRC_TYPE: {'GPS': 2}
+  ROUTE_SPCL_DSGNTN_TYPE: {'None': 2}
+  PLAN_ALLOW_MODE_TRNSPRT: {'EQU_HIK_ONLY': 74}
+  PLAN_MODE_TRNSPRT: {'Non-Mechanized': 74}
+  PLAN_OHV_ROUTE_DSGNTN: {'Closed': 74}
+  PLAN_SEASON_RSTRCT_CODE: {'NO': 74}
+  PLAN_ACCESS_RSTRCT: {'NONE': 74}
+  OBSRVE_ROUTE_USE_CLASS: {'Non-Mechanized': 74}
+  OBSRVE_SRFCE_TYPE: {'Natural': 74}
+  ACCURACY_FT: {'98': 64, '-1': 10}
+  COORD_SRC_TYPE: {'GPS': 64, 'IMG': 10}
+  ROUTE_SPCL_DSGNTN_TYPE: {'None': 74}
+== USGS use fields, box 4 and box 6
+  hikerpedestrian: {'Yes': 76}
+  bicycle: {'None': 74, 'Yes': 2}
+  packsaddle: {'Yes': 74, 'None': 2}
+  motorcycle: {'None': 76}
+  trailtype: {'Terra Trail': 76}
+  trailsurface: {'Unpaved Native': 76}
+  seasonopen: {'None': 76}
+  hikerpedestrian: {'Y': 12}
+  bicycle: {'None': 12}
+  name: {'None': 4, 'Mae Valley Loop': 3, 'Old Griz': 2, 'East Side': 1, 'East Ridge': 1, 'Squak Mountain Road Se': 1}
+  trailtype: {'Terra Trail': 12}
+  sourceeditdate: {'None': 12}
+== USGS use fields where the source is the Forest Service, box 7
+  hikerpedestrian: {'None': 29}
+  bicycle: {'None': 29}
+  packsaddle: {'None': 29}
+  trailtype: {'Terra Trail': 29}
+  trailsurface: {'Unpaved Native': 29}
+  nationaltraildesignation: {'None': 23, 'NST - Pacific Crest': 6}
+== Mount Hood with Forest Service snow trails set aside
+  fs terra: 37 segs 88.7 km; near OSM 15 m 93%, 50 m 99%; pieces/largest (12, 0.32750325637667116)
+  fs snow: 33 segs 53.8 km; near OSM 15 m 64%, 50 m 74%; pieces/largest (16, 0.5663773883125502)
+  OSM near fs terra 15 m: 53%; 50 m: 58%
+  OSM pieces/largest: (22, 0.6612168522366433)
+  FS terra segment ends (not at box edge) within 1 m of another FS terra segment: 48/68
+  FS terra segment ends (not at box edge) within 5 m of another FS terra segment: 50/68
+  FS terra segment ends (not at box edge) within 15 m of another FS terra segment: 50/68
+  FS terra segment ends (not at box edge) within 50 m of another FS terra segment: 54/68

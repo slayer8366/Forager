@@ -1,0 +1,489 @@
+## 1. Replica validation against WayHomeProgressTest.kt (a00742ffb) pinned literals, tolerance 0.5 m
+  PASS  line total 570: 569.9994
+  PASS  fix (0,-50) -> 570: 569.9994
+  PASS  fix (195,0) -> 380 + 25: 404.9994
+  PASS  fix (-35,-50) -> 605 (RECORD -1634): 604.9996
+  PASS  fix (-49.9,-50) -> 619.9: 619.8998
+  PASS  fix (0,-50-5) -> 570+5: 574.9994
+  PASS  fix (0,-50-10) -> 570+10: 579.9994
+  PASS  fix (0,-50-20) -> 570+20: 589.9994
+  PASS  fix (0,-50-30) -> 570+30: 599.9994
+  PASS  fix (0,-50-45) -> 570+45: 614.9994
+  PASS  fix (20,-50) -> 590: 589.9995
+  PASS  fix (0,-50) -> 570: 569.9994
+  PASS  fix (0,-45) -> 570: 569.9994
+  PASS  fix (0,-30) -> 570: 569.9994
+  PASS  fix (0,-10) -> 570: 569.9994
+  PASS  fix (-50.1,-50) -> OffLine
+  Documented 60 m figures (Juniper/Sorrel, not CI literals): H fix (100,30) 495; T (200,0) 405, (100,0) 505, (0,0) 570
+  agree  fix (100, 30): 495.0
+  agree  fix (200, 0): 405.0
+  agree  fix (100, 0): 505.0
+  agree  fix (0, 0): 570.0
+  agree  P: legs 70 m apart, fix (105,49.9): 515.0 (documented 515)
+
+VALIDATION PASSED: the figures below may be read
+
+## 2. Options
+O1 today's rule (60 m reach, +25 m on the trail); O2 the reach alone (no 25 m); O3 today's rule until the walker's place is on the final leg, then the straight line to the waypoint;
+O4@a: reach = max(15, 2a) + 10 m (a = reported accuracy, m), no 25 m: at a=4 the reach is 25 m; a=10, 30 m; a=20, 50 m. Arrival at straight <= max(15, 2a); the walks use a=4 (what Hazel fed the S22).
+
+## 3. Walks with the fix at the true position
+
+### W: the S22 walk's shape (lead-in 40 m square to the trail, straight trail 350 m, final leg 40 m square)  (line 430.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+   0.0  430.0    359.0  430.0 (1411)  430.0 (1411)  430.0 (1411)  430.0 (1411)  430.0 (1411)  430.0 (1411)  
+  20.0  410.0    355.1  430.0 (1411)  430.0 (1411)  430.0 (1411)  430.0 (1411)  430.0 (1411)  430.0 (1411)  
+  40.0  390.0    352.3  430.0 (1411)  430.0 (1411)  430.0 (1411)  414.0 (1358)  414.0 (1358)  430.0 (1411)  
+  59.0  371.0    333.4  430.0 (1411)  430.0 (1411)  430.0 (1411)  406.0 (1332)  406.0 (1332)  430.0 (1411)  
+  61.0  369.0    331.4  430.0 (1411)  430.0 (1411)  430.0 (1411)  398.0 (1306)  406.0 (1332)  430.0 (1411)  
+ 100.0  330.0    292.7  405.0 (1329)  380.0 (1247)  405.0 (1329)  350.0 (1148)  350.0 (1148)  370.0 (1214)  
+ 200.0  230.0    194.2  305.0 (1001)  280.0 ( 919)  305.0 (1001)  250.0 ( 820)  250.0 ( 820)  270.0 ( 886)  
+ 290.0  140.0    107.7  215.0 ( 705)  190.0 ( 623)  215.0 ( 705)  160.0 ( 525)  160.0 ( 525)  180.0 ( 591)  
+ 330.0  100.0     72.1  175.0 ( 574)  150.0 ( 492)  175.0 ( 574)  120.0 ( 394)  120.0 ( 394)  140.0 ( 459)  Approaching
+ 350.0   80.0     56.6  155.0 ( 509)  130.0 ( 427)  155.0 ( 509)  100.0 ( 328)  100.0 ( 328)  120.0 ( 394)  Approaching
+ 370.0   60.0     44.7  135.0 ( 443)  110.0 ( 361)  135.0 ( 443)   80.0 ( 262)   80.0 ( 262)  100.0 ( 328)  Approaching
+ 390.0   40.0     40.0  125.0 ( 410)  100.0 ( 328)  125.0 ( 410)   60.0 ( 197)   60.0 ( 197)   90.0 ( 295)  Approaching
+ 400.0   30.0     30.0  115.0 ( 377)   90.0 ( 295)  115.0 ( 377)   60.0 ( 197)   60.0 ( 197)   80.0 ( 262)  Approaching
+ 410.0   20.0     20.0  115.0 ( 377)   90.0 ( 295)  115.0 ( 377)   50.0 ( 164)   60.0 ( 197)   80.0 ( 262)  Approaching
+ 415.0   15.0     15.0  115.0 ( 377)   90.0 ( 295)   15.0 (  49)   32.0 ( 105)   50.0 ( 164)   80.0 ( 262)  ARRIVED
+ 420.0   10.0     10.0  115.0 ( 377)   90.0 ( 295)   10.0 (  33)   32.0 ( 105)   32.0 ( 105)   80.0 ( 262)  ARRIVED
+ 425.0    5.0      5.0  105.0 ( 344)   80.0 ( 262)    5.0 (  16)   24.0 (  79)   32.0 ( 105)   70.0 ( 230)  ARRIVED
+'Arrived' first shows at s = 415.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 115.0 m (377 ft), O2 90.0 m (295 ft), O3 16.0 m (52 ft), O4@4 40.0 m (131 ft), O4@10 50.0 m (164 ft), O4@20 80.0 m (262 ft); truth 16.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /    99.0; never short
+      O2:     0.0 /    84.0; never short
+      O3:     0.0 /    97.0; never short
+    O4@4:     0.0 /    35.0; never short
+   O4@10:     0.0 /    42.0; never short
+   O4@20:     0.0 /    70.0; never short
+      O1 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+      O3 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+Hazel read 412 ft at the end of the trail (s = 390, 131 ft left): compare O1 at s = 390 above.
+
+### F: W with the final leg 10 m, square to the trail  (line 400.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 340.0   60.0     51.0  135.0 ( 443)  110.0 ( 361)  135.0 ( 443)   80.0 ( 262)   80.0 ( 262)  100.0 ( 328)  Approaching
+ 370.0   30.0     22.4  105.0 ( 344)   80.0 ( 262)  105.0 ( 344)   50.0 ( 164)   50.0 ( 164)   70.0 ( 230)  Approaching
+ 379.0   21.0     14.9  105.0 ( 344)   80.0 ( 262)  105.0 ( 344)   40.0 ( 131)   50.0 ( 164)   70.0 ( 230)  ARRIVED
+ 380.0   20.0     14.1   95.0 ( 312)   70.0 ( 230)   95.0 ( 312)   40.0 ( 131)   40.0 ( 131)   60.0 ( 197)  ARRIVED
+ 390.0   10.0     10.0   95.0 ( 312)   70.0 ( 230)   95.0 ( 312)   30.0 (  98)   30.0 (  98)   60.0 ( 197)  ARRIVED
+ 395.0    5.0      5.0   85.0 ( 279)   60.0 ( 197)   85.0 ( 279)   30.0 (  98)   30.0 (  98)   50.0 ( 164)  ARRIVED
+'Arrived' first shows at s = 379.0 (straight 14.9 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 105.0 m (344 ft), O2 80.0 m (262 ft), O3 105.0 m (344 ft), O4@4 40.0 m (131 ft), O4@10 50.0 m (164 ft), O4@20 70.0 m (230 ft); truth 22.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /    84.0; never short
+      O2:     0.0 /    84.0; never short
+      O3:     0.0 /    84.0; never short
+    O4@4:     0.0 /    35.0; never short
+   O4@10:     0.0 /    41.0; never short
+   O4@20:     0.0 /    70.0; never short
+      O1 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+      O3 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+
+### F: W with the final leg 25 m, square to the trail  (line 415.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 355.0   60.0     43.0  140.0 ( 459)  115.0 ( 377)  140.0 ( 459)   75.0 ( 246)   85.0 ( 279)  105.0 ( 344)  Approaching
+ 385.0   30.0     25.5  110.0 ( 361)   85.0 ( 279)  110.0 ( 361)   45.0 ( 148)   55.0 ( 180)   75.0 ( 246)  Approaching
+ 390.0   25.0     25.0  110.0 ( 361)   85.0 ( 279)  110.0 ( 361)   45.0 ( 148)   45.0 ( 148)   75.0 ( 246)  Approaching
+ 395.0   20.0     20.0  100.0 ( 328)   75.0 ( 246)  100.0 ( 328)   45.0 ( 148)   45.0 ( 148)   65.0 ( 213)  Approaching
+ 396.0   19.0     19.0  100.0 ( 328)   75.0 ( 246)  100.0 ( 328)   45.0 ( 148)   45.0 ( 148)   65.0 ( 213)  Approaching
+ 400.0   15.0     15.0  100.0 ( 328)   75.0 ( 246)  100.0 ( 328)   45.0 ( 148)   45.0 ( 148)   65.0 ( 213)  ARRIVED
+ 409.0    6.0      6.0  100.0 ( 328)   75.0 ( 246)  100.0 ( 328)   35.0 ( 115)   45.0 ( 148)   65.0 ( 213)  ARRIVED
+'Arrived' first shows at s = 400.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 100.0 m (328 ft), O2 75.0 m (246 ft), O3 100.0 m (328 ft), O4@4 45.0 m (148 ft), O4@10 45.0 m (148 ft), O4@20 65.0 m (213 ft); truth 16.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /    85.0; never short
+      O2:     0.0 /    84.0; never short
+      O3:     0.0 /    85.0; never short
+    O4@4:     0.0 /    35.0; never short
+   O4@10:     0.0 /    41.0; never short
+   O4@20:     0.0 /    70.0; never short
+      O1 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+      O3 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+
+### F: W with the final leg 100 m, square to the trail  (line 490.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 390.0  100.0    100.0  185.0 ( 607)  160.0 ( 525)  185.0 ( 607)  120.0 ( 394)  120.0 ( 394)  150.0 ( 492)  Approaching
+ 415.0   75.0     75.0  175.0 ( 574)  150.0 ( 492)   75.0 ( 246)   90.0 ( 295)  110.0 ( 361)  140.0 ( 459)  Approaching
+ 430.0   60.0     60.0  165.0 ( 541)  140.0 ( 459)   60.0 ( 197)   80.0 ( 262)   80.0 ( 262)  130.0 ( 427)  Approaching
+ 440.0   50.0     50.0  155.0 ( 509)  130.0 ( 427)   50.0 ( 164)   70.0 ( 230)   70.0 ( 230)   90.0 ( 295)  Approaching
+ 460.0   30.0     30.0   80.0 ( 262)   80.0 ( 262)   30.0 (  98)   50.0 ( 164)   50.0 ( 164)   70.0 ( 230)  Approaching
+ 465.0   25.0     25.0   80.0 ( 262)   80.0 ( 262)   25.0 (  82)   40.0 ( 131)   50.0 ( 164)   70.0 ( 230)  Approaching
+ 470.0   20.0     20.0   70.0 ( 230)   70.0 ( 230)   20.0 (  66)   40.0 ( 131)   40.0 ( 131)   60.0 ( 197)  Approaching
+ 475.0   15.0     15.0   70.0 ( 230)   70.0 ( 230)   15.0 (  49)   30.0 (  98)   40.0 ( 131)   60.0 ( 197)  ARRIVED
+'Arrived' first shows at s = 475.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 70.0 m (230 ft), O2 70.0 m (230 ft), O3 16.0 m (52 ft), O4@4 40.0 m (131 ft), O4@10 40.0 m (131 ft), O4@20 60.0 m (197 ft); truth 16.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /   109.0; never short
+      O2:     0.0 /    84.0; never short
+      O3:    -0.0 /    97.0; never short
+    O4@4:     0.0 /    35.0; never short
+   O4@10:     0.0 /    42.0; never short
+   O4@20:     0.0 /    70.0; never short
+      O1 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+      O3 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+
+### F: W with the final leg 250 m, square to the trail  (line 640.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 390.0  250.0    250.0  335.0 (1099)  310.0 (1017)  335.0 (1099)  270.0 ( 886)  270.0 ( 886)  300.0 ( 984)  
+ 515.0  125.0    125.0  180.0 ( 591)  180.0 ( 591)  125.0 ( 410)  140.0 ( 459)  150.0 ( 492)  170.0 ( 558)  
+ 580.0   60.0     60.0  110.0 ( 361)  110.0 ( 361)   60.0 ( 197)   80.0 ( 262)   80.0 ( 262)  100.0 ( 328)  Approaching
+ 610.0   30.0     30.0   80.0 ( 262)   80.0 ( 262)   30.0 (  98)   50.0 ( 164)   50.0 ( 164)   70.0 ( 230)  Approaching
+ 620.0   20.0     20.0   70.0 ( 230)   70.0 ( 230)   20.0 (  66)   40.0 ( 131)   40.0 ( 131)   60.0 ( 197)  Approaching
+ 625.0   15.0     15.0   70.0 ( 230)   70.0 ( 230)   15.0 (  49)   30.0 (  98)   40.0 ( 131)   60.0 ( 197)  ARRIVED
+'Arrived' first shows at s = 625.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 70.0 m (230 ft), O2 70.0 m (230 ft), O3 16.0 m (52 ft), O4@4 40.0 m (131 ft), O4@10 40.0 m (131 ft), O4@20 60.0 m (197 ft); truth 16.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /   109.0; never short
+      O2:     0.0 /    84.0; never short
+      O3:    -0.0 /    97.0; never short
+    O4@4:     0.0 /    35.0; never short
+   O4@10:     0.0 /    42.0; never short
+   O4@20:     0.0 /    70.0; never short
+      O1 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+      O3 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+
+### F: W with the final leg 100 m, in line with the trail  (line 490.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 390.0  100.0    100.0  175.0 ( 574)  150.0 ( 492)  175.0 ( 574)  120.0 ( 394)  120.0 ( 394)  140.0 ( 459)  Approaching
+ 415.0   75.0     75.0  155.0 ( 509)  130.0 ( 427)   75.0 ( 246)   90.0 ( 295)  100.0 ( 328)  120.0 ( 394)  Approaching
+ 430.0   60.0     60.0  135.0 ( 443)  110.0 ( 361)   60.0 ( 197)   80.0 ( 262)   80.0 ( 262)  100.0 ( 328)  Approaching
+ 440.0   50.0     50.0  100.0 ( 328)  100.0 ( 328)   50.0 ( 164)   70.0 ( 230)   70.0 ( 230)   90.0 ( 295)  Approaching
+ 460.0   30.0     30.0   80.0 ( 262)   80.0 ( 262)   30.0 (  98)   50.0 ( 164)   50.0 ( 164)   70.0 ( 230)  Approaching
+ 465.0   25.0     25.0   80.0 ( 262)   80.0 ( 262)   25.0 (  82)   40.0 ( 131)   50.0 ( 164)   70.0 ( 230)  Approaching
+ 470.0   20.0     20.0   70.0 ( 230)   70.0 ( 230)   20.0 (  66)   40.0 ( 131)   40.0 ( 131)   60.0 ( 197)  Approaching
+ 475.0   15.0     15.0   70.0 ( 230)   70.0 ( 230)   15.0 (  49)   30.0 (  98)   40.0 ( 131)   60.0 ( 197)  ARRIVED
+'Arrived' first shows at s = 475.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 70.0 m (230 ft), O2 70.0 m (230 ft), O3 16.0 m (52 ft), O4@4 40.0 m (131 ft), O4@10 40.0 m (131 ft), O4@20 60.0 m (197 ft); truth 16.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /    84.0; never short
+      O2:     0.0 /    84.0; never short
+      O3:    -0.0 /    84.0; never short
+    O4@4:     0.0 /    35.0; never short
+   O4@10:     0.0 /    41.0; never short
+   O4@20:     0.0 /    70.0; never short
+      O1 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+      O3 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+
+### Bn: a 90-degree bend 30 m before the trail's end, final leg 40 m  (line 310.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 200.0  110.0     85.4  185.0 ( 607)  160.0 ( 525)  185.0 ( 607)  130.0 ( 427)  130.0 ( 427)  150.0 ( 492)  Approaching
+ 240.0   70.0     50.0  155.0 ( 509)  130.0 ( 427)  155.0 ( 509)   90.0 ( 295)   90.0 ( 295)  120.0 ( 394)  Approaching
+ 260.0   50.0     41.2  145.0 ( 476)  120.0 ( 394)  145.0 ( 476)   80.0 ( 262)   90.0 ( 295)  110.0 ( 361)  Approaching
+ 270.0   40.0     40.0  145.0 ( 476)  120.0 ( 394)  145.0 ( 476)   60.0 ( 197)   70.0 ( 230)  110.0 ( 361)  Approaching
+ 280.0   30.0     30.0  135.0 ( 443)  110.0 ( 361)  135.0 ( 443)   60.0 ( 197)   60.0 ( 197)  100.0 ( 328)  Approaching
+ 290.0   20.0     20.0  125.0 ( 410)  100.0 ( 328)  125.0 ( 410)   50.0 ( 164)   60.0 ( 197)   80.0 ( 262)  Approaching
+ 295.0   15.0     15.0  115.0 ( 377)   90.0 ( 295)   15.0 (  49)   30.0 (  98)   50.0 ( 164)   80.0 ( 262)  ARRIVED
+ 300.0   10.0     10.0  115.0 ( 377)   90.0 ( 295)   10.0 (  33)   30.0 (  98)   30.0 (  98)   70.0 ( 230)  ARRIVED
+ 305.0    5.0      5.0  105.0 ( 344)   80.0 ( 262)    5.0 (  16)   20.0 (  66)   30.0 (  98)   70.0 ( 230)  ARRIVED
+'Arrived' first shows at s = 295.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 115.0 m (377 ft), O2 90.0 m (295 ft), O3 16.0 m (52 ft), O4@4 40.0 m (131 ft), O4@10 50.0 m (164 ft), O4@20 80.0 m (262 ft); truth 16.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /   106.0; never short
+      O2:     0.0 /    84.0; never short
+      O3:    -0.0 /   106.0; never short
+    O4@4:     0.0 /    35.0; never short
+   O4@10:     0.0 /    42.0; never short
+   O4@20:     0.0 /    70.0; never short
+      O1 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+      O3 rises while the walker advances: 1 steps, 7.0 m in all; first at s=99 (+7.0)
+
+### U: the trail turns back on itself, legs 30 m apart; the final leg leaves the return leg's end  (line 510.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+  40.0  470.0     70.0  510.0 (1673)  510.0 (1673)  510.0 (1673)  494.0 (1621)  494.0 (1621)  510.0 (1673)  Approaching
+ 140.0  370.0    122.1  445.0 (1460)  420.0 (1378)  445.0 (1460)  390.0 (1280)  390.0 (1280)  410.0 (1345)  
+ 240.0  270.0    211.9  355.0 (1165)  330.0 (1083)  355.0 (1165)  290.0 ( 951)  290.0 ( 951)  320.0 (1050)  
+ 270.0  240.0    204.0  345.0 (1132)  320.0 (1050)  345.0 (1132)  260.0 ( 853)  270.0 ( 886)  310.0 (1017)  
+ 300.0  210.0    174.6  375.0 (1230)  350.0 (1148)  375.0 (1230)  230.0 ( 755)  230.0 ( 755)  340.0 (1115)  
+ 340.0  170.0    136.0  415.0 (1362)  390.0 (1280)  415.0 (1362)  190.0 ( 623)  190.0 ( 623)  380.0 (1247)  
+ 400.0  110.0     80.6  475.0 (1558)  450.0 (1476)  475.0 (1558)  130.0 ( 427)  130.0 ( 427)  440.0 (1444)  Approaching
+ 440.0   70.0     50.0  486.0 (1594)  486.0 (1594)  486.0 (1594)   90.0 ( 295)   90.0 ( 295)  478.0 (1568)  Approaching
+ 470.0   40.0     40.0  510.0 (1673)  510.0 (1673)  510.0 (1673)   60.0 ( 197)   70.0 ( 230)  502.0 (1647)  Approaching
+ 480.0   30.0     30.0  510.0 (1673)  510.0 (1673)  510.0 (1673)   60.0 ( 197)   60.0 ( 197)  494.0 (1621)  Approaching
+ 490.0   20.0     20.0  502.0 (1647)  502.0 (1647)  502.0 (1647)   50.0 ( 164)   60.0 ( 197)   80.0 ( 262)  Approaching
+ 495.0   15.0     15.0  486.0 (1594)  486.0 (1594)   15.0 (  49)   32.0 ( 105)   50.0 ( 164)   80.0 ( 262)  ARRIVED
+ 500.0   10.0     10.0  115.0 ( 377)   90.0 ( 295)   10.0 (  33)   32.0 ( 105)   32.0 ( 105)   70.0 ( 230)  ARRIVED
+ 505.0    5.0      5.0  105.0 ( 344)   80.0 ( 262)    5.0 (  16)   24.0 (  79)   32.0 ( 105)   70.0 ( 230)  ARRIVED
+'Arrived' first shows at s = 495.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 494.0 m (1621 ft), O2 494.0 m (1621 ft), O3 16.0 m (52 ft), O4@4 40.0 m (131 ft), O4@10 50.0 m (164 ft), O4@20 80.0 m (262 ft); truth 16.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /   484.0; never short
+      O2:     0.0 /   484.0; never short
+      O3:    -0.0 /   484.0; never short
+    O4@4:     0.0 /    35.0; never short
+   O4@10:     0.0 /    70.0; never short
+   O4@20:     0.0 /   470.0; never short
+      O1 rises while the walker advances: 20 steps, 199.0 m in all; first at s=91 (+17.0)
+      O2 rises while the walker advances: 20 steps, 190.0 m in all; first at s=278 (+10.0)
+      O3 rises while the walker advances: 20 steps, 199.0 m in all; first at s=91 (+17.0)
+   O4@10 rises while the walker advances: 2 steps, 50.0 m in all; first at s=279 (+20.0)
+   O4@20 rises while the walker advances: 20 steps, 192.0 m in all; first at s=279 (+10.0)
+
+### U: the trail turns back on itself, legs 20 m apart; the final leg leaves the return leg's end  (line 500.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+  40.0  460.0     60.0  500.0 (1640)  500.0 (1640)  500.0 (1640)  484.0 (1588)  484.0 (1588)  500.0 (1640)  Approaching
+ 140.0  360.0    116.6  435.0 (1427)  410.0 (1345)  435.0 (1427)  380.0 (1247)  380.0 (1247)  400.0 (1312)  
+ 240.0  260.0    208.8  345.0 (1132)  320.0 (1050)  345.0 (1132)  280.0 ( 919)  280.0 ( 919)  310.0 (1017)  
+ 270.0  230.0    194.2  345.0 (1132)  320.0 (1050)  345.0 (1132)  280.0 ( 919)  290.0 ( 951)  310.0 (1017)  
+ 300.0  200.0    164.9  375.0 (1230)  350.0 (1148)  375.0 (1230)  310.0 (1017)  320.0 (1050)  340.0 (1115)  
+ 340.0  160.0    126.5  415.0 (1362)  390.0 (1280)  415.0 (1362)  350.0 (1148)  360.0 (1181)  380.0 (1247)  
+ 400.0  100.0     72.1  475.0 (1558)  450.0 (1476)  475.0 (1558)  410.0 (1345)  420.0 (1378)  440.0 (1444)  Approaching
+ 440.0   60.0     44.7  492.0 (1614)  492.0 (1614)  492.0 (1614)  450.0 (1476)  460.0 (1509)  484.0 (1588)  Approaching
+ 470.0   30.0     30.0  500.0 (1640)  500.0 (1640)  500.0 (1640)   60.0 ( 197)   60.0 ( 197)  492.0 (1614)  Approaching
+ 480.0   20.0     20.0  500.0 (1640)  500.0 (1640)  500.0 (1640)   50.0 ( 164)   60.0 ( 197)  484.0 (1588)  Approaching
+ 485.0   15.0     15.0  492.0 (1614)  492.0 (1614)   15.0 (  49)   32.0 ( 105)   50.0 ( 164)  476.0 (1562)  ARRIVED
+ 490.0   10.0     10.0  492.0 (1614)  492.0 (1614)   10.0 (  33)   32.0 ( 105)   32.0 ( 105)   70.0 ( 230)  ARRIVED
+'Arrived' first shows at s = 485.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 500.0 m (1640 ft), O2 500.0 m (1640 ft), O3 16.0 m (52 ft), O4@4 40.0 m (131 ft), O4@10 50.0 m (164 ft), O4@20 476.0 m (1562 ft); truth 16.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /   484.0; never short
+      O2:     0.0 /   484.0; never short
+      O3:     0.0 /   482.0; never short
+    O4@4:     0.0 /   431.0; never short
+   O4@10:     0.0 /   441.0; never short
+   O4@20:     0.0 /   470.0; never short
+      O1 rises while the walker advances: 20 steps, 199.0 m in all; first at s=91 (+17.0)
+      O2 rises while the walker advances: 20 steps, 190.0 m in all; first at s=263 (+10.0)
+      O3 rises while the walker advances: 20 steps, 199.0 m in all; first at s=91 (+17.0)
+    O4@4 rises while the walker advances: 20 steps, 198.0 m in all; first at s=264 (+10.0)
+   O4@10 rises while the walker advances: 20 steps, 196.0 m in all; first at s=267 (+10.0)
+   O4@20 rises while the walker advances: 21 steps, 200.0 m in all; first at s=264 (+10.0)
+
+### R: after a re-route from a stray at (175, 75): new lead-in 75 m south, trail 175 m, final leg 40 m  (line 290.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+   0.0  290.0    178.5  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  
+  10.0  280.0    176.8  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  
+  25.0  265.0    175.3  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  
+  30.0  260.0    175.1  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  280.6 ( 921)  290.0 ( 951)  290.0 ( 951)  
+  50.0  240.0    175.6  290.0 ( 951)  290.0 ( 951)  290.0 ( 951)  261.9 ( 859)  261.9 ( 859)  280.6 ( 921)  
+  60.0  230.0    176.8  280.6 ( 921)  280.6 ( 921)  280.6 ( 921)  252.5 ( 828)  252.5 ( 828)  271.2 ( 890)  
+  65.0  225.0    177.6  280.6 ( 921)  280.6 ( 921)  280.6 ( 921)  243.1 ( 798)  252.5 ( 828)  271.2 ( 890)  
+  75.0  215.0    179.5  271.2 ( 890)  271.2 ( 890)  271.2 ( 890)  233.7 ( 767)  243.1 ( 798)  261.9 ( 859)  
+ 100.0  190.0    155.2  261.9 ( 859)  261.9 ( 859)  261.9 ( 859)  205.3 ( 673)  224.4 ( 736)  252.5 ( 828)  
+ 200.0   90.0     64.0  171.9 ( 564)  146.9 ( 482)  171.9 ( 564)  108.1 ( 355)  117.8 ( 386)  137.2 ( 450)  Approaching
+ 250.0   40.0     40.0  123.3 ( 405)   98.3 ( 323)  123.3 ( 405)   59.4 ( 195)   69.2 ( 227)   88.6 ( 291)  Approaching
+ 270.0   20.0     20.0  113.6 ( 373)   88.6 ( 291)  113.6 ( 373)   49.7 ( 163)   59.4 ( 195)   78.9 ( 259)  Approaching
+ 275.0   15.0     15.0  113.6 ( 373)   88.6 ( 291)   15.0 (  49)   32.0 ( 105)   49.7 ( 163)   78.9 ( 259)  ARRIVED
+ 280.0   10.0     10.0  113.6 ( 373)   88.6 ( 291)   10.0 (  33)   32.0 ( 105)   32.0 ( 105)   78.9 ( 259)  ARRIVED
+'Arrived' first shows at s = 275.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 113.6 m (373 ft), O2 88.6 m (291 ft), O3 16.0 m (52 ft), O4@4 40.0 m (131 ft), O4@10 49.7 m (163 ft), O4@20 78.9 m (259 ft); truth 16.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /    97.6; never short
+      O2:     0.0 /    83.9; never short
+      O3:     0.0 /    97.3; never short
+    O4@4:     0.0 /    34.8; never short
+   O4@10:     0.0 /    41.8; never short
+   O4@20:     0.0 /    70.5; never short
+      O1 rises while the walker advances: 1 steps, 5.9 m in all; first at s=134 (+5.9)
+      O3 rises while the walker advances: 1 steps, 5.9 m in all; first at s=134 (+5.9)
+
+## 4. Walks with a displaced fix on W (the whole walk with the same error), fix 20 m and 40 m north of the true position (toward the waypoint's side)
+
+### W with every fix displaced by (0, 20) m (east, north)  (line 430.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 100.0  330.0    290.7  405.0 (1329)  380.0 (1247)  405.0 (1329)  340.0 (1115)  350.0 (1148)  370.0 (1214)  
+ 200.0  230.0    191.0  305.0 (1001)  280.0 ( 919)  305.0 (1001)  240.0 ( 787)  250.0 ( 820)  270.0 ( 886)  
+ 330.0  100.0     63.2  175.0 ( 574)  150.0 ( 492)  175.0 ( 574)  110.0 ( 361)  120.0 ( 394)  140.0 ( 459)  Approaching
+ 370.0   60.0     28.3  135.0 ( 443)  110.0 ( 361)  135.0 ( 443)   70.0 ( 230)   80.0 ( 262)  100.0 ( 328)  Approaching
+ 390.0   40.0     20.0  115.0 ( 377)   90.0 ( 295)  115.0 ( 377)   50.0 ( 164)   60.0 ( 197)   80.0 ( 262)  Approaching
+ 395.0   35.0     15.0  115.0 ( 377)   90.0 ( 295)   15.0 (  49)   32.0 ( 105)   50.0 ( 164)   80.0 ( 262)  ARRIVED
+ 400.0   30.0     10.0  115.0 ( 377)   90.0 ( 295)   10.0 (  33)   32.0 ( 105)   32.0 ( 105)   80.0 ( 262)  ARRIVED
+ 410.0   20.0      0.0  105.0 ( 344)   80.0 ( 262)    0.0 (   0)   24.0 (  79)   24.0 (  79)   70.0 ( 230)  ARRIVED
+ 415.0   15.0      5.0   95.0 ( 312)   70.0 ( 230)    5.0 (  16)   16.0 (  52)   24.0 (  79)   60.0 ( 197)  ARRIVED
+'Arrived' first shows at s = 395.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 115.0 m (377 ft), O2 90.0 m (295 ft), O3 16.0 m (52 ft), O4@4 40.0 m (131 ft), O4@10 50.0 m (164 ft), O4@20 80.0 m (262 ft); truth 36.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /    81.0; never short
+      O2:     0.0 /    64.0; never short
+      O3:   -20.0 /    81.0; SHORT at 2 rows, worst -20.0 at s=393
+    O4@4:    -3.0 /    15.0; SHORT at 13 rows, worst -3.0 at s=427
+   O4@10:     0.0 /    22.0; never short
+   O4@20:     0.0 /    50.0; never short
+      O1 rises while the walker advances: 1 steps, 17.0 m in all; first at s=93 (+17.0)
+      O3 rises while the walker advances: 6 steps, 22.0 m in all; first at s=93 (+17.0)
+
+### W with every fix displaced by (0, 40) m (east, north)  (line 430.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 100.0  330.0    290.0  395.0 (1296)  370.0 (1214)  395.0 (1296)  360.0 (1181)  360.0 (1181)  360.0 (1181)  
+ 200.0  230.0    190.0  295.0 ( 968)  270.0 ( 886)  295.0 ( 968)  260.0 ( 853)  260.0 ( 853)  260.0 ( 853)  
+ 330.0  100.0     60.0  165.0 ( 541)  140.0 ( 459)  165.0 ( 541)  130.0 ( 427)  130.0 ( 427)  130.0 ( 427)  Approaching
+ 370.0   60.0     20.0  125.0 ( 410)  100.0 ( 328)   20.0 (  66)    8.0 (  26)   16.0 (  52)   90.0 ( 295)  Approaching
+ 375.0   55.0     15.0  115.0 ( 377)   90.0 ( 295)   15.0 (  49)   16.0 (  52)   24.0 (  79)   80.0 ( 262)  ARRIVED
+ 390.0   40.0      0.0  105.0 ( 344)   80.0 ( 262)    0.0 (   0)   24.0 (  79)   24.0 (  79)   70.0 ( 230)  ARRIVED
+ 400.0   30.0     10.0   95.0 ( 312)   70.0 ( 230)   10.0 (  33)    8.0 (  26)   16.0 (  52)   32.0 ( 105)  ARRIVED
+ 410.0   20.0     20.0   32.0 ( 105)   32.0 ( 105)   20.0 (  66)    0.0 (   0)    8.0 (  26)   24.0 (  79)  Approaching
+ 415.0   15.0     25.0   32.0 ( 105)   32.0 ( 105)   25.0 (  82)    0.0 (   0)    0.0 (   0)   24.0 (  79)  Approaching
+'Arrived' first shows at s = 375.0 (straight 15.0 m); the last figure before it is the row just above.
+Last figure before 'Arrived': O1 125.0 m (410 ft), O2 100.0 m (328 ft), O3 16.0 m (52 ft), O4@4 16.0 m (52 ft), O4@10 24.0 m (79 ft), O4@20 80.0 m (262 ft); truth 56.0 m.
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     0.0 /    69.0; never short
+      O2:     0.0 /    44.0; never short
+      O3:   -40.0 /    69.0; SHORT at 15 rows, worst -40.0 at s=365
+    O4@4:   -65.0 /    30.0; SHORT at 75 rows, worst -65.0 at s=365
+   O4@10:   -70.0 /    30.0; SHORT at 80 rows, worst -70.0 at s=360
+   O4@20:     0.0 /    30.0; never short
+      O1 rises while the walker advances: 1 steps, 17.0 m in all; first at s=76 (+17.0)
+      O3 rises while the walker advances: 26 steps, 42.0 m in all; first at s=76 (+17.0)
+    O4@4 rises while the walker advances: 2 steps, 16.0 m in all; first at s=366 (+8.0)
+   O4@10 rises while the walker advances: 3 steps, 24.0 m in all; first at s=361 (+8.0)
+
+### W with every fix displaced by (0, -40) m (east, north)  (line 430.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 100.0  330.0    300.8  395.0 (1296)  370.0 (1214)  395.0 (1296)  350.0 (1148)  350.0 (1148)  350.0 (1148)  
+ 200.0  230.0    206.2  295.0 ( 968)  270.0 ( 886)  295.0 ( 968)  250.0 ( 820)  250.0 ( 820)  250.0 ( 820)  
+ 330.0  100.0    100.0  165.0 ( 541)  140.0 ( 459)  165.0 ( 541)  120.0 ( 394)  120.0 ( 394)  120.0 ( 394)  Approaching
+ 370.0   60.0     82.5  125.0 ( 410)  100.0 ( 328)  125.0 ( 410)   80.0 ( 262)   80.0 ( 262)   80.0 ( 262)  Approaching
+ 390.0   40.0     80.0  105.0 ( 344)   80.0 ( 262)  105.0 ( 344)   60.0 ( 197)   60.0 ( 197)   60.0 ( 197)  Approaching
+ 400.0   30.0     70.0  115.0 ( 377)   90.0 ( 295)  115.0 ( 377)   60.0 ( 197)   40.0 ( 131)   70.0 ( 230)  Approaching
+ 410.0   20.0     60.0  115.0 ( 377)   90.0 ( 295)   60.0 ( 197)   50.0 ( 164)   60.0 ( 197)   80.0 ( 262)  Approaching
+ 415.0   15.0     55.0  115.0 ( 377)   90.0 ( 295)   55.0 ( 180)   50.0 ( 164)   60.0 ( 197)   80.0 ( 262)  Approaching
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:    40.0 /   158.0; never short
+      O2:    35.0 /   158.0; never short
+      O3:    40.0 /   158.0; never short
+    O4@4:    15.0 /   138.0; never short
+   O4@10:    10.0 /   138.0; never short
+   O4@20:    20.0 /   138.0; never short
+      O1 rises while the walker advances: 60 steps, 69.0 m in all; first at s=40 (+1.0)
+      O2 rises while the walker advances: 60 steps, 69.0 m in all; first at s=40 (+1.0)
+      O3 rises while the walker advances: 60 steps, 69.0 m in all; first at s=40 (+1.0)
+    O4@4 rises while the walker advances: 51 steps, 69.0 m in all; first at s=40 (+1.0)
+   O4@10 rises while the walker advances: 51 steps, 69.0 m in all; first at s=40 (+1.0)
+   O4@20 rises while the walker advances: 51 steps, 69.0 m in all; first at s=40 (+1.0)
+
+### W with every fix displaced by (30, 0) m (east, north)  (line 430.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 100.0  330.0    263.1  375.0 (1230)  350.0 (1148)  375.0 (1230)  320.0 (1050)  320.0 (1050)  340.0 (1115)  
+ 200.0  230.0    164.9  275.0 ( 902)  250.0 ( 820)  275.0 ( 902)  220.0 ( 722)  220.0 ( 722)  240.0 ( 787)  
+ 330.0  100.0     50.0  145.0 ( 476)  120.0 ( 394)  145.0 ( 476)   90.0 ( 295)   90.0 ( 295)  110.0 ( 361)  Approaching
+ 370.0   60.0     41.2  105.0 ( 344)   80.0 ( 262)  105.0 ( 344)   50.0 ( 164)   50.0 ( 164)   70.0 ( 230)  Approaching
+ 390.0   40.0     50.0   85.0 ( 279)   60.0 ( 197)   50.0 ( 164)   40.0 ( 131)   40.0 ( 131)   60.0 ( 197)  Approaching
+ 400.0   30.0     42.4   85.0 ( 279)   60.0 ( 197)   42.4 ( 139)   40.0 ( 131)   40.0 ( 131)   50.0 ( 164)  Approaching
+ 410.0   20.0     36.1   85.0 ( 279)   60.0 ( 197)   36.1 ( 118)   40.0 ( 131)   40.0 ( 131)   50.0 ( 164)  Approaching
+ 415.0   15.0     33.5   85.0 ( 279)   60.0 ( 197)   33.5 ( 110)   40.0 ( 131)   40.0 ( 131)   50.0 ( 164)  Approaching
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     1.0 /    78.0; never short
+      O2:     1.0 /    54.0; never short
+      O3:   -12.3 /    54.0; SHORT at 9 rows, worst -12.3 at s=375
+    O4@4:   -55.0 /    39.0; SHORT at 375 rows, worst -55.0 at s=15
+   O4@10:   -59.0 /    39.0; SHORT at 379 rows, worst -59.0 at s=11
+   O4@20:     1.0 /    40.0; never short
+      O1 rises while the walker advances: 1 steps, 7.0 m in all; first at s=69 (+7.0)
+      O3 rises while the walker advances: 8 steps, 10.9 m in all; first at s=69 (+7.0)
+    O4@4 rises while the walker advances: 2 steps, 20.0 m in all; first at s=17 (+10.0)
+   O4@10 rises while the walker advances: 6 steps, 100.0 m in all; first at s=11 (+10.0)
+
+### W with every fix displaced by (-30, 0) m (east, north)  (line 430.0 m)
+s = metres walked along the line; truth = line metres left; straight = straight line to the waypoint; figures in m (ft).
+     s  truth straight             O1             O2             O3           O4@4          O4@10          O4@20  state
+ 100.0  330.0    322.5  430.0 (1411)  430.0 (1411)  430.0 (1411)  380.0 (1247)  380.0 (1247)  422.0 (1385)  
+ 200.0  230.0    223.6  335.0 (1099)  310.0 (1017)  335.0 (1099)  280.0 ( 919)  280.0 ( 919)  300.0 ( 984)  
+ 330.0  100.0     98.5  205.0 ( 673)  180.0 ( 591)  205.0 ( 673)  150.0 ( 492)  150.0 ( 492)  170.0 ( 558)  Approaching
+ 370.0   60.0     64.0  165.0 ( 541)  140.0 ( 459)  165.0 ( 541)  110.0 ( 361)  110.0 ( 361)  130.0 ( 427)  Approaching
+ 390.0   40.0     50.0  155.0 ( 509)  130.0 ( 427)  155.0 ( 509)   90.0 ( 295)  100.0 ( 328)  120.0 ( 394)  Approaching
+ 400.0   30.0     42.4  145.0 ( 476)  120.0 ( 394)  145.0 ( 476)   90.0 ( 295)   90.0 ( 295)  110.0 ( 361)  Approaching
+ 410.0   20.0     36.1  145.0 ( 476)  120.0 ( 394)  145.0 ( 476)   80.0 ( 262)   90.0 ( 295)  110.0 ( 361)  Approaching
+ 415.0   15.0     33.5  145.0 ( 476)  120.0 ( 394)  145.0 ( 476)   70.0 ( 230)   80.0 ( 262)  110.0 ( 361)  Approaching
+Long by (figure minus truth) over the walk before 'Arrived', per option: min / max; 'short' lists any row under the truth.
+      O1:     1.0 /   138.0; never short
+      O2:     1.0 /   114.0; never short
+      O3:     1.0 /   138.0; never short
+    O4@4:     1.0 /    69.0; never short
+   O4@10:     0.0 /    72.0; never short
+   O4@20:     1.0 /   100.0; never short
+      O1 rises while the walker advances: 1 steps, 7.0 m in all; first at s=129 (+7.0)
+      O3 rises while the walker advances: 1 steps, 7.0 m in all; first at s=129 (+7.0)
+    O4@4 rises while the walker advances: 3 steps, 24.0 m in all; first at s=46 (+8.0)
+   O4@10 rises while the walker advances: 4 steps, 86.0 m in all; first at s=41 (+8.0)
+   O4@20 rises while the walker advances: 1 steps, 8.0 m in all; first at s=40 (+8.0)
+
+## 5. Error sweeps: every fix the gate admits (0 to 50 m, every 10 degrees), walker every 5 m along the line
+
+### Sweep: W, previous place = the walker's true place
+Walker every 5 m along the line; fix displaced 0 to 50 m (2.5 m steps) at every 10 degrees; placements where the HUD would say 'Arrived' are left out.
+option placements  short  worst short  worst long  where the worst short was
+    O1      60843      0          0.0       176.3  
+    O2      60843      0          0.0       176.3  
+    O3      60843    843        -78.6       176.3  walker at s=325, fix 50.0 m off at 60 deg
+  O4@4      60843   9987        -87.0       131.1  walker at s=335, fix 47.5 m off at 40 deg
+ O4@10      60843   9198        -92.0       131.1  walker at s=330, fix 47.5 m off at 40 deg
+ O4@20      60843   1723        -80.0       156.3  walker at s=0, fix 50.0 m off at 100 deg
+
+### Sweep: F: final leg 100 m square, previous place = the walker's true place
+Walker every 5 m along the line; fix displaced 0 to 50 m (2.5 m steps) at every 10 degrees; placements where the HUD would say 'Arrived' are left out.
+option placements  short  worst short  worst long  where the worst short was
+    O1      69637      0          0.0       180.0  
+    O2      69637      0          0.0       176.3  
+    O3      69637   4578        -89.2       176.3  walker at s=335, fix 50.0 m off at 40 deg
+  O4@4      69637  11366       -100.0       131.1  walker at s=340, fix 50.0 m off at 0 deg
+ O4@10      69637  10444       -100.0       131.1  walker at s=330, fix 47.5 m off at 40 deg
+ O4@20      69637   1866       -100.0       156.3  walker at s=340, fix 50.0 m off at 0 deg
+
+### Sweep: Bn, previous place = the walker's true place
+Walker every 5 m along the line; fix displaced 0 to 50 m (2.5 m steps) at every 10 degrees; placements where the HUD would say 'Arrived' are left out.
+option placements  short  worst short  worst long  where the worst short was
+    O1      43604      0          0.0       176.3  
+    O2      43604      0          0.0       176.3  
+    O3      43604    903        -71.7       176.3  walker at s=220, fix 50.0 m off at 70 deg
+  O4@4      43604   7272        -90.0       131.1  walker at s=180, fix 47.5 m off at 50 deg
+ O4@10      43604   6689        -95.0       131.1  walker at s=175, fix 47.5 m off at 50 deg
+ O4@20      43604   1152        -80.0       156.3  walker at s=0, fix 50.0 m off at 100 deg
+
+### Sweep: U, legs 30 m apart, previous place = the walker's true place
+Walker every 5 m along the line; fix displaced 0 to 50 m (2.5 m steps) at every 10 degrees; placements where the HUD would say 'Arrived' are left out.
+option placements  short  worst short  worst long  where the worst short was
+    O1      72437      0          0.0       562.7  
+    O2      72437      0          0.0       562.7  
+    O3      72437   1065       -479.4       531.1  walker at s=0, fix 50.0 m off at 30 deg
+  O4@4      72437  13617       -478.0       531.1  walker at s=0, fix 45.0 m off at 20 deg
+ O4@10      72437  11611       -473.0       531.1  walker at s=5, fix 42.5 m off at 10 deg
+ O4@20      72437   1546       -470.0       554.7  walker at s=0, fix 50.0 m off at 0 deg
+
+### Sweep: U, legs 20 m apart, previous place = the walker's true place
+Walker every 5 m along the line; fix displaced 0 to 50 m (2.5 m steps) at every 10 degrees; placements where the HUD would say 'Arrived' are left out.
+option placements  short  worst short  worst long  where the worst short was
+    O1      70969      0          0.0       550.5  
+    O2      70969      0          0.0       550.5  
+    O3      70969   1161       -477.6       531.1  walker at s=0, fix 50.0 m off at 30 deg
+  O4@4      70969  12344       -484.0       531.1  walker at s=0, fix 45.0 m off at 20 deg
+ O4@10      70969  10564       -471.0       531.1  walker at s=5, fix 40.0 m off at 10 deg
+ O4@20      70969   1444       -460.0       542.7  walker at s=0, fix 50.0 m off at 0 deg
+
+### Sweep: W, previous = none (as WayHomeProgressTest.assertNeverShort tests)
+Walker every 5 m along the line; fix displaced 0 to 50 m (2.5 m steps) at every 10 degrees; placements where the HUD would say 'Arrived' are left out.
+option placements  short  worst short  worst long  where the worst short was
+    O1      60843      0          0.0       176.3  
+    O2      60843      0          0.0       176.3  
+    O3      60843    843        -78.6       176.3  walker at s=325, fix 50.0 m off at 60 deg
+  O4@4      60843   9966        -87.0       156.3  walker at s=335, fix 47.5 m off at 40 deg
+ O4@10      60843   9177        -92.0       156.3  walker at s=330, fix 47.5 m off at 40 deg
+ O4@20      60843   1723        -80.0       156.3  walker at s=0, fix 50.0 m off at 100 deg
+
+## 6. O4's shortness against the true error, on W: the walker at the end of the trail (s = 390), fix displaced north by d
+   d       O1       O2     O4@4    O4@10    O4@20   truth 40.0
+ 0.0    125.0    100.0     60.0     60.0     90.0
+ 5.0    115.0     90.0     60.0     60.0     80.0
+10.0    115.0     90.0     60.0     60.0     80.0
+15.0    115.0     90.0     60.0     60.0     80.0
+17.5    115.0     90.0     50.0     60.0     80.0
+20.0    115.0     90.0     50.0     60.0     80.0
+25.0    115.0     90.0     32.0     50.0     80.0
+30.0    115.0     90.0     32.0     32.0     80.0
+40.0    105.0     80.0     24.0     24.0     70.0
+50.0     95.0     70.0      8.0     16.0     32.0

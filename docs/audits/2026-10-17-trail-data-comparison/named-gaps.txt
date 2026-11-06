@@ -1,0 +1,76 @@
+== box 1 mount-hood: FS segments with under 80% of length within 50 m of OSM (trail_no, name, type, km, near15, near50)
+    SNO-2645 WEST LEG NORDIC                  SNOW    6.5 km    4%   15%
+   SNO-2645A WESTLEG NORDIC BYPASS            SNOW    3.9 km    4%   16%
+     SNO-691 SUMMIT                           SNOW    1.3 km   45%   68%
+   SNO-2656D TRILLIUM-BARLOW NORDIC           SNOW    1.1 km    3%    7%
+        795C LITTLE ZIGZAG FALLS              TERRA   0.9 km   34%   58%
+    SNO-691A HEMLOCK NORDIC                   SNOW    0.8 km    2%    7%
+        795A LAUREL HILL CHUTE                TERRA   0.8 km   35%   53%
+    SNO-692A ENID LAKE NORDIC                 SNOW    0.7 km    9%   33%
+     SNO-692 KURTS KONNECTION NORDIC          SNOW    0.7 km    2%   11%
+    SNO-661A ALPINE GLADE CONNECTOR           SNOW    0.5 km   23%   63%
+   SNO-2656A TRILLIUM WINTER ACCESS HILL      SNOW    0.4 km    0%    0%
+    SNO-691B LAKE ROAD NORDIC                 SNOW    0.4 km    0%   44%
+    SNO-691A HEMLOCK NORDIC                   SNOW    0.3 km    0%    7%
+    SNO-660B ALPINE LOOP NORDIC               SNOW    0.3 km    5%   16%
+  (of 70 segments; those at 80% or more within 50 m are omitted)
+  OSM ways with under 20% of length within 15 m of FS, longest first (highway, name, km):
+    path      Timberline To Town Trail #756              7.6 km informal=None access=None
+    path      Optimator Trail                            3.7 km informal=None access=None
+    path      Sunrise Trail                              2.1 km informal=None access=None
+    footway   Upper Setset Trail                         2.1 km informal=None access=None
+    track     Mt. Hood Loop Highway (1925)               1.8 km informal=None access=None
+    track     (unnamed)                                  1.6 km informal=None access=None
+    path      (unnamed)                                  1.6 km informal=yes access=None
+    path      Gnar-Gnar Trail                            1.5 km informal=None access=None
+    track     Low Road                                   1.4 km informal=None access=None
+    track     Skyline Road                               1.2 km informal=None access=None
+    path      (unnamed)                                  1.2 km informal=None access=None
+    track     Cannonball                                 1.0 km informal=None access=None
+    (93 such ways, 49.2 km)
+== box 3 chamberlain-basin: FS segments with under 80% of length within 50 m of OSM (trail_no, name, type, km, near15, near50)
+         001 CHAMBERLAIN                      TERRA  11.0 km   54%   78%
+         002 COLD MEADOWS                     TERRA   9.1 km   53%   76%
+         017 THREE BLAZE                      TERRA   7.1 km    0%    2%
+         026 QUEEN CREEK                      TERRA   6.7 km   27%   56%
+         024 FLOSSIE LAKE                     TERRA   6.7 km   49%   76%
+         342 LOWER LODGEPOLE                  TERRA   5.4 km    0%    0%
+  (of 10 segments; those at 80% or more within 50 m are omitted)
+  OSM ways with under 20% of length within 15 m of FS, longest first (highway, name, km):
+    (0 such ways, 0.0 km)
+== box 5 cape-perpetua: FS segments with under 80% of length within 50 m of OSM (trail_no, name, type, km, near15, near50)
+        1387 DISCOVERY LOOP                   TERRA   1.8 km    5%   23%
+        1365 GIANT SPRUCE                     TERRA   1.4 km   47%   75%
+  (of 8 segments; those at 80% or more within 50 m are omitted)
+  OSM ways with under 20% of length within 15 m of FS, longest first (highway, name, km):
+    track     United States Forest Service Road 5362     7.9 km informal=None access=None
+    track     United States Forest Service Road 5360-423   5.0 km informal=None access=None
+    track     United States Forest Service Road 1046-413   4.6 km informal=None access=None
+    track     United States Forest Service Road 5591     2.7 km informal=None access=None
+    track     (unnamed)                                  2.7 km informal=None access=None
+    track     United States Forest Service Road 5360-441   2.2 km informal=None access=None
+    track     United States Forest Service Road 5360-431   2.0 km informal=None access=None
+    track     United States Forest Service Road 5455     1.9 km informal=None access=None
+    track     (unnamed)                                  1.8 km informal=None access=None
+    track     (unnamed)                                  1.7 km informal=None access=None
+    path      (unnamed)                                  1.6 km informal=None access=None
+    track     (unnamed)                                  1.5 km informal=None access=None
+    (138 such ways, 68.8 km)
+== box 7 three-sisters: FS segments with under 80% of length within 50 m of OSM (trail_no, name, type, km, near15, near50)
+        3520 LOUISE CREEK                     TERRA   5.0 km   56%   65%
+        4331 SEPARATION MEADOW                TERRA   3.7 km    0%    3%
+          36 SOUTH SISTER CLIMBER             TERRA   2.9 km   23%   48%
+  (of 15 segments; those at 80% or more within 50 m are omitted)
+  OSM ways with under 20% of length within 15 m of FS, longest first (highway, name, km):
+    path      (unnamed)                                  5.3 km informal=None access=None
+    path      (unnamed)                                  2.8 km informal=None access=None
+    path      South Sister Climber Trail #36             1.9 km informal=None access=None
+    path      (unnamed)                                  1.1 km informal=None access=None
+    path      (unnamed)                                  0.7 km informal=None access=None
+    path      (unnamed)                                  0.6 km informal=None access=None
+    path      (unnamed)                                  0.5 km informal=None access=None
+    path      (unnamed)                                  0.4 km informal=None access=None
+    path      (unnamed)                                  0.4 km informal=None access=None
+    path      (unnamed)                                  0.3 km informal=None access=None
+    path      (unnamed)                                  0.2 km informal=None access=None
+    (11 such ways, 14.2 km)

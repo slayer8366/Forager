@@ -1,0 +1,205 @@
+
+=== Recording A: 457 kept points (0 excluded), origin leg 0.0 m, far point index 264 at 88.5 min, duration 139.8 min
+  Positive controls (independent figures from recompute.out and the earlier report):
+    control whole climb (bridged): got 52.761, want 52.8: ok
+    control whole descent (bridged): got 43.117, want 43.1: ok
+    control far index: got 264.000, want 264: ok
+    control far route m: got 458.766, want 459: ok
+    control far joins on route: got 35.000, want 35: ok
+    control far pace: got 0.874, want 0.874: ok
+    control far route climb: got 21.913, want 21.9: ok
+    control far route descent: got 0.000, want 0.0: ok
+    control far allowance s: got 48.209, want 48.2: ok
+    control far pace-only s (hop 0, no origin leg): got 524.870, want 525: ok
+    control second-half path m: got 1120.920, want 1121: ok
+    control second-half moving s: got 891.000, want 891: ok
+  controls: all pass
+
+  Every 5 min (and the far point *, the end): minutes in | route m (joins) | retrace m | straight home m | pace m/s src label | walk back pace-only / with allowance (climb+descent m) | from here to the end: elapsed, moving, path m | pace-only/moving, with-allowance/moving, pace-only/elapsed
+       0.0 |      0 (  0) |      0 |     0 | 0.889 DEFA at least | 0 min 00 s / 0 min 00 s (0+0) | 139 min 48 s, 32 min 41 s,  2587 | 0.0, 0.0, 0.0
+       4.5 |     74 (  1) |     82 |    68 | 0.889 DEFA at least | 1 min 24 s / 1 min 24 s (0+0) | 135 min 18 s, 31 min 38 s,  2505 | 0.04, 0.04, 0.01
+       9.6 |     32 (  3) |    241 |    31 | 0.889 DEFA at least | 0 min 36 s / 0 min 36 s (0+0) | 130 min 10 s, 29 min 48 s,  2346 | 0.02, 0.02, 0.0
+      14.7 |    137 (  9) |    353 |   122 | 0.889 DEFA at least | 2 min 34 s / 2 min 34 s (0+0) | 125 min 08 s, 28 min 39 s,  2234 | 0.09, 0.09, 0.02
+      19.9 |    130 (  9) |    402 |   105 | 0.889 DEFA at least | 2 min 26 s / 2 min 26 s (0+0) | 119 min 57 s, 28 min 14 s,  2185 | 0.09, 0.09, 0.02
+      24.3 |    176 ( 12) |    464 |   130 | 0.944 DIFF at least | 3 min 07 s / 3 min 37 s (14+0) | 115 min 31 s, 27 min 36 s,  2123 | 0.11, 0.13, 0.03
+      29.9 |    226 ( 13) |    528 |   166 | 0.919 DIFF at least | 4 min 06 s / 4 min 55 s (22+0) | 109 min 56 s, 27 min 11 s,  2059 | 0.15, 0.18, 0.04
+      33.0 |    156 ( 11) |    598 |   117 | 1.000 DOPP at least | 2 min 36 s / 2 min 57 s (9+0) | 106 min 47 s, 26 min 09 s,  1989 | 0.1, 0.11, 0.02
+      39.0 |    156 ( 12) |    658 |    93 | 0.963 DOPP at least | 2 min 42 s / 2 min 51 s (4+0) | 100 min 47 s, 25 min 27 s,  1930 | 0.11, 0.11, 0.03
+      44.8 |    206 ( 15) |    732 |   115 | 0.933 DOPP at least | 3 min 41 s / 4 min 00 s (9+0) | 94 min 58 s, 24 min 30 s,  1855 | 0.15, 0.16, 0.04
+      48.8 |    207 ( 17) |    770 |   132 | 0.930 DOPP at least | 3 min 43 s / 4 min 02 s (9+0) | 91 min 01 s, 24 min 14 s,  1817 | 0.15, 0.17, 0.04
+      55.0 |    274 ( 20) |    846 |   128 | 0.928 DOPP at least | 4 min 56 s / 5 min 23 s (12+0) | 84 min 48 s, 23 min 22 s,  1741 | 0.21, 0.23, 0.06
+      59.1 |    335 ( 23) |    911 |   182 | 0.923 DOPP at least | 6 min 03 s / 6 min 36 s (15+0) | 80 min 40 s, 22 min 47 s,  1677 | 0.27, 0.29, 0.07
+      64.9 |    311 ( 23) |    994 |   160 | 0.919 DOPP at least | 5 min 38 s / 6 min 16 s (17+0) | 74 min 52 s, 21 min 51 s,  1593 | 0.26, 0.29, 0.08
+      70.0 |    308 ( 26) |   1210 |   161 | 0.888 DOPP at least | 5 min 47 s / 6 min 24 s (17+0) | 69 min 50 s, 18 min 13 s,  1378 | 0.32, 0.35, 0.08
+      74.5 |    398 ( 33) |   1313 |   242 | 0.886 DOPP at least | 7 min 29 s / 8 min 10 s (18+0) | 65 min 19 s, 16 min 41 s,  1275 | 0.45, 0.49, 0.11
+      79.8 |    429 ( 33) |   1344 |   274 | 0.885 DOPP at least | 8 min 05 s / 8 min 49 s (20+0) | 60 min 00 s, 16 min 35 s,  1243 | 0.49, 0.53, 0.13
+      83.9 |    466 ( 34) |   1386 |   267 | 0.882 DOPP at least | 8 min 48 s / 9 min 37 s (22+0) | 55 min 53 s, 16 min 01 s,  1201 | 0.55, 0.6, 0.16
+  *   88.5 |    459 ( 35) |   1466 |   297 | 0.874 DOPP about    | 8 min 45 s / 9 min 33 s (22+0) | 51 min 20 s, 14 min 51 s,  1121 | 0.59, 0.64, 0.17
+  h   90.0 |    416 ( 35) |   1536 |   246 | 0.873 DOPP about    | 7 min 56 s / 8 min 41 s (20+0) | 49 min 51 s, 13 min 22 s,  1051 | 0.59, 0.65, 0.16
+  h   94.7 |    394 ( 33) |   1557 |   228 | 0.873 DOPP about    | 7 min 31 s / 8 min 12 s (18+0) | 45 min 04 s, 13 min 22 s,  1030 | 0.56, 0.61, 0.17
+  h  100.0 |    454 ( 36) |   1621 |   191 | 0.868 DOPP about    | 8 min 43 s / 9 min 20 s (17+0) | 39 min 50 s, 13 min 02 s,   966 | 0.67, 0.72, 0.22
+  h  104.9 |    546 ( 41) |   1718 |   228 | 0.871 DOPP about    | 10 min 26 s / 11 min 10 s (16+4) | 34 min 54 s, 12 min 14 s,   870 | 0.85, 0.91, 0.3
+  h  109.5 |    627 ( 44) |   1808 |   184 | 0.866 DOPP about    | 12 min 04 s / 13 min 16 s (17+16) | 30 min 21 s, 11 min 01 s,   779 | 1.1, 1.2, 0.4
+  h  114.9 |    714 ( 50) |   1912 |   199 | 0.867 DOPP about    | 13 min 44 s / 15 min 13 s (17+24) | 24 min 52 s, 9 min 50 s,   675 | 1.4, 1.55, 0.55
+  h  119.9 |     37 (  3) |   2143 |    10 | 0.858 DOPP about    | 0 min 43 s / 0 min 53 s (0+5) | 19 min 55 s, 5 min 06 s,   445 | 0.14, 0.17, 0.04
+  h  125.0 |     12 (  2) |   2165 |    12 | 0.857 DOPP about    | 0 min 14 s / 0 min 30 s (0+7) | 14 min 48 s, 4 min 51 s,   422 | 0.05, 0.1, 0.02
+  h  130.0 |    102 (  5) |   2452 |    84 | 0.887 DOPP about    | 1 min 55 s / 2 min 13 s (0+8) | 9 min 49 s, 1 min 30 s,   136 | 1.27, 1.47, 0.19
+  h  131.2 |      7 (  1) |   2549 |     7 | 0.903 DOPP about    | 0 min 08 s / 0 min 08 s (0+0) | 8 min 39 s, 0 min 20 s,    39 | 0.41, 0.41, 0.02
+  h  139.8 |     29 (  3) |   2587 |    26 | 0.907 DOPP about    | 0 min 32 s / 0 min 32 s (0+0) | 0 min 00 s, 0 min 00 s,     0 | None, None, None
+
+  Decomposition at the far point (88.5 min in):
+    route_over_walked: 0.4093
+    route_over_retrace: 0.3128
+    retrace_over_walked: 1.3082
+    walked_over_moving_m: 1.3134
+    return_speed_over_pace: 1.0959
+    effect2: 1.4393
+    app_route_only_s: 524.8699
+    app_over_moving: 0.5891
+    identity_residual: 0.0000
+    pace_only_over_moving: 0.5891
+    pace_only_over_elapsed: 0.1704
+
+  Homeward phase, every kept point from the far point to the last-but-one (192 points): median [min, max]
+    route_over_walked: 0.518 [0.005, 4.547]
+    route_over_retrace: 0.251 [0.001, 0.394]
+    retrace_over_walked: 3.310 [1.308, 498.939]
+    walked_over_moving_m: 1.101 [1.000, 1.403]
+    return_speed_over_pace: 1.266 [1.096, 1.600]
+    effect2: 1.472 [1.142, 2.144]
+    pace_only_over_moving: 0.765 [0.008, 5.192]
+    pace_only_over_elapsed: 0.209 [0.003, 5.192]
+    identity_residual: 0.000 [-0.000, 0.000]
+    share of homeward points where pace-only < actual moving (reads short): 0.65
+    homeward 5-min marks with allowance reading short: 8 of 11
+    of those in the first half of the homeward phase: 5 of 7
+
+  Predictability at the far point: predicted / actual
+    C1_route_over_moving: 0.589
+    C1_route_x_stop_ratio_over_elapsed: 0.845
+    C2_route_plus_allowance_over_moving: 0.643
+    C2_route_plus_allowance_x_stop_ratio_over_elapsed: 0.923
+    C3_retrace_over_moving: 1.883
+    C3_retrace_x_stop_ratio_over_elapsed: 2.702
+    C4_straight_over_moving: 0.381
+    C4_straight_x_stop_ratio_over_elapsed: 0.547
+    stop_ratio_so_far: 4.961
+    stop_ratio_back: 3.457
+  Over the homeward phase (C2 without allowance there: heights only at marks): median [min, max]
+    C1_route_over_moving: 0.765 [0.008, 5.192]
+    C1_route_x_stop_ratio_over_elapsed: 0.941 [0.011, 22.251]
+    C2_route_plus_allowance_over_moving: 0.765 [0.008, 5.192]
+    C2_route_plus_allowance_x_stop_ratio_over_elapsed: 0.941 [0.011, 22.251]
+    C3_retrace_over_moving: 4.533 [1.883, 569.671]
+    C3_retrace_x_stop_ratio_over_elapsed: 7.902 [2.698, 2441.487]
+    C4_straight_over_moving: 0.345 [0.008, 5.080]
+    C4_straight_x_stop_ratio_over_elapsed: 0.532 [0.011, 21.771]
+    stop_ratio_so_far: 4.741 [4.054, 5.165]
+    stop_ratio_back: 3.192 [1.000, 25.950]
+
+  Pace: first measured at 23.1 min in (DIFFERENCING); label 'about' from 86.7 min in; far point at 88.5 min; stop ratio so far at far point 4.96, on the way back 3.46
+  From the far point: walk back with allowance 9 min 33 s; actual elapsed back 51 min 20 s; home before sunset if left at start-back-by with a 60 min margin: True (slack 18 min 13 s)
+  Climb+descent along the route at pre-far marks: [0.0, 0.0, 0.0, 0.0, 13.6, 22.1, 9.4, 4.1, 8.7, 8.8, 12.5, 15.0, 17.3, 16.9, 18.3, 19.8, 22.1]; at the far point 21.9
+
+=== Recording B: 677 kept points (1 excluded), origin leg 9.2 m, far point index 404 at 91.5 min, duration 130.6 min
+  Positive controls (independent figures from recompute.out and the earlier report):
+    control whole climb (bridged): got 72.420, want 72.4: ok
+    control whole descent (bridged): got 68.719, want 68.7: ok
+    control far index: got 404.000, want 404: ok
+    control far route m: got 1955.522, want 1956: ok
+    control far joins on route: got 49.000, want 49: ok
+    control far pace: got 0.863, want 0.863: ok
+    control far route climb: got 50.911, want 50.9: ok
+    control far route descent: got 61.545, want 61.5: ok
+    control far allowance s: got 247.403, want 247.4: ok
+    control far pace-only s (hop 0, no origin leg): got 2265.740, want 2266: ok
+    control second-half path m: got 1534.264, want 1534: ok
+    control second-half moving s: got 1489.000, want 1489: ok
+  controls: all pass
+
+  Every 5 min (and the far point *, the end): minutes in | route m (joins) | retrace m | straight home m | pace m/s src label | walk back pace-only / with allowance (climb+descent m) | from here to the end: elapsed, moving, path m | pace-only/moving, with-allowance/moving, pace-only/elapsed
+       0.0 |      0 (  0) |      0 |     9 | 0.889 DEFA at least | 0 min 10 s / 0 min 10 s (0+0) | 130 min 35 s, 59 min 13 s,  3741 | 0.0, 0.0, 0.0
+       5.0 |     78 (  4) |    132 |    85 | 0.889 DEFA at least | 1 min 38 s / 1 min 38 s (0+0) | 125 min 37 s, 57 min 41 s,  3609 | 0.03, 0.03, 0.01
+       9.8 |    122 (  7) |    196 |   109 | 0.889 DEFA at least | 2 min 27 s / 2 min 27 s (0+0) | 120 min 48 s, 56 min 42 s,  3544 | 0.04, 0.04, 0.02
+      14.8 |    250 ( 12) |    328 |   196 | 0.889 DEFA at least | 4 min 52 s / 5 min 00 s (0+4) | 115 min 44 s, 54 min 36 s,  3413 | 0.09, 0.09, 0.04
+      20.0 |    376 ( 14) |    468 |   280 | 0.873 DOPP at least | 7 min 21 s / 7 min 57 s (0+16) | 110 min 35 s, 52 min 08 s,  3273 | 0.14, 0.15, 0.07
+      23.4 |    473 ( 18) |    569 |   353 | 0.844 DOPP at least | 9 min 31 s / 10 min 27 s (0+25) | 107 min 12 s, 50 min 46 s,  3172 | 0.19, 0.21, 0.09
+      29.4 |    475 ( 20) |    601 |   363 | 0.844 DOPP at least | 9 min 34 s / 10 min 37 s (0+29) | 101 min 14 s, 50 min 20 s,  3140 | 0.19, 0.21, 0.09
+      34.8 |    521 ( 23) |    664 |   405 | 0.841 DOPP at least | 10 min 30 s / 11 min 38 s (0+31) | 95 min 47 s, 49 min 52 s,  3077 | 0.21, 0.23, 0.11
+      40.0 |    551 ( 24) |    695 |   425 | 0.841 DOPP at least | 11 min 06 s / 12 min 12 s (0+30) | 90 min 36 s, 49 min 52 s,  3045 | 0.22, 0.24, 0.12
+      45.0 |    627 ( 26) |    786 |   462 | 0.843 DOPP at least | 12 min 34 s / 13 min 58 s (0+38) | 85 min 36 s, 48 min 36 s,  2954 | 0.26, 0.29, 0.15
+      50.0 |    776 ( 29) |    942 |   552 | 0.860 DOPP at least | 15 min 13 s / 16 min 57 s (0+47) | 80 min 37 s, 46 min 00 s,  2799 | 0.33, 0.37, 0.19
+      55.0 |    940 ( 32) |   1109 |   599 | 0.860 DOPP at least | 18 min 24 s / 20 min 26 s (0+56) | 75 min 35 s, 43 min 14 s,  2632 | 0.43, 0.47, 0.24
+      60.0 |   1074 ( 34) |   1260 |   671 | 0.845 DOPP about    | 21 min 21 s / 23 min 38 s (0+62) | 70 min 36 s, 40 min 32 s,  2480 | 0.53, 0.58, 0.3
+      62.3 |   1139 ( 36) |   1346 |   722 | 0.850 DOPP about    | 22 min 31 s / 24 min 57 s (5+62) | 68 min 19 s, 39 min 09 s,  2395 | 0.58, 0.64, 0.33
+      70.0 |   1317 ( 39) |   1527 |   846 | 0.836 DOPP about    | 26 min 27 s / 29 min 21 s (18+62) | 60 min 37 s, 36 min 16 s,  2213 | 0.73, 0.81, 0.44
+      75.0 |   1453 ( 40) |   1666 |   868 | 0.846 DOPP about    | 28 min 50 s / 32 min 02 s (26+62) | 55 min 38 s, 33 min 58 s,  2074 | 0.85, 0.94, 0.52
+      79.7 |   1604 ( 42) |   1819 |   939 | 0.851 DOPP about    | 31 min 36 s / 35 min 02 s (32+62) | 50 min 53 s, 31 min 04 s,  1922 | 1.02, 1.13, 0.62
+      84.8 |   1724 ( 46) |   1952 |   975 | 0.859 DOPP about    | 33 min 37 s / 37 min 26 s (42+62) | 45 min 44 s, 29 min 00 s,  1788 | 1.16, 1.29, 0.74
+      90.0 |   1896 ( 47) |   2146 |  1120 | 0.864 DOPP about    | 36 min 46 s / 40 min 50 s (49+62) | 40 min 37 s, 25 min 50 s,  1594 | 1.42, 1.58, 0.91
+  *   91.5 |   1956 ( 49) |   2206 |  1174 | 0.863 DOPP about    | 37 min 56 s / 42 min 04 s (51+62) | 39 min 08 s, 24 min 49 s,  1534 | 1.53, 1.69, 0.97
+  h   94.9 |   1944 ( 48) |   2378 |  1048 | 0.861 DOPP about    | 37 min 49 s / 42 min 09 s (57+62) | 35 min 39 s, 21 min 32 s,  1363 | 1.76, 1.96, 1.06
+  h  100.0 |   2099 ( 54) |   2553 |   917 | 0.883 DOPP about    | 39 min 47 s / 44 min 15 s (60+62) | 30 min 38 s, 18 min 32 s,  1188 | 2.15, 2.39, 1.3
+  h  105.0 |   2260 ( 58) |   2726 |   795 | 0.884 DOPP about    | 42 min 48 s / 47 min 24 s (64+62) | 25 min 35 s, 15 min 30 s,  1015 | 2.76, 3.06, 1.67
+  h  109.8 |   2304 ( 59) |   2781 |   763 | 0.886 DOPP about    | 43 min 32 s / 48 min 13 s (66+62) | 20 min 44 s, 15 min 06 s,   960 | 2.88, 3.19, 2.1
+  h  115.0 |   2514 ( 62) |   2996 |   591 | 0.887 DOPP about    | 47 min 26 s / 52 min 13 s (69+62) | 15 min 36 s, 11 min 29 s,   744 | 4.13, 4.55, 3.04
+  h  120.0 |   2632 ( 66) |   3140 |   517 | 0.895 DOPP about    | 49 min 12 s / 54 min 08 s (73+62) | 10 min 38 s, 9 min 19 s,   601 | 5.28, 5.81, 4.63
+  h  124.7 |   2856 ( 71) |   3387 |   349 | 0.905 DOPP about    | 52 min 47 s / 57 min 37 s (70+62) | 5 min 54 s, 5 min 14 s,   354 | 10.09, 11.01, 8.95
+  h  129.9 |   3179 ( 72) |   3719 |    75 | 0.924 DOPP about    | 57 min 31 s / 62 min 42 s (71+70) | 0 min 38 s, 0 min 23 s,    22 | 150.06, 163.56, 90.83
+  h  130.6 |   3198 ( 73) |   3741 |    67 | 0.930 DOPP about    | 57 min 29 s / 62 min 51 s (72+74) | 0 min 00 s, 0 min 00 s,     0 | None, None, None
+
+  Decomposition at the far point (91.5 min in):
+    route_over_walked: 1.2746
+    route_over_retrace: 0.8863
+    retrace_over_walked: 1.4381
+    walked_over_moving_m: 1.0998
+    return_speed_over_pace: 1.0855
+    effect2: 1.1939
+    app_route_only_s: 2265.7397
+    app_over_moving: 1.5217
+    identity_residual: -0.0000
+    pace_only_over_moving: 1.5288
+    pace_only_over_elapsed: 0.9695
+
+  Homeward phase, every kept point from the far point to the last-but-one (272 points): median [min, max]
+    route_over_walked: 3.134 [1.275, 570.444]
+    route_over_retrace: 0.840 [0.812, 0.890]
+    retrace_over_walked: 3.745 [1.438, 667.394]
+    walked_over_moving_m: 1.062 [1.000, 1.452]
+    return_speed_over_pace: 1.130 [0.792, 1.223]
+    effect2: 1.217 [0.882, 1.281]
+    pace_only_over_moving: 3.801 [1.529, 688.657]
+    pace_only_over_elapsed: 2.845 [0.970, 688.657]
+    identity_residual: 0.000 [-0.000, 0.000]
+    share of homeward points where pace-only < actual moving (reads short): 0.00
+    homeward 5-min marks with allowance reading short: 0 of 9
+    of those in the first half of the homeward phase: 0 of 5
+
+  Predictability at the far point: predicted / actual
+    C1_route_over_moving: 1.522
+    C1_route_x_stop_ratio_over_elapsed: 2.565
+    C2_route_plus_allowance_over_moving: 1.688
+    C2_route_plus_allowance_x_stop_ratio_over_elapsed: 2.845
+    C3_retrace_over_moving: 1.717
+    C3_retrace_x_stop_ratio_over_elapsed: 2.895
+    C4_straight_over_moving: 0.914
+    C4_straight_x_stop_ratio_over_elapsed: 1.540
+    stop_ratio_so_far: 2.658
+    stop_ratio_back: 1.577
+  Over the homeward phase (C2 without allowance there: heights only at marks): median [min, max]
+    C1_route_over_moving: 3.787 [1.522, 686.671]
+    C1_route_x_stop_ratio_over_elapsed: 6.893 [2.509, 1515.398]
+    C2_route_plus_allowance_over_moving: 3.787 [1.522, 686.671]
+    C2_route_plus_allowance_x_stop_ratio_over_elapsed: 6.893 [2.509, 1515.398]
+    C3_retrace_over_moving: 4.525 [1.717, 803.374]
+    C3_retrace_x_stop_ratio_over_elapsed: 8.237 [2.895, 1772.948]
+    C4_straight_over_moving: 0.965 [0.914, 14.190]
+    C4_straight_x_stop_ratio_over_elapsed: 1.725 [1.316, 31.316]
+    stop_ratio_so_far: 2.412 [2.206, 2.658]
+    stop_ratio_back: 1.381 [1.000, 2.071]
+
+  Pace: first measured at 15.5 min in (DIFFERENCING); label 'about' from 57.21666666666667 min in; far point at 91.5 min; stop ratio so far at far point 2.66, on the way back 1.58
+  From the far point: walk back with allowance 42 min 04 s; actual elapsed back 39 min 08 s; home before sunset if left at start-back-by with a 60 min margin: True (slack 62 min 56 s)
+  Climb+descent along the route at pre-far marks: [0.0, 0.0, 4.0, 16.4, 25.2, 28.8, 30.8, 30.0, 38.2, 47.0, 55.5, 62.2, 66.3, 79.2, 87.5, 93.7, 103.8, 110.7]; at the far point 112.5
+
+Figures only. Nothing from the copy is written anywhere but OUT_DIR (figures), and nothing in it is a coordinate or a time of day.

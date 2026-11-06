@@ -1,0 +1,11 @@
+8 recorded tracks longer than 20 min (imports excluded), longest first:
+  minutes | points | far from start m | end to start m | homeward points within 10 m / within 50 m of an outward point, median nearest m | route home at the end m vs retrace m | 10-24?
+   139.8 |   457 |    297 |    26 | 0.29 / 0.76,    26 |     29 vs   2587 | yes
+   130.6 |   677 |   1178 |    76 | 0.01 / 0.17,   263 |   3198 vs   3741 | yes
+    68.6 |   532 |    827 |     7 | 0.78 / 0.95,     6 |      7 vs   3408 | 
+    58.3 |     4 |      5 |     5 | no homeward points (the last point is the farthest) |      5 vs      5 |
+    39.5 |   377 |    411 |    14 | 0.27 / 0.52,    43 |     28 vs   2253 | 
+    24.7 |   251 |    446 |   291 | 0.70 / 0.92,     7 |    338 vs   2100 | 
+    24.5 |   256 |    619 |     4 | 1.00 / 1.00,     4 |      4 vs   1685 | 
+    23.6 |   224 |    462 |    11 | 0.98 / 1.00,     3 |     14 vs   1577 | 
+Figures only.
