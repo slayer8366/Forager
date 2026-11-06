@@ -320,3 +320,165 @@ All are resolved by the owner's or the planner's rulings:
 ## Could not determine
 
 - The phone's look of any of this. That is the device check.
+
+## Tools drawer (dispatch 2026-11-05-09)
+
+A later dispatch, built into this PR (Hazel Cairnwright, Phase 2). Built from records-after-173 at a1ea1466a:
+- the dispatch, `prompts/preserved/2026-11-05-09-drawer-outline.md`, marked in place for "Add it to 495";
+- its Phase 1 report, `prompts/preserved/2026-11-05-09-phase1-report.md`, whose section 6 is the plan carried out here;
+- RECORD -2180, with the planner's calls.
+
+**The owner, verbatim,** with a screenshot of the open Tools drawer over the map: "Give the tools drawer an outline also please". Then: "Add it to 495".
+
+**Base.** edge-shade 4728bbe42, clean in its worktree and equal to origin [observed]. pre-main was a0535ece1 at the start. During the work it moved to 779599c3f: PR #496 merged as cd3fd2730, then the planner's docs commit. The planner said not to merge it in, and it is not merged. Since a0535ece1 it changes 29 files, none of them changed on this branch [observed]. Each PR run tests the merge with pre-main, so its counts include #496's tests.
+
+### What changes for the user
+
+- **Over the Maps tab:** the open drawer's edge facing the map carries the map-chrome hairline: 1 dp, Bark at 0.4 by day, white at 0.4 at night.
+  - It runs down the straight edge and round both 20 dp corners, to where they meet the screen's top and bottom.
+  - In portrait that is the drawer's right edge. In landscape the drawer opens from the rail's side at both rotations, so it is the left edge.
+  - The other three sides lie on the screen's edges and carry none (RECORD -967).
+- **Over the other tabs** the drawer stays solid, with no line.
+- **Nothing else changes.** The fill, content, transparent scrim, size, gestures and motion are as they were. The drawer had no shadow before (`DrawerDefaults.ModalDrawerElevation` 0 dp, its Phase 1 report, Q2), and none is added.
+
+### What landed
+
+| commit | what it does |
+|---|---|
+| fd7788a02 | Tests first: `ToolsDrawerEdgePixelsTest.kt`, six pixel classes and `ToolsDrawerShapeTest`. With it, the sheet's shape is built once (`toolsDrawerShape`), given to the sheet and set on its node, so the test can read the radius the sheet is filled to. Nothing is drawn differently. |
+| e3fa630b4 | The line: `ToolsDrawerEdge.kt:67-82`, `toolsDrawerEdge`; `AvailabilityScreenDrawerHost.kt:109-118`, one `overMap` value for the fill and the line |
+| this commit | This section |
+
+- **`toolsDrawerShape`** (`ToolsDrawerEdge.kt:40`) builds the theme's `shapes.large` with its start corners at `CornerSize(0.dp)`. That is what material3 1.5.0-alpha26's `DrawerDefaults.shape` gives a modal drawer. I read this from the bytecode: `ShapesKt.fromToken`'s `CornerLargeEnd` branch, `end`, and `ShapeTokens.CornerValueNone`. `ToolsDrawerShapeTest` holds the two equal under ForagerTheme by day and at night. Both print top-start 0 dp, top-end 20 dp, bottom-end 20 dp, bottom-start 0 dp [observed].
+- **`toolsDrawerEdge`** (`:67`) is draw only. It strokes `mapChromeOutlinePath` with `mapChromeOutline()` over the sheet's fill and content.
+  - The side comes from the sheet's own layout direction: its end side faces the map (`:79`).
+  - The corner radii come from the shape's own outline at the sheet's size and direction (`:69`).
+- **The host** (`:109-118`) decides with one value, `val overMap = state.compactTab() == CompactTab.MAP`. That value picks the 0.8 fill (`:110`) and whether the line is drawn (`:115`). The one shape goes to the sheet as `drawerShape` (`:118`) and to its line.
+
+### The tests, and what they read
+
+`ToolsDrawerEdgePixelsTest.kt` has six classes: portrait by day and at night (`w384dp-h823dp-xxhdpi`), and landscape by day and at night at ROTATION_90 and ROTATION_270 (`w823dp-h384dp-land-xxhdpi`). Each class has three cases. Each runs the real screen on #495's `EdgeShadeRig`, in ForagerTheme, over its grey stand-in map, and opens Tools by a real touch on Tools in the bottom bar or the rail.
+
+- **What lies under each pixel** is read from a capture made before Tools opened, as C2 reads its menu.
+- **What changes as the drawer opens:** the Tools item takes its selected indicator and label colour. Samples in that item, down to 1 dp below its label, are not read.
+- **The sheet itself** is read from its node:
+  - its bounds, checked against one side of the screen and its full height;
+  - its side, checked against the dispatch's D3: on the left in portrait, on the right in landscape;
+  - its radius, from the shape it is filled to, at the sheet's size. All six classes read 20.0 dp [observed].
+
+The three cases:
+1. **The edge over the Maps tab.** At three heights where the map under that edge is bare, checked in the capture before opening (110, 180 and 680 dp in portrait; 90, 170 and 250 dp in landscape):
+   - the hairline 1.5 px in, within 3/255 of the line over the 0.8 fill over the pixel before;
+   - the 0.8 fill from 2 to 12 dp in, within 2/255;
+   - the map 3 to 6 dp outside, unchanged, within 2/255. This also shows there is no cast shadow and no tint.
+   - Then the three sides on the screen's edges, halfway along, read for no line, and the fill 2 to 3 dp in.
+2. **Both corners facing the map over the Maps tab,** at 15° to 75° of each curve, every 10°:
+   - the hairline at the pixel whose centre lies within half a pixel of the line's middle, within 4/255 (the tail check's tolerance for slanted lines);
+   - 2.5 px outside the curve, the pixel before, unchanged.
+   - In portrait the bottom corner's 15° sample lies in the Tools item. It is left out, and the other six are read [observed: the printed list].
+3. **Over the List tab:** List is reached by a real touch and checked selected. Then, at the same three heights and on both curves:
+   - the edge pixel and the fill 2 to 12 dp in are the drawer's colour, solid, within 2/255.
+
+**What they read on e3fa630b4** (run 42170042490) [observed]:
+- **By day:** the hairline A29A8F against A29B90 at the straight edge. On the curves, A8A094 against A8A195 over the bottom bar, and AAA197 against A9A298 over the pill. The fill E7E3D8 exactly. On the List tab, F4EFE2.
+- **At night:** the hairline 8B8B8A against 8B8B8B at the straight edge. On the curves it reads 7C7C7C to 8B8B8A, each within 1 level of its own target, which depends on what lies under it. The fill 3E3E3D exactly. On the List tab, 202020.
+
+### Failing first
+
+Run 42168269666 on fd7788a02. Its build job's log had no compile errors. 6814 tests ran (6790 + 24 on the older SDKs): 12 failures, 0 errors, 24 skipped. That is exactly the commit's prediction:
+- the two Maps-tab cases in each of the six classes failed;
+- the List cases and `ToolsDrawerShapeTest` passed, and every other suite passed;
+- the 100 off readings are all hairline readings: 3 on each edge, 14 on each landscape pair of curves, and 13 on each portrait pair.
+- No fill, no-line, outside or unchanged reading was off.
+- By day, the edge read E7E3D8, the fill, against A29B90. At night, 3E3E3D against 8B8B8B.
+
+### Revert checks
+
+**The runner,** in scratch and deleted at the end:
+- each one-line edit on its own branch, `edge-shade-drawer-rN`, in its own worktree, cut from e3fa630b4;
+- the edited file saved first, and the edit refused unless exactly one line changed;
+- each run's build log read for compile errors before the JUnit XML;
+- afterwards each worktree's file restored from its saved copy, never from git, and found identical to e3fa630b4's;
+- the forward change then confirmed in the coder's worktree (clean, at e3fa630b4) and on origin;
+- both branches deleted locally and on origin.
+
+Both runs were filtered to `ToolsDrawerEdgePixels*` and `ToolsDrawerShapeTest`, 19 tests. Each checked out its own revert commit, and neither had a compile error.
+
+| Branch, run | Edit | Predicted | Observed |
+|---|---|---|---|
+| r1, 42170093188 | `.then(drawerEdge)` removed from the sheet's modifier | the 12 Maps-tab cases, on hairline readings only, as tests first | 12 of 19, those cases. All 100 off readings are hairline readings, the same values as 42168269666, because removing the call restores fd7788a02's drawing. |
+| r2, 42170096628 | the line drawn whatever the tab (`overMap` dropped from `drawerEdge`) | the six List cases only, on their "no line" readings | 6 of 19, the List cases only. All 102 off readings are "no line" readings: by day AAA195 against F4EFE2, at night 797979 against 202020. Every Maps-tab case passed with the line drawn. |
+
+r2 is the optional one. Phase 1 suggested forcing the side to the right. I ran this edit instead, because the List case passes before and after the line alike: on its own it shows nothing until something makes it fail. Forcing the side was not run. That a line on the wrong side would fail the landscape cases is inferred: they read the left edge's hairline and no line on the side by the rail.
+
+### CI counts
+
+From the JUnit XML, each run's build log read first for compile errors (none in any).
+
+| Run | Commit | Kind | Suites | Tests | Failures | Errors | Skipped | Jobs |
+|---|---|---|---|---|---|---|---|---|
+| 42168269666 | fd7788a02 | full, tests first | 995 | 6814 | 12 | 0 | 24 | the two test jobs failed, on these 12 only |
+| 42170093188 | r1 | filtered | 7 | 19 | 12 | 0 | 0 | as predicted |
+| 42170096628 | r2 | filtered | 7 | 19 | 6 | 0 | 0 | as predicted |
+| **42170042490** | **e3fa630b4** | **full, merged with pre-main 779599c3f** | **995** | **6814** | **0** | **0** | **24** | **every job a success** |
+
+**Against run 42156737251** (4728bbe42: 980 suites, 6732 tests), suite by suite:
+- no suite is gone, and no suite in both runs changed its counts;
+- 15 suites are new, with 82 tests, all passed:
+  - this dispatch's 7 (19 tests);
+  - 8 from #496 through pre-main (63 tests), whose files pre-main added since a0535ece1 [observed].
+
+### Not tested, said plainly
+
+- **The phone.** Robolectric reports no insets. Where the line's ends fall under the status bar and the navigation bar is the S22 check's.
+- **Seasonal and Journal** are not read from pixels. They take the same `overMap` false branch as List [read, host :109]. Phase 1 left one question open: whether a map can lie under the drawer on the Journal tab. It was not traced. The drawer is solid with no line there, by the tab rule.
+- **An RTL locale.** In portrait the drawer would open from the right and draw its line on its left, its end side [inferred, not run].
+- **The drawer mid-slide or under predictive Back.** The line belongs to the sheet and moves with it [inferred].
+- **Other sizes, densities and font scales.** Only the S22's 384 × 823 dp and 823 × 384 dp at xxhdpi were read.
+
+### Decided beyond the plan's letter
+
+For the planner to accept or reject:
+- **The shape plumbing went into the tests-first commit.** The test reads the sheet's radius from the shape set on the sheet's node, and before fd7788a02 the sheet carried no shape. Without the plumbing, every corner case would have failed for the missing shape rather than the missing line. The commit draws nothing differently: `ToolsDrawerShapeTest` holds the shape equal to Material's default.
+- **The shape is built as a `RoundedCornerShape` from `large`'s corner sizes,** not `large.copy` or `DrawerDefaults.shape` itself. The line needs an outline that is a rounded rectangle, and the type guarantees one. The equality test pins it to today's default.
+- **The sheet's node carries `MapChromeShape`,** as the pill, bar and rail do. It is semantics only.
+- **A seventh class,** `ToolsDrawerShapeTest`, beside the six pixel classes. It passes before and after the line by design, because it guards the sheet's shape, not the line.
+- **r2 replaces Phase 1's suggested r2,** as above.
+- **4/255 on the curves,** the tail check's tolerance for lines off the pixel grid. The straight-edge readings keep the rig's 3/255 and 2/255. The gap the curves test, between the fill and the line over it, is about 70 levels or more in the red run's values.
+
+### Premises
+
+- **Phase 1's held where the tests reach** [observed]:
+  - the 20 dp corners;
+  - one landscape direction, the right, at both rotations;
+  - no shadow: the map outside is unchanged;
+  - the helper fits;
+  - absolute drawing coordinates are not mirrored in the right-to-left sheet: the landscape classes read the line on its left edge.
+- **Left as it is, at the planner's word:** the comment at `ScreenToolsDrawer.kt:169-173` is out of date. It says the drawer flips "at ROTATION_90, unchanged at ROTATION_270". It opens from the right at both rotations (`LandscapeRotationsAlikeTest.kt:199-212`), and this dispatch's ROTATION_270 classes find it against the screen's right.
+
+### Stops
+
+None. Nothing a user sees changed beyond the line. The fill, scrim and shadow are untouched. No premise was wrong beyond the ones Phase 1 reported, and no symptom needed a second attempt.
+
+### S22 check, for the planner (the drawer only; -2178 stands for the rest of #495)
+
+On a build with e3fa630b4 in it. Screenshots as PNG, read at 3.75 px per dp as in -2178, on a plain stretch of Trail Map with no lines under the drawer's edge. A failure at step 1 stops the run: no line there means the build lacks the change. On a new build, run again from the top.
+
+1. **Portrait, day, the Maps tab: open Tools.** Read a row of pixels at a height where the map beside the drawer is plain and the icon bar is not, from 20 dp outside the drawer's right edge to 20 dp inside.
+   - **Pass:** a line about 1 dp wide (3 to 4 px), just inside the edge: Bark at 0.4 over the fill, about 0.58 to 0.65 luminance, as the other windows read in -2178.
+   - **Pass:** the fill inside it flat within 3/255.
+   - **Pass:** the map just outside it equal to the map 60 dp away, within 3/255 (no shadow).
+   - **Evidence:** the screenshot and the numbers.
+2. **The same screenshot, both right-hand corners.**
+   - **Pass:** the line follows each curve with no gap or step where it meets the straight edge, and runs on to the screen's top and bottom.
+   - **Observation, not a gate:** what lies under each end. At the top that is the status bar. At the bottom it is the bottom bar's Tools item and the navigation bar. These ends were never seen in Robolectric, which has no insets, so either look is a finding.
+3. **The List tab: switch to List, open Tools.**
+   - **Pass:** no line at the right edge. The edge pixels equal the fill within 3/255, and the drawer is solid.
+4. **Night** (Night Mode Dark, then back to Light). Repeat 1 and 2 on the Maps tab.
+   - **Pass:** white at 0.4 over the dark fill, red channel about 129 to 140 as in -2178, about 1 dp.
+5. **Landscape** (auto-rotate off, the phone turned, then restored). Open Tools from the rail on the Maps tab.
+   - **Pass:** the drawer is on the right. Its left edge and both left corners carry the line as in 1 and 2, and its right side, by the rail, carries none.
+   - Turn the phone the other way and look again if time allows: it should be the same (RECORD -956).
+   - Restore auto-rotate afterwards.
+
+**The row to keep:** the build's versionCode; the Android version; the line's luminance by day and its red channel at night; what lies under each end; and any landscape difference between the two directions.

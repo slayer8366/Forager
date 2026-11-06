@@ -35,6 +35,8 @@ import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
+import com.zynergylabs.forager.app.ui.map.mapChromeShape
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 
 /**
@@ -102,10 +104,20 @@ internal fun AvailabilityScreenDrawerHost(
             // role exactly).
             // Over the Maps tab at the map chrome's alpha, following the tab (owner: "80% over Maps
             // (Recommended)"; planner message -77, Q4); solid over the other tabs.
-            val drawerColor = mapChromeFill(navigationBarContainerColor(), state.compactTab() == CompactTab.MAP)
+            // Dispatch 2026-11-05-09 (RECORD -2180, the owner: "Give the tools drawer an outline also please"): the same one value
+            // decides the line. Over the Maps tab the sheet carries the map-chrome hairline on its edge facing the map
+            // (toolsDrawerEdge); over the other tabs it stays solid with none (the owner: "In the places that aren't covering a
+            // map, they can stay solid").
+            val overMap = state.compactTab() == CompactTab.MAP
+            val drawerColor = mapChromeFill(navigationBarContainerColor(), overMap)
             val drawerContentColor = contentColorFor(navigationBarContainerColor())
+            // The sheet's shape, Material's own default for a modal drawer (toolsDrawerShape), built once and given to the sheet
+            // and its line, so the two cannot drift, and set on its node so a test reads the corners the sheet is filled to.
+            val drawerShape = toolsDrawerShape()
+            val drawerEdge = if (overMap) Modifier.toolsDrawerEdge(drawerShape, mapChromeOutline()) else Modifier
             ModalDrawerSheet(
-                modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor),
+                modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor).mapChromeShape(drawerShape).then(drawerEdge),
+                drawerShape = drawerShape,
                 drawerContainerColor = drawerColor,
                 drawerContentColor = drawerContentColor,
             ) {
