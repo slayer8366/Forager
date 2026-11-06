@@ -3,7 +3,6 @@ package com.zynergylabs.forager.app.ui.availability
 import com.zynergylabs.forager.app.domain.DistanceKind
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
 import com.zynergylabs.forager.app.ui.map.COMPASS_CALIBRATING_TEXT
-import com.zynergylabs.forager.app.ui.map.COMPASS_NORTH_UP_TEXT
 
 /**
  * Dispatch 2026-11-05-10, Amendment 1, H8 (RECORD -2181), the owner, to "At the largest text size, the space under the sunset line is
@@ -25,7 +24,7 @@ import com.zynergylabs.forager.app.ui.map.COMPASS_NORTH_UP_TEXT
  */
 internal fun cardStatusTexts(): List<String> = buildList {
     add(COMPASS_CALIBRATING_TEXT)
-    add(COMPASS_NORTH_UP_TEXT)
+    add(CARD_NO_COMPASS_TEXT)
     add("Approaching")
     addAll(listOf(OFF_TRAIL_TEXT, OFF_TRAIL_SHORT_TEXT, WAYPOINT_OFF_TRAIL_SHORT_TEXT, BACK_ON_TRAIL_TEXT))
     for (note in WayHomeNote.entries) addAll(listOf(note.text, wayHomeNoteShortText(note)))
@@ -47,3 +46,6 @@ internal fun widestStatusWordPx(widthOf: (String) -> Int): Int =
  */
 internal fun statusBelowTheParts(partsPx: Int, dividerPx: Int, leftNeedPx: Int, floorPx: Int, widestWordPx: Int): Boolean =
     minOf(floorPx, partsPx - dividerPx - leftNeedPx) < widestWordPx
+
+/** H9: the card's north-up notice, the owner's "No compass". The strip's own words ("Compass unavailable") are unchanged. */
+internal const val CARD_NO_COMPASS_TEXT = "No compass"

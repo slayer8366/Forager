@@ -68,7 +68,9 @@ internal fun navigationReadout(
     val compassNotice = when (facing) {
         NavigationFacing.FACING_UP -> null
         NavigationFacing.CALIBRATING -> COMPASS_CALIBRATING_TEXT
-        NavigationFacing.NORTH_UP -> COMPASS_NORTH_UP_TEXT
+        // Amendment 1, H9, the owner: "Shorten to "No compass" (Recommended)", "One short line, like "Off trail". The map turning
+        // north-up already shows what it means." Was COMPASS_NORTH_UP_TEXT, "Compass unavailable · north up".
+        NavigationFacing.NORTH_UP -> CARD_NO_COMPASS_TEXT
     }
     val northArrowDegrees = headingDegrees?.let { -it }
     // Dispatch 2026-10-28-13: the strip's height, not the fix's raw one, so the two cannot disagree.
