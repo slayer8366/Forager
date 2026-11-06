@@ -36451,3 +36451,25 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **The owner, verbatim,** to "Measured on the S22's compass strip: giving the heading, altitude and grid reference each a fixed window sized for their widest reading needs 323 dp, and the strip has 314. Which should get windows?", typed: **"If it's too small, then have them squeeze together to make room.  It fit before, so it should still fit now"**. The options were "Heading only (Recommended)", "Heading and altitude" and "All three".
   - **The planner's reading:** each window is sized for its widest reading. Where the strip is short, the windows give up their slack toward their text's actual width, sharing the shortfall, and never shrink below it. No text shrinks, and anything that fits today still fits. Recorded as H7's refinement in Amendment 1.
 **Notes:** Written by the planner by hand. Next free ID -2185.
+
+---
+
+**Kind:** note
+**ID:** 2026-09-28-2185
+**Timestamp:** 2026-11-06T17:49:13Z
+**Title:** Planner hand-off on the owner's word: prompts/preserved/2026-11-06-handoff.md
+**Decision:**
+- **The owner, verbatim:** **"Stop working and write a hand off"**.
+- **Stopped by the planner:** the three Hazels still running.
+  - **#498 E13** (H10, H7 refined) had pushed nothing; its worktree is clean at ba0724ead.
+  - **#500 Phase 2b-1** had pushed nothing; its worktree holds only a local merge of pre-main.
+  - **The deletion-script Hazel** was mid-verification. Her files in ~/Zynergy/forager-branch-deletion/ are not checked.
+- **The hand-off** is at prompts/preserved/2026-11-06-handoff.md. It covers:
+  - the branches and PRs, with their next steps;
+  - the branch deletion, and the dry run owed before the owner is given any command;
+  - the home-location tooling and its known limits;
+  - the S22's state;
+  - the readings open to the owner;
+  - the promotion path;
+  - later items.
+**Notes:** Written by the planner by hand. Next free ID -2186.
