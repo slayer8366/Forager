@@ -36010,6 +36010,10 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - To "When \"by trail\" has to drop to its own line under the distance, where on that line should it sit?": **"At the middle (Recommended)"**. The option read: "Straight down from where it would have started, so it's in the same spot whether it's beside or under the distance." The others: "Ending under the distance"; "Centred under it".
   - To "At very large text, \"by\" stacks over \"trail\" beside the distance. How should the two-word stack line up?": **"On the distance's line (Recommended)"**. The option read: "Both start at the meeting point; \"trail\" sits on the same baseline as the distance, with \"by\" just above it, so \"1280 ft trail\" reads along one line." The other: "Centred beside it".
   - **Next:** a fresh Hazel continues on nav-card-kind-line, because the first passed 200k.
+- **From the continuing Hazel (2026-11-06T07:48:54Z):**
+  - **Step 2 can never show:** "by" stacked over "trail" is as wide as "trail" alone, because "trail" is the wider word (25.67 against 14.33 dp at font 1.0). The user sees three steps: beside, stacked, own line. Step 2 stays in the code in the owner's order and is pinned in the pure fit test. Told to the owner.
+  - **The planner's call:** at font 2.0 with an evening time, the left part follows the turn row's width. The step is chosen for the narrowest room across headings, in the spirit of the owner's chosen option ("Decided for the longest distance the card could show, so it doesn't jump between lines as you walk"). She measures it and reports the cases.
+  - The evening time's change of width at sunset or dusk is reported, not handled. It is two moments a walk, for the owner later.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
