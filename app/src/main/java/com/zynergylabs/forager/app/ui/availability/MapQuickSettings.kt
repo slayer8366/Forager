@@ -50,6 +50,8 @@ import com.zynergylabs.forager.app.domain.BackByShown
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import com.zynergylabs.forager.app.ui.map.journalMenuColours
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuBorder
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuShadowElevation
 import com.zynergylabs.forager.app.ui.map.journalMenuContainerColor
 import com.zynergylabs.forager.app.ui.map.journalMenuContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
@@ -247,6 +249,9 @@ private fun MapQuickSettingsMenu(
         expanded = expanded,
         onDismissRequest = onDismiss,
         containerColor = container,
+        // Over the map: no shadow, the map-chrome hairline (dispatch 2026-11-05-06; MapChromeMenuEdge.kt).
+        shadowElevation = mapChromeMenuShadowElevation(overMap = true),
+        border = mapChromeMenuBorder(overMap = true),
         modifier = Modifier
             .testTag(MAP_QUICK_SETTINGS_MENU_TAG)
             .journalMenuColours(container, content)

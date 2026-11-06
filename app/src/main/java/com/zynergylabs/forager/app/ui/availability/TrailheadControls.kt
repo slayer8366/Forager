@@ -218,7 +218,8 @@ private fun ControlPill(
             Surface(
                 shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
                 color = pillFill,
-                shadowElevation = 2.dp,
+                // No shadow (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"): narrow as it is, its 2 dp
+                // shadow darkened the whole 0.8 fill a little (Phase 1 report, section 2). Its hairline was already here.
                 border = pillBorder,
                 modifier = Modifier.matchParentSize(),
             ) {}
@@ -229,7 +230,7 @@ private fun ControlPill(
             shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
             color = pillFill,
             contentColor = pillContentColor,
-            shadowElevation = 2.dp,
+            // No shadow (dispatch 2026-11-05-06), as above.
             border = pillBorder,
             modifier = modifier.testTag("control-pill").mapChromeContainerColor(pillFill),
         ) { buttons() }

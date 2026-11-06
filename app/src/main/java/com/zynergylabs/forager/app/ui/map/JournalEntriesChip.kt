@@ -142,6 +142,9 @@ internal fun JournalEntriesMapChip(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             containerColor = menuContainer,
+            // Over the map: no shadow, the map-chrome hairline (dispatch 2026-11-05-06; MapChromeMenuEdge.kt).
+            shadowElevation = mapChromeMenuShadowElevation(overMap = true),
+            border = mapChromeMenuBorder(overMap = true),
             modifier = Modifier.testTag(JOURNAL_ENTRIES_LIST_TAG).journalMenuColours(menuContainer, menuContent),
         ) {
             CompositionLocalProvider(LocalContentColor provides menuContent) {

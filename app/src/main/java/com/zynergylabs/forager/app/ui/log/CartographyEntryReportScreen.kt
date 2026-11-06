@@ -69,6 +69,8 @@ import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.HIDE_FROM_MAP_LABEL
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuBorder
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuShadowElevation
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapMode
@@ -474,6 +476,8 @@ internal fun CartographyEntryReportScreen(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
                         containerColor = entryMenuColor,
+                        shadowElevation = mapChromeMenuShadowElevation(entryMapShown), // Dispatch 2026-11-05-06: none over the map.
+                        border = mapChromeMenuBorder(entryMapShown),
                         modifier = Modifier
                             .testTag(ENTRY_OVERFLOW_MENU_TAG)
                             .mapChromeContainerColor(entryMenuColor),

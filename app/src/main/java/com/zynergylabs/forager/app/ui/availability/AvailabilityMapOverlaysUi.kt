@@ -79,6 +79,7 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapBubbleShell
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
@@ -221,7 +222,9 @@ internal fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
             shape = RoundedCornerShape(Spacing.md),
-            shadowElevation = 4.dp,
+            // No shadow (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"): under the 0.8 fill it
+            // showed as a band darker than the fill inside the edges. It had 4 dp. The map-chrome hairline in its place.
+            border = mapChromeOutline(),
             color = dialogColor,
             contentColor = dialogContentColor,
             modifier = Modifier.testTag(WAYPOINT_NAME_DIALOG_TAG).mapChromeContainerColor(dialogColor),

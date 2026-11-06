@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.MapIconBarAccent
@@ -206,7 +205,8 @@ internal fun MapIconBar(
             Surface(
                 shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
                 color = barFill,
-                shadowElevation = 2.dp,
+                // No shadow (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"): narrow as it is, its 2 dp
+                // shadow darkened the whole 0.8 fill a little (Phase 1 report, section 2). Its hairline was already here.
                 border = barBorder,
                 modifier = Modifier.matchParentSize().testTag(MAP_ICON_BAR_TAG).mapChromeContainerColor(barFill),
             ) {}
@@ -217,7 +217,7 @@ internal fun MapIconBar(
             shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
             color = barFill,
             contentColor = barContentColor,
-            shadowElevation = 2.dp,
+            // No shadow (dispatch 2026-11-05-06), as above.
             border = barBorder,
             modifier = modifier.testTag(MAP_ICON_BAR_TAG).mapChromeContainerColor(barFill),
         ) { rows() }
