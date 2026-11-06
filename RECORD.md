@@ -36353,6 +36353,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **Done (2026-11-06):** the scanner counts one-decimal values and helper-split pairs (old kept as scan.py.v2), proved on synthetic cases and known trees. PR #501 (home-values-out, code 1d115a366) replaced both groups and the two audit notes; CI run 42286084442 green, 6,838 tests matching pre-main by name. The records report cleaned at 6c43a2103.
   - **The new scanner's further finds:** on pre-main, 6 one-decimal pairs on the box's corners in 4 test files and about 240 one-decimal edge values in about 90 files; on this branch, 11 search-list hits in old audits and 5 pairs in RECORD.md, one review and three preserved prompts.
   - **Changed (2026-11-06T20:50Z), the owner, verbatim:** **"Both: 6 pairs and ~240"** (the option: "One more PR to pre-main covering the 6 corner pairs and the ~240 edge numbers, tests still checking the same things"); **"Clean them"** (the option: "Replace them with the marker the earlier sweep used, add-only otherwise, on the records branch"); and to "Merge it into pre-main?" for #501: **"Merge it"**. Dispatch 2026-11-06-03, Amendment 1.
+  - **Merged:** PR #501 into pre-main as a5a2a392f, after every check passed on its head b2c9481e0; index row b516d520a.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
