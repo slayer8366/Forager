@@ -209,3 +209,137 @@ unless a step says.
   cleared Font13Evening only. The rig's state still has two lines under the parts at 2.0 where it had one before H3 ("No fix … min",
   which the rig's clock makes very long, and now "No compass"), so the evening line steps aside and the route card has no room. Not
   silenced; for the planner.
+
+## E13: H10 and H7 refined again (a fresh session, the same day)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E13: "H10 and H7 refined again ... in the same PR by the same practice, until
+full CI is green." Marks as above: [observed] is a CI run's XML or log read this session (each log checked for compile errors first, and
+each run's head SHA checked against the commit), [read] is code read at the commit named, [inferred] is worked out and not measured.
+
+### The rulings (verbatim)
+
+- H10, the owner: "The more urgent one (Recommended)". The option read: "Where status words take their own line (large text), only one
+  shows: "No fix 6 min" ahead of "No compass". The card stays one line taller at most, and the route card keeps its buttons. At normal
+  text both show as now." The planner's reading: "under H8, one status line at most, by the existing priority. Fix-age warnings come
+  ahead of the compass notice, which comes ahead of other words."
+- H7 refined again (the planner's call): "whether the heading stays on the strip is decided on its widest reading, so it never appears
+  and drops out as the phone turns. At 320 dp it stays off, as before this dispatch."
+
+### Base and commits
+
+- Checked against the remote at the start [observed]: `origin/nav-card-kind-line` ba0724ead, `origin/pre-main` 61f99fbe2, already merged
+  in; worktree clean. The other Hazel's branch `next-turn` touches no file this section edits (its diff from its base read: `domain/nextturn/`,
+  AppContainer, the two use cases, WayHomeRouting).
+
+| Commit | What |
+|---|---|
+| e9f38eac6 | Tests first: H10 (`NavigationCardOneStatusLineTest`, new) and H7 refined again (the 320 dp strip case's claim). |
+| 160d4c6b3 | H10 (`oneStatusLine`, the readout's `statusIsFixAge`) and H7 refined again (`headingFitPx`). |
+| 5427954d2 | Three route-card preconditions' claims, now that the 640 x 360 evening line shows (below). |
+
+### What was built [read, at 5427954d2]
+
+- **H10** (`NavigationCardStatusPlace.kt`, `oneStatusLine`; `NavigationCardRightPart.kt`, `StatusSpace(oneLine)`; `NavigationInfo.kt`): where
+  H8 puts the status words under the parts, one line shows: the status words alone where they warn of the fix's age (stale or lost,
+  `NavigationHudReadout.statusIsFixAge`, set in `NavigationReadout.kt` as `freshness != FRESH`); else the compass notice where there is one;
+  else the status words. In the right part (normal text) both still show. The status words are already the readout's one status, with a
+  fix's age ahead of every other word, so "the existing priority" is that order plus the notice between.
+- **H7 refined again** (`AvailabilityMapControlsUi.kt`): what the strip keeps (`readoutsFitBeside`) counts a heading reading, a value or the
+  dash, at the widest value (`stripHeadingValuesPx`, as the windows already size it); the compass words and the crossed-out compass, which
+  do not change as the phone turns, are counted as drawn. Everything else in the decision is as before (the squeezed gaps, RECORD -713's
+  order).
+
+### Evidence
+
+- **Red, tests first**: run 42278345300 at e9f38eac6 [observed], 6957 tests, 13 failed: the 9 failing at ba0724ead (run 42264328834, read
+  first: 6953, 9 failed, 24 skipped) and the 4 new claims, each for its own reason: the three H10 cases ("the status space shows [No fix
+  for 6 min, No compass], not [No fix for 6 min] or [No fix 6 min]"; "[Approaching, No compass], not [No compass]"), and 320 dp ("facing
+  89°: the heading <89° E> is drawn"; "the phone turning: <compass-strip-elevation> moved from 84.5.dp to 113.83333.dp"). The font 1.0
+  control (both lines in the right part) passed, as designed: H10 does not touch it, so it passes before and after and proves only that
+  normal text is unchanged.
+- **Green**: run 42278603468 at 160d4c6b3 (a throwaway ref, so as not to cancel the red run): the four new claims pass and six of the nine
+  route-card reds clear. Then run 42282412164 at 5427954d2, the branch's full CI: **6957 tests, 6931 passed, 24 skipped, 2 failed**, the
+  two stops below. "Build, test, publish APK" and "The app builds and its tests pass with the Street map deleted" fail on those two; lint,
+  release compile, styles, Worker, route cutter and the debug-sources check pass.
+- **Against pre-main** (run 42245483101 at 61f99fbe2, 6838 tests, 0 failed), by name: 36 names only on pre-main (renamed or replaced earlier
+  in this PR, as the G and H section says), 155 only here, **0 names whose outcome differs**. Both failures are names that exist only on
+  this branch.
+- **Reverts**, each a one-line edit in a throwaway worktree, its diff checked to be that one line, restored from a copy saved before the
+  edit (never from git), the forward line confirmed present in the branch worktree afterwards (grep, 1 match each), and each log checked
+  for compile errors (0) before its XML was read. Each over 5427954d2, 367 tests in the NavigationCard, RouteCard, CompassStrip,
+  AvailabilityScreenNavigationView and AvailabilityScreenMapIconStack classes:
+
+| Revert | Edit | Run | Fails |
+|---|---|---|---|
+| H10 | `StatusSpace(readout, oneLine = true)` back to `StatusSpace(readout)` | 42282443780 | 14: H10's 3 cases ("[No fix for 6 min, No compass]", "[Approaching, No compass]"), the 9 route-card cases back to two lines under the parts ("leg row 0 shows, height 0.0.dp"; "sundown line ... expected:<1> but was:<0>"), and the two standing stops |
+| H7 refined again | `listOf(headingFitPx, elevationPx)` back to `listOf(headingPx, elevationPx)` | 42282464055 | 2: the 320 dp case ("facing 89°: the heading <89° E> is drawn") and the standing 823 x 384 stop; the 360 dp case passes again, so its failure (stop 1) is this ruling's |
+
+### Tests whose claims changed (none silenced, no tolerance widened, no assertion dropped)
+
+- `CompassStripWindowsTest`, 320 dp: now "the heading stays off as the phone turns, and nothing else moves" (drawn in no state, facing 281°
+  or 89°, at either height; the height and the grid reference do not move as the phone turns). Was "short of room, the line keeps the
+  height and the grid reference as the heading changes", which claimed only those two were kept. The 360 dp case gained a print of what
+  the line keeps; its claim is unchanged (and is stop 1).
+- `RouteCardOnNavigationCardShortFont20EveningTest`, `sundownLineShown = false` to `true`; `RouteCardSundownStepsAsideShortTest` and
+  `...ShortNoElevationTest`, `lineExpected = false` to `true`. With H10 the rig's lost fix and missing compass take one line under the parts,
+  not two, so the evening line now fits at 640 x 360, font 2.0, in the evening, by RECORD -955's rule, and D42 steps it aside when the route
+  card opens. Each old claim is quoted in its doc. Note for the first: with the line shown, the class's expanded-top check is the evening
+  one already used by every other evening class there ("rises over the strip"), not the noon one ("to 8 dp from the top"), which that file
+  records as waiting on the owner.
+
+### Stops (reported, not decided)
+
+1. **H7 refined again takes "Alt" off the strip at 360 dp, in every state** [observed, run 42278603468: "the line keeps [heading, elevation,
+   coordinates]" facing 281°, facing 89° and at 3000 m]. Counted at its widest, the heading leaves no room for the label there. Before
+   this dispatch "Alt" came and went at 360 dp with the heading's width; at ba0724ead it was kept in every measured state. The ruling
+   names only the heading and 320 dp, so whether "Alt" may go at 360 dp is not mine to decide. Built as stated (stable: nothing comes and
+   goes as the phone turns); the 360 dp test still claims "Alt" and is red. **For the owner:** "On a 360 dp phone, the strip can keep the
+   heading steady only if the "Alt" label goes for good (the height itself stays). Should it: (a) drop "Alt" there, so nothing changes as
+   you turn; or (b) keep "Alt" where the heading as shown leaves room, so "Alt" comes and goes as you turn, as before this update?" One
+   line either way (a: the test's claim; b: the labels decided on the heading as drawn).
+2. **823 x 384, font 2.0, no compass, "Dark since": the evening line never settles** [observed]. The premise "all one case: font 2.0,
+   landscape, no fix and no compass" was wrong for this one: its fix is fresh (the rig's clock is the fix's time + 1 s); the eight
+   route-card cases do have a lost fix. H10 cannot touch it (only one line, "No compass", is under the parts). A diagnostic throwaway build
+   (run 42278700471, the decision's inputs printed) shows a four-frame cycle: with the evening line shown, the kind takes its own line and
+   the left part is 342 px tall, so the card needs 458 px, its top at 694 against a limit of 756: hidden. Hidden, the kind goes beside the
+   distance, the left part is 244 px, the card needs 360, its top at 792: shown. The margin (12 px) is far smaller than the 98 px swing.
+   The decision reads the left part's height, which the decision itself changes (the comment at `NavigationInfo.kt:110` says its inputs are
+   "parts the evening stack does not change"; since G3 and A3 the kind's step depends on the evening line, so that no longer holds). At
+   73b5c0812 the same case had no evening line at all ("0 evening pieces drawn"); H9's shorter notice moved it to the edge. On a phone this
+   would be the evening line flickering every frame. A fix has to choose what shows there: (a) decide on the left part as it would be with
+   the evening line, so here the line stays off (the test's positive control, which claims the line shows, would then need its claim
+   changed); or (b) something else gives way so the line fits. **For the owner:** "In landscape at the largest text, with no compass and
+   after sunset, there isn't room for both "Dark since…" and "by trail" on its own line. Should the card (a) leave out the "Dark since"
+   line there, or (b) keep it and put "by trail" back beside the distance?"
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: the base; the nine reds at ba0724ead; each new claim red for its own reason; both reverts failing only what
+  they can cause, with clean compile logs; the full run's counts and the name comparison with pre-main; the cause of stop 2 (printed).
+- **Inferred**: that on a phone stop 2 is a visible flicker (Robolectric shows only a layout that never settles); that stop 1 does not reach
+  the S22, which is 384 dp wide (the 384 dp case keeps the heading in every state [observed], but no test here reads "Alt" at 384 dp).
+- **Could not determine**: font 1.3 (not in these classes for H10); the landscape card under H10 through a unit test of its own (covered
+  only through the route-card classes, which are landscape at 640 x 360 and 823 x 384).
+- **Premises that were wrong**: "all one case: font 2.0, landscape, no fix and no compass" (the 823 x 384 case has a fresh fix, and a
+  different cause); the hand-off's "9 tests are red" was right (6953, 9 failed, 24 skipped).
+
+### Decided beyond the dispatch
+
+- What "fix-age warnings" covers: a stale fix as well as a lost one ("Last fix 45 s ago", "Approaching · last fix 45 s ago"), as both carry
+  the fix's age.
+- The compass words and the crossed-out compass counted as drawn in H7 refined again, since they do not change as the phone turns.
+- This section in the companion report, as the G and H section was (the main report is 734 lines).
+
+### Device check (S22, for the planner), cheapest first
+
+A combined build with this branch at its head, green on CI apart from the two stops, before the phone is asked for.
+1. **H10, font 2.0, portrait then landscape**: cover the compass (or use a calibrating state) while approaching a point; under the card,
+   one line, "No compass", never two. Then let the fix go stale or lost (cover the sky): one line, the fix's age ("No fix 6 min" or "No fix
+   for 6 min"), no "No compass" beside or under it. Evidence: a screenshot each; the card is at most one line taller than with no status.
+2. **H10, normal font**: the same two states: both lines show, as before. Evidence: a screenshot.
+3. **H10, landscape font 2.0, with a route card open** (two stops or more): Save and Undo whole, a leg row shows when expanded. Evidence: a
+   screenshot.
+4. **H7 refined again, portrait**: navigating, turn slowly through a full circle. On the S22 (384 dp) the heading and the height stay,
+   nothing comes and goes; note whether "Alt" shows (not measured at 384 dp). At font 1.0 with display size raised to give 360 or 320 dp, if that is allowed: at 320 the heading never
+   shows in any direction; at 360 (stop 1) note whether "Alt" shows. Evidence: a short screen recording each.
+5. **Landscape font 2.0, no compass, after sunset** (stop 2): observation only, not a gate. Note whether the "Dark since" line flickers.
