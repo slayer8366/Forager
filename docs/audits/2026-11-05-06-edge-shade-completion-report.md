@@ -28,11 +28,12 @@ Marks: **[read]** is source read at a file and line; **[observed]** is CI output
   - 4 for the clean triangle in 42126975492.
   - Two design faults in my first tests were found by their run and fixed first.
 - **Revert checks.** Six, each on its own branch, none with a compile error, each failing only its own cases. One of them found the outline test's day blind spot at the strip's end, which K-2a closes.
-- **CI.** Full CI green at b02687d2e (run 42134399792): 6680 tests, 0 failures, 0 errors, 24 skipped, every job a success. PENDING_FINAL_CI_LINE
+- **CI.** Full CI green at b02687d2e (run 42134399792): 6680 tests, 0 failures, 0 errors, 24 skipped, every job a success. After C2, full CI green at 57adcd4eb (run 42154201578): 6732 tests, 0 failures, 0 errors, 24 skipped, every job a success, no compile errors.
+- **C2,** the bubble's entry-count menu, waited for PR #494 and is done (`MapFeatureBubble.kt:208-210`). Its new test failed first for its own reason (42152576917). Its revert check, a seventh, failed only its two cases with no compile error (42154248791).
 
 ## What landed
 
-On `edge-shade`, PR #495 (draft into pre-main), pushed at every step.
+On `edge-shade`, PR #495 into pre-main, pushed at every step. It stays a draft until the head is green with C2 done, and is then marked ready. It is not merged: that waits for the owner.
 
 | commit | what it does |
 |---|---|
@@ -219,6 +220,14 @@ Every count below is from the JUnit XML. Each PR run tests the merge with pre-ma
 | r4, 42122322888, 8ba253226 | the notice's two-line minimum 64 dp, not 68 | parity's two-line cases | 1 failure: "2 line(s), action false, dismiss false, 360 dp: the whole notice ... Material bottom=92.0.dp, own bottom=88.0.dp" |
 | r5, 42129142994, b21a95ccc | the corner arcs on a shared right side not drawn | the four landscape cases at the arc squares | 2 failures, night only. The day blind spot, above. |
 | r6, 42134397087, b02687d2e | as r5 | all four at the arc squares | 4 failures, all four, 38 and 40 of 75 |
+| c2-r1, 42154248791, 57adcd4eb | C2's three lines removed: the bubble's entry list back to Material's 3 dp shadow and no line | the two `SeeThroughEdgeMenuPixels` cases only, naming the hairline at all four edges and band samples 2 to 5 dp in | 2 failures of 51 (the filter as C2's tests-first run): those two cases only. By day the left edge reads E3DFD4 against the line's A29B90, and 2 dp in E2DDD3 against E7E3D8; at night the left edge reads 3A3A39 against 8B8B8B. |
+
+**c2-r1, said plainly.** The reverted tree is byte-identical to d61a1e3a2's, C2's tests-first commit (both trees e5e418191), so this check re-ran that state from the forward commit. Its failures are the same values, sample for sample, as 42152576917's. It was run by a separate runner in `/mnt/work/scratch/edge-shade-c2/tools/`, on the same rules:
+- one edit, on its own branch and worktree;
+- the file copied before the edit;
+- the build log read for compile errors first (none);
+- afterwards the worktree's file restored from that copy, never from git, and found identical to 57adcd4eb's;
+- the forward change confirmed present in the coder's worktree and on origin (`MapFeatureBubble.kt:209-210`).
 
 **r1 at night.** The night bubble check failed though it passed before the change. That is a failure this revert produces. The fill is now drawn by the shell and the Surface is transparent, so a shadow put back on the Surface is drawn over the fill, darker than the old band.
 
@@ -226,7 +235,21 @@ Each failure is one its own edit can produce, and none falls in another surface'
 
 ## CI counts
 
-PENDING_FINAL_CI
+Every count is from the JUnit XML, the build job's log read first for compile errors (none in any run below). Each PR run tests the merge with pre-main.
+
+| Run | Commit | Kind | Suites | Tests | Failures | Errors | Skipped | Jobs |
+|---|---|---|---|---|---|---|---|---|
+| 42137248165 | 2544e080e | full, before C2 (from the interim report; not re-read in C2's session) | | 6680 | 0 | 0 | 24 | every job a success |
+| 42151105727 | 09ee656f0 | full, the merge of pre-main | 978 | 6730 | 0 | 0 | 24 | every job a success |
+| 42152576917 | d61a1e3a2 | filtered, C2's tests first | 8 | 51 | 2 | 0 | 0 | the build and the Street-deleted jobs failed on the two new cases only |
+| 42154248791 | f9ae7318d (c2-r1) | filtered, C2's revert check | 8 | 51 | 2 | 0 | 0 | as 42152576917 |
+| **42154201578** | **57adcd4eb** | **full, after C2** | **980** | **6732** | **0** | **0** | **24** | **every job a success** |
+
+**Against the merge's run, suite by suite,** 42154201578 differs only by the two new suites, `SeeThroughEdgeMenuPixelsLightTest` and `DarkTest`, each 1 test passed. No other suite's counts changed.
+
+**What the new test read** at 57adcd4eb [observed]. The list lies on screen at 24 to 136 dp across and 313.7 to 521.7 dp down, 112 × 208 dp: four 48 dp items and 8 dp of padding above and below, at Material's 112 dp minimum width.
+- **By day,** at each edge: the hairline A39A90 against A29B90 (top A9A095 against A8A195), and 2 dp in E7E3D8 exactly (top F1EDE0, over the bubble).
+- **At night:** the hairline 8B8B8B at three edges and 7C7C7C against 7D7D7D at the top; 2 dp in 3E3E3D exactly (top 262626).
 
 ## Not tested, said plainly
 
