@@ -121,6 +121,7 @@ class CompassStripWindowsTest : NavigationCardKindLineScreen() {
         // What the line keeps is decided on the squeezed form (the planner: ""Alt" is kept where it fits, follows "It fit before, so it
         // should still fit now""), so here it keeps all three values and "Alt", facing either way and at either height.
         val all = tags + NAVIGATION_LABEL_TAG
+        println("STRIPKEPT|360/1.0|facing 281° $first|facing 89° $turned|at 3000 m $higher")
         for ((name, kept) in listOf("facing 281°" to first, "facing 89°" to turned, "at 3000 m" to higher)) {
             if (kept != all) problems += "$name, the line keeps $kept, not $all"
         }
@@ -128,23 +129,37 @@ class CompassStripWindowsTest : NavigationCardKindLineScreen() {
     }
 
     @Test @Config(qualifiers = "w320dp-h780dp-xxhdpi")
-    fun `320 dp, font 1,0 - short of room, the line keeps the height and the grid reference as the heading changes`() = assertNothingShifts320()
+    fun `320 dp, font 1,0 - the heading stays off as the phone turns, and nothing else moves`() = assertHeadingStaysOff320()
 
     /**
-     * 320 dp, short of room: decided on the squeezed form, the heading is kept where the squeezed line holds it ("89° E" yes, "281° W"
-     * no), so it comes and goes as the phone turns, and the windows squeeze toward the values shown. The claim here is what is always
-     * kept, the height and the grid reference. Was "… with the heading given way, a height or the form changing moves nothing else".
+     * Amendment 1, H7 refined again (the planner's call, RECORD -2181): "whether the heading stays on the strip is decided on its widest
+     * reading, so it never appears and drops out as the phone turns. At 320 dp it stays off, as before this dispatch." So at 320 dp the
+     * heading is drawn in no state, facing 281° or 89° and at either height, and the height and the grid reference stay where they
+     * were as the phone turns. Was (H7 refined, decided on the squeezed form): "the heading is kept where the squeezed line holds it
+     * ("89° E" yes, "281° W" no), so it comes and goes as the phone turns"; the claim then was only that the height and the grid
+     * reference are always kept.
      */
-    private fun assertNothingShifts320() {
-        show(State.TRAIL, Evening.NONE, Facing.TURN)
-        setNavigating(false)
+    private fun assertHeadingStaysOff320() {
         val problems = mutableListOf<String>()
+        val readings = mutableListOf<Pair<String, Map<String, Piece?>>>()
         for (facing in listOf(Facing.TURN, Facing.AHEAD)) {
             show(State.TRAIL, Evening.NONE, facing)
             setNavigating(false)
-            val s = strip()
-            for (tag in listOf(COMPASS_STRIP_ELEVATION_TAG, COMPASS_STRIP_COORDINATES_TAG)) if (s[tag] == null) problems += "320/1.0 $facing: <$tag> not kept"
-            println("STRIPWINDOWS|320/1.0|$facing|${s.mapValues { it.value?.bounds }}")
+            readings += "facing ${if (facing == Facing.TURN) "281°" else "89°"}" to strip()
+        }
+        setAltitude(3_000.0)
+        readings += "facing 89°, at 3000 m" to strip()
+        for ((name, s) in readings) {
+            if (s[COMPASS_STRIP_HEADING_TAG] != null) problems += "320/1.0 $name: the heading <${s[COMPASS_STRIP_HEADING_TAG]?.text}> is drawn"
+            for (tag in listOf(COMPASS_STRIP_ELEVATION_TAG, COMPASS_STRIP_COORDINATES_TAG)) if (s[tag] == null) problems += "320/1.0 $name: <$tag> not kept"
+            println("STRIPWINDOWS|320/1.0|$name|${s.mapValues { it.value?.bounds }}")
+        }
+        // The phone turning (the first two readings): neither the height nor the grid reference moves.
+        val (a, b) = readings[0].second to readings[1].second
+        for (tag in listOf(COMPASS_STRIP_ELEVATION_TAG, COMPASS_STRIP_COORDINATES_TAG)) {
+            val x = a[tag]
+            val y = b[tag]
+            if (x != null && y != null && abs((centre(x) - centre(y)).value) > 0.5f) problems += "320/1.0, the phone turning: <$tag> moved from ${centre(x)} to ${centre(y)}"
         }
         assertTrue(problems.joinToString("\n"), problems.isEmpty())
     }
