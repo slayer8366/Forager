@@ -36195,6 +36195,9 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - the values tied to the owner's place (observed sunset and dusk times, two elevations, one coarse tile) get the marker or a neutral rewording, putting privacy ahead of how faithful old records stay, as the owner's "Remove them" did;
     - the tile counts and the town folder's coarse files stay, listed by kind and count only;
     - fixed time strings in formatting tests stay as test data unless they turn out to come from the old place.
+- **Phase 2 stop (2026-11-06T11:46:29Z), the decimals:**
+  - **The planner's call:** the each-value-keeps-its-decimals rule applies to the values whose places were extended beyond what they had, the 2-decimal ones. The 3-decimal and longer values stay exact at P, because extended they carry only P's own last place. So P, MadeUpPlace and A's expected values stand as ruled.
+  - **One test line** in TripNavigateTest.kt changes under the rule. That file belongs to the nav card's Phase 3 (-2181, E8), so the line waits until that Hazel has finished with the file, keeping one coder per file. The line's new text stays in the home-location Hazel's private scratch.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
