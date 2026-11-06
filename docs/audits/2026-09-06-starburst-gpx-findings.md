@@ -15,25 +15,25 @@ rather than on the two wrong inferences it corrects.
 
 17 points, 171 seconds, recorded while the owner was **stationary**.
 
-| # | lat | lon | ele | Δt (s) | step (m) | m/s |
+| # | lat | lon | ele, from point 0 (m) | Δt (s) | step (m) | m/s |
 |---|---|---|---|---|---|---|
-| 0 | 45.32616980 | -122.63380453 | 92.2870 | – | – | – |
-| 1 | 45.32626210 | -122.63384690 | **111.6000** | 20.9 | 10.8 | 0.52 |
-| 2 | 45.32618958 | -122.63381365 | 98.1919 | 5.1 | 8.5 | 1.67 |
-| 3 | 45.32626180 | -122.63384650 | **111.6000** | 15.5 | 8.4 | 0.54 |
-| 4 | 45.32618841 | -122.63381378 | 97.8967 | 5.5 | 8.6 | 1.56 |
-| 5 | 45.32626200 | -122.63384700 | **111.6000** | 15.1 | 8.6 | 0.57 |
-| 6 | 45.32619203 | -122.63381655 | 97.3673 | 5.9 | 8.1 | 1.38 |
-| 7 | 45.32626210 | -122.63384700 | **111.6000** | 14.7 | 8.1 | 0.56 |
-| 8 | 45.32619352 | -122.63381797 | 97.2798 | 5.3 | 8.0 | 1.49 |
-| 9 | 45.32626210 | -122.63384690 | **111.6000** | 15.3 | 8.0 | 0.52 |
-| 10 | 45.32619487 | -122.63381865 | 97.2467 | 5.7 | 7.8 | 1.36 |
-| 11 | 45.32626200 | -122.63384870 | **111.6000** | 14.9 | 7.8 | 0.53 |
-| 12 | 45.32619608 | -122.63381964 | 97.2764 | 5.1 | 7.7 | 1.49 |
-| 13 | 45.32626190 | -122.63384670 | **111.6000** | 15.4 | 7.6 | 0.49 |
-| 14 | 45.32619694 | -122.63382030 | 97.4477 | 5.6 | 7.5 | 1.35 |
-| 15 | 45.32626210 | -122.63384740 | **111.6000** | 15.0 | 7.5 | 0.50 |
-| 16 | 45.32619800 | -122.63382095 | 97.4801 | 6.0 | 7.4 | 1.24 |
+| 0 | 45.37376980 | -121.69570453 | 0.0000 | – | – | – |
+| 1 | 45.37386210 | -121.69574690 | **19.3130** | 20.9 | 10.8 | 0.52 |
+| 2 | 45.37378958 | -121.69571365 | 5.9049 | 5.1 | 8.5 | 1.67 |
+| 3 | 45.37386180 | -121.69574650 | **19.3130** | 15.5 | 8.4 | 0.54 |
+| 4 | 45.37378841 | -121.69571378 | 5.6097 | 5.5 | 8.6 | 1.56 |
+| 5 | 45.37386200 | -121.69574700 | **19.3130** | 15.1 | 8.6 | 0.57 |
+| 6 | 45.37379203 | -121.69571655 | 5.0803 | 5.9 | 8.1 | 1.38 |
+| 7 | 45.37386210 | -121.69574700 | **19.3130** | 14.7 | 8.1 | 0.56 |
+| 8 | 45.37379352 | -121.69571797 | 4.9928 | 5.3 | 8.0 | 1.49 |
+| 9 | 45.37386210 | -121.69574690 | **19.3130** | 15.3 | 8.0 | 0.52 |
+| 10 | 45.37379487 | -121.69571865 | 4.9597 | 5.7 | 7.8 | 1.36 |
+| 11 | 45.37386200 | -121.69574870 | **19.3130** | 14.9 | 7.8 | 0.53 |
+| 12 | 45.37379608 | -121.69571964 | 4.9894 | 5.1 | 7.7 | 1.49 |
+| 13 | 45.37386190 | -121.69574670 | **19.3130** | 15.4 | 7.6 | 0.49 |
+| 14 | 45.37379694 | -121.69572030 | 5.1607 | 5.6 | 7.5 | 1.35 |
+| 15 | 45.37386210 | -121.69574740 | **19.3130** | 15.0 | 7.5 | 0.50 |
+| 16 | 45.37379800 | -121.69572095 | 5.1931 | 6.0 | 7.4 | 1.24 |
 
 **Total path length: 130.4 m. Straight line, first point to last: 3.4 m.**
 
@@ -43,15 +43,15 @@ rather than on the two wrong inferences it corrects.
 
 ### 1. Strict alternation between two positions
 
-Odd points sit at **45.326262 / −122.633847**. Even points sit near **45.326195**. Back and forth,
+Odd points sit at **45.373862 / −121.695747**. Even points sit near **45.373795**. Back and forth,
 eight times, with no drift pattern between them — two clusters, not a wander.
 
 ### 2. The odd cluster's elevation is a stored constant
 
-**Every odd point reports `111.5999984741211`** — identical to the last bit, eight times. That is
-float32 of **111.6**.
+**Every odd point reports the same altitude** — identical to the last bit, eight times. That value is
+the float32 of **a round one-decimal figure**.
 
-The even points report 97.2 to 98.2, **varying naturally**, as a measured altitude does.
+The even points report 5.0 to 5.9 m above point 0, **varying naturally**, as a measured altitude does.
 
 **A fixed altitude repeated to the bit, paired with a position repeating to 1e-7 degrees, is a
 database lookup and not a measurement.** This is the **network provider**.
@@ -159,8 +159,8 @@ settle, recorded now so they are not rediscovered:
 The document above is the planner's, filed verbatim. Two of its claims are checkable from the
 repository without the device, and both check:
 
-- **`111.5999984741211` is float32 of 111.6.** `struct.unpack('f', struct.pack('f', 111.6))`
-  gives exactly `111.5999984741211`. The app stores altitude as a `Double` taken straight from
+- **The odd points' altitude is the float32 of a one-decimal figure.** `struct.unpack('f', struct.pack('f', x))`
+  for that figure gives the file's value exactly. The app stores altitude as a `Double` taken straight from
   `Location.getAltitude()` (`location/AndroidLocationTracker.kt:71`, `if (hasAltitude()) altitude
   else null`), so a provider handing back a float32 constant would land in `track_points.altitude`
   bit-identical, eight times, exactly as the GPX shows. That is also why the "identifiable another
@@ -176,3 +176,5 @@ a shape (a many-dot chain) that this file shows does not exist. The conclusion s
 reason the planner gives — a speed bound is a rule about the user — and the recommendation to hold
 stands for the stronger reason the findings give: the discriminator is the provider, which the
 store never saw. Nothing is built from this file; the fix it points at is a separate dispatch.
+
+_On 2026-11-06 (dispatch 2026-11-05-11) the positions here were moved by one translation to the made-up place P (`MadeUpPlace`, a public summit), and the altitudes are given from point 0, so that nothing places the owner's home. The differences between points are unchanged, and so is every step, speed, path length and spread above._

@@ -75,7 +75,7 @@ class JournalPageSlideTest {
 
     private fun reduceMotionOn() = Settings.Global.putFloat(resolver, Settings.Global.TRANSITION_ANIMATION_SCALE, 0f)
 
-    private val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+    private val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1))
         .copy(isDraft = false)
 
     private val uiState = mutableStateOf(MushroomLogUiState(entries = listOf(find)))
@@ -95,7 +95,7 @@ class JournalPageSlideTest {
                     onOpenCameraForAlbum = {},
                     onOpenCameraForCartographyEntry = {},
                     mapSlot = mapSlot,
-                    pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                    pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
                     basemap = Basemap.DEFAULT,
                     onOpenEntry = { id ->
                         opens += id

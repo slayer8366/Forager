@@ -23,6 +23,7 @@ import com.zynergylabs.forager.app.domain.PlannedTripRepository
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import com.zynergylabs.forager.app.testing.MadeUpPlace
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
@@ -33,13 +34,13 @@ import org.robolectric.shadows.ShadowDialog
 // Dispatch 2026-11-05-05: what the trip bubble, trip card, trip navigation and Directions-beside-Navigate tests share.
 
 /** The planned trip those tests draw, with no route, so a tap on its flag opens its bubble. */
-internal val SADDLE = PlannedTrip("trip-1", "Saddle loop", LatLng(45.326, -122.634), LocalDate.of(2026, 10, 3))
+internal val SADDLE = PlannedTrip("trip-1", "Saddle loop", LatLng(MadeUpPlace.LAT, MadeUpPlace.LNG), LocalDate.of(2026, 10, 3))
 
 /** [SADDLE]'s decimal degrees as its Trip Planner row and its card write them, and as its bubble no longer does. */
-internal const val SADDLE_COORDINATES = "45.3260, -122.6340"
+internal const val SADDLE_COORDINATES = "45.3736, -121.6959"
 
 /** The `geo:` hand-off [launchDirections] builds for [SADDLE]. */
-internal const val SADDLE_GEO = "geo:0,0?q=45.326,-122.634(Saddle%20loop)"
+internal const val SADDLE_GEO = "geo:0,0?q=45.3736,-121.6959(Saddle%20loop)"
 
 /** [SADDLE]'s flag on the stub map, clear of the chrome on the left half below the compass strip. */
 internal val SADDLE_GLYPH = StubGlyph(MapLayerIds.PLANNED_TRIPS, SADDLE.id, 60.dp, 380.dp, SADDLE.location)

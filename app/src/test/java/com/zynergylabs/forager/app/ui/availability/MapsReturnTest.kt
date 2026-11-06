@@ -40,7 +40,7 @@ abstract class MapsReturnTests {
     private val rig = RealSearchScreenRig(composeRule)
 
     private val remembered = MapCameraSnapshot(
-        target = LatLng(45.326, -122.634),
+        target = LatLng(45.3736, -121.6959),
         zoom = 14.5,
         bearing = 30.0,
         tilt = 10.0,

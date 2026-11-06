@@ -113,7 +113,7 @@ abstract class RouteCardRecenterCoversNoCardTests(
 }
 
 /**
- * D43 (RECORD -2020): at fixed clocks. Run 41758945602 failed this class on the real clock after sunset: the sundown line showed with
+ * D43 (RECORD -2020): at fixed clocks. Run 41758945602 failed this class on the real clock: the sundown line showed with
  * no card (navigation card 226..360 dp) and stepped aside for the route card (D42), so the navigation card's top moved.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

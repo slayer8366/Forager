@@ -1014,8 +1014,8 @@ class AvailabilityScreenMapIconStackTest {
         // Latitude and Longitude are the dropdown's first row, with no fold (dispatch
         // 2026-09-28-697), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
+        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.3736")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
         // performScrollTo(): "Search coordinates" sits under the fields (RECORD -700); kept in case it
         // is ever below the dropdown's own bounded, scrolled viewport on this suite's w360dp-h640dp
         // config — without
@@ -1189,7 +1189,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()
 
-        assertEquals(LatLng(45.326, -122.634), startedLogEntryAt)
+        assertEquals(LatLng(45.3736, -121.6959), startedLogEntryAt)
     }
 
     /**
@@ -3254,8 +3254,8 @@ private val TAPPED_SIGHTING = Sighting(
     taxonId = 47348L,
     scientificName = "Cantharellus formosus",
     commonName = "Chanterelle",
-    lat = 45.33,
-    lng = -122.64,
+    lat = 45.38,
+    lng = -121.70,
     observedOn = LocalDate.of(2026, 8, 1),
     photoUrl = null,
 )

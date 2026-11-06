@@ -16,7 +16,7 @@ import org.maplibre.android.location.modes.CameraMode
 class MapCameraMovesTest {
 
     private val oregonCity = MapCameraSnapshot(
-        target = LatLng(45.3263, -122.6339),
+        target = LatLng(45.3739, -121.6958),
         zoom = 12.0,
         bearing = 0.0,
         tilt = 0.0,

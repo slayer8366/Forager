@@ -86,7 +86,7 @@ import org.junit.Test
  * `com.zynergylabs.forager.app.map.MapLibreOfflineMapRepository`'s own concern rather than this ViewModel's.
  * This file covers the loading → success/failure state machine the UI actually renders from.
  */
-private val REFERENCE_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val REFERENCE_REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
 private val REFERENCE_REGION_SUMMARY = OfflineRegionSummary(
     id = 1L,
@@ -331,7 +331,7 @@ class AvailabilityViewModelOfflineMapsTest {
         advanceUntilIdle()
 
         vm.onOfflineMapLatChanged("not a number")
-        vm.onOfflineMapLngChanged("-122.634")
+        vm.onOfflineMapLngChanged("-121.6959")
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
@@ -348,7 +348,7 @@ class AvailabilityViewModelOfflineMapsTest {
         advanceUntilIdle()
 
         vm.onOfflineMapLatChanged("120")
-        vm.onOfflineMapLngChanged("-122.634")
+        vm.onOfflineMapLngChanged("-121.6959")
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 

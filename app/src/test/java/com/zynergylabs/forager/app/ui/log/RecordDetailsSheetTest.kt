@@ -230,7 +230,7 @@ class RecordDetailsSheetTest {
 
     private fun assertWaypointCreekContent() {
         field("mgrs").assertTextEquals("MGRS", CREEK_MGRS)
-        field("coordinates").assertTextEquals("Coordinates", "45.3260, -122.6340")
+        field("coordinates").assertTextEquals("Coordinates", "45.3736, -121.6959")
         field("created").assertTextEquals("Created", stamp(CREEK.createdAtEpochMillis))
         field("track").assertTextEquals("Track", stamp(TRACK_T1.startedAtEpochMillis))
         field("used-in").assertTextEquals("Used in", "2 journal entries")
@@ -506,7 +506,7 @@ class RecordDetailsSheetTest {
         composeRule.waitForIdle()
         val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
         assertEquals(Intent.ACTION_VIEW, started?.action)
-        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
+        assertEquals("geo:0,0?q=45.3736,-121.6959(Creek%20pin)", started?.data.toString())
         assertTrue("the sheet stays open (A12)", sheetShowing())
     }
 
@@ -784,7 +784,7 @@ private val TRACK_T2 = Track(
 private val DETAILS_TRACKS = listOf(TRACK_T1, TRACK_T2)
 
 private val CREEK = Waypoint(
-    id = "W1", lat = 45.3260, lng = -122.6340, altitude = null, name = "Creek pin", note = "",
+    id = "W1", lat = 45.3736, lng = -121.6959, altitude = null, name = "Creek pin", note = "",
     createdAtEpochMillis = NOW - 2 * DAY, trackId = "T1",
 )
 private val OAK = Waypoint(

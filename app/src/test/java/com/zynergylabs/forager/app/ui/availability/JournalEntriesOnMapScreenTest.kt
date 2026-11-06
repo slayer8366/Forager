@@ -115,7 +115,7 @@ private typealias EntriesOnMapRule = AndroidComposeTestRule<ActivityScenarioRule
 private val FIND_AT = LatLng(45.51, -122.61)
 private val FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = FIND_AT, date = LocalDate.of(2026, 9, 12))
     .copy(isDraft = false, ownIdentification = "Golden chanterelle")
-private val WAYPOINT = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
+private val WAYPOINT = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
 private val RECORDS = MapRecords(
     findMarkers = listOf(RecordPoint(FIND.id, FIND_AT)),
     photoMarkers = emptyList(),

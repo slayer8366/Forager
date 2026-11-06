@@ -928,7 +928,7 @@ class AvailabilityScreenSettingsPanelTest {
 private const val MAP_SLOT_TAG = "settings-panel-test-map-slot"
 private const val OFFLINE_PICKER_MAP_TAG = "settings-panel-test-offline-picker-map-slot"
 
-private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 private val PICKED_LOCATION = LatLng(lat = 44.5, lng = -121.5)
 
 private const val TRACK_STARTED_AT = 1_756_400_000_000L

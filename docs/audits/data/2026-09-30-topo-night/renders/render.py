@@ -3,7 +3,7 @@
 
 Everything uses today's V1 exactly (brightness-min 1, max 0, hue-rotate 180), through measure.shade, the Python
 mirror of RasterShaderModel.kt (checked against nightColorOf's formula, see README). A 'view' is a 256 x 256 dp
-square centred on 45.36 N, 122.6 W drawn at 3 px per dp (about the S22's density), tiles bilinear-resampled the way
+square centred on 35.59556 N, 82.55194 W (downtown Asheville, NC; set 2026-11-06, not re-run) drawn at 3 px per dp (about the S22's density), tiles bilinear-resampled the way
 MapLibre's raster layer samples them, then the paint applied per pixel.
 
 Hillshade follows MapLibre Native 13.5.0 (include/mbgl/shaders/gl/hillshade_prepare.hpp and hillshade.hpp, method
