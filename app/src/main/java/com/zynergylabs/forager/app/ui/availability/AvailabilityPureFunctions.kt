@@ -97,7 +97,7 @@ internal fun mapVisibleWaypoints(waypoints: List<Waypoint>, isNavigating: Boolea
  * fitted at 360 dp; the owner chose "Shorter decimals, no labels (Recommended)". The reasoning below was the original's.
  *
  * The decimal pair is labeled ("Lat."/"Long.", the project owner's own wording) rather than the bare
- * "45.5231, -122.6414" [PlannedTripRow] shows — that row sits next to a named trip, where the pair
+ * "45.5231, -121.7414" [PlannedTripRow] shows — that row sits next to a named trip, where the pair
  * reads as "that trip's location" from context; this strip has no such context, so an unlabeled pair
  * here could as easily read as two unrelated numbers. `"%.4f"` matches the same precision every
  * other decimal-degree display in this file already uses (`PlannedTripRow`, `RecentSearchRow`, the

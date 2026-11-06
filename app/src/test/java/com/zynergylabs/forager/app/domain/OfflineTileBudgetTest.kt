@@ -13,7 +13,7 @@ import org.junit.Test
  * `MadeUpPlace` (dispatch 2026-11-05-11, RECORD -2182: a Python re-derivation of the slippy-map grid, the method of
  * the tile-cost pre-build report, which gives the "~1774 tiles" the tile-estimate dispatch recorded at the
  * area's previous place, `OfflineMapRepository`'s SERVED_MAX_ZOOM comment), and 5120 for a 24 km area at
- * 49.60, -122.607 (`AvailabilityViewModelOfflineMapsTest`, from the two-data-corrections pre-build report).
+ * 49.60, -121.903875 (`AvailabilityViewModelOfflineMapsTest`, from the two-data-corrections pre-build report).
  */
 class OfflineTileBudgetTest {
 
@@ -30,7 +30,7 @@ class OfflineTileBudgetTest {
     )
 
     private val ridge = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
-    private val northEdge = Region(lat = 49.60, lng = -122.607, radiusKm = 24)
+    private val northEdge = Region(lat = 49.60, lng = -121.903875, radiusKm = 24)
 
     @Test
     fun `a downloaded area counts by its estimate, not by MapLibre's count of both sources' tiles`() {

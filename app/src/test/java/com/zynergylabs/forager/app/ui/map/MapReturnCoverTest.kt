@@ -89,7 +89,7 @@ class MapReturnCoverTest {
         assertEquals(CoverDecision.NO_PICTURE, decide(picture = null))
         assertEquals(CoverDecision.NO_CAMERA, decide(saved = null))
         assertEquals("another zoom", CoverDecision.CAMERA_MOVED, decide(saved = camera.copy(zoom = 13.0)))
-        assertEquals("another place", CoverDecision.CAMERA_MOVED, decide(saved = camera.copy(target = LatLng(45.40, -122.634))))
+        assertEquals("another place", CoverDecision.CAMERA_MOVED, decide(saved = camera.copy(target = LatLng(45.40, -121.80))))
         assertEquals("turned", CoverDecision.CAMERA_MOVED, decide(saved = camera.copy(bearing = 40.0)))
         assertEquals("a search frame to fly to", CoverDecision.MOVE_PENDING, decide(frameId = 3, appliedFrameId = 2))
         assertEquals("a new search region", CoverDecision.MOVE_PENDING, decide(target = Region(lat = -41.29, lng = 174.78, radiusKm = 15) to null))
