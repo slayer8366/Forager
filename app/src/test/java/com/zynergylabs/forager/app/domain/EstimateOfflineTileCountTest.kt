@@ -46,7 +46,7 @@ class EstimateOfflineTileCountTest {
      */
     @Test
     fun `the served-ceiling estimate matches the download's own enumeration at three radii spanning the slider`() {
-        val madeUpPoint = { radiusKm: Int -> Region(lat = 45.357, lng = -121.904, radiusKm = radiusKm) }
+        val madeUpPoint = { radiusKm: Int -> Region(lat = 45.357, lng = -121.5523125, radiusKm = radiusKm) }
         assertEquals(224, estimateServedOfflineTileCount(madeUpPoint(5)))
         assertEquals(1781, estimateServedOfflineTileCount(madeUpPoint(15)))
         assertEquals(4304, estimateServedOfflineTileCount(madeUpPoint(OfflineMapRepository.MAX_RADIUS_KM)))
