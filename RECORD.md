@@ -36325,6 +36325,12 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **The planner's calls on her stop:**
     - the positive-W span is replaced with the marker;
     - 12 single in-box latitudes in three copied files, each partner outside the box, stay, listed by kind and count.
+- **The report copy is done (2026-11-06T17:38:34Z):** 279 text files from 142 of the 150 report branches are on this branch, in four add-only commits: f61a4ae6f, 0b1708443, 40ec574e8 and 669bcefd5.
+  - **Where:** 254 at their own paths (44 of them new paths under prompts/preserved), and 25 stale variants under docs/audits/from-branches/. One agent-instruction file is kept as CLAUDE.md.txt.
+  - **Checks:** each file matches its scrubbed copy byte for byte on origin. Both scanners read 0 pairs, grid references and tiles. The scrubs removed 6 pairs, 5 grid references and 1 tile, in 8 files. The single values left are ruled exceptions.
+  - **Not copied:** no images (none were unique to these branches), plus code, scripts and what pi-build already holds. The other 8 branches had nothing unique.
+  - **Not checked:** place names in words, as ruled out of scope at Phase 1.
+  - **All 150 branches** still sit at their manifest-B SHAs, so they are ready for the owner's script run, straight after the 1,111.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
