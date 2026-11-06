@@ -320,8 +320,8 @@ explicitly rather than absorbed.
 test: bounding box from the centre by the equirectangular rule `GeoDistance.boundingBox` uses
 (`GeoDistance.kt:69–83`; mean radius 6 371 008.8 m, longitude span divided by `cos(lat)`), tile
 column `floor((lng+180)/360·2^z)`, tile row `floor((1 − ln(tan φ + sec φ)/π)/2·2^z)`, tiles per zoom
-= columns × rows, summed over z = 10…15. Cross-check against the previous work's figures at the
-owner's coordinates (45.357, −122.607): **5/15/50 km → 68/485/4772 at ceiling 14 and 224/1781/18696
+= columns × rows, summed over z = 10…15. Cross-check against the previous work's figures at its
+reference point (45.357, −122.607): **5/15/50 km → 68/485/4772 at ceiling 14 and 224/1781/18696
 at ceiling 15 — all six reproduced exactly.**
 
 **B2.1 — which latitude.** The archive is a continental-US extract, `--bbox=-124.85,24.40,-66.87,49.60`

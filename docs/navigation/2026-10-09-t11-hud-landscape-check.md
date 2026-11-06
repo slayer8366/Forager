@@ -26,7 +26,7 @@ cap holds. Four real problems remain, in order of what they cost a walker:
 
 Also confirmed on the S22, already logged in -694: at font 2.0 the Record/Stop pill is pushed past the bottom edge (28 of its
 48 dp visible) and the rail's "Tools" label is cut. New at font 2.0 on the S22: the display's grid reference is cut
-("10T ER 28688 …"), against the planner's -699 extension that the coordinates stay whole.
+("[a point near the owner's home; removed 2026-11-06] …"), against the planner's -699 extension that the coordinates stay whole.
 
 ## How it was measured
 
@@ -209,7 +209,7 @@ The enumeration rule: each cut or overlap above, by what it hides.
   line**, moderate for the others.
 - **"Location services unavailable" cut** (6 to 25 of 29): the first words survive at font 1.0 to 1.3 ("Location
   serv…"); at font 2.0 "Locati…". Readable as "something about location" at best. **Moderate.**
-- **The grid reference cut** (16 of 18 at 780, font 2.0; "10T ER 28688 …" on the S22 at font 2.0): the reference read out
+- **The grid reference cut** (16 of 18 at 780, font 2.0; "[a point near the owner's home; removed 2026-11-06] …" on the S22 at font 2.0): the reference read out
   to get help loses its last digits, so the position given is wrong by up to a kilometre. **Serious when it is needed**, and
   it contradicts the -699 extension's promise.
 - **The sundown line cut** (21 to 39 of 37 to 42 at font 1.3 to 2.0): the start-back time ("· start back by h:mm") is the
@@ -239,7 +239,7 @@ The enumeration rule: each cut or overlap above, by what it hides.
 | Search bar overlap | none | none (rot 90: bar ends ≈ 404 dp, HUD starts ≈ 404) | none | none |
 | Distance | whole | whole ("≈ 700 ft") | "…" | "••" |
 | Kind | first row | moved to the status line, "Straight ·" | "By trail" 1/8 | "S·" |
-| Grid reference | whole | whole | whole | **cut, "10T ER 28688 …"** |
+| Grid reference | whole | whole | whole | **cut, "[a point near the owner's home; removed 2026-11-06] …"** |
 | Heading on the second row | shown | **dropped** | dropped | dropped |
 
 **Heights agree** once the S22's 30.1 dp status bar is added (inferred from the map's top edge at 113 px). **Widths do

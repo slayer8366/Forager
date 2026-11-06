@@ -28,7 +28,7 @@ Every file's sha256 on this machine equals the device's:
 No side files for `mbgl-offline.db` exist on the device; `files/maplibre-offline/` is an empty directory. Analysis ran on a scratch copy with the three `forager.db` files together (so the WAL is applied), leaving the backup untouched.
 
 - **`forager.db`:** SQLite 3 header; `integrity_check` = ok; `user_version` = 16. Row counts: `android_metadata` 1, `cached_searches` 2, `cartography_entries` 7, `cartography_entry_find_refs` 2, `cartography_entry_offline_region_refs` 1, `cartography_entry_photo_refs` 1, `cartography_entry_track_refs` 1, `cartography_entry_waypoint_refs` 3, `log_entry_photos` 1, `log_photos` 3, `mushroom_log_entries` 3, `offline_regions` 2, `planned_trips` 0, `room_master_table` 1, `track_points` 23, `tracks` 1, `waypoints` 3.
-- **`offline_regions` rows:** id 1 "DEVICE CHECK" (45.3262696, -122.6338591, 1 km, zoom 10 to 15, created 1790569326998, `isEntryCapture` 0); id 2 "DEVICE CHECK 2026-09-28 B" (45.3198262471555, -122.624714326657, 5 km, zoom 10 to 15, created 1790591727547, 0). These are the device checks' own regions.
+- **`offline_regions` rows:** id 1 "DEVICE CHECK" ([a point near the owner's home; removed 2026-11-06], 1 km, zoom 10 to 15, created 1790569326998, `isEntryCapture` 0); id 2 "DEVICE CHECK 2026-09-28 B" ([a point near the owner's home; removed 2026-11-06], 5 km, zoom 10 to 15, created 1790591727547, 0). These are the device checks' own regions.
 - **`mbgl-offline.db`:** SQLite 3 header; `integrity_check` = ok. `regions` 2, `resources` 2, `tiles` 967, `region_resources` 4, `region_tiles` 261. Region ids 1 and 2, whose metadata names and coordinates equal the two Room rows.
 
 ## Pre-registration (pushed before the install and before the first launch)

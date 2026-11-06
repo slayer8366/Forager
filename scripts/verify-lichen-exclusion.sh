@@ -12,8 +12,9 @@
 set -euo pipefail
 
 API="https://api.inaturalist.org/v1"
-# The search that surfaced the problem: three of the top five ranked species were lichens.
-REGION="lat=45.326&lng=-122.634&radius=15&month=8&iconic_taxa=Fungi&verifiable=true"
+# A 15 km search around the made-up place P (MadeUpPlace, the summit of Mount Hood). The problem first
+# showed in a search like this one: three of the top five ranked species were lichens.
+REGION="lat=45.3736&lng=-121.6959&radius=15&month=8&iconic_taxa=Fungi&verifiable=true"
 LECANOROMYCETES=54743
 
 # Reporting the comparison is this script's whole job, so an unreachable host must

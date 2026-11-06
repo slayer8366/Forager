@@ -25,12 +25,12 @@ set -euo pipefail
 
 IMAGERY_ONLY="https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer"
 
-# Portland, Oregon (45.326, -122.634) — the reference location used throughout this project.
+# Mount Hood, Oregon (45.3736, -121.6959): the made-up place P the tests stand at (MadeUpPlace).
 # Tile x/y are precomputed for the Web Mercator grid so this script needs no trig at runtime.
-#   z12 -> x=652   y=1468
-#   z15 -> x=5221  y=11745
-#   z16 -> x=10443 y=23490
-#   z17 -> x=20886 y=46981
+#   z12 -> x=663   y=1467
+#   z15 -> x=5306  y=11739
+#   z16 -> x=10613 y=23478
+#   z17 -> x=21227 y=46956
 # Paris, France (48.857, 2.352), the non-US control:
 #   z12 -> x=2074  y=1409
 
@@ -97,17 +97,17 @@ expect_no_tile() {
   fi
 }
 
-echo "== 1. US location (Portland, Oregon) is served, at the zooms the app allows =="
-expect_tile "USGSImageryOnly Portland"          "$IMAGERY_ONLY" 12 652   1468
-expect_tile "USGSImageryOnly Portland"          "$IMAGERY_ONLY" 15 5221  11745
+echo "== 1. US location (Mount Hood, Oregon) is served, at the zooms the app allows =="
+expect_tile "USGSImageryOnly Mount Hood"        "$IMAGERY_ONLY" 12 663   1467
+expect_tile "USGSImageryOnly Mount Hood"        "$IMAGERY_ONLY" 15 5306  11739
 
 echo
 echo "== 2. The zoom ceiling is real: z16 still serves, z17 does not =="
 echo "   Basemap.maxZoom is 15 — one below the observed ceiling, because the service's own"
 echo "   advertised maximum (see check 4) is demonstrably wrong and a handful of sample"
 echo "   points do not establish that 16 holds everywhere."
-expect_tile    "USGSImageryOnly Portland"       "$IMAGERY_ONLY" 16 10443 23490
-expect_no_tile "USGSImageryOnly Portland"       "$IMAGERY_ONLY" 17 20886 46981
+expect_tile    "USGSImageryOnly Mount Hood"     "$IMAGERY_ONLY" 16 10613 23478
+expect_no_tile "USGSImageryOnly Mount Hood"     "$IMAGERY_ONLY" 17 21227 46956
 
 echo
 echo "== 3. Coverage stops outside the United States (Paris, France) =="
