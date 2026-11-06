@@ -36240,4 +36240,22 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **O10:** junctions come from RouteWays; the vendored BRouter stays unmodified.
 - **For the owner now:** the joins (O3), forks (O2), the empty states (O6) and the walker's own track (O7).
 - **For the owner later,** once #498's fixed spaces are built and measured: the TalkBack words (O8) and the fit (O11).
+- **The owner, verbatim (2026-11-06T12:27:50Z), to four questions:**
+  - To "Where the route first reaches a trail from where you stand, or leaves it for the last stretch to the waypoint, you have to pick left or right, but there's no junction in the map data. Show those as turns?": **"Show them (Recommended)"**. The option read: "They get an arrow and distance like any junction. Picking which way along the trail is often the walk's first decision." The other: "Junctions only".
+  - To "At a fork where your route carries straight on and another path splits off, should the card show anything?": **"A keep-left/right arrow"**. The option read: "A fork arrow shows which branch to keep to, with its distance." The other: "Nothing (Recommended)".
+  - To "When the card shows \"Arrived\", \"—\", a held-back route, no GPS fix, or you're within the fix's own circle, what goes in the next-turn space?": **"Blank (Recommended)"**. The option read: "The space keeps its place, empty, so nothing moves. The straight-ahead arrow shows everywhere else there's no turn left." The other: "Straight-ahead arrow".
+  - To "On the way home along your own recorded track, the app has no junction data, so it can't know where the turns are. What should the space show?", typed: **"On the recorded track home, the route still gets processed and displayed. The route will even update to show a better route. For instances without trails, when there is no routing data, then keep it blank."**
+  - **Corrected here:** that question's premise described only the track fallback. The way home is a routed way, which gets its turns like any other, and the space is blank where there's no trail route.
+- **Amendment 1** is at prompts/preserved/2026-11-06-01-amendment-1.md. It holds the rulings by category:
+  - A, where and what;
+  - B, what counts as a turn, with the owner's joins and forks;
+  - C, the arrow;
+  - D, the distance;
+  - E, nothing to show, with the owner's blank and the way home;
+  - F, the junction source;
+  - G, open (the TalkBack words and the fit, after #498's fixed spaces);
+  - H, Phase 2.
+  - **The planner's readings, open to the owner:**
+    - a fork is where the route keeps the straightest way and another way leaves within 45°;
+    - past the way home's last joint, the space is blank rather than straight-ahead.
 **Notes:** Written by the planner by hand. Next free ID -2184.
