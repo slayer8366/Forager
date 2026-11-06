@@ -51,8 +51,9 @@ All are from RECORD -2181, quoted verbatim:
 |---|---|
 | 3c8bd44dc | **Tests first:** the new screen classes and the rules helper. The one production line is a test tag on the top line (`NAVIGATION_HUD_TOP_LINE_TAG`), which changes no behaviour, so the tests can read the left part's exact bounds. |
 | f8985f721 | **Test fixes found in the first red run** (see Evidence): the rig settles the compass heading, and the rules read the parts' width from the X's touch box. Tests only. |
-| f46baf51d | **The change.** The rulings replace the strict reading in the new files. The pure fit test is updated. |
-| (this report) | This file only. |
+| f46baf51d | **The change.** The rulings replace the strict reading in the new files. The pure fit test is updated. **The last production commit.** |
+| 9c99777a1 | **Two height checks updated** that pinned the old layout (see "Pinned tests updated"). Tests only. **The last code commit.** |
+| a6a2aceb5, and the final one | This report only. |
 
 ## What a user sees
 
@@ -95,6 +96,51 @@ lines).
 **Nothing shrinks** (observed): every kind form is drawn in the turn words' type. Each reading checks this ("Keep the text size the
 same size").
 
+**A withheld route grows the card one line more than before.** On the route the card is one line shorter. Before the first route,
+and with the route withheld, it is as tall as before. So when the route goes, the card grows by that one line more. For example, the
+780 × 360 landscape card with no evening time:
+- on the route: 60 dp, against 76 on pre-main [observed, runs 42191218291 and 42191454743];
+- before the first route: 76 dp, as on pre-main [observed on pre-main; on the branch it follows from the exact check that passes];
+- withheld with Try again: 124 dp [observed]. On pre-main it is at most 124.5 dp, by that test's passing bound; that it is exactly
+  124 there is not verified.
+
+This follows from the owner's words, as Phase 1 said ("Wherever the left part sets the card's height, the card loses one line").
+
+## Pinned tests updated (9c99777a1)
+
+Full run 42188117750 (f46baf51d) failed three tests, all height checks. They fail the same way at the first session's head,
+ae7ad700c (run 42191218291), so the first session's change caused them, not this one [observed]. Phase 1 had listed
+`HudLandscapeT11*` among the tests that "Could change through card height, which only a CI run can say". Neither test was silenced
+or loosened. Each
+keeps its bound, measured from the state with the same lines.
+
+**`AvailabilityScreenReturnRouteTest`**, "the HUD grows by the route message's line when a route is withheld, and by Try again's row
+when it is offered".
+- Old:
+  - `assertEquals("pending, the HUD's height is the route's", onRoute, pending, 0.5)`;
+  - `withheld > onRoute + 0.5.dp && withheld <= onRoute + line + 0.5.dp`;
+  - `taller <= onRoute + row + 0.5.dp`.
+- New:
+  - pending equals the route plus pending's status line, exactly (±0.5 dp);
+  - `withheld > pending + 0.5.dp && withheld <= pending + line + 0.5.dp`;
+  - `taller <= pending + row + 0.5.dp`;
+  - positive controls: the route has no status line; pending's reads "0.7 mi straight".
+- Measured: 61 on the route, 77 pending.
+
+**`HudLandscapeT11Fixes`**, item 2, at 780 and 823 ("Try again sits beside its message, the display grows by at most its row …").
+- Old: `hud <= onRoute + 48.5.dp`.
+- New:
+  - a pending step: pending equals the route plus its status line, exactly;
+  - then `hud <= pending + 48.5.dp`;
+  - positive controls on both status lines.
+
+**Both, before and after:**
+- On the branch, 47 of 47 (run 42191411486).
+- On pre-main with only these two files changed (run 42191454743), each fails on its new claim:
+  - "pending, the HUD is the route's and its status line (16.0.dp) expected:<93.0> but was:<77.0>";
+  - "before the first route the display is the route's and its status line …".
+- So they read the change [observed].
+
 ## Verification before building
 
 | Check | Result |
@@ -121,12 +167,12 @@ All read at f46baf51d.
 - **No change** to words, text styles, the turn row, the status line, the evening stack or the X.
 
 **Tests:**
-- **The rig, `NavigationCardKindLineScreen`** (331 lines). It gains:
+- **The rig, `NavigationCardKindLineScreen`** (343 lines). It gains:
   - the evening phases: none, "Dark since 5:23 PM", "Dark since 10:23 PM", before sunset, after sunset;
   - three facings: 169° off, 1° off, no compass;
   - the top line's, the X's and the stacked words' bounds;
   - text measured in each node's own type.
-- **`NavigationCardTopLineRules`** (new, 194 lines): works the owner's rulings out from the drawn card's own widths, in whole pixels,
+- **`NavigationCardTopLineRules`** (new, 190 lines): works the owner's rulings out from the drawn card's own widths, in whole pixels,
   and lists each difference from what was drawn. It is written from the rulings, not from the app's code. Each case also names the
   step it is chosen to reach, and whether the meeting point moved, so a case that drifts to another step fails.
 - **New classes:**
@@ -165,7 +211,7 @@ checked against the one it was meant to build (observed, `fetch.sh`).
 
 **Green after:**
 - **Run 42187274279** (f46baf51d), filtered to the 12 affected classes. No compile errors. **88 of 88 passed:**
-  - the 7 new or extended top-line classes;
+  - the six top-line screen classes, 33 (this session's four and the first session's two);
   - `NavigationCardTopLineFitTest`, 21;
   - `AvailabilityScreenNavigationWordsTest`, 8;
   - `NavigationCardFitAcrossWidthsTest`, 12;
@@ -182,7 +228,7 @@ checked against the one it was meant to build (observed, `fetch.sh`).
 - **Each run:**
   - its job log had no compile errors;
   - its head was its own revert commit;
-  - it ran the 7 top-line classes and the pure fit test, 54 tests;
+  - it ran the six top-line screen classes and the pure fit test, 54 tests;
   - every failure is one its own edit can produce, and nothing else failed (observed, `read.py` over each run's XML).
 
 | | The edit | Run | Failed | Messages, each specific to its edit |
@@ -196,7 +242,29 @@ checked against the one it was meant to build (observed, `fetch.sh`).
 | R7, the lone word | a word with no kind centred (the option "Centred, as today") | 42188237814 | 17 of 54 | "does not end at the middle"; "<Arrived> …, wider than its half, does not start at the left part's left edge". This is what holds the lone-word cases, which could not fail on the branch. |
 
 
-**Full CI:** FULL-CI-PLACEHOLDER
+**Full CI.** Run 42192499972 at a6a2aceb5. Its code is 9c99777a1's; the difference is this report. Every job passed, the job log
+has no compile errors, and the Street-map-deleted job also passed [observed]. Compared by test name with pre-main's run
+42167274295 at 779599c3f (observed, `compare.py` over both runs' JUnit XML):
+
+| | pre-main | this branch |
+|---|---|---|
+| tests | 6768 | 6823 |
+| passed | 6744 | 6799 |
+| skipped | 24 | 24, the same names |
+| failed | 0 | 0 |
+
+- **Outcome differs for:** no test name in both runs.
+- **Only on pre-main:** 3 names, the first session's three renamed pinned tests:
+  - `AvailabilityScreenNavigationWordsTest` "the longest lines leave the display as tall as short ones";
+  - `NavigationHudKindInStatusTest` "at 320 dp the kind is a small line of its own under the turn line, whole";
+  - `NavigationInfoLayoutTest` "… the left part's lines share one centre".
+- **Only here:** 58 names: those three under their new names, and 55 new:
+  - Evening 5, Stack 4, LargeText 7 and LoneWord 7 (this session);
+  - Portrait 6 and Landscape 4 (the first session's);
+  - `NavigationCardTopLineFitTest` 21;
+  - `RoundedMapCardFitTest` 1.
+- **Arithmetic:** 6768 − 3 + 58 = 6823.
+- **The earlier full run**, 42188117750 at f46baf51d, is the one that found the three height checks: 6823 tests, 3 failed.
 
 ## Sunset and dusk: what moves
 
@@ -315,4 +383,16 @@ Nothing else stopped the work.
 
 ## Clean-up
 
-CLEANUP-PLACEHOLDER
+- **Deleted:**
+  - the first session's throwaway branches `nav-card-kind-measure` and `nav-card-kind-red`, on origin and locally;
+  - its worktree `~/.cache/forager-wt/nav-card-kind-measure`, which was clean;
+  - its scratch `/mnt/work/scratch/nav-card-kind/`.
+  
+  This report cites only CI runs, which outlive their branches.
+- **This session's ten throwaway refs** are deleted from origin, each after its run finished: the green ref, the seven reverts, the
+  run at ae7ad700c and the pre-main height check.
+- **This session's scratch**, `/mnt/work/scratch/nav-card-kind-2/`, is deleted at the end.
+- **Left:** `nav-card-kind-line` and its worktree `~/.cache/forager-wt/nav-card-kind`. No index row was added to
+  `docs/audits/README.md`: rows there are written at merge.
+- **Location:** no coordinate, grid reference or tile number appears in anything this session pushed. The tests use the made-up
+  point P, as the first session's do.
