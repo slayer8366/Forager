@@ -35405,6 +35405,10 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - A blend of fill and map is never darker than the map by day. The real line, 0.376, clears 0.439 by 0.063. Hazel's own example, a 0.12 margin, would leave the real line only 0.006 to spare, so it is not used.
   - **To show it works:** the forward run stays green, and r5 fails in all four cases (day and night, 823 and 780).
   - **Not widened further:** she reports which other rounded-end walks share the blend blind spot, unchanged, for a later ruling.
+  - **Corrected here (2026-11-06T00:05:32Z): the rule as worded would have turned the forward run red.** Hazel measured it on the CI captures before building anything.
+    - Applied to all 62 arc squares, forward had 16 broken by day and 12 at night. At 0° to 9° the arc meets the rail's line, and at 75° to 90° on the top corner it meets the strip's top line. Both of those lie over a fill, not the map.
+    - **K-2a, accepted by the planner:** the rule applies at 15° to 69° of each corner only, where the arc lies over the map, with one 3° step of margin on each side of what held. The arc's ends keep the O-1 rule.
+    - Measured at 12° to 72°: forward 0 broken in all four captures; r5 44 by day and 47 at night per case.
 - **Accepted:** 5c9c97cb1, her own new tail check's outer samples moved from 1.5 px out to 2.5 px. On the stepped tail it still fails in 9 of 12 samples by day and 10 of 12 at night, by 7 to 42 levels. It is her new check, not an existing test.
 - **J-B is built (b21a95ccc):** the base lies along the card's edge, 4 dp either side, clear of the 20 dp corners.
   - Red run 42126975492: the 4 tail cases failed, with the step on the lower side as she predicted.
