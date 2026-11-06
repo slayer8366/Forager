@@ -38,10 +38,11 @@ internal data class NavigationInfoFit(
     /** What the right part keeps: the widest evening piece, 0 with none. */
     val rightPx: Int = 0,
     /**
-     * Dispatch 2026-11-05-10 (RECORD -2181): where the kind word goes on the left part, decided on the left part's width once the
-     * steps above are taken ([kindPlace]); the steps above never read it, so the turn line and the evening stack are as before.
+     * Dispatch 2026-11-05-10 (RECORD -2181): where the kind word goes on the left part and the figure the meeting point is set for,
+     * decided once the steps above are taken ([topLinePlace]); the steps above never read it, so the turn line and the evening stack
+     * are as before.
      */
-    val kindPlace: KindPlace = KindPlace.NONE,
+    val topLine: TopLinePlace = TopLinePlace.NONE,
 )
 
 /**

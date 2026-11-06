@@ -20,9 +20,9 @@ import org.junit.Test
  * the widest of the figure (40), the arrow line and the kind (30); the total adds the divider and the evening piece.
  *
  * Dispatch 2026-11-05-10 (RECORD -2181) moved the kind onto the figure's line, or its own line under the figure. Where it goes is
- * decided after these steps, on the width they leave the left part ([kindPlace], `NavigationCardTopLineFitTest`), and these steps
- * never read it: the turn words shrink, "≤ 16 ft" shows and the evening pieces wrap exactly where they did, so the values here are
- * unchanged on purpose and [NavigationInfoFit.kindPlace] is left at its default by this fit (asserted below). The kind still
+ * decided after these steps, on the width they leave the left part ([topLinePlace], `NavigationCardTopLineFitTest`), and these
+ * steps never read it: the turn words shrink, "≤ 16 ft" shows and the evening pieces wrap exactly where they did, so the values
+ * here are unchanged on purpose and [NavigationInfoFit.topLine] is left at its default by this fit (asserted below). The kind still
  * counts as a line of the left part's width here, as it does where it takes its own line.
  */
 class RoundedMapCardFitTest {
@@ -117,8 +117,8 @@ class RoundedMapCardFitTest {
 
     @Test
     fun `the steps do not place the kind, which is decided on the width they leave (dispatch 2026-11-05-10)`() {
-        assertEquals(KindPlace.NONE, fit(widths(136)).kindPlace)
-        assertEquals(KindPlace.NONE, fit(widths(50, figurePx = 100, figureShortPx = 30)).kindPlace)
+        assertEquals(TopLinePlace.NONE, fit(widths(136)).topLine)
+        assertEquals(TopLinePlace.NONE, fit(widths(50, figurePx = 100, figureShortPx = 30)).topLine)
     }
 
     @Test

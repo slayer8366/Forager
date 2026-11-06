@@ -24,23 +24,29 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * Dispatch 2026-11-05-10 (RECORD -2181): the left part's top line, the distance and what it measures. The owner: "For navigation
  * cards have the 2.2 mi on the left half, and then move the "by trail" from the bottom to the top right half, on the same line as
  * 2.2 mi", and "Meet at the middle (Recommended)": the distance ends at the left part's middle and the kind starts there, a word's
- * space apart ([TopLineHalves]), on one baseline, so it reads "2.2 mi by trail". With no kind ("Arrived", the dash) the word stands
- * in the distance's own place, in the left half, the right half empty (the owner: "In the left half").
+ * space apart, on one baseline, so it reads "2.2 mi by trail". Where the longest distance the walk could show doesn't fit left of
+ * the middle, "Shift the middle a little (Recommended)": the meeting point moves right just enough for it ([TopLineMeeting]), so it
+ * stays put while the number changes.
  *
- * Where they can't share the line the kind takes the owner's steps ([KindPlace], decided in [kindPlace]): stacked "by" over
- * "trail", "trail" alone, then its own line under the distance, above the turn line. The kind keeps its type in every step, the
- * stacked words too ("Keep the text size the same size"). It carries [NAVIGATION_HUD_DISTANCE_KIND_TAG] in every step; stacked,
- * the tag is on the stack, which reads "by trail" as one text.
+ * Where the kind doesn't fit right of the meeting point it takes the owner's steps ([KindPlace], decided in [topLinePlace]):
+ * - stacked "by" over "trail", "On the distance's line (Recommended)": both words start at the meeting point, "trail" on the
+ *   distance's baseline and "by" just above it;
+ * - "trail" alone, on the same baseline (in the owner's order, though never reached: see [KindPlace]);
+ * - its own line under the distance, above the turn line, "At the middle (Recommended)": starting at the meeting point, or as near
+ *   it as fits.
+ * The kind keeps its type in every step, the stacked words too ("Keep the text size the same size"). It carries
+ * [NAVIGATION_HUD_DISTANCE_KIND_TAG] in every step; stacked, the tag is on the stack, which reads "by trail" as one text.
  *
- * Where a figure is wider than its half (a narrow card, large text), it starts at the left part's start rather than run off it,
- * and ends as near the middle as it can. That, how the stacked words sit, and where the kind goes on its own line, are this
- * build's reading, not yet ruled: see the dispatch's completion report.
+ * With no kind ("Arrived", the dash) the word stands in the distance's own place, "In the left half": it ends at the middle, which
+ * does not move, since there is no kind's longest figure to move it for. Where the word is wider than its half, "Left, crossing as
+ * little (Recommended)": it starts at the left part's left edge and crosses the middle only as far as it must.
  */
 @Composable
 internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, color: Color, modifier: Modifier = Modifier) {
     val gapPx = with(LocalDensity.current) { Spacing.xs.roundToPx() }
     val kind = readout.distanceKindText
-    val place = if (kind == null) KindPlace.NONE else fit.kindPlace
+    val place = if (kind == null) KindPlace.NONE else fit.topLine.kind
+    val longestFigurePx = if (kind == null) null else fit.topLine.longestFigurePx
     Layout(
         // The tag is on the whole line, the left part's full width, so a test reads the left part's own bounds.
         modifier = modifier.fillMaxWidth().testTag(NAVIGATION_HUD_TOP_LINE_TAG),
@@ -65,14 +71,14 @@ internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, 
         val loose = constraints.copy(minWidth = 0, minHeight = 0)
         val figure = figureParts.single().measure(loose)
         val kindPlaceable = kindParts.singleOrNull()?.measure(loose)
-        val halves = TopLineHalves(width, gapPx)
-        // As near the middle as it fits: ends at the middle, or starts at the left part's start where it is wider than its half.
-        val figureX = maxOf(0, halves.figureEndPx - figure.width)
+        val meeting = TopLineMeeting(width, gapPx, longestFigurePx)
+        // Ends at the meeting point, or, a word with no kind wider than its half, starts at the left part's left edge.
+        val figureX = maxOf(0, meeting.figureEndPx - figure.width)
         if (kindPlaceable == null || place == KindPlace.NONE) {
             layout(width, figure.height) { figure.place(figureX, 0) }
         } else if (place == KindPlace.OWN_LINE) {
-            // Its own line has the left part's whole width: it starts at the middle, or as near it as it fits.
-            val kindX = maxOf(0, minOf(halves.kindStartPx, width - kindPlaceable.width))
+            // Its own line has the left part's whole width: it starts where it would beside the distance, or as near it as fits.
+            val kindX = maxOf(0, minOf(meeting.kindStartPx, width - kindPlaceable.width))
             layout(width, figure.height + kindPlaceable.height) {
                 figure.place(figureX, 0)
                 kindPlaceable.place(kindX, figure.height)
@@ -86,7 +92,7 @@ internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, 
             val kindY = line - kindBaseline
             layout(width, maxOf(figureY + figure.height, kindY + kindPlaceable.height)) {
                 figure.place(figureX, figureY)
-                kindPlaceable.place(halves.kindStartPx, kindY)
+                kindPlaceable.place(meeting.kindStartPx, kindY)
             }
         }
     }

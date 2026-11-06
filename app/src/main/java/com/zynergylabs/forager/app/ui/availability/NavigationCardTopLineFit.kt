@@ -10,18 +10,29 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
  * (Recommended)": the distance ends at the left part's middle and the kind starts there, on one baseline. The pure half: every
  * choice is a function of measured widths, so a wrong step is a pinned-literal failure (`NavigationCardTopLineFitTest`).
  *
- * Where the two can't share the line at today's sizes, the owner: "Option 1 but stack by on top of trail first, then just shorten
- * it to trail, and then drop it down". So, in order:
- * 1. [KindPlace.BESIDE]: the whole kind in the right half, beside the distance;
- * 2. [KindPlace.STACKED]: "by" over "trail" in the right half;
+ * Where the longest distance doesn't fit left of the middle, the owner: "Shift the middle a little (Recommended)" (the option
+ * read: "the meeting point moves right just enough (about 4 to 20 dp) and stays put for the whole walk"). See [TopLineMeeting].
+ *
+ * Where the kind still doesn't fit right of the meeting point, the owner: "Option 1 but stack by on top of trail first, then just
+ * shorten it to trail, and then drop it down". So, in order:
+ * 1. [KindPlace.BESIDE]: the whole kind right of the meeting point, beside the distance;
+ * 2. [KindPlace.STACKED]: "by" over "trail" (the owner: "On the distance's line (Recommended)");
  * 3. [KindPlace.SHORT]: "trail" alone;
- * 4. [KindPlace.OWN_LINE]: the kind on its own line just under the distance, above the turn line.
+ * 4. [KindPlace.OWN_LINE]: the kind on its own line just under the distance, above the turn line (the owner: "At the middle
+ *    (Recommended)": it starts at the meeting point, or as near it as fits).
  * "straight" is one word, so it cannot stack or shorten and goes from 1 to 4 (the planner's reading, told to the owner).
+ * [KindPlace.SHORT] is kept in the owner's order but is never reached: the stack is as wide as its wider word, "trail", which is
+ * exactly what "trail" alone needs, so wherever "trail" would fit the stack fits first (accepted by the planner, 2026-11-06).
  * No text is shrunk, rescaled or fitted ("Keep the text size the same size"): each step changes where the kind goes, never its size.
  *
- * The step is chosen for the widest figure the card could show for this kind in this unit ([longestFigures]), not the figure on
- * screen, so it does not change while the number counts down on a walk (RECORD -2181: "Each step is chosen for the longest
- * distance the card could show, so the layout doesn't jump while walking").
+ * The step is chosen for the worst case the card could show on this walk, so it doesn't change while walking (RECORD -2181,
+ * Phase 1's option the owner chose: "It's decided for the longest distance the card could show, so it doesn't jump between lines
+ * as the number changes while walking"):
+ * - for the widest figure the card could show for this kind in this unit ([longestFigures]), not the figure on screen;
+ * - and, the planner's call of 2026-11-06 under that option, for the narrowest the left part can be while the card shows, across
+ *   every heading and turn word ([narrowestLeftPartPx]). Where the evening pieces leave the left part short, it is as wide as its
+ *   widest line, the turn row, which changes as the walker turns; decided on the width drawn, "by trail" would flip between
+ *   stacked and its own line as they turned.
  */
 internal enum class KindPlace {
     /** No kind to place: "Arrived", the dash, "within 16 ft". The word stands where the figure stands, in the left half. */
@@ -48,7 +59,7 @@ internal fun kindShortOf(kind: String): String? = if (kind == DistanceKind.BY_TR
  * - the straight line is [com.zynergylabs.forager.app.domain.model.formatDistanceWithAccuracy] outside the fix's circle: the same,
  *   with "≈ " before the feet or metres wherever the fix's accuracy rounds them (at most four digits again: "≈ 1500 ft").
  * Tenths are counted to two whole digits ("88.8 mi"), a walk's distances. A figure wider still (a trip in another area,
- * "123.4 mi") is measured as itself where the fit is decided ([TopLineWidths.figurePx]), so it can never outgrow its step.
+ * "123.4 mi") is measured as itself where the fit is decided ([topLinePlace]), so it can never outgrow its step.
  */
 internal fun longestFigures(kind: DistanceKind, unit: DistanceUnit): List<String> {
     val about = if (kind == DistanceKind.STRAIGHT) "≈ " else ""
@@ -58,25 +69,40 @@ internal fun longestFigures(kind: DistanceKind, unit: DistanceUnit): List<String
     }
 }
 
+/**
+ * The narrowest figure either kind can show in [unit]: one digit of feet or metres, with no "≈ " (the straight line has none when
+ * the fix reports no accuracy). A floor for [narrowestLeftPartPx]: no figure the card draws is narrower.
+ */
+internal fun narrowestFigure(unit: DistanceUnit): String = when (unit) {
+    DistanceUnit.MILES -> "8 ft"
+    DistanceUnit.KILOMETERS -> "8 m"
+}
+
 /** The kind [text] names, `null` for any other text. */
 internal fun distanceKindOf(text: String?): DistanceKind? = DistanceKind.entries.firstOrNull { it.words == text }
 
 /**
- * The left part's two halves either side of the gap between the figure and the kind: the figure ends at [figureEndPx], the kind
- * starts at [kindStartPx]. The gap is a word's space, centred on the middle, so "2.2 mi by trail" reads as one phrase. Shared by
- * the fit and the drawing, so the room one counts is the room the other draws in.
+ * Where the figure ends and the kind starts on a left part [widthPx] wide. The owner: "Meet at the middle (Recommended)": the
+ * figure ends half a word's space ([gapPx], Spacing.xs) left of the middle and the kind starts as far right of it, so "2.2 mi by
+ * trail" reads as one phrase. Then "Shift the middle a little (Recommended)": where [longestFigurePx] doesn't fit left of that
+ * point, the meeting point moves right just far enough for it, so the widest figure the walk could show ends there too and the
+ * point does not move as the number changes. It never moves past the left part's own right edge (a figure that wide leaves the
+ * kind no room beside it, so the kind takes its own line). `null` [longestFigurePx], with no kind: the middle, unmoved (the owner:
+ * "In the left half").
  */
-internal class TopLineHalves(widthPx: Int, gapPx: Int) {
-    private val middle = widthPx / 2
-    val figureEndPx = middle - gapPx / 2
-    val kindStartPx = middle + (gapPx - gapPx / 2)
-    val leftRoomPx = figureEndPx
-    val rightRoomPx = widthPx - kindStartPx
+internal class TopLineMeeting(widthPx: Int, gapPx: Int, longestFigurePx: Int?) {
+    private val middleEndPx = widthPx / 2 - gapPx / 2
+    val figureEndPx: Int = minOf(widthPx, maxOf(middleEndPx, longestFigurePx ?: 0))
+    val kindStartPx: Int = figureEndPx + gapPx
+    /** How far right of the middle the meeting point moved: 0 where the longest figure fits left of it. */
+    val shiftPx: Int = figureEndPx - middleEndPx
+    /** What the kind has beside the figure, from where it starts to the left part's right edge. */
+    val rightRoomPx: Int = widthPx - kindStartPx
 }
 
 /** The measured widths the top line is decided on, in pixels. */
 internal data class TopLineWidths(
-    /** The left part's width as [InfoParts] lays it out ([leftPartWidthPx]). */
+    /** The left part's width the step is decided for: the narrowest it can be on this walk ([narrowestLeftPartPx]). */
     val leftPartPx: Int,
     val gapPx: Int,
     /** The widest of [longestFigures] and the figure on screen. */
@@ -91,15 +117,22 @@ internal data class TopLineWidths(
 
 internal fun kindPlace(w: TopLineWidths): KindPlace {
     val kind = w.kindPx ?: return KindPlace.NONE
-    val halves = TopLineHalves(w.leftPartPx, w.gapPx)
-    // The kind's steps make the kind narrower; none of them makes room for a figure wider than its half.
-    if (w.figurePx > halves.leftRoomPx) return KindPlace.OWN_LINE
-    val room = halves.rightRoomPx
+    val room = TopLineMeeting(w.leftPartPx, w.gapPx, w.figurePx).rightRoomPx
     return when {
         kind <= room -> KindPlace.BESIDE
         w.stackedPx != null && w.stackedPx <= room -> KindPlace.STACKED
         w.shortPx != null && w.shortPx <= room -> KindPlace.SHORT
         else -> KindPlace.OWN_LINE
+    }
+}
+
+/**
+ * What the top line is drawn with: the kind's step, and the widest figure the meeting point is set for ([TopLineMeeting]), `null`
+ * with no kind. [decidedForPx] is the left part's width the step was decided for.
+ */
+internal data class TopLinePlace(val kind: KindPlace, val longestFigurePx: Int?, val decidedForPx: Int? = null) {
+    companion object {
+        val NONE = TopLinePlace(KindPlace.NONE, null)
     }
 }
 
@@ -112,4 +145,57 @@ internal fun leftPartWidthPx(totalPx: Int, dividerPx: Int, fit: NavigationInfoFi
     val wantRight = if (reserveRight) fit.rightPx else 0
     val rightWidth = if (fit.overflows) minOf(wantRight, maxOf(0, totalPx - dividerPx - fit.leftPx)) else wantRight
     return maxOf(0, totalPx - dividerPx - rightWidth)
+}
+
+/**
+ * The narrowest the left part can be while the card shows a kind [kindPx] wide, across every heading, turn word and figure: the
+ * planner's call of 2026-11-06 (see [KindPlace]). Where the evening pieces leave the left part short it is as wide as its widest
+ * line ([leftPartWidthPx]), and at its narrowest that line is the widest of:
+ * - [narrowestFigurePx], the narrowest figure ([narrowestFigure]);
+ * - the turn row with no turn words (on the approach, or with no compass) and the crossed-out compass in place of the north arrow
+ *   and its words (a compass status where it does not fit, RECORD -934): the needle, a gap and one icon, [arrowPx] + [gapPx] +
+ *   [arrowPx], as `navigationInfoFit` counts it;
+ * - [kindPx], which that fit still counts as a line of the left part.
+ * Never wider than the width [fit] draws, which is one of the cases this covers.
+ */
+internal fun narrowestLeftPartPx(totalPx: Int, dividerPx: Int, gapPx: Int, arrowPx: Int, narrowestFigurePx: Int, kindPx: Int, fit: NavigationInfoFit, reserveRight: Boolean): Int {
+    val need = maxOf(narrowestFigurePx, arrowPx + gapPx + arrowPx, kindPx)
+    val wantRight = if (reserveRight) fit.rightPx else 0
+    val narrowest = fit.copy(leftPx = need, overflows = need + dividerPx + wantRight > totalPx)
+    return minOf(leftPartWidthPx(totalPx, dividerPx, narrowest, reserveRight), leftPartWidthPx(totalPx, dividerPx, fit, reserveRight))
+}
+
+/**
+ * Where [kindText] goes on the top line: for the widest figure this kind can show in [unit] ([longestFigures]) or [shownFigure]
+ * where it is wider, on the narrowest left part this walk can have ([narrowestLeftPartPx]). [figurePx] measures in the figure's
+ * type, [kindPx] in the kind's.
+ */
+internal fun topLinePlace(
+    kindText: String?,
+    shownFigure: String,
+    unit: DistanceUnit,
+    fit: NavigationInfoFit,
+    totalPx: Int,
+    dividerPx: Int,
+    gapPx: Int,
+    arrowPx: Int,
+    reserveRight: Boolean,
+    figurePx: (String) -> Int,
+    kindPx: (String) -> Int,
+): TopLinePlace {
+    val kind = kindText ?: return TopLinePlace.NONE
+    val longest = (distanceKindOf(kind)?.let { longestFigures(it, unit) }.orEmpty() + shownFigure).maxOf(figurePx)
+    val kindWidth = kindPx(kind)
+    val leftPart = narrowestLeftPartPx(totalPx, dividerPx, gapPx, arrowPx, figurePx(narrowestFigure(unit)), kindWidth, fit, reserveRight)
+    val place = kindPlace(
+        TopLineWidths(
+            leftPartPx = leftPart,
+            gapPx = gapPx,
+            figurePx = longest,
+            kindPx = kindWidth,
+            stackedPx = kindStackOf(kind)?.let { (top, bottom) -> maxOf(kindPx(top), kindPx(bottom)) },
+            shortPx = kindShortOf(kind)?.let(kindPx),
+        ),
+    )
+    return TopLinePlace(place, longest, leftPart)
 }

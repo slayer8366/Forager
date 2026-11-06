@@ -267,38 +267,22 @@ private fun measuredNavigationInfoFit(
         turnShort = turnShortForm(turn),
     ).let { fit -> if (fit.overflows) fit.also { android.util.Log.w(CARD_LOG_TAG, "navigation info overflows at $partsPx px: $fit") } else fit }
         .let { fit ->
-            val reserveRight = eveningPieces(sundownLine, backByLine).isNotEmpty()
-            fit.copy(kindPlace = topLineKindPlace(readout, fit, partsPx, metrics, reserveRight, distanceUnit, figureStyle, small, ::widthOf))
+            // Dispatch 2026-11-05-10 (RECORD -2181): where the kind goes on the top line ([topLinePlace]).
+            val place = topLinePlace(
+                kindText = readout.distanceKindText,
+                shownFigure = columnFigure(readout, fit.figureShort),
+                unit = distanceUnit,
+                fit = fit,
+                totalPx = partsPx,
+                dividerPx = metrics.dividerPx,
+                gapPx = metrics.gapPx,
+                arrowPx = metrics.arrowPx,
+                reserveRight = eveningPieces(sundownLine, backByLine).isNotEmpty(),
+                figurePx = { widthOf(it, figureStyle) },
+                kindPx = { widthOf(it, small) },
+            )
+            fit.copy(topLine = place)
         }
-}
-
-/**
- * Dispatch 2026-11-05-10 (RECORD -2181): where the kind goes, decided on the left part's width as [InfoParts] draws it, for the
- * widest figure this kind can show in [distanceUnit] ([longestFigures]) or the figure on screen where it is wider.
- */
-private fun topLineKindPlace(
-    readout: NavigationHudReadout,
-    fit: NavigationInfoFit,
-    partsPx: Int,
-    metrics: InfoMetrics,
-    reserveRight: Boolean,
-    distanceUnit: DistanceUnit,
-    figureStyle: TextStyle,
-    kindStyle: TextStyle,
-    widthOf: (String, TextStyle) -> Int,
-): KindPlace {
-    val kindText = readout.distanceKindText ?: return KindPlace.NONE
-    val longest = distanceKindOf(kindText)?.let { longestFigures(it, distanceUnit) }.orEmpty() + columnFigure(readout, fit.figureShort)
-    return kindPlace(
-        TopLineWidths(
-            leftPartPx = leftPartWidthPx(partsPx, metrics.dividerPx, fit, reserveRight),
-            gapPx = metrics.gapPx,
-            figurePx = longest.maxOf { widthOf(it, figureStyle) },
-            kindPx = widthOf(kindText, kindStyle),
-            stackedPx = kindStackOf(kindText)?.let { (top, bottom) -> maxOf(widthOf(top, kindStyle), widthOf(bottom, kindStyle)) },
-            shortPx = kindShortOf(kindText)?.let { widthOf(it, kindStyle) },
-        ),
-    )
 }
 
 /** The X's touch box: Material's icon button at its 48 dp minimum interactive size. */

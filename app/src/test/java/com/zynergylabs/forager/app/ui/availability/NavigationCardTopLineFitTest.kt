@@ -9,11 +9,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Dispatch 2026-11-05-10 (RECORD -2181): the top line's pure half ([kindPlace], [longestFigures], [TopLineHalves],
- * [leftPartWidthPx]). Pinned on round numbers so each threshold is exact.
+ * Dispatch 2026-11-05-10 (RECORD -2181): the top line's pure half ([kindPlace], [longestFigures], [TopLineMeeting],
+ * [leftPartWidthPx], [narrowestLeftPartPx], [topLinePlace]). Pinned on round numbers so each threshold is exact.
  *
- * The owner's steps where "2.2 mi by trail" can't share the line: "Option 1 but stack by on top of trail first, then just shorten it
- * to trail, and then drop it down"; "straight" goes straight to its own line (the planner's reading, told to the owner).
+ * The owner: "Meet at the middle (Recommended)", then "Shift the middle a little (Recommended)" where the longest distance doesn't
+ * fit left of the middle. The owner's steps where "2.2 mi by trail" can't share the line: "Option 1 but stack by on top of trail
+ * first, then just shorten it to trail, and then drop it down"; "straight" goes straight to its own line (the planner's reading,
+ * told to the owner). The planner's call of 2026-11-06: the step is decided for the narrowest left part across every heading and
+ * turn word.
  */
 class NavigationCardTopLineFitTest {
 
@@ -78,19 +81,52 @@ class NavigationCardTopLineFitTest {
         assertEquals(listOf("≈ 8888 m", "88.8 km"), longestFigures(DistanceKind.STRAIGHT, DistanceUnit.KILOMETERS))
     }
 
-    // ── The halves and the left part's width ──
+    @Test
+    fun `the narrowest figure, as pinned`() {
+        assertEquals("8 ft", narrowestFigure(DistanceUnit.MILES))
+        assertEquals("8 m", narrowestFigure(DistanceUnit.KILOMETERS))
+    }
+
+    // ── The meeting point ("Meet at the middle", then "Shift the middle a little") and the left part's width ──
 
     @Test
-    fun `the gap is centred on the middle`() {
-        val even = TopLineHalves(widthPx = 100, gapPx = 4)
+    fun `the gap is centred on the middle where the longest figure fits left of it`() {
+        val even = TopLineMeeting(widthPx = 100, gapPx = 4, longestFigurePx = 48)
         assertEquals(48, even.figureEndPx)
         assertEquals(52, even.kindStartPx)
-        assertEquals(48, even.leftRoomPx)
         assertEquals(48, even.rightRoomPx)
-        val odd = TopLineHalves(widthPx = 101, gapPx = 5)
+        assertEquals(0, even.shiftPx)
+        val odd = TopLineMeeting(widthPx = 101, gapPx = 5, longestFigurePx = 10)
         assertEquals("the middle at 50, 2 px left of it", 48, odd.figureEndPx)
-        assertEquals("3 px right of it", 53, odd.kindStartPx)
+        assertEquals("a gap's width on", 53, odd.kindStartPx)
         assertEquals(48, odd.rightRoomPx)
+    }
+
+    @Test
+    fun `the meeting point moves right just enough for the longest figure`() {
+        val one = TopLineMeeting(widthPx = 100, gapPx = 4, longestFigurePx = 49)
+        assertEquals("one pixel past the middle's end, one pixel moved", 49, one.figureEndPx)
+        assertEquals(1, one.shiftPx)
+        assertEquals(53, one.kindStartPx)
+        assertEquals(47, one.rightRoomPx)
+        val far = TopLineMeeting(widthPx = 100, gapPx = 4, longestFigurePx = 70)
+        assertEquals(70, far.figureEndPx)
+        assertEquals(22, far.shiftPx)
+        assertEquals(26, far.rightRoomPx)
+    }
+
+    @Test
+    fun `the meeting point never moves past the left part's right edge`() {
+        val over = TopLineMeeting(widthPx = 100, gapPx = 4, longestFigurePx = 130)
+        assertEquals(100, over.figureEndPx)
+        assertEquals("no room beside it", -4, over.rightRoomPx)
+    }
+
+    @Test
+    fun `with no kind the word ends at the middle, unmoved`() {
+        val alone = TopLineMeeting(widthPx = 100, gapPx = 4, longestFigurePx = null)
+        assertEquals(48, alone.figureEndPx)
+        assertEquals(0, alone.shiftPx)
     }
 
     @Test
@@ -103,7 +139,31 @@ class NavigationCardTopLineFitTest {
         assertEquals("never less than nothing", 0, leftPartWidthPx(5, 10, fit, reserveRight = true))
     }
 
-    // ── The steps, where the longest figure fits its half (every reading agrees) ──
+    // ── The narrowest left part (the planner's call, 2026-11-06) ──
+
+    /** 300 px for the parts, a 10 px divider, an 80 px evening piece: 210 px left when nothing overflows. Arrows 20, gap 4. */
+    private fun narrowest(fit: NavigationInfoFit, figure: Int = 30, kind: Int = 40, reserveRight: Boolean = true) =
+        narrowestLeftPartPx(totalPx = 300, dividerPx = 10, gapPx = 4, arrowPx = 20, narrowestFigurePx = figure, kindPx = kind, fit = fit, reserveRight = reserveRight)
+
+    @Test
+    fun `where nothing overflows the narrowest left part is the one drawn`() {
+        val fit = NavigationInfoFit(turnText = "", headingAsIcon = false, leftPx = 150, rightPx = 80)
+        assertEquals(210, narrowest(fit))
+        assertEquals("no evening line", 290, narrowest(fit, reserveRight = false))
+    }
+
+    @Test
+    fun `where the drawn one overflows the narrowest is the widest of the narrowest figure, the needle and an icon, and the kind`() {
+        // The evening piece leaves 60 px; the turn row as drawn needs 250, so the left part is drawn 250 wide.
+        val fit = NavigationInfoFit(turnText = "", headingAsIcon = false, overflows = true, leftPx = 250, rightPx = 230)
+        assertEquals("positive control: drawn 250 wide", 250, leftPartWidthPx(300, 10, fit, reserveRight = true))
+        assertEquals("the kind, 70, the widest need", 70, narrowest(fit, figure = 30, kind = 70))
+        assertEquals("the needle, a gap and an icon need 44, less than the 60 the evening piece leaves", 60, narrowest(fit, figure = 30, kind = 20))
+        assertEquals("the narrowest figure, 90", 90, narrowest(fit, figure = 90, kind = 20))
+        assertEquals("never wider than the left part drawn", 250, narrowest(fit, figure = 280, kind = 20))
+    }
+
+    // ── The steps, decided on the narrowest left part ──
 
     /** A 200 px left part with a 4 px gap: 98 px each side. The longest figure 90, so it fits its half. */
     private fun place(kind: Int?, stacked: Int? = null, short: Int? = null, figure: Int = 90) =
@@ -115,7 +175,7 @@ class NavigationCardTopLineFitTest {
     }
 
     @Test
-    fun `the whole kind beside the distance where it fits the right half`() {
+    fun `the whole kind beside the distance where it fits right of the meeting point`() {
         assertEquals(KindPlace.BESIDE, place(kind = 98, stacked = 50, short = 50))
     }
 
@@ -125,8 +185,12 @@ class NavigationCardTopLineFitTest {
     }
 
     @Test
-    fun `then trail alone`() {
+    fun `then trail alone, in the owner's order, though the stack is never wider than trail in the card`() {
+        // Pinned on widths the card cannot produce (a stack wider than its own wider word), so the owner's order is held.
         assertEquals(KindPlace.SHORT, place(kind = 99, stacked = 99, short = 98))
+        // As the card measures them the stack is as wide as "trail", so wherever "trail" fits the stack fits first.
+        assertEquals(KindPlace.STACKED, place(kind = 99, stacked = 98, short = 98))
+        assertEquals(KindPlace.OWN_LINE, place(kind = 99, stacked = 99, short = 99))
     }
 
     @Test
@@ -137,6 +201,39 @@ class NavigationCardTopLineFitTest {
     @Test
     fun `straight cannot stack or shorten, so it goes to its own line`() {
         assertEquals(KindPlace.OWN_LINE, place(kind = 99))
+    }
+
+    @Test
+    fun `a longest figure past its half moves the meeting point and takes the kind's room, not the kind's line outright`() {
+        // 110 past the half's 98: the kind starts at 114, 86 px of room. Before the owner's "Shift the middle a little" this was
+        // its own line whatever the kind's width.
+        assertEquals(KindPlace.BESIDE, place(kind = 86, figure = 110))
+        assertEquals(KindPlace.STACKED, place(kind = 87, stacked = 86, short = 86, figure = 110))
+        assertEquals(KindPlace.OWN_LINE, place(kind = 87, figure = 110))
+    }
+
+    @Test
+    fun `the step is decided on the narrowest left part, so turning does not change it`() {
+        val wide = NavigationInfoFit(turnText = "", headingAsIcon = false, overflows = true, leftPx = 250, rightPx = 230)
+        val narrow = wide.copy(leftPx = 120)
+        fun at(fit: NavigationInfoFit) = topLinePlace(
+            kindText = "by trail", shownFigure = "1280 ft", unit = DistanceUnit.MILES, fit = fit, totalPx = 300, dividerPx = 10, gapPx = 4,
+            arrowPx = 20, reserveRight = true,
+            figurePx = { when { it.startsWith("88.8") -> 100; it == "8 ft" -> 50; else -> 90 } },
+            kindPx = { mapOf("by trail" to 70, "by" to 20, "trail" to 40)[it] ?: 0 },
+        )
+        // Drawn 250 wide the kind would fit beside (the meeting point at the middle, 123 px of room); drawn 120 wide it would take
+        // its own line. Decided for the narrowest, it is the same at both.
+        assertEquals("decided for the narrowest left part, the kind's own width", 70, at(wide).decidedForPx)
+        assertEquals(at(wide), at(narrow))
+        assertEquals(KindPlace.OWN_LINE, at(wide).kind)
+        assertEquals("the meeting point is set for the widest figure", 100, at(wide).longestFigurePx)
+    }
+
+    @Test
+    fun `with no kind the top line has nothing to place`() {
+        val fit = NavigationInfoFit(turnText = "", headingAsIcon = false, leftPx = 150, rightPx = 80)
+        assertEquals(TopLinePlace.NONE, topLinePlace(null, "Arrived", DistanceUnit.MILES, fit, 300, 10, 4, 20, true, { 90 }, { 40 }))
     }
 
     @Test
