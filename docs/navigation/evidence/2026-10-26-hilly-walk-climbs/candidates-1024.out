@@ -1,0 +1,15 @@
+track 9685146a: starts +0.0 min, ends +139.8 min
+  end-to-start distance 26 m
+  baro height range 34.5 m; raw GPS height range 47.6 m; net baro change +9.6 m; net raw change -2.5 m
+  hyst 4 m: smoothed-GPS up/down 168/169 m; baro up/down 31/37 m
+  hyst 10 m: smoothed-GPS up/down 59/58 m; baro up/down 18/21 m
+  baro steps taken out: 0 (net +0.0 m)
+  kept points without Doppler speed: 0 of 457; without pressure: 14
+track cad94737: starts +151.7 min, ends +282.3 min
+  end-to-start distance 76 m
+  baro height range 73.6 m; raw GPS height range 87.9 m; net baro change +5.6 m; net raw change +16.2 m
+  hyst 4 m: smoothed-GPS up/down 106/93 m; baro up/down 41/34 m
+  hyst 10 m: smoothed-GPS up/down 84/73 m; baro up/down 21/22 m
+  baro steps taken out: 0 (net +0.0 m)
+  kept points without Doppler speed: 0 of 677; without pressure: 20
+9685146a -> cad94737: gap 11.9 min; A.end to B.start 104 m; A.start to B.start 80 m

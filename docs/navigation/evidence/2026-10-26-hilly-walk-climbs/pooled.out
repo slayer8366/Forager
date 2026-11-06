@@ -1,0 +1,21 @@
+pooled usable legs: 108; path 5686 m; moving 4353 m in 5003 s
+grade bin        legs   dist(m)  weighted(m/s)   q1   median   q3
+  -inf to -0.15    0
+  -15% to    -8%    8       438         0.745  0.657   0.768  0.794
+   -8% to    -3%   16       847         0.816  0.728   0.815  0.885
+   -3% to    +3%   56      2957         0.931  0.807   0.911  1.070
+   +3% to    +8%   18       912         0.830  0.746   0.810  0.905
+   +8% to   +15%    9       482         0.771  0.687   0.736  0.831
+  +15% to inf       1        51         0.816  0.816   0.816  0.816
+model flat + up + down: a=1.084 s/m (flat 0.922 m/s), b=2.23 s per m climbed, c=3.19 s per m descended
+  90% CI: a 1.031..1.139; b 1.27..3.20; c 2.15..4.20
+  b/a = 2.05 m of flat path per m climbed (90% CI 1.14..3.05); Naismith 8.33
+  50 m of climb costs 111 s = 103 m of flat path (CI 63..160 s)
+  100 m of climb costs 223 s = 205 m of flat path (CI 127..320 s)
+  200 m of climb costs 445 s = 410 m of flat path (CI 254..640 s)
+model flat + up: a=1.169 s/m (flat 0.856 m/s), b=1.19 s per m climbed
+  90% CI: a 1.126..1.212; b 0.26..2.09
+  b/a = 1.02 m of flat path per m climbed (90% CI 0.21..1.82); Naismith 8.33
+  50 m of climb costs 60 s = 51 m of flat path (CI 13..104 s)
+  100 m of climb costs 119 s = 102 m of flat path (CI 26..209 s)
+  200 m of climb costs 238 s = 204 m of flat path (CI 51..418 s)

@@ -1,0 +1,13 @@
+track fcd35b03: starts +0.0 min, ends +68.6 min
+  end-to-start distance 7 m
+  raw GPS height range 85.9 m; net raw change +20.9 m
+  hyst 4 m: smoothed-GPS up/down 153/133 m
+  hyst 10 m: smoothed-GPS up/down 131/115 m
+  kept points without Doppler speed: 0 of 532; without pressure: 532
+track b4149000: starts +1650.7 min, ends +1675.4 min
+  end-to-start distance 291 m
+  raw GPS height range 99.2 m; net raw change +21.7 m
+  hyst 4 m: smoothed-GPS up/down 110/88 m
+  hyst 10 m: smoothed-GPS up/down 94/77 m
+  kept points without Doppler speed: 0 of 251; without pressure: 251
+fcd35b03 -> b4149000: gap 1582.1 min; A.end to B.start 6 m; A.start to B.start 1 m
