@@ -35517,3 +35517,34 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The Offline Maps page opens its pin on offlineMapLatText/offlineMapLngText when they are set, and otherwise on the device's location (AvailabilityOfflineMapsUi.kt:149-162).
   - The trip rows today are PlannedTripRow (AvailabilityTripsWaypointsUi.kt:148, with Directions and Delete icons) and PlannedRouteRow.kt.
 **Notes:** Written by the planner by hand. Next free ID -2168.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2168
+**Timestamp:** 2026-11-06T01:11:13Z
+**Continues:** 2026-09-28-2145, 2026-09-28-2165
+**Title:** The walk and the pick-up check: the S22 set up on 4650, with a log writer on the phone because its buffer can't be enlarged
+**Outcome:**
+- **The owner:** "Okay I'll be going for the walk soon. Get the build loaded into the S22".
+- **The owner, verbatim**, to "Where is the walk? …": **"Near home, in the 6 mi area"**. The option read: "Inside Region 2, around home. It already has its trail routes and map copy, so nothing new needs downloading. Tell me which park or trail if you can, in the note." No note was given.
+- **The owner, verbatim**, to "The pick-up check needs a prepared spot … Do it on this outing?": **"Yes, prepare a spot (Recommended)"**. The option read: "I find a spot near your walk and add a target waypoint. You stand there for 2 minutes, tap Navigate three times and take screenshots."
+- **D1, the build:** 1.0.4650+g4670712f is already installed (-2165). It is pre-main 3a3d85089 plus the tools hooks plus PR #494, which isn't merged.
+  - The field-check plan's D1 asks for a build whose way-to sources equal pre-main's. #494 changes AvailabilityWaypointRoute.kt and adds domain/wayto/WayToTripNotes.kt, so 4650 doesn't meet D1 as written.
+  - The chooser's own code, WayToEnds and StreetDropOff, is pre-main's. The results describe pre-main plus #494, which is the build expected to be promoted.
+  - The planner kept 4650 rather than make the owner wait about 25 minutes for a new build.
+- **D2, the areas:** Region 1 (app 3), Region 2 (app 8) and Test s16 (app 15) each hold a map copy marked whole (Region 2's has 150 entries) and routes with state=stored.
+- **D5, the log:**
+  - logcat -G 64M answered "MAX log buffer size is 5 MiB", so this phone can't hold more than about 3 to 4 minutes of this app's log. The command raised the system buffer from 2 to 5 MiB, a recorded change under -2129.
+  - Instead, a detached logcat writer runs on the phone, with parent PID 1, started over adb under -2129: `logcat -v threadtime -b main,system,crash -f /sdcard/Download/forager-walk-logs/walk.log -r 20480 -n 15`. It writes up to 16 files of 20 MB, with 40 GB free.
+  - Whether it survives unplugging is checked when the phone comes back. The fallback is the phone's own bug report.
+- **A1:** the walk logger is on (diagnostics.walk_logger true). **A2:** the system's battery saver is off (low_power 0). The app's battery-saver key wasn't found in map_preferences, so it is taken as the default (off).
+- **A3, the planner's call:** the off-track reminder stays on, as users get it. An alert near the moment the line dims is expected, not a failure.
+- **S4, the planner's call:** Part B (the waypoint route's off-trail walk) is not run, to keep the outing short.
+- **Check 1 since #493:** the walker's end now logs what it became (-2165 saw "moves to a pick-up at the nearest public street (rank 3 of 3, FRONTAGE)" at home). The pick-up can therefore be judged from the log at any spot where the chooser acts, not only at a spot predicted in advance. The screen still shows where the lead-in ends.
+- **The spot and the target:**
+  - The planner didn't pick a predicted spot from map data, because the trail wasn't named. The owner is given the conditions instead: within a few metres of a mapped building, a path nearer than the street, and the street within 150 m.
+  - The target is Test trip B, on a trail in the woods of the park about 1 km from home. -2165 logged that its end settles: "not a street end".
+  - Spot, coordinates and screenshots stay off GitHub.
+**Waiting on:** the walk. Afterwards: the phone plugged back in, the log writer's files and the walk log pulled, readings L1 to L3 and R1 to R5 from prompts/preserved/2026-11-05-04-report.md, then the clean-up of -2165.
+**Notes:** Written by the planner by hand. Next free ID -2169.
