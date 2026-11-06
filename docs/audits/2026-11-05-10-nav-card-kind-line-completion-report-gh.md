@@ -343,3 +343,125 @@ A combined build with this branch at its head, green on CI apart from the two st
    nothing comes and goes; note whether "Alt" shows (not measured at 384 dp). At font 1.0 with display size raised to give 360 or 320 dp, if that is allowed: at 320 the heading never
    shows in any direction; at 360 (stop 1) note whether "Alt" shows. Evidence: a short screen recording each.
 5. **Landscape font 2.0, no compass, after sunset** (stop 2): observation only, not a gate. Note whether the "Dark since" line flickers.
+
+## E14: H11 and H12 (a fresh session, the same day)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E14: "H11 and H12, in the same PR by the same practice (tests first, one
+revert per ruling, claims changed never silenced), until full CI is green." Marks as above: [observed] is a CI run's XML or log read this
+session (each log checked for compile errors first, and each run's head SHA checked against the commit), [read] is code read at the
+commit named, [inferred] is worked out and not measured.
+
+### The rulings (verbatim)
+
+- H11, the owner: "(b) Keep "Alt" when room". The option read: ""Alt" shows when the heading leaves room, so it comes and goes as you
+  turn, as it did before this update". The amendment: "the widest-reading rule decides the heading, but doesn't take "Alt" off at 360 dp;
+  "Alt" shows whenever the heading as drawn leaves room."
+- H12, the owner: "(a) Leave out "Dark since"". The option read: "In that one case the evening line doesn't show; "by trail" keeps its
+  own line". The planner's reading: "the decision must settle, never loop. Where showing the evening line would push "by trail" onto its
+  own line and the card then no longer fits, the evening line is left out and stays out."
+
+### Base and commits
+
+- Checked against the remote at the start [observed]: `origin/nav-card-kind-line` 03930b1e3, `origin/pre-main` 61f99fbe2 merged in,
+  worktree clean. Neither `next-turn` nor `home-values-out` touches a file this section edits (their diffs from pre-main read).
+- Mid-task the planner reported pre-main moved (PR #501, a5a2a392f; index row b516d520a) and the laptop's root drive full until about
+  21:10Z. Checked: `git fsck` clean, worktree clean, both commits below compiled on CI; the scratch files written in that window (pre-main's
+  XML at about 20:50Z) were checked against outside counts (999 XML files, totals 6838 / 24 skipped, as the XML headers sum). pre-main
+  merged in (0b79b9a85, a clean merge of its 43 files).
+
+| Commit | What |
+|---|---|
+| 851cd0540 | Tests first: H12's settling test (new), the 823 x 384 turning case's no-compass claim, the 360 dp case's doc. |
+| 916a9c9f6 | H11 (`labelsShown`, AvailabilityMapControlsUi.kt) and H12 (`fit`, NavigationInfo.kt). |
+| 0b79b9a85 | pre-main (b516d520a) merged in. |
+
+### What was built [read, at 916a9c9f6]
+
+- **H11** (`AvailabilityMapControlsUi.kt`): what the strip keeps is still decided with the heading at its widest (H7 refined again), so
+  the heading never comes and goes. The labels ("Alt" and the heading's) are then shown wherever every readout is kept and the same
+  squeezed line, with the heading as drawn, holds them (`readoutsFitBeside` on `headingPx`). So at 360 dp "Alt" comes and goes with the
+  heading's width, as before this dispatch; at 320 dp the heading is off and the labels with it (RECORD -713's order: labels go first).
+- **H12** (`NavigationInfo.kt`): the card is measured twice, with the evening pieces as held (as before) and with the evening line as it
+  would show. Where the two put the kind on different steps and the line is not stepping aside for the route card (D42), the card is laid
+  out as with the line: the kind keeps its step ("by trail" on its own line) and the right part keeps the line's width. So the left part's
+  height, which the evening decision reads, is the same whether or not the line shows, and the decision cannot feed back into itself:
+  here it leaves the line out and it stays out. Where the line does not change the kind's step, nothing changes. The comment at
+  `NavigationInfo.kt:110` (inputs "the evening stack does not change") now notes why it holds again.
+
+### Evidence
+
+- **Red, tests first**: run 42291488615 at 851cd0540 [observed], 6958 tests, 3 failed, each for its ruling's reason: 360 dp ("facing
+  281°, the line keeps [compass-strip-heading, compass-strip-elevation, compass-strip-coordinates], not [..., navigation-label]", the same
+  facing 89° and at 3000 m); the settling test ("frame 2: 1 evening pieces drawn", "frame 4: the kind ... is not on its own line",
+  "frame 4: moved from ..."), which reads the loop as a card that moves rather than as a stalled run; and the turning case (AppNotIdle, as
+  in E13).
+- **Green**: run 42294888310 at 916a9c9f6, the branch's full CI [observed]: **6958 tests, 6934 passed, 24 skipped, 0 failed**, every
+  job green. By name against pre-main's 42245483101 at 61f99fbe2 (6838, 0 failed): 36 names only on pre-main (as in E13), 156 only here
+  (E13's 155 and the settling test; the turning case renamed in place), **0 names whose outcome differs**. Against the red run: the same
+  6958 names, the 3 above the only ones changed.
+- **Final, on the new base**: run 42298513392 at 0b79b9a85, compared with pre-main's 42292140229 at a5a2a392f (6838, 0 failed; b516d520a
+  is `[skip ci]`, so a5a2a392f is the nearest run). pre-main's two runs have the same 6838 names and outcomes [observed]. **6958
+  tests, 6934 passed, 24 skipped, 0 failed**, every job green [observed]; by name against 42292140229: 36 only on pre-main, 156 only
+  here, 0 outcomes differ; against 42294888310, the same 6958 names and outcomes.
+- **Reverts**, each a one-line edit in a throwaway worktree at 916a9c9f6, its diff checked to be that one line, restored from a copy saved
+  before the edit (never from git, the restore checked with `cmp`), the forward line confirmed present in the branch worktree afterwards
+  (grep, 1 match each), each log checked for compile errors (0) before its XML was read. 385 tests each, in the NavigationCard, RouteCard,
+  CompassStrip, AvailabilityScreenNavigationView and AvailabilityScreenMapIconStack classes:
+
+| Revert | Edit | Run | Fails |
+|---|---|---|---|
+| H11 | `val labelsShown = fit.labels \|\| (...)` to `val labelsShown = fit.labels` | 42294942957 | 1: the 360 dp case, the same three states as the red run |
+| H12 | `val fit = if (...) withEveningFit else heldFit` to `val fit = heldFit` | 42294951110 | 2: the settling test ("frame 2: 1 evening pieces drawn" ...) and the 823 x 384 turning case (AppNotIdle) |
+
+### Tests whose claims changed (none silenced, no tolerance widened, no assertion dropped)
+
+- `NavigationCardKindLineLargeTextTest`, the 823 x 384 turning case, renamed "... by trail keeps its step as the phone turns, the
+  evening line left out with no compass": with no compass the claim is now no evening piece, "by trail" on its own line, and the right part
+  keeping "Dark since 5:23 PM"'s width (`topLine(eveningLeftOut = ...)` in `NavigationCardTopLineRules`), with a positive control that the
+  piece left out is the one drawn with the compass. Was: the evening line drawn in all three facings. Every other claim of the case is
+  unchanged (one width and one needle place as the phone turns, the step held, OWN_LINE).
+- New: "823 x 384, font 2,0, Dark since - with no compass the evening line stays out and the card stays still across frames". Settled
+  with the compass (positive controls: the line shows, the kind on its own line), then the compass goes, 3 s of frames, then each of 60
+  frames read with the clock stepped by hand (`framesAfterTheCompassGoes`): in every frame no evening piece and the kind on its own line,
+  and the card, the distance, the kind, the divider and the top line where they were the frame before; the left part's width as with the
+  line.
+- `CompassStripWindowsTest`, 360 dp: claim unchanged ("Alt" and all three values kept facing 281°, 89° and at 3000 m); its doc now names
+  H11 as what it holds.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: the base; each new or changed claim red for its ruling's reason; both reverts failing only what they can
+  cause, with clean compile logs; the full run's counts and the name comparison with pre-main; that pre-main's runs before and after
+  PR #501 carry the same names and outcomes.
+- **Inferred**: that on a phone H12's case no longer flickers (Robolectric shows a layout that settles); that the first frame or two still
+  show the evening line before it leaves when the card first appears in that state, as RECORD -955's decision has always done before the
+  card is measured (the settling test reads from 3 s after, not the first frames).
+- **Could not determine**: whether any heading at 360 dp is wide enough to take "Alt" off (the test faces only 281° and 89°, and both
+  keep it); how often "Alt" comes and goes on a phone at 360 dp; any landscape case where the evening line is left out for room and the
+  kind's step differs other than the one tested (no other test changed outcome, so none in the suite).
+- **Premises that were wrong**: none found. The dispatch's state (03930b1e3; 61f99fbe2 merged in; run 42282412164's 6957 tests, 2 red)
+  matched the remote.
+
+### Decided beyond the dispatch
+
+- Under H12 the right part keeps the evening line's width where the line is left out, not only the kind its step, so that nothing else
+  moves as the line goes (G3, H5's reading: "nothing moves when the evening line comes"). The option text says only that "by trail" keeps
+  its own line.
+- The rule is general: wherever the evening line would change the kind's step and is left out for room (RECORD -955 or -770), not only at
+  823 x 384. Stepping aside for the route card (D42) is excluded, so the route card's room is as before.
+- H11's labels are tested only on whether the heading as drawn leaves room with every readout kept; with the heading off (320 dp) labels
+  stay off, by RECORD -713's order.
+- The merge of pre-main (0b79b9a85) went with git's default message, so it lacks the Co-Authored-By line; not amended (Rules).
+- The two revert refs were pushed before their scan; scanned right after, 0 each.
+
+### Device check (S22, for the planner), cheapest first
+
+The E13 steps above stand. Added:
+1. **H11, portrait, font 1.0, display size raised to give 360 dp (if allowed)**: navigating, turn slowly through a full circle. The
+   heading and the height stay throughout; "Alt" shows wherever there is room and may come and go as you turn, and the line around it
+   may shift a few dp when it does. At the S22's own 384 dp, nothing comes and goes. Evidence: a short screen recording.
+2. **H12, landscape, largest text, no compass (cover it or use a calibrating state), after sunset**: the card shows "No compass" under the
+   parts, no "Dark since" line, and "by trail" on its own line under the distance; it stays still (no flicker, no line coming and going)
+   for at least half a minute. Then let the compass come back: "Dark since" returns and "No compass" goes (the card one line shorter); within the card the distance and
+   "by trail" stay where they were.
+   Evidence: a short screen recording.
