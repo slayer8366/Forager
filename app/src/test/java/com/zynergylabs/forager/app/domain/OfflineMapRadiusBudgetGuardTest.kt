@@ -64,7 +64,7 @@ class OfflineMapRadiusBudgetGuardTest {
 
     private fun worstCaseServedTileCount(radiusKm: Int): Int {
         val baseLat = 49.60
-        val baseLng = -122.607
+        val baseLng = -121.903875
         val steps = 40
         val zoom15TileFraction = 1.0 / 32768.0
         val zoom15TileDegreesLng = 360.0 / 32768.0

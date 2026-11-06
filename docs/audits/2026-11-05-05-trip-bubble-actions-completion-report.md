@@ -192,7 +192,7 @@ The 29 other main files changed by a few lines each (observed, `git diff --stat 
 
 | Where | Before | After |
 |---|---|---|
-| Trip bubble | the latitude/longitude line, e.g. "45.3097, -122.5545" | gone |
+| Trip bubble | the latitude/longitude line, e.g. [a point near the owner's home; removed 2026-11-06] | gone |
 | Trip bubble | "Directions" | gone |
 | Trip bubble | (none) | "Elevation 1352 ft" / "Elevation 412 m" (the waypoint bubble's existing form) |
 | Trip bubble | (none) | "Navigate", "Plot route", "Details" (existing words) |

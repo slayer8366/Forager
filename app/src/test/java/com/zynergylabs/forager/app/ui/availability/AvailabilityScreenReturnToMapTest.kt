@@ -52,8 +52,8 @@ class AvailabilityScreenReturnToMapTest {
 
     private val map = BubbleMapSlot(
         listOf(
-            StubGlyph(MapLayerIds.FINDS, "find-1", 60.dp, 420.dp, LatLng(45.51, -122.61)),
-            StubGlyph(MapLayerIds.PHOTOS, "ph-1", 60.dp, 500.dp, LatLng(45.53, -122.63)),
+            StubGlyph(MapLayerIds.FINDS, "find-1", 60.dp, 420.dp, LatLng(45.51, -121.71)),
+            StubGlyph(MapLayerIds.PHOTOS, "ph-1", 60.dp, 500.dp, LatLng(45.53, -121.73)),
         ),
     )
     private var log by mutableStateOf(MushroomLogUiState(entries = listOf(BUBBLE_FIND), galleryPhotos = listOf(BUBBLE_PHOTO)))
@@ -63,7 +63,7 @@ class AvailabilityScreenReturnToMapTest {
         val viewModel = mapLayersViewModel(
             getMapRecords = {
                 com.zynergylabs.forager.app.domain.MapRecords(
-                    findMarkers = listOf(com.zynergylabs.forager.app.domain.model.RecordPoint("find-1", LatLng(45.51, -122.61))),
+                    findMarkers = listOf(com.zynergylabs.forager.app.domain.model.RecordPoint("find-1", LatLng(45.51, -121.71))),
                     photoMarkers = emptyList(),
                     trackPolylines = emptyList(),
                     offlineRegionCircles = emptyList(),
