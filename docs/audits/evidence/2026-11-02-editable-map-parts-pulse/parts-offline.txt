@@ -1,0 +1,79 @@
+metadata keys: []
+sprite: None glyphs: None
+
+## ground (background/earth): 2 layers; minzoom set on 0, maxzoom set on 0; colour props literal 2, expression 0; zoom-expr widths/opacities 0
+   background [background; -; z-] background-color=lit
+   earth [fill; earth; z-] fill-color=lit
+
+## landcover (low zoom): 1 layers; minzoom set on 0, maxzoom set on 0; colour props literal 0, expression 1; zoom-expr widths/opacities 1
+   landcover [fill; landcover; z-] fill-color=expr
+
+## parks and green: 2 layers; minzoom set on 0, maxzoom set on 0; colour props literal 1, expression 1; zoom-expr widths/opacities 1
+   landuse_park [fill; landuse; z-] fill-color=expr
+   landuse_urban_green [fill; landuse; z-] fill-color=lit
+
+## land use fills and edges: 9 layers; minzoom set on 0, maxzoom set on 0; colour props literal 9, expression 0; zoom-expr widths/opacities 0
+   landuse_hospital [fill; landuse; z-] fill-color=lit
+   landuse_industrial [fill; landuse; z-] fill-color=lit
+   landuse_school [fill; landuse; z-] fill-color=lit
+   landuse_beach [fill; landuse; z-] fill-color=lit
+   landuse_zoo [fill; landuse; z-] fill-color=lit
+   landuse_aerodrome [fill; landuse; z-] fill-color=lit
+   landuse_runway [fill; landuse; z-] fill-color=lit
+   landuse_pedestrian [fill; landuse; z-] fill-color=lit
+   landuse_pier [fill; landuse; z-] fill-color=lit
+
+## roads: 36 layers; minzoom set on 14, maxzoom set on 2; colour props literal 35, expression 1; zoom-expr widths/opacities 51
+   roads_runway [line; roads; z-] line-color=lit
+   roads_taxiway [line; roads; z13-] line-color=lit
+   roads_tunnels_other_casing [line; roads; z-] line-color=lit
+   roads_tunnels_minor_casing [line; roads; z-] line-color=lit
+   roads_tunnels_link_casing [line; roads; z-] line-color=lit
+   roads_tunnels_major_casing [line; roads; z-] line-color=lit
+   roads_tunnels_highway_casing [line; roads; z-] line-color=lit
+   roads_tunnels_other [line; roads; z-] line-color=lit
+   roads_tunnels_minor [line; roads; z-] line-color=lit
+   roads_tunnels_link [line; roads; z-] line-color=lit
+   roads_tunnels_major [line; roads; z-] line-color=lit
+   roads_tunnels_highway [line; roads; z-] line-color=lit
+   roads_pier [line; roads; z-] line-color=lit
+   roads_minor_service_casing [line; roads; z13-] line-color=lit
+   roads_minor_casing [line; roads; z-] line-color=lit
+   roads_link_casing [line; roads; z13-] line-color=lit
+   roads_major_casing_late [line; roads; z12-] line-color=lit
+   roads_highway_casing_late [line; roads; z12-] line-color=lit
+   roads_other [line; roads; z-] line-color=lit
+   roads_link [line; roads; z-] line-color=lit
+   roads_minor_service [line; roads; z-] line-color=lit
+   roads_minor [line; roads; z-] line-color=expr
+   roads_major_casing_early [line; roads; z-12] line-color=lit
+   roads_major [line; roads; z-] line-color=lit
+   roads_highway_casing_early [line; roads; z-12] line-color=lit
+   roads_highway [line; roads; z-] line-color=lit
+   roads_bridges_other_casing [line; roads; z12-] line-color=lit
+   roads_bridges_link_casing [line; roads; z12-] line-color=lit
+   roads_bridges_minor_casing [line; roads; z12-] line-color=lit
+   roads_bridges_major_casing [line; roads; z12-] line-color=lit
+   roads_bridges_other [line; roads; z12-] line-color=lit
+   roads_bridges_minor [line; roads; z12-] line-color=lit
+   roads_bridges_link [line; roads; z12-] line-color=lit
+   roads_bridges_major [line; roads; z12-] line-color=lit
+   roads_bridges_highway_casing [line; roads; z12-] line-color=lit
+   roads_bridges_highway [line; roads; z-] line-color=lit
+
+## water: 3 layers; minzoom set on 2, maxzoom set on 0; colour props literal 3, expression 0; zoom-expr widths/opacities 1
+   water [fill; water; z-] fill-color=lit
+   water_stream [line; water; z14-] line-color=lit
+   water_river [line; water; z9-] line-color=lit
+
+## buildings: 1 layers; minzoom set on 0, maxzoom set on 0; colour props literal 1, expression 0; zoom-expr widths/opacities 0
+   buildings [fill; buildings; z-] fill-color=lit
+
+## railways: 1 layers; minzoom set on 0, maxzoom set on 0; colour props literal 1, expression 0; zoom-expr widths/opacities 1
+   roads_rail [line; roads; z-] line-color=lit
+
+## boundaries: 2 layers; minzoom set on 0, maxzoom set on 0; colour props literal 2, expression 0; zoom-expr widths/opacities 0
+   boundaries_country [line; boundaries; z-] line-color=lit
+   boundaries [line; boundaries; z-] line-color=lit
+
+TOTAL 57

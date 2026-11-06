@@ -1,0 +1,135 @@
+metadata keys: ['forager:generated-from', 'forager:night-bands', 'forager:night-fills', 'forager:night-icon-rings', 'forager:night-layers', 'forager:night-patterns', 'forager:palette', 'forager:sprite-icons']
+sprite: https://forager-pmtiles.brandonlee1-894.workers.dev/sprites/v5/light glyphs: https://forager-pmtiles.brandonlee1-894.workers.dev/fonts/{fontstack}/{range}.pbf
+
+## ground (background/earth): 2 layers; minzoom set on 0, maxzoom set on 0; colour props literal 2, expression 0; zoom-expr widths/opacities 0
+   background [background; -; z-] background-color=lit
+   earth [fill; earth; z-] fill-color=lit
+
+## landcover (low zoom): 1 layers; minzoom set on 0, maxzoom set on 0; colour props literal 0, expression 1; zoom-expr widths/opacities 0
+   landcover [fill; landcover; z-] fill-color=expr
+
+## parks and green: 3 layers; minzoom set on 1, maxzoom set on 0; colour props literal 2, expression 1; zoom-expr widths/opacities 1
+   landuse_park [fill; landuse; z-] fill-color=expr
+   landuse_park_outline [line; landuse; z6-] line-color=lit
+   landuse_urban_green [fill; landuse; z-] fill-color=lit
+
+## forest, orchards, wetland (patterns): 2 layers; minzoom set on 2, maxzoom set on 0; colour props literal 0, expression 0; zoom-expr widths/opacities 0
+   landuse_forest_glyphs [fill; landuse; z12-]  | images:fill-pattern
+   landuse_wetland_tufts [fill; landuse; z10-]  | images:fill-pattern
+
+## land use fills and edges: 9 layers; minzoom set on 0, maxzoom set on 0; colour props literal 9, expression 0; zoom-expr widths/opacities 0
+   landuse_hospital [fill; landuse; z-] fill-color=lit
+   landuse_industrial [fill; landuse; z-] fill-color=lit
+   landuse_school [fill; landuse; z-] fill-color=lit
+   landuse_beach [fill; landuse; z-] fill-color=lit
+   landuse_zoo [fill; landuse; z-] fill-color=lit
+   landuse_aerodrome [fill; landuse; z-] fill-color=lit
+   landuse_runway [fill; landuse; z-] fill-color=lit
+   landuse_pedestrian [fill; landuse; z-] fill-color=lit
+   landuse_pier [fill; landuse; z-] fill-color=lit
+
+## roads: 36 layers; minzoom set on 14, maxzoom set on 2; colour props literal 36, expression 0; zoom-expr widths/opacities 51
+   roads_runway [line; roads; z-] line-color=lit
+   roads_taxiway [line; roads; z13-] line-color=lit
+   roads_tunnels_other_casing [line; roads; z-] line-color=lit
+   roads_tunnels_minor_casing [line; roads; z-] line-color=lit
+   roads_tunnels_link_casing [line; roads; z-] line-color=lit
+   roads_tunnels_major_casing [line; roads; z-] line-color=lit
+   roads_tunnels_highway_casing [line; roads; z-] line-color=lit
+   roads_tunnels_other [line; roads; z-] line-color=lit
+   roads_tunnels_minor [line; roads; z-] line-color=lit
+   roads_tunnels_link [line; roads; z-] line-color=lit
+   roads_tunnels_major [line; roads; z-] line-color=lit
+   roads_tunnels_highway [line; roads; z-] line-color=lit
+   roads_pier [line; roads; z-] line-color=lit
+   roads_minor_service_casing [line; roads; z13-] line-color=lit
+   roads_minor_casing [line; roads; z-] line-color=lit
+   roads_link_casing [line; roads; z13-] line-color=lit
+   roads_major_casing_late [line; roads; z12-] line-color=lit
+   roads_highway_casing_late [line; roads; z12-] line-color=lit
+   roads_other [line; roads; z-] line-color=lit
+   roads_link [line; roads; z-] line-color=lit
+   roads_minor_service [line; roads; z-] line-color=lit
+   roads_minor [line; roads; z-] line-color=lit
+   roads_major_casing_early [line; roads; z-12] line-color=lit
+   roads_major [line; roads; z-] line-color=lit
+   roads_highway_casing_early [line; roads; z-12] line-color=lit
+   roads_highway [line; roads; z-] line-color=lit
+   roads_bridges_other_casing [line; roads; z12-] line-color=lit
+   roads_bridges_link_casing [line; roads; z12-] line-color=lit
+   roads_bridges_minor_casing [line; roads; z12-] line-color=lit
+   roads_bridges_major_casing [line; roads; z12-] line-color=lit
+   roads_bridges_other [line; roads; z12-] line-color=lit
+   roads_bridges_minor [line; roads; z12-] line-color=lit
+   roads_bridges_link [line; roads; z12-] line-color=lit
+   roads_bridges_major [line; roads; z12-] line-color=lit
+   roads_bridges_highway_casing [line; roads; z12-] line-color=lit
+   roads_bridges_highway [line; roads; z-] line-color=lit
+
+## water: 3 layers; minzoom set on 2, maxzoom set on 0; colour props literal 3, expression 0; zoom-expr widths/opacities 2
+   water [fill; water; z-] fill-color=lit
+   water_stream [line; water; z13-] line-color=lit
+   water_river [line; water; z9-] line-color=lit
+
+## buildings: 2 layers; minzoom set on 1, maxzoom set on 0; colour props literal 1, expression 1; zoom-expr widths/opacities 1
+   buildings [fill; buildings; z-] fill-color=expr
+   buildings_outline [line; buildings; z15-] line-color=lit
+
+## official trails band: 3 layers; minzoom set on 3, maxzoom set on 0; colour props literal 4, expression 0; zoom-expr widths/opacities 2
+   reference_fs_band [line; fs_trails; z12-] line-color=lit
+   reference_blm_band [line; blm_trails; z12-] line-color=lit
+   reference_fs_number [symbol; fs_trails; z14-] text-color=lit, text-halo-color=lit
+
+## paths and trails: 18 layers; minzoom set on 18, maxzoom set on 7; colour props literal 18, expression 0; zoom-expr widths/opacities 18
+   roads_path_track [line; roads; z12-] line-color=lit
+   roads_path_informal_z13 [line; roads; z13-14] line-color=lit
+   roads_path_informal [line; roads; z14-] line-color=lit
+   roads_path_steps [line; roads; z13-] line-color=lit
+   roads_path_unknown_z13 [line; roads; z13-14] line-color=lit
+   roads_path_hard_z13 [line; roads; z13-14] line-color=lit
+   roads_path_unknown_z14_clear [line; roads; z14-15] line-color=lit
+   roads_path_unknown_z14_faint [line; roads; z14-15] line-color=lit
+   roads_path_hard_z14_clear [line; roads; z14-15] line-color=lit
+   roads_path_hard_z14_faint [line; roads; z14-15] line-color=lit
+   roads_path_unknown_clear [line; roads; z15-] line-color=lit
+   roads_path_unknown_faint [line; roads; z15-] line-color=lit
+   roads_path_easy_clear [line; roads; z15-] line-color=lit
+   roads_path_easy_faint [line; roads; z15-] line-color=lit
+   roads_path_rough_clear [line; roads; z15-] line-color=lit
+   roads_path_rough_faint [line; roads; z15-] line-color=lit
+   roads_path_hard_clear [line; roads; z15-] line-color=lit
+   roads_path_hard_faint [line; roads; z15-] line-color=lit
+
+## railways: 1 layers; minzoom set on 0, maxzoom set on 0; colour props literal 1, expression 0; zoom-expr widths/opacities 1
+   roads_rail [line; roads; z-] line-color=lit
+
+## boundaries: 2 layers; minzoom set on 0, maxzoom set on 0; colour props literal 2, expression 0; zoom-expr widths/opacities 0
+   boundaries_country [line; boundaries; z-] line-color=lit
+   boundaries [line; boundaries; z-] line-color=lit
+
+## OTHER:address_label: 1 layers; minzoom set on 1, maxzoom set on 0; colour props literal 2, expression 0; zoom-expr widths/opacities 0
+   address_label [symbol; buildings; z18-] text-color=lit, text-halo-color=lit
+
+## water labels: 3 layers; minzoom set on 1, maxzoom set on 0; colour props literal 6, expression 0; zoom-expr widths/opacities 0
+   water_waterway_label [symbol; water; z13-] text-color=lit, text-halo-color=lit
+   water_label_ocean [symbol; water; z-] text-color=lit, text-halo-color=lit
+   water_label_lakes [symbol; water; z-] text-color=lit, text-halo-color=lit
+
+## road labels and shields: 4 layers; minzoom set on 3, maxzoom set on 0; colour props literal 5, expression 0; zoom-expr widths/opacities 0
+   roads_oneway [symbol; roads; z16-]  | images:icon-image
+   roads_labels_minor [symbol; roads; z14-] text-color=lit, text-halo-color=lit
+   roads_shields [symbol; roads; z-] text-color=lit | images:icon-image
+   roads_labels_major [symbol; roads; z11-] text-color=lit, text-halo-color=lit
+
+## place names: 5 layers; minzoom set on 0, maxzoom set on 0; colour props literal 10, expression 0; zoom-expr widths/opacities 0
+   earth_label_islands [symbol; earth; z-] text-color=lit, text-halo-color=lit
+   places_subplace [symbol; places; z-] text-color=lit, text-halo-color=lit
+   places_region [symbol; places; z-] text-color=lit, text-halo-color=lit
+   places_locality [symbol; places; z-] text-color=lit, text-halo-color=lit | images:icon-image
+   places_country [symbol; places; z-] text-color=lit, text-halo-color=lit
+
+## points of interest: 2 layers; minzoom set on 1, maxzoom set on 0; colour props literal 4, expression 0; zoom-expr widths/opacities 0
+   pois_area_names [symbol; pois; z8-] text-color=lit, text-halo-color=lit
+   pois [symbol; pois; z-] text-color=lit, text-halo-color=lit | images:icon-image
+
+TOTAL 97
