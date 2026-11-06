@@ -69,7 +69,9 @@ import java.time.LocalDate
 /**
  * Whether route plotting takes [tap] instead of a bubble opening:
  * - a waypoint while plotting is added as the next stop (the first stop, (a));
- * - a planned trip with a route opens the route at once, with no bubble (Amendment 1, Q7: "Opens the route straight away").
+ * - a planned trip with a route opens the route at once, with no bubble (Amendment 1, Q7: "Opens the route straight away");
+ * - a planned trip with no route, while plotting, is added as the next stop, under its name, as a waypoint is (dispatch
+ *   2026-11-05-05, A11; RECORD -2148, the owner: "Add it as a stop (Recommended)"). Not plotting, it opens its bubble.
  * Every other tap is the bubble's, as before.
  */
 internal fun routePlottingTakesTap(tap: MapFeatureTap, sources: MapRecordSources): Boolean {
@@ -86,8 +88,12 @@ internal fun routePlottingTakesTap(tap: MapFeatureTap, sources: MapRecordSources
             true
         }
         MapLayerIds.PLANNED_TRIPS -> {
-            val trip = sources.plannedTrips.firstOrNull { it.id == tap.featureId && it.route != null } ?: return false
-            plotting.actions.onOpenSavedRoute(trip, fromTripPlanner = false)
+            val trip = sources.plannedTrips.firstOrNull { it.id == tap.featureId } ?: return false
+            when {
+                trip.route != null -> plotting.actions.onOpenSavedRoute(trip, fromTripPlanner = false)
+                plotting.state.mode is RoutePlotMode.Plotting -> plotting.actions.onWaypointTapped(RouteStop(trip.name, trip.location))
+                else -> return false
+            }
             true
         }
         else -> false

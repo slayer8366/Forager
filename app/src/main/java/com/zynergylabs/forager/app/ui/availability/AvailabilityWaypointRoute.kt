@@ -5,6 +5,8 @@ import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.FixFreshness
 import com.zynergylabs.forager.app.domain.HopBand
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.NavigationTargetKind
+import com.zynergylabs.forager.app.domain.NavigationTargetRef
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteLine
@@ -82,13 +84,17 @@ data class WaypointRouteShown(val hud: ReturnRoute?, val line: RouteLine?)
  *   line starts at the walker, so the dim clears at once with no "Back on trail" (option A, Rowan's answer to the
  *   coder's stop). Nothing here alerts, sounds or vibrates.
  *
+ * Since dispatch 2026-11-05-05 (Amendment 1, A8) the target may be a planned trip, read by [readTarget] as the point at its
+ * spot ([navigationTargetReader]): the same search, line and rules, and a straight-line note in the trip's words
+ * ([ReturnRoute.Straight.kind]).
+ *
  * Every write goes through [updateState]. Runs on the ViewModel's scope, one thread, so its fields need no lock; the
  * engine moves its own work off that thread (`TrailRouter.route`). [findWayToWaypoint] `null` (a ViewModel built without
  * it, in tests) works nothing out: the screen is today's.
  */
 internal class AvailabilityWaypointRoute(
     private val updateState: ((AvailabilityUiState) -> AvailabilityUiState) -> Unit,
-    private val readWaypoint: suspend (String) -> Result<Waypoint?>,
+    private val readTarget: suspend (NavigationTargetRef) -> Result<Waypoint?>,
     /** From, waypoint, and the accuracy the fix searched from reports (null: none reported). */
     private val findWayToWaypoint: (suspend (LatLng, LatLng, Float?) -> WayToWaypointResult)?,
     /** The downloaded regions as the ViewModel last read them, for [WayToRetry]'s area check at each fix. */
@@ -98,19 +104,19 @@ internal class AvailabilityWaypointRoute(
 ) {
 
     /**
-     * Follows the way to waypoint [waypointId] on each fix [liveFixes] gives, until the caller cancels it; `null` only
+     * Follows the way to [target] on each fix [liveFixes] gives, until the caller cancels it; `null` only
      * clears it. Cleared first either way, so a way to another waypoint is never kept for this one.
      */
-    suspend fun follow(waypointId: String?, liveFixes: Flow<LocationFix.Update?>) {
+    suspend fun follow(target: NavigationTargetRef?, liveFixes: Flow<LocationFix.Update?>) {
         updateState { it.copy(waypointRoute = null) }
-        if (waypointId == null) return
+        if (target == null) return
         val find = findWayToWaypoint ?: return
-        val target = readWaypoint(waypointId).getOrElse { error ->
+        val point = readTarget(target).getOrElse { error ->
             errorLog.w(TAG, "Couldn't read the waypoint being navigated to; no trail route is worked out to it.", error)
             return
         } ?: return // Not stored: the screen resolves it as gone and ends the navigation with its message.
         coroutineScope {
-            val following = Following(LatLng(target.lat, target.lng), find, this)
+            val following = Following(LatLng(point.lat, point.lng), target.kind, find, this)
             // One onFix per fix, so one judging per fix (never a search per tick); the ticks only redraw the line's freshness.
             liveFixes.collectLatest { fix ->
                 following.onFix(fix)
@@ -126,6 +132,8 @@ internal class AvailabilityWaypointRoute(
     /** One navigation's way along trails: the line shown, the walker's place on it, the stray rule and the search. */
     private inner class Following(
         private val waypoint: LatLng,
+        /** What is navigated to, for the straight-line note's words (A8). */
+        private val kind: NavigationTargetKind,
         private val find: suspend (LatLng, LatLng, Float?) -> WayToWaypointResult,
         private val scope: CoroutineScope,
     ) {
@@ -250,7 +258,7 @@ internal class AvailabilityWaypointRoute(
                     is WayToWaypointResult.StraightLine -> {
                         line = null
                         retry = WayToRetry(waypoint, result.note, from, regionsAtSearch)
-                        placed = WaypointRouteShown(hud = ReturnRoute.Straight(result.note), line = null)
+                        placed = WaypointRouteShown(hud = ReturnRoute.Straight(result.note, kind), line = null)
                         publish()
                     }
                 }

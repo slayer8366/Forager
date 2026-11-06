@@ -117,6 +117,12 @@ data class AvailabilityUiState(
     val plannedTrips: List<PlannedTrip> = emptyList(),
     val plannedTripsErrorMessage: String? = null,
     /**
+     * Whether [plannedTrips] has been read yet (dispatch 2026-11-05-05, Amendment 1, A8), as the waypoints' `waypointsLoaded`
+     * is: until it is, a trip being navigated to that is not in the list is waited for, not taken as deleted. Set by the
+     * first read that succeeds; a failed read leaves it as it was, and is logged and shown in the Trip Planner.
+     */
+    val plannedTripsLoaded: Boolean = false,
+    /**
      * The Seasonal tab's test of [com.zynergylabs.forager.app.domain.FruitingPatternAssumptions.FRUITING_LAG_DAYS]
      * against real historical sightings and rainfall for the current search — see
      * [com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCase]. Fetched lazily on tab open, keyed on

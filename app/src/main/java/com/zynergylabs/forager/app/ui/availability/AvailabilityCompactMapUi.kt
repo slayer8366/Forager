@@ -18,12 +18,9 @@ package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.ui.map.NavigationSideInsets
 import com.zynergylabs.forager.app.ui.theme.Spacing
-import android.util.Log
 import androidx.compose.runtime.State
 import com.zynergylabs.forager.app.ui.map.LocalMapPosition
-import com.zynergylabs.forager.app.ui.map.MapBubbleKind
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
-import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.rememberNavigationFacing
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
@@ -72,7 +69,6 @@ import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
-import com.zynergylabs.forager.app.ui.map.MapBubbleTarget
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.TappedMapThing
@@ -284,20 +280,11 @@ internal fun CompactMapTab(
     }
     // A fan the map did not use before this tab left composition is not kept for a later map.
     DisposableEffect(returnMemory) { onDispose { returnMemory.clearRestore() } }
-    // Dispatch -502, Amendment 1: Back ended a waypoint navigation started in a bubble, which opens again where it was.
-    // The map re-anchors it on its glyph at the next camera idle (a waypoint is a point kind), as it does after a pan.
+    // Dispatch -502, Amendment 1: Back ended a waypoint navigation started in a bubble, which opens again where it was; since
+    // dispatch 2026-11-05-05 (A8) a trip's bubble too. Looked up, and logged when gone, by reopenedBubble (NavigationReopen.kt).
     LaunchedEffect(waypointReopen) {
         val bubble = waypointReopen as? WaypointNavigationOrigin.MapBubble ?: return@LaunchedEffect
-        val waypoint = bubbleSources.waypoints.firstOrNull { it.id == bubble.waypointId }
-        if (waypoint != null) {
-            tapped = TappedMapThing(
-                MapBubbleTarget.FeatureTarget(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, waypoint.id, LatLng(waypoint.lat, waypoint.lng)),
-                bubble.anchorPx,
-                bubble.bearingDeg,
-            )
-        } else {
-            Log.w(COMPACT_MAP_LOG_TAG, "Waypoint ${bubble.waypointId} is gone; its bubble was not opened again after Back ended its navigation.")
-        }
+        reopenedBubble(bubble, bubbleSources)?.let { tapped = it }
         onWaypointReopenConsumed()
     }
     // Dispatch 2026-10-30-08: route plotting takes a waypoint tap while plotting and a route trip's tap (CompactMapRoutePlotting.kt);
@@ -777,6 +764,3 @@ internal fun CompactMapTab(
         )
     }
 }
-
-/** Dispatch 2026-09-28-502: the tag this tab's one log line goes under. */
-private const val COMPACT_MAP_LOG_TAG = "CompactMapTab"

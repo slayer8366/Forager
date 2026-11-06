@@ -57,6 +57,10 @@ internal fun MapFeatureBubble(
     onNavigate: ((String) -> Unit)? = null,
     /** Dispatch 2026-10-30-08: a waypoint's "Plot route", given its id, after Navigate. Only the Maps tab passes one. */
     onPlotRoute: ((String) -> Unit)? = null,
+    /** Dispatch 2026-11-05-05 (A8): a trip's "Navigate", given its id, first among its actions. Only the Maps tab passes one. */
+    onNavigateToTrip: ((String) -> Unit)? = null,
+    /** Dispatch 2026-11-05-05 (A3): a trip's "Plot route", given its id, after Navigate. Only the Maps tab passes one. */
+    onPlotRouteFromTrip: ((String) -> Unit)? = null,
 ) {
     MapBubbleShell(tipInBubble = tipInBubble, onDismiss = onDismiss, cardTag = MAP_BUBBLE_TAG, closeTag = MAP_BUBBLE_CLOSE_TAG) {
         when (content) {
@@ -114,13 +118,20 @@ internal fun MapFeatureBubble(
                     BubbleActions { BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.TrackDetails(content.trackId)) } }
                 }
             }
+            // Dispatch 2026-11-05-05 (A1; RECORD -2140, the owner: "The trip icon should show a navigate option, along with
+            // elevation data. Remove the directions from the bubble add Navigate, Plot Route Details. Remove the long/lat
+            // coordinates from the Trip icon, and keep the military style"): name, date, MGRS, elevation, then the waypoint's
+            // three actions. This replaces -1819's "Keep Directions for now" here, and M1's "a planned trip has no sheet".
             is MapBubbleContent.Trip -> {
                 BubbleTitle(content.trip.name)
                 content.date?.let { BubbleLine(it) }
                 content.mgrs?.let { BubbleLine(it) }
-                BubbleLine(content.coordinates)
-                // No further target: a planned trip has no sheet (planner's M1 ruling).
-                BubbleActions { BubbleAction("Directions", MAP_BUBBLE_DIRECTIONS_TAG) { onDirections(content.trip.name, content.trip.location) } }
+                content.elevation?.let { BubbleLine(it, Modifier.testTag(MAP_BUBBLE_ELEVATION_TAG)) }
+                BubbleActions {
+                    onNavigateToTrip?.let { navigate -> BubbleAction("Navigate", MAP_BUBBLE_NAVIGATE_TAG) { navigate(content.trip.id) } }
+                    onPlotRouteFromTrip?.let { plot -> BubbleAction("Plot route", MAP_BUBBLE_PLOT_ROUTE_TAG) { plot(content.trip.id) } }
+                    BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.TripDetails(content.trip.id)) }
+                }
             }
             is MapBubbleContent.Region -> {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
@@ -249,7 +260,7 @@ internal const val MAP_BUBBLE_DIRECTIONS_TAG = "map-bubble-directions"
 internal const val MAP_BUBBLE_NAVIGATE_TAG = "map-bubble-navigate"
 internal const val MAP_BUBBLE_PLOT_ROUTE_TAG = "map-bubble-plot-route"
 internal const val MAP_BUBBLE_DETAILS_TAG = "map-bubble-details"
-/** The waypoint bubble's elevation line (dispatch 2026-11-03-07). */
+/** The waypoint bubble's elevation line (dispatch 2026-11-03-07), and a trip's (dispatch 2026-11-05-05). */
 internal const val MAP_BUBBLE_ELEVATION_TAG = "map-bubble-elevation"
 internal const val MAP_BUBBLE_STALE_TAG = "map-bubble-stale"
 internal const val MAP_BUBBLE_CHANCE_TAG = "map-bubble-chance"

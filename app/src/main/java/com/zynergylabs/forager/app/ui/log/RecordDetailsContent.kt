@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
@@ -72,19 +71,10 @@ internal fun WaypointDetails(waypoint: Waypoint, tracks: List<Track>, referenceC
     }
     // A missing id is no committed entry keeping it: the counts are live and hold only ids with one (dispatch 2026-10-28-08).
     DetailField(FIELD_USED_IN, "Used in", journalEntryCountLabel(referenceCounts[waypoint.id] ?: 0))
-    DetailsActions {
-        // Dispatch -502: the app's own navigation. Dispatch 2026-10-29-09 (RECORD -1819, the owner: "Everywhere Navigate
-        // exists"): the hand-off to a maps app that sat after it is gone, since Navigate is offered wherever this sheet opens.
-        onNavigate?.let { navigate ->
-            OutlinedButton(
-                onClick = { navigate(waypoint.id) },
-                modifier = Modifier.testTag(RECORD_DETAILS_NAVIGATE_TAG),
-            ) {
-                Icon(Icons.Filled.Navigation, contentDescription = null, modifier = Modifier.size(18.dp))
-                Text("Navigate", modifier = Modifier.padding(start = Spacing.sm))
-            }
-        }
-    }
+    // Dispatch -502: the app's own navigation. Dispatch 2026-10-29-09 (RECORD -1819) took the maps app's Directions off this
+    // card; dispatch 2026-11-05-05 (A5; RECORD -2140, the owner: "add the Directions button for external maps to the right of the
+    // in-app Navigate button and center the two buttons") puts it back, to Navigate's right, the two centred, where Navigate is.
+    onNavigate?.let { navigate -> NavigateDirectionsRow(onNavigate = { navigate(waypoint.id) }, name = waypoint.name, at = location) }
 }
 
 @Composable

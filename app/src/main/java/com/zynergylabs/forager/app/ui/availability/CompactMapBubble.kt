@@ -3,8 +3,6 @@ package com.zynergylabs.forager.app.ui.availability
 // Moved unchanged from AvailabilityCompactMapUi.kt (dispatch 2026-10-19-14, UI split Phase 1, PR 9a).
 
 import androidx.compose.foundation.layout.BoxScope
-import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
-import com.zynergylabs.forager.app.ui.log.RecordDetailsTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
@@ -99,8 +97,9 @@ internal fun BoxScope.CompactMapBubble(
         backEnabled = backEnabled,
         insetLeft = bubbleInsetLeft,
         insetRight = bubbleInsetRight,
-        // Dispatch -502, Amendment 1: Back ended a waypoint navigation started in the waypoint's details sheet here.
-        reopenDetails = (waypointReopen as? WaypointNavigationOrigin.MapDetails)?.let { RecordDetailsTarget.WaypointDetails(it.waypointId) },
+        // Dispatch -502, Amendment 1: Back ended a waypoint navigation started in the waypoint's details sheet here; since
+        // dispatch 2026-11-05-05 (A8), or a trip's in its card (reopenedDetails, NavigationReopen.kt).
+        reopenDetails = reopenedDetails(waypointReopen),
         onReopenDetailsConsumed = onWaypointReopenConsumed,
     )
 }
