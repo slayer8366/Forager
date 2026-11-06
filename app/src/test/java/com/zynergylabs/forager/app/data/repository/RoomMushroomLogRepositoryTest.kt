@@ -81,7 +81,7 @@ class RoomMushroomLogRepositoryTest {
 
     @Test
     fun `a barely-populated entry round-trips exactly, with every unrecorded field surviving as NotObserved`() = runTest {
-        val entry = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.4, -122.7), date = LocalDate.of(2026, 8, 1))
+        val entry = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.4, -121.8), date = LocalDate.of(2026, 8, 1))
 
         repository.save(entry).getOrThrow()
         val all = repository.getAll().getOrThrow()
@@ -121,7 +121,7 @@ class RoomMushroomLogRepositoryTest {
 
     @Test
     fun `saving a second entry with the same id replaces it rather than duplicating it`() = runTest {
-        val original = MushroomLogEntry.draft(id = "e1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val original = MushroomLogEntry.draft(id = "e1", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 1))
         val updated = original.copy(notes = "updated in the field", ownIdentification = "maybe a bolete")
 
         repository.save(original).getOrThrow()
@@ -143,7 +143,7 @@ class RoomMushroomLogRepositoryTest {
      */
     @Test
     fun `save never touches photo references, however stale the entry argument's own photos field is`() = runTest {
-        val entry = MushroomLogEntry.draft(id = "e1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val entry = MushroomLogEntry.draft(id = "e1", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 1))
         val attachedPhoto = LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)
         val neverAttachedPhoto = LogPhoto(id = "p2", relativePath = "photos/p2.jpg", createdAtEpochMillis = 2_000L)
 
@@ -170,7 +170,7 @@ class RoomMushroomLogRepositoryTest {
     fun `deleting an entry drops only its own photo references, including one shared with another entry`() = runTest {
         val shared = LogPhoto(id = "shared-photo", relativePath = "photos/shared.jpg", createdAtEpochMillis = 1_000L)
         val removedOnly = LogPhoto(id = "removed-only-photo", relativePath = "photos/removed-only.jpg", createdAtEpochMillis = 2_000L)
-        val keep = MushroomLogEntry.draft(id = "keep", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val keep = MushroomLogEntry.draft(id = "keep", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 1))
         val remove = MushroomLogEntry.draft(id = "remove", location = LatLng(46.0, -123.0), date = LocalDate.of(2026, 8, 2))
         repository.save(keep).getOrThrow()
         repository.save(remove).getOrThrow()
@@ -207,9 +207,9 @@ class RoomMushroomLogRepositoryTest {
 
     @Test
     fun `Uploaded and Failed sync states round-trip exactly, even though Phase 1 never constructs them`() = runTest {
-        val uploaded = MushroomLogEntry.draft(id = "e1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val uploaded = MushroomLogEntry.draft(id = "e1", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 1))
             .copy(syncState = LogSyncState.Uploaded(remoteObservationId = "12345", uploadedAt = Instant.ofEpochMilli(1_000_000)))
-        val failed = MushroomLogEntry.draft(id = "e2", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val failed = MushroomLogEntry.draft(id = "e2", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 1))
             .copy(syncState = LogSyncState.Failed(reason = "network error", remoteObservationId = "12345"))
 
         repository.save(uploaded).getOrThrow()
@@ -227,8 +227,8 @@ class RoomMushroomLogRepositoryTest {
      */
     @Test
     fun `getAllPhotos returns every gallery photo paired with the entries currently referencing it`() = runTest {
-        val entryA = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
-        val entryB = MushroomLogEntry.draft(id = "entry-b", location = LatLng(45.1, -122.1), date = LocalDate.of(2026, 8, 2))
+        val entryA = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 1))
+        val entryB = MushroomLogEntry.draft(id = "entry-b", location = LatLng(45.1, -121.2), date = LocalDate.of(2026, 8, 2))
         val shared = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "shared", relativePath = "photos/shared.jpg", createdAtEpochMillis = 1_000L)
         val onlyA = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "only-a", relativePath = "photos/only-a.jpg", createdAtEpochMillis = 2_000L)
         repository.save(entryA).getOrThrow()
@@ -284,7 +284,7 @@ class RoomMushroomLogRepositoryTest {
         val roundTripped = repository.getAllPhotos().getOrThrow()
         assertEquals(beforeAttach, roundTripped)
 
-        val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 1))
         repository.save(find).getOrThrow()
         repository.attachPhotoToEntry(find.id, standalone.id).getOrThrow()
 
@@ -308,7 +308,7 @@ class RoomMushroomLogRepositoryTest {
      */
     @Test
     fun `attaching the same photo to the same entry twice does not duplicate the reference`() = runTest {
-        val entry = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
+        val entry = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 1))
         val photo = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)
         repository.save(entry).getOrThrow()
         repository.addPhotoToGallery(photo).getOrThrow()
@@ -323,9 +323,9 @@ class RoomMushroomLogRepositoryTest {
     /** Workstream G3: a photo already referenced by two entries, pulled into a third, ends up referenced by all three — only representable since G1's many-to-many. */
     @Test
     fun `a photo referenced by two entries, pulled into a third, is referenced by three`() = runTest {
-        val entryA = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
-        val entryB = MushroomLogEntry.draft(id = "entry-b", location = LatLng(45.1, -122.1), date = LocalDate.of(2026, 8, 2))
-        val entryC = MushroomLogEntry.draft(id = "entry-c", location = LatLng(45.2, -122.2), date = LocalDate.of(2026, 8, 3))
+        val entryA = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 1))
+        val entryB = MushroomLogEntry.draft(id = "entry-b", location = LatLng(45.1, -121.2), date = LocalDate.of(2026, 8, 2))
+        val entryC = MushroomLogEntry.draft(id = "entry-c", location = LatLng(45.2, -121.3), date = LocalDate.of(2026, 8, 3))
         val photo = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "shared", relativePath = "photos/shared.jpg", createdAtEpochMillis = 1_000L)
         repository.save(entryA).getOrThrow()
         repository.save(entryB).getOrThrow()
@@ -343,8 +343,8 @@ class RoomMushroomLogRepositoryTest {
     /** Workstream G3: closes the deletion gap G1 left open. Asserted against the real Room tables, not a fake — the whole point is that no row (photo or cross-reference) survives. */
     @Test
     fun `deletePhotoFromGallery removes the photo row and every cross-reference to it`() = runTest {
-        val entryA = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 1))
-        val entryB = MushroomLogEntry.draft(id = "entry-b", location = LatLng(45.1, -122.1), date = LocalDate.of(2026, 8, 2))
+        val entryA = MushroomLogEntry.draft(id = "entry-a", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 1))
+        val entryB = MushroomLogEntry.draft(id = "entry-b", location = LatLng(45.1, -121.2), date = LocalDate.of(2026, 8, 2))
         val photo = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)
         repository.save(entryA).getOrThrow()
         repository.save(entryB).getOrThrow()
@@ -373,16 +373,16 @@ class RoomMushroomLogRepositoryTest {
         val photo = com.zynergylabs.forager.app.domain.model.LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)
         repository.addPhotoToGallery(photo).getOrThrow()
 
-        repository.updatePhotoLocation(photo.id, latitude = 45.5, longitude = -122.6).getOrThrow()
+        repository.updatePhotoLocation(photo.id, latitude = 45.5, longitude = -121.7).getOrThrow()
 
         val reloaded = repository.getAllPhotos().getOrThrow().single { it.photo.id == photo.id }.photo
         assertEquals(45.5, reloaded.latitude!!, 0.0)
-        assertEquals(-122.6, reloaded.longitude!!, 0.0)
+        assertEquals(-121.7, reloaded.longitude!!, 0.0)
     }
 
     @Test
     fun `updatePhotoLocation on an unknown photo id is a no-op, not a failure`() = runTest {
-        val result = repository.updatePhotoLocation("never-existed", latitude = 45.5, longitude = -122.6)
+        val result = repository.updatePhotoLocation("never-existed", latitude = 45.5, longitude = -121.7)
 
         assertTrue(result.isSuccess)
     }
@@ -390,7 +390,7 @@ class RoomMushroomLogRepositoryTest {
 
 private fun fullyPopulatedEntry(): MushroomLogEntry = MushroomLogEntry(
     id = "full-1",
-    foundAt = LatLng(lat = 45.512, lng = -122.658),
+    foundAt = LatLng(lat = 45.512, lng = -121.758),
     foundOn = LocalDate.of(2026, 8, 15),
     cap = CapSection(
         shape = Observed.Recorded(CapShape.CONVEX),
