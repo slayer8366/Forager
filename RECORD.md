@@ -36319,6 +36319,12 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The planner started the deletion Hazel again, with the owner's words quoted. The permission check refused a second time ("Git Destructive"), and the planner stopped there.
   - **Put to the owner:** add an allow rule for `git push origin --delete` in the session's permissions, or run a prepared script themselves.
   - Nothing has been deleted. The report copy continues.
+- **The planner's scanner, corrected (2026-11-06T17:31:52Z):** the report-copy Hazel's own cross-check found three forms it missed: a longitude written positive with "W", a value right after a letter, and a pair given longitude first. It found one real case, in a report on an unmerged branch that is to be copied scrubbed and then deleted.
+  - The scanner now reads all three. It was proved on a synthetic case of each, and on old pre-main's tests (271 pairs).
+  - **Rescanned with it:** the tips of pre-main, records-after-173 and tools/s22-combined. Each has no grid reference or tile, and one "pair": a test's bounding box whose north and west edges come from two different points. That is not the home, the ruled-exception kind.
+  - **The planner's calls on her stop:**
+    - the positive-W span is replaced with the marker;
+    - 12 single in-box latitudes in three copied files, each partner outside the box, stay, listed by kind and count.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
