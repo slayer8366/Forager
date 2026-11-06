@@ -36165,6 +36165,9 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **Font 2.0:** the status space is too narrow there (107 to 163 dp). The card reached 294 dp tall in landscape, and the route card on it lost its buttons, which is 13 reds.
     - **The owner, verbatim,** to "At the largest text size, the space under the sunset line is narrow (about a third of the card in landscape). \"Compass unavailable · north up\" takes 5 lines, words break mid-word, the card fills most of a landscape screen, and the route card on it loses its buttons. Normal text works. What should happen at large text?": **"Own line when too narrow (Recommended)"**. The option read: "Where the space is too narrow for its words (largest text, narrow phones), status words go back to their own full-width line under the card, as before. In daytime at that size the right side keeps no width, so \"by trail\" stays beside the distance. At normal text nothing changes." The others: "Keep it as ruled"; "Compass as an icon".
     - Amendment 1 gains H8. The planner's reading of "too narrow" is per window and font: narrower than any status's widest single word.
+- **H9 (2026-11-06T17:16:46Z), the owner, verbatim,** to "With no compass, \"Compass unavailable · north up\" won't fit on one line at larger text sizes. The card grows and, in landscape, the route card on it loses its buttons. What should the notice do?": **"Shorten to \"No compass\" (Recommended)"**. The option read: "One short line, like \"Off trail\". The map turning north-up already shows what it means. The card keeps its height and the route card its buttons." The others: "Crossed-out compass icon"; "Let the card grow".
+  - **The planner's readings:** "Compass calibrating…" and the strip's own words keep theirs, and the G and H Hazel stops if calibrating can't fit.
+  - **Also from her:** H7 and H8 are built (73b5c0812). Under H8, 6 of the 13 route-card reds went green. The other 10 were H3's two-line notice, which H9 answers.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
@@ -36309,6 +36312,9 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **The planner's readings:**
     - the 9 kept only because they were pushed today are finished, so they go too;
     - only the reports' text is copied, scrubbed of home values, and their images stay in the bundles.
+- **Phase 2 blocked (2026-11-06T17:16:46Z):** the session's permission check refused to start the deletion Hazel, as "Git Destructive", and the planner didn't try to get around it.
+  - The copy step, the 150 reports to this branch with home values scrubbed, runs on its own with a Hazel told to delete nothing.
+  - The deletion of the 1,057, the 45 probes, the 9 finished branches and the 150 copied report branches waits for the owner's permission in the session's settings, or the owner's own hand.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
