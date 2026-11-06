@@ -331,3 +331,24 @@ Hazel Cairnwright, 2026-11-06. The scope is Amendment 1, H4, verbatim: "2b-1, no
 ### Still to do once the scan is ruled on
 
 Red run on the stubs, green, the one-line revert per ruling, full CI compared by test name with pre-main, and the four disclosure sections.
+
+### Hand-back, mid-verification (Hazel, 2026-11-06)
+
+- **The scan, ruled.** The owner: "Push, check new work only (Recommended)". Before each push I ran both `git diff origin/pre-main HEAD` and `git diff ec738c364 HEAD` through the scanner, and both read 0 every time.
+- **Pushed:** `eb906bb05`, then `884f36c6e`. `884f36c6e` takes the colons out of `NextTurnCardStateTest`'s test names: the JVM refuses them (the compile log of run 42280248236, 18 lines of `Name contains illegal characters: :.`).
+- **The first red run, 42280248236, read nothing.** It had compile errors, so its results were not read.
+- **Started, not yet read:**
+  - red run 42281323874 on throwaway `next-turn-2b1-red` (`65c4c65c5`: the stubs plus the name fix), filtered to the new classes and `RouteTurnsLogTest`, `NextTurnAheadTest` and `RouteTurnsTest`;
+  - PR run 42281325309, the full CI on `884f36c6e`.
+- **Still to do:**
+  - green;
+  - four one-line reverts, with the predictions below;
+  - the full CI compared by test name with pre-main;
+  - the four disclosure sections.
+- **The four reverts and their predictions.** Run each with `/mnt/work/scratch/hazel-2b1/scripts/revert.py`, which edits one line, pushes a throwaway branch and restores from a saved copy. Read each with `results.py`, which refuses to read any run whose log has a compile error.
+  - **H3,** `legMeters < TURN_MEASURE_METERS` to `< 0.0`: 7 `ShortLegJoinTest` failures predicted.
+  - **The folder carried,** `FindWayToWaypointUseCase`'s `routeData = routes.folder` dropped: 2 predicted (the VM turns test 1, and `RouteTurnsHeldOnBRouterTest`'s way to a waypoint).
+  - **The holders' turns,** `HeldRouteTurns`' `deliver(...)` dropped: 4 predicted (`WayHomeWatchTurnsTest` 1 and 2, the VM turns tests 1 and 2).
+  - **NextTurnCardState,** the `ROUTE_UNAVAILABLE_TEXT` branch removed: 1 predicted (the held-back route).
+- **To watch:** `NextTurnAheadTest`'s 10 m lead-ins may go red under H3. Report them; don't edit them.
+- **Throwaway branch to delete afterwards:** `next-turn-2b1-red`.
