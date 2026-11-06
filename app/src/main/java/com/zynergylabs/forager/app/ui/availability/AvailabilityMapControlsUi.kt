@@ -361,6 +361,12 @@ internal fun CompassElevationStripContent(
                                 val separatorPx = widthOf("·", readoutLabelStyle) + with(density) { 2 * Spacing.xs.roundToPx() }
                                 val headingPx = if (headingIcon) with(density) { stripHeadingIconSize().roundToPx() } else widthOf(headingText, readoutStyle)
                                 val elevationPx = widthOf(elevationText, readoutStyle)
+                                // Amendment 1, H7 refined again (the planner's call, RECORD -2181): "whether the heading stays on the strip is
+                                // decided on its widest reading, so it never appears and drops out as the phone turns. At 320 dp it stays off,
+                                // as before this dispatch." So a reading (a value or the dash) is counted at the widest value
+                                // ([stripHeadingValuesPx]); the compass words and the crossed-out compass, which do not change as the phone
+                                // turns, as drawn. Was the value as drawn, so at 320 dp "89° E" was kept and "281° W" was not.
+                                val headingFitPx = if (headingIcon || heading.isCompassStatus()) headingPx else maxOf(headingPx, stripHeadingValuesPx(::widthOf, readoutStyle))
                                 // RECORD -713 (the owner: "Drop labels, then values (Recommended)"): labels go first, then facing,
                                 // then altitude; whatever is shown is whole. See readoutsFitBeside. Decided on the values as drawn, never
                                 // the windows, so the line keeps at least what it kept before Amendment 1, H7.
@@ -368,7 +374,7 @@ internal fun CompassElevationStripContent(
                                     availablePx = availablePx,
                                     coordinatesPx = coordinatesPx,
                                     labelsPx = listOf(labelPx(headingLabel), labelPx(elevationLabel)),
-                                    valuesPx = listOf(headingPx, elevationPx),
+                                    valuesPx = listOf(headingFitPx, elevationPx),
                                     separatorPx = separatorPx,
                                 )
                                 // Amendment 1, H7 (the owner: "Info that changes and shares a line with other text should get its own

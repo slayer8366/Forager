@@ -192,8 +192,9 @@ internal fun NavigationInfo(
                 )
                 Column(modifier = Modifier.onGloballyPositioned { linesBelowHeightPx = it.size.height.toFloat() }) {
                     CardRouteLines(readout, partsPx, onRetryRoute)
-                    // H8: where the right part is too narrow for the status words' widest word, they keep their own full-width line here.
-                    if (evening.statusBelow) StatusSpace(readout)
+                    // H8: where the right part is too narrow for the status words' widest word, they keep their own full-width line here;
+                    // H10: one line, the more urgent ([oneStatusLine]).
+                    if (evening.statusBelow) StatusSpace(readout, oneLine = true)
                 }
             }
             // The X at the card's right edge, top-aligned beside the parts and the lines under them, its own 48 dp touch box.

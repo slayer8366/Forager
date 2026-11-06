@@ -68,6 +68,11 @@ internal data class NavigationHudReadout(
      * the notice"), which the card no longer draws since H1 gave the heading back to the strip.
      */
     val compassNoticeText: String? = null,
+    /**
+     * Amendment 1, H10 (RECORD -2181): [statusText] warns of the fix's age, stale or lost ("Last fix 45 s ago", "No fix for 6 min"),
+     * which comes first where the status words have one line under the parts ([oneStatusLine]).
+     */
+    val statusIsFixAge: Boolean = false,
 ) {
     /**
      * The status's forms, longest first (T11 fixes). With "By trail ·" leading the line ([kindInStatus]) the straight-line

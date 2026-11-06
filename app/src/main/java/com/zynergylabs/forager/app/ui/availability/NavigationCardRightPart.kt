@@ -74,7 +74,12 @@ internal fun RightPart(
  *   other status words as well, both show, the notice on its own line under them (the planner's reading of Q6).
  */
 @Composable
-internal fun StatusSpace(readout: NavigationHudReadout, modifier: Modifier = Modifier) {
+internal fun StatusSpace(
+    readout: NavigationHudReadout,
+    modifier: Modifier = Modifier,
+    /** H10: the status words' own line under the parts (H8) holds one of them, the more urgent ([oneStatusLine]). */
+    oneLine: Boolean = false,
+) {
     val statusStyle = MaterialTheme.typography.labelMedium
     val measurer = rememberTextMeasurer()
     BoxWithConstraints(modifier = modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
@@ -82,8 +87,8 @@ internal fun StatusSpace(readout: NavigationHudReadout, modifier: Modifier = Mod
         val statusFit = statusLineFit(readout, kindInStatus = false, maxPx = widthPx, leadSeparatorPx = 0) {
             measurer.measure(it, statusStyle, maxLines = 1, softWrap = false).size.width
         }
-        val status = if (readout.statusIsPositionStatus) "" else statusFit.status
-        val notice = readout.compassNoticeText
+        val words = if (readout.statusIsPositionStatus) "" else statusFit.status
+        val (status, notice) = if (oneLine) oneStatusLine(words, readout.compassNoticeText, readout.statusIsFixAge) else words to readout.compassNoticeText
         Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
             if (status.isEmpty()) {
                 // Nothing to say: no line (RECORD -935, "only when it has something to say"). An empty, zero-height node keeps the

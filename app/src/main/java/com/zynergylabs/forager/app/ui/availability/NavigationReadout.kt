@@ -248,6 +248,7 @@ internal fun navigationReadout(
         statusFallbacksFor = statusText,
         statusIsStraightNote = statusIsStraightNote,
         compassNoticeText = compassNotice,
+        statusIsFixAge = freshness != FixFreshness.FRESH,
     )
 }
 

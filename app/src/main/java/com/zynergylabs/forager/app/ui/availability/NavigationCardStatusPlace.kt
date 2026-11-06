@@ -47,5 +47,21 @@ internal fun widestStatusWordPx(widthOf: (String) -> Int): Int =
 internal fun statusBelowTheParts(partsPx: Int, dividerPx: Int, leftNeedPx: Int, floorPx: Int, widestWordPx: Int): Boolean =
     minOf(floorPx, partsPx - dividerPx - leftNeedPx) < widestWordPx
 
+/**
+ * H10 (RECORD -2181), the owner: "The more urgent one (Recommended)", the option reading "Where status words take their own line (large
+ * text), only one shows: "No fix 6 min" ahead of "No compass". The card stays one line taller at most, and the route card keeps its
+ * buttons. At normal text both show as now." The planner's reading: "under H8, one status line at most, by the existing priority.
+ * Fix-age warnings come ahead of the compass notice, which comes ahead of other words."
+ *
+ * So, of the status words ([status], already the readout's one status by its own order, a fix's age ahead of every other) and the
+ * compass notice ([notice]), the pair to draw: the status alone where it warns of the fix's age ([statusIsFixAge]); else the notice
+ * alone where there is one; else the status words. Used only under the parts (H8); in the right part both show, as before.
+ */
+internal fun oneStatusLine(status: String, notice: String?, statusIsFixAge: Boolean): Pair<String, String?> = when {
+    statusIsFixAge && status.isNotEmpty() -> status to null
+    notice != null -> "" to notice
+    else -> status to null
+}
+
 /** H9: the card's north-up notice, the owner's "No compass". The strip's own words ("Compass unavailable") are unchanged. */
 internal const val CARD_NO_COMPASS_TEXT = "No compass"
