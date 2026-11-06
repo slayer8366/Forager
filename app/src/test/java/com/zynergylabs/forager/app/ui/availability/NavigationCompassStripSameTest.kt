@@ -41,14 +41,16 @@ class NavigationCompassStripSameTest : NavigationCardKindLineScreen() {
         setNavigating(false)
         val out = strip()
         val problems = mutableListOf<String>()
-        // Positive controls: out of navigation the strip draws all four, and the card is gone.
-        for ((tag, piece) in out) if (piece == null) problems += "positive control: $where: out of navigation the strip draws no <$tag>"
+        // Positive controls: out of navigation the strip draws its arrow and its grid reference (the heading and the height give way
+        // first where the line is short, RECORD -713, so they are compared wherever they are drawn), and the card is gone.
+        for (tag in listOf(COMPASS_STRIP_NEEDLE_TAG, COMPASS_STRIP_COORDINATES_TAG)) if (out[tag] == null) problems += "positive control: $where: out of navigation the strip draws no <$tag>"
         val cardLeft = composeRule.onAllNodes(hasTestTag(NAVIGATION_HUD_EXIT_TAG), useUnmergedTree = true).fetchSemanticsNodes().size
         if (cardLeft != 0) problems += "positive control: $where: the card's X is still drawn out of navigation"
         for ((tag, o) in out) {
             val n = navigating[tag]
             when {
-                o == null -> Unit
+                o == null && n == null -> Unit
+                o == null -> problems += "$where: navigating, the strip draws <$tag>, which it does not out of navigation"
                 n == null -> problems += "$where: navigating, the strip draws no <$tag> (out of navigation it does)"
                 else -> {
                     if (n.text != o.text) {
@@ -61,7 +63,7 @@ class NavigationCompassStripSameTest : NavigationCardKindLineScreen() {
         }
         // The heading the strip shows is the one faced (281°, due west of north by 79°).
         val heading = out[COMPASS_STRIP_HEADING_TAG]?.text
-        if (heading != "281° W") problems += "positive control: $where: the strip's heading reads <$heading>, not <281° W>"
+        if (heading != null && heading != "281° W") problems += "positive control: $where: the strip's heading reads <$heading>, not <281° W>"
         println("STRIPSAME|$where|navigating ${navigating.mapValues { it.value?.bounds }}|out ${out.mapValues { it.value?.bounds }}")
         assertTrue(problems.joinToString("\n"), problems.isEmpty())
     }

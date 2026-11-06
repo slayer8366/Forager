@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -82,7 +83,7 @@ class NavigationCardCompassNoticeTest {
         ForagerTheme(darkTheme = false) {
             Box(Modifier.width(384.dp).testTag(NAVIGATION_HUD_TAG)) {
                 NavigationInfo(
-                    heading = mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Unreliable),
+                    heading = remember { mutableStateOf<TrueHeadingReading>(TrueHeadingReading.Unreliable) },
                     liveFix = fix,
                     target = start,
                     distanceUnit = DistanceUnit.MILES,
@@ -114,10 +115,11 @@ class NavigationCardCompassNoticeTest {
         if (text(status) != "Approaching") problems += "positive control: the status words read <${text(status)}>, not <Approaching>"
         if (text(notice) != words) problems += "the card's status space shows the notice <${text(notice)}>, not <$words>"
         if (notice != null && status != null && notice.boundsInRoot.top < status.boundsInRoot.bottom - 1f) problems += "the notice ${notice.boundsInRoot} is not on its own line under the status words ${status.boundsInRoot}"
-        if (notice != null && divider != null && notice.boundsInRoot.left < divider.boundsInRoot.right) problems += "the notice ${notice.boundsInRoot} is not in the right part (the divider ${divider.boundsInRoot})"
+        // Where the status space itself sits (the right part) is H2's claim, NavigationCardStatusSpaceTest's; this one holds the notice
+        // to the space, so a revert of either ruling fails only its own cases. The divider is printed for the report.
         // H1: the card draws no heading, the notice included.
         if (node(NAVIGATION_HUD_HEADING_TAG) != null) problems += "the card still has a heading <${text(node(NAVIGATION_HUD_HEADING_TAG))}>"
-        println("COMPASSNOTICE|$f|notice <${text(notice)}> ${notice?.boundsInRoot}|status <${text(status)}> ${status?.boundsInRoot}")
+        println("COMPASSNOTICE|$f|notice <${text(notice)}> ${notice?.boundsInRoot}|status <${text(status)}> ${status?.boundsInRoot}|divider ${divider?.boundsInRoot}")
         assertTrue(problems.joinToString("\n") { "$f: $it" }, problems.isEmpty())
     }
 
