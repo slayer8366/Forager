@@ -184,21 +184,29 @@ abstract class NavigationCardKindLineScreen {
     /** Shows [s] with [e] in the right part, facing [facing], and settles it: 3 s of the test clock. */
     protected fun show(s: State, e: Evening, facing: Facing = Facing.TURN) {
         if (!composed) compose()
+        // The way home's lookahead is due east, the waypoint due north. Facing 281° (191° for the waypoint) the aim is 169° to the
+        // right; facing 89° (359°), 1° to the right.
+        val aim = if (s == State.STRAIGHT) 0f else 90f
+        val faced = when (facing) {
+            Facing.TURN -> (aim + 191f) % 360f
+            Facing.AHEAD -> (aim + 359f) % 360f
+            Facing.NO_COMPASS -> null
+        }
         composeRule.runOnIdle {
             state = s
             evening = e
-            // The way home's lookahead is due east, the waypoint due north. Facing 281° (191° for the waypoint) the aim is 169° to
-            // the right; facing 89° (359°), 1° to the right.
-            val aim = if (s == State.STRAIGHT) 0f else 90f
-            compass.value = when (facing) {
-                Facing.TURN -> CompassReading((aim + 191f) % 360f, HeadingUncertainty.Estimated(2f), 0L)
-                Facing.AHEAD -> CompassReading((aim + 359f) % 360f, HeadingUncertainty.Estimated(2f), 0L)
-                Facing.NO_COMPASS -> null
-            }
+        }
+        // The heading is smoothed (HeadingSmoother, 0.3 a reading), so one reading only moves it part of the way: the same heading is
+        // read 30 times, each a new reading, so the shown heading is the one faced (0.7^30 of the old one is left).
+        repeat(if (faced == null) 1 else 30) {
+            composeRule.runOnIdle { compass.value = faced?.let { CompassReading(it, HeadingUncertainty.Estimated(2f), ++readings) } }
+            composeRule.mainClock.advanceTimeBy(50)
         }
         composeRule.mainClock.advanceTimeBy(3_000)
         composeRule.waitForIdle()
     }
+
+    private var readings = 0L
 
     /** A text node in the card: its bounds, its words, its first baseline in the root, its type size, and how it was laid out. */
     protected class Laid(val bounds: DpRect, val text: String, val baseline: Dp, val fontSp: Float, val layout: TextLayoutResult?)
@@ -219,11 +227,14 @@ abstract class NavigationCardKindLineScreen {
         /** "by" and "trail" where the kind is stacked, top first; empty otherwise. */
         val kindWords: List<Laid>,
         val pieces: List<Laid>,
+        /** The X's tagged node: its 40 dp icon, centred in its 48 dp touch box. */
         val exit: DpRect,
+        /** The north arrow, or the crossed-out compass in its place. */
+        val northArrow: DpRect?,
     ) {
         /** The turn row's left: its words, or the needle where the words are empty (an empty text reports no place). */
         val turnRowLeft: Dp get() = if (turn == null || turn.text.isEmpty()) needle.left else turn.bounds.left
-        val turnRowRight: Dp get() = heading?.bounds?.right ?: needle.right
+        val turnRowRight: Dp get() = heading?.bounds?.right ?: northArrow?.right ?: needle.right
         /** The left part's middle: its lines' centre, since the turn row is centred in it (NavigationInfoLayoutTest). */
         val middle: Dp get() = (turnRowLeft + turnRowRight) / 2
         val turnRowTop: Dp get() = needle.top
@@ -270,6 +281,7 @@ abstract class NavigationCardKindLineScreen {
             kindWords = nodes(NAVIGATION_HUD_DISTANCE_KIND_WORD_TAG).map(::laid).sortedBy { it.bounds.top },
             pieces = nodes(NAVIGATION_HUD_EVENING_PIECE_TAG).map(::laid),
             exit = rect(single(NAVIGATION_HUD_EXIT_TAG, where)),
+            northArrow = nodes(NAVIGATION_HUD_NORTH_ARROW_TAG).singleOrNull()?.let(::rect),
         )
     }
 

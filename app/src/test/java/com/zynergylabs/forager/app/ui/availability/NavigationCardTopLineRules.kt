@@ -47,6 +47,9 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         /** How near the room at the narrowest left part is to a step's threshold (the kind's or the stack's width); `null` with no kind. */
         val marginPx: Int?,
         val problems: List<String>,
+        /** The turn words and the heading as drawn, for a case's positive controls. */
+        val turn: String = "",
+        val heading: String? = null,
     )
 
     private fun stepFor(widthPx: Int, gapPx: Int, longestPx: Int, kindPx: Int, stackPx: Int?): Step {
@@ -116,10 +119,17 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         val kindPx = widthPx(kindType, s.kind)
         val stackPx = if (s.kind == "by trail") maxOf(widthPx(kindType, "by"), widthPx(kindType, "trail")) else null
         // The narrowest left part: the right part keeps the widest evening piece, and the left part is at least its narrowest need.
-        val totalPx = px(c.exit.left - left)
+        // The two parts end where the X's 48 dp touch box starts, 24 dp left of its centre (its tagged node is the 40 dp icon).
+        val totalPx = px((c.exit.left + c.exit.right) / 2 - 24.dp - left)
         val dividerPx = d.roundToInt() + 2 * (6 * d).roundToInt()
         val wantRightPx = c.pieces.maxOfOrNull { widthPx(it, it.text) } ?: 0
         val basePx = totalPx - dividerPx - wantRightPx
+        // Positive controls on that arithmetic: the left part is never narrower than what the evening piece leaves it, and where it
+        // is wider (the fit overflowed) the right part is narrower than its widest piece, so that piece wraps.
+        if (widthPx < basePx - 1) problems += "positive control: the left part ${dpOf(widthPx)} is narrower than the ${dpOf(basePx)} the evening piece leaves"
+        if (widthPx > basePx + 1 && c.pieces.none { px(it.bounds.right - it.bounds.left) < widthPx(it, it.text) - 1 }) {
+            problems += "positive control: the left part ${dpOf(widthPx)} is wider than the ${dpOf(basePx)} the evening piece leaves, but no piece wraps"
+        }
         val needPx = maxOf(widthPx(c.figure, "8 ft"), 2 * (22 * d).roundToInt() + gapPx, kindPx)
         val narrowestPx = minOf(widthPx, if (needPx > basePx) minOf(needPx, totalPx - dividerPx) else basePx)
         val ruled = stepFor(narrowestPx, gapPx, longestPx, kindPx, stackPx)
@@ -175,6 +185,6 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
             "RULES|$where|$s|$e|$facing|drawn $drawn|ruled $ruled|at the drawn width $atDrawn|left part ${dpOf(widthPx)}|narrowest ${dpOf(narrowestPx)}|" +
                 "longest ${dpOf(longestPx)}|kind ${dpOf(kindPx)}|stack ${stackPx?.let(::dpOf)}|shift ${dpOf(shiftPx)}|room at the narrowest ${dpOf(roomPx)}, at the drawn width ${dpOf(widthPx - endPx - gapPx)}|nearest threshold ${dpOf(marginPx)}|right part wants ${dpOf(wantRightPx)}",
         )
-        return Reading(drawn, ruled, atDrawn, widthPx, narrowestPx, longestPx, shiftPx, marginPx, problems.map { "$where $s $e $facing: $it" })
+        return Reading(drawn, ruled, atDrawn, widthPx, narrowestPx, longestPx, shiftPx, marginPx, problems.map { "$where $s $e $facing: $it" }, c.turn?.text.orEmpty(), c.heading?.text)
     }
 }

@@ -78,7 +78,10 @@ class NavigationCardKindLineLargeTextTest : NavigationCardTopLineRules() {
         val readings = turning(where)
         assertClean(*readings.toTypedArray())
         val widths = readings.map { it.leftPartPx }
-        // Positive control: turning does change the left part's width, so the step had a reason to move.
+        // Positive controls: the phone faced as each case says (169° off, 1° off, no compass), and that changed the left part's
+        // width, so the step had a reason to move.
+        assertEquals("$where: the headings drawn", listOf("281° W", "89° E", null), readings.map { it.heading })
+        assertEquals("$where: the turn as drawn", listOf("169°", "1°", ""), readings.map { it.turn })
         assertTrue("$where: the left part's width did not change as the phone turned: $widths", widths.distinct().size > 1)
         assertEquals("$where: the kind's step as the phone turned (left part $widths px)", List(readings.size) { readings.first().drawn }, readings.map { it.drawn })
         assertEquals("$where: the step it holds", Step.OWN_LINE, readings.first().drawn)
