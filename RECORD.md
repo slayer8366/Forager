@@ -35981,6 +35981,14 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - Each step is chosen for the longest distance the card could show, so the layout doesn't jump while walking.
     - The planner's reading: "straight" is one word and can't stack or shorten, so it goes straight to step 3. The owner was told this reading.
   - **Next:** Phase 2 by a fresh Hazel, from pre-main as it is then.
+- **Phase 2 stop (2026-11-06T07:38:09Z):** Hazel's interim report is preserved at prompts/preserved/2026-11-05-10-phase2-stop-report.md. Branch nav-card-kind-line is at ae7ad700c, pushed, with no PR.
+  - **The finding:** she measured the widths on CI in Noto Sans. With the longest-distance rule (widest "≈ 8888 ft"), the distance doesn't fit left of the middle at normal text whenever an evening time shows: in landscape and at 360 dp, and for straight on the S22. The stack and "trail" steps could then never be reached under a strict reading.
+- **Added (2026-11-06T07:38:09Z), the owner, verbatim, to four questions:**
+  - To "With a sunset time showing, the longest distance the card might show (\"≈ 8888 ft\") doesn't fit left of the middle on many phones, in landscape, or for straight lines on the S22. What should happen then?": **"Shift the middle a little (Recommended)"**. The option read: "Where the longest distance doesn't fit, the meeting point moves right just enough (about 4 to 20 dp) and stays put for the whole walk. \"2.2 mi by trail\" then stays on one line at normal text almost everywhere, including your landscape screenshot. Your steps (stack, \"trail\", own line) still apply at large text." The other: "Exactly at the middle".
+  - To "A word that stands alone can be wider than the left half, for example \"Arrived\" on a narrower phone or in landscape. Where should it sit?": **"Left, crossing as little (Recommended)"**. The option read: "It starts at the left edge of the card's left part and crosses the middle only as far as it has to, as close to your \"In the left half\" as fits." The other: "Centred, as today".
+  - To "When \"by trail\" has to drop to its own line under the distance, where on that line should it sit?": **"At the middle (Recommended)"**. The option read: "Straight down from where it would have started, so it's in the same spot whether it's beside or under the distance." The others: "Ending under the distance"; "Centred under it".
+  - To "At very large text, \"by\" stacks over \"trail\" beside the distance. How should the two-word stack line up?": **"On the distance's line (Recommended)"**. The option read: "Both start at the meeting point; \"trail\" sits on the same baseline as the distance, with \"by\" just above it, so \"1280 ft trail\" reads along one line." The other: "Centred beside it".
+  - **Next:** a fresh Hazel continues on nav-card-kind-line, because the first passed 200k.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
