@@ -35,6 +35,8 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuBorder
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuShadowElevation
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.mapChromeContentColor
@@ -153,6 +155,9 @@ internal fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, o
             expanded = expanded,
             onDismissRequest = { expanded = false },
             containerColor = monthMenuColor,
+            // Over the map: no shadow, the map-chrome hairline; solid elsewhere, as Material draws it (dispatch 2026-11-05-06).
+            shadowElevation = mapChromeMenuShadowElevation(overMap),
+            border = mapChromeMenuBorder(overMap),
             modifier = Modifier
                 .testTag(MONTH_MENU_TAG)
                 .mapChromeContainerColor(monthMenuColor),

@@ -30,13 +30,13 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.ui.format.displayDate
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import java.time.Instant
@@ -73,7 +73,9 @@ fun SaveRouteDialog(
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
             shape = RoundedCornerShape(Spacing.md),
-            shadowElevation = 4.dp,
+            // No shadow (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"): under the 0.8 fill it
+            // showed as a band darker than the fill inside the edges. It had 4 dp. The map-chrome hairline in its place.
+            border = mapChromeOutline(),
             color = dialogColor,
             contentColor = dialogContentColor,
             modifier = Modifier.padding(horizontal = Spacing.lg).testTag(SAVE_ROUTE_DIALOG_TAG).mapChromeContainerColor(dialogColor),
