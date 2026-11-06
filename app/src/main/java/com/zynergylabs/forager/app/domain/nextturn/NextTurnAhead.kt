@@ -34,7 +34,7 @@ sealed interface NextTurnWay {
  *
  * **The count** (the owner's TalkBack ruling, "When paths come first (Recommended)"): the paths leaving on the turn's side
  * at the junctions the route passes straight through from the walker's place to the turn ([JunctionClass.STRAIGHT_ON];
- * a turn or a fork is a next turn itself, so none lies between).
+ * a turn or a fork is a next turn itself, so none lies between), walkable ways only (B5, [countsAsPath]).
  */
 fun nextTurn(way: NextTurnWay, progress: WayHomeProgress?, current: LatLng?): NextTurn {
     val along = when (way) {

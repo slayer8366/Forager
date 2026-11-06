@@ -12,7 +12,7 @@ package com.zynergylabs.forager.app.domain.nextturn
  *
  * Only the count: whether a junction is a turn (B1) still counts every way.
  */
-internal fun countsAsPath(tags: Map<String, String>): Boolean = true
+internal fun countsAsPath(tags: Map<String, String>): Boolean = tags["highway"] !in NOT_PATHS
 
 /** The `highway` values that are not paths passed (B5, the planner's reading). */
 internal val NOT_PATHS: Set<String> = setOf("service", "motorway", "motorway_link", "trunk", "trunk_link")

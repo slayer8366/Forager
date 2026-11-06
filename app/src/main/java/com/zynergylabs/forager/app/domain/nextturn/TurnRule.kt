@@ -74,7 +74,14 @@ internal fun judgeJunction(inBearing: Double, outBearing: Double, others: List<O
     // the arrow keeps to the other. A branch exactly along the way out (measure zero) is taken as leaving right.
     val branch = otherBearings.map { normDegrees(it - outBearing) }.filter { abs(it) <= FORK_WITHIN_DEGREES }.minByOrNull { abs(it) }
     if (branch != null) return JunctionJudgement(JunctionClass.FORK, turn, margin, keep = if (branch >= 0.0) TurnSide.LEFT else TurnSide.RIGHT)
-    return JunctionJudgement(JunctionClass.STRAIGHT_ON, turn, margin, leftPaths = deviations.count { it < 0.0 }, rightPaths = deviations.count { it > 0.0 })
+    // B5: the paths passed on each side are the walkable ways only; the others there are counted apart, for the M1 line.
+    val left = others.filterIndexed { i, _ -> deviations[i] < 0.0 }
+    val right = others.filterIndexed { i, _ -> deviations[i] > 0.0 }
+    return JunctionJudgement(
+        JunctionClass.STRAIGHT_ON, turn, margin,
+        leftPaths = left.count { it.countsAsPath }, rightPaths = right.count { it.countsAsPath },
+        leftNotPaths = left.count { !it.countsAsPath }, rightNotPaths = right.count { !it.countsAsPath },
+    )
 }
 
 /** The band of a turn of [turnDegrees] (C1), either side. */

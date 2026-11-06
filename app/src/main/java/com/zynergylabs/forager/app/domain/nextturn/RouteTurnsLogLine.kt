@@ -3,7 +3,7 @@ package com.zynergylabs.forager.app.domain.nextturn
 /**
  * The M1 line's text for one route (Amendment 1, B1; Phase 1's M1 and M2): how the ways were read, then each judged
  * point's index, distance along, the route's turn, the margin, the class and the band, with the paths passed on the turn's
- * side since the last turn or fork. Every figure is a whole number of metres or degrees, a count or an index: no
+ * side since the last turn or fork and, beside them, the ways there that are not paths (B5). Every figure is a whole number of metres or degrees, a count or an index: no
  * position of any kind, and no exception's message, which can name a route square.
  */
 internal fun routeTurnsLogLines(kind: RouteKind, turns: RouteTurns): List<String> {
@@ -19,9 +19,12 @@ internal fun routeTurnsLogLines(kind: RouteKind, turns: RouteTurns): List<String
         "${count(n(JunctionClass.TURN), "turn")}, ${count(n(JunctionClass.FORK), "fork")}, ${n(JunctionClass.STRAIGHT_ON)} straight on, " +
         "${n(JunctionClass.NO_LEG)} no leg, ${n(JunctionClass.UNMATCHED)} unmatched."
     // The paths passed on each side since the last turn or fork, or the last unknown junction: what the count would be
-    // as each turn becomes the next one, the walker just past the one before.
+    // as each turn becomes the next one, the walker just past the one before. Beside them, the ways there that are not
+    // paths (B5), left out of the count.
     var left = 0
     var right = 0
+    var leftNot = 0
+    var rightNot = 0
     val entries = read.junctions.mapIndexed { i, junction ->
         val j = junction.judgement
         val where = when (junction.kind) {
@@ -34,19 +37,24 @@ internal fun routeTurnsLogLines(kind: RouteKind, turns: RouteTurns): List<String
             JunctionClass.NO_LEG, JunctionClass.UNMATCHED -> j.junctionClass.name
             JunctionClass.TURN -> {
                 val same = if (j.side == TurnSide.LEFT) left else right
-                "$angles, TURN, ${j.band?.name?.lowercase()} ${j.side?.name?.lowercase()}, $same same-side paths before"
+                val notCounted = if (j.side == TurnSide.LEFT) leftNot else rightNot
+                "$angles, TURN, ${j.band?.name?.lowercase()} ${j.side?.name?.lowercase()}, $same same-side paths before, ${count(notCounted, "same-side way")} not counted"
             }
             JunctionClass.FORK -> "$angles, FORK, keep ${j.keep?.name?.lowercase()}"
-            JunctionClass.STRAIGHT_ON -> "$angles, STRAIGHT_ON, paths ${j.leftPaths} left ${j.rightPaths} right"
+            JunctionClass.STRAIGHT_ON -> "$angles, STRAIGHT_ON, paths ${j.leftPaths} left ${j.rightPaths} right, not paths ${j.leftNotPaths} left ${j.rightNotPaths} right"
         }
         when (j.junctionClass) {
             JunctionClass.STRAIGHT_ON -> {
                 left += j.leftPaths
                 right += j.rightPaths
+                leftNot += j.leftNotPaths
+                rightNot += j.rightNotPaths
             }
             JunctionClass.TURN, JunctionClass.FORK, JunctionClass.UNMATCHED -> {
                 left = 0
                 right = 0
+                leftNot = 0
+                rightNot = 0
             }
             JunctionClass.NO_LEG -> Unit
         }

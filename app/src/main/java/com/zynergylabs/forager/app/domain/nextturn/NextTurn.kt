@@ -20,8 +20,9 @@ sealed interface NextTurn {
      * The next turn: [band] and [side] from the route's own change of direction there (C1), [metersAway] along the line
      * from the needle's place, never below 0 (D1). [sameSidePathsBefore] is how many other paths leave on [side] between
      * the walker's place and this turn, at junctions the route passes straight through (the owner's TalkBack ruling, "When
-     * paths come first (Recommended)": 0 reads "turn left", 1 "take the second left"). Given for every band; which bands'
-     * words use it is the TalkBack layer's (Phase 2b; the planner's reading, plain turns only, is open to the owner).
+     * paths come first (Recommended)": 0 reads "turn left", 1 "take the second left"), walkable ways only (B5, the owner:
+     * "Walkable ways only (Recommended)"; [countsAsPath]). Given for every band; which bands' words use it is the TalkBack
+     * layer's (Phase 2b; the planner's reading, plain turns only, is open to the owner).
      */
     data class Turn(val band: TurnBand, val side: TurnSide, val metersAway: Double, val sameSidePathsBefore: Int) : NextTurn
 
