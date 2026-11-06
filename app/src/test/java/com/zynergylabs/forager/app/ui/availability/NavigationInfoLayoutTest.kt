@@ -42,9 +42,13 @@ import kotlin.math.abs
  * (Recommended)"; RECORD -951 item 7): the navigation info's own layout, measured on native graphics at 360 dp.
  * - The divider runs the parts' full height: from the top of the taller part to the bottom of the taller part, with the evening
  *   stack (taller than the left part) and without it (the left part alone), where it stays.
- * - The distance is about twice the other text (24 sp against the turn's 12), and each line of the left part is centred in it:
- *   the figure, the turn line and the kind word share a centre.
+ * - The distance is about twice the other text (24 sp against the turn's 12). Since dispatch 2026-11-05-10 (RECORD -2181, the
+ *   owner: "Meet at the middle (Recommended)") the distance ends at the left part's middle and the kind starts there, on one
+ *   baseline, and the turn line stays centred, so the two meet at its centre. Was: the figure, the turn line and the kind word share
+ *   a centre.
  * - The evening pieces are centred in the right part, between the divider and the X.
+ *
+ * Since dispatch 2026-11-05-10 the left part's bottom is the turn row's: nothing is drawn under it. Was the kind word's bottom.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h780dp-xxhdpi")
@@ -105,18 +109,29 @@ class NavigationInfoLayoutTest {
 
     private fun centreX(r: DpRect) = (r.left + r.right) / 2
 
+    /** The turn row's bottom: the needle's square or the heading's text, whichever is lower (dispatch 2026-11-05-10). */
+    private fun turnRowBottom(): androidx.compose.ui.unit.Dp = maxOf(one(NAVIGATION_HUD_NEEDLE_TAG).bottom, one(NAVIGATION_HUD_HEADING_TAG).bottom)
+
+    private fun baseline(tag: String): androidx.compose.ui.unit.Dp {
+        val results = mutableListOf<TextLayoutResult>()
+        composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().single().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        return one(tag).top + with(composeRule.density) { results.single().firstBaseline.toDp() }
+    }
+
     @Test
     fun `the divider runs the parts' full height, with the evening stack taller than the left part`() {
         setScreen()
         val divider = one(NAVIGATION_HUD_DIVIDER_TAG)
         val figure = one(NAVIGATION_HUD_DISTANCE_TAG)
-        val kind = one(NAVIGATION_HUD_DISTANCE_KIND_TAG)
+        // Dispatch 2026-11-05-10: the left part ends with the turn row. Was `val kind = one(NAVIGATION_HUD_DISTANCE_KIND_TAG)`, the
+        // kind word's line under it being the left part's last.
+        val leftBottom = turnRowBottom()
         val pieces = all(NAVIGATION_HUD_EVENING_PIECE_TAG)
         assertEquals("positive control: five evening pieces", 5, pieces.size)
         val partsTop = minOf(figure.top, pieces.minOf { it.top })
-        val partsBottom = maxOf(kind.bottom, pieces.maxOf { it.bottom })
-        println("MEASURED divider $divider, figure $figure, kind $kind, pieces ${pieces.first()}..${pieces.last()}")
-        assertTrue("positive control: the stack ${pieces.maxOf { it.bottom }} ends below the left part ${kind.bottom}", pieces.maxOf { it.bottom } > kind.bottom + 0.5.dp)
+        val partsBottom = maxOf(leftBottom, pieces.maxOf { it.bottom })
+        println("MEASURED divider $divider, figure $figure, left part's bottom $leftBottom, pieces ${pieces.first()}..${pieces.last()}")
+        assertTrue("positive control: the stack ${pieces.maxOf { it.bottom }} ends below the left part $leftBottom", pieces.maxOf { it.bottom } > leftBottom + 0.5.dp)
         assertTrue("the divider $divider starts at the parts' top $partsTop", abs((divider.top - partsTop).value) <= 1f)
         assertTrue("the divider $divider ends at the taller part's bottom $partsBottom", divider.bottom >= partsBottom - 1.dp)
     }
@@ -131,15 +146,22 @@ class NavigationInfoLayoutTest {
         assertEquals("the divider stays (RECORD -951)", 1, dividers.size)
         val divider = dividers.single()
         val figure = one(NAVIGATION_HUD_DISTANCE_TAG)
-        val kind = one(NAVIGATION_HUD_DISTANCE_KIND_TAG)
+        // Dispatch 2026-11-05-10: the left part is the top line and the turn row, so its height ends with the turn row, exactly. Was
+        // `assertTrue("the divider $divider ends at the kind's bottom $kind", divider.bottom >= kind.bottom - 1.dp)`, the kind word
+        // the left part's last line.
+        val leftBottom = turnRowBottom()
         assertTrue("the divider $divider starts at the figure's top $figure", divider.top <= figure.top + 1.dp)
-        assertTrue("the divider $divider ends at the kind's bottom $kind", divider.bottom >= kind.bottom - 1.dp)
+        assertTrue("the divider $divider ends at the turn row's bottom $leftBottom: nothing under it", abs((divider.bottom - leftBottom).value) <= 1f)
         val exit = one(NAVIGATION_HUD_EXIT_TAG)
         assertTrue("the divider $divider is left of the X $exit", divider.right <= exit.left + 0.5.dp)
     }
 
+    /**
+     * Dispatch 2026-11-05-10 (RECORD -2181). Was "the distance is twice the other text, and the left part's lines share one centre",
+     * asserting `abs(centreX(figure) - lineCentre) <= 1.5` and `abs(centreX(kind) - lineCentre) <= 1.5`.
+     */
     @Test
-    fun `the distance is twice the other text, and the left part's lines share one centre`() {
+    fun `the distance is twice the other text, and the distance and its kind meet at the turn line's centre on one baseline`() {
         setScreen()
         val figureSp = fontSizeSp(NAVIGATION_HUD_DISTANCE_TAG)
         val turnSp = fontSizeSp(NAVIGATION_HUD_TARGET_TAG)
@@ -149,9 +171,11 @@ class NavigationInfoLayoutTest {
         val heading = one(NAVIGATION_HUD_HEADING_TAG)
         val kind = one(NAVIGATION_HUD_DISTANCE_KIND_TAG)
         val lineCentre = (turn.left + heading.right) / 2
-        println("MEASURED centres: figure ${centreX(figure)}, turn line $lineCentre, kind ${centreX(kind)}")
-        assertTrue("the figure ${centreX(figure)} and the turn line $lineCentre share a centre", abs((centreX(figure) - lineCentre).value) <= 1.5f)
-        assertTrue("the kind ${centreX(kind)} and the turn line $lineCentre share a centre", abs((centreX(kind) - lineCentre).value) <= 1.5f)
+        println("MEASURED top line: figure $figure, kind $kind, turn line's centre $lineCentre")
+        // The word gap (Spacing.xs, 4 dp) is centred on the middle.
+        assertTrue("the figure $figure ends at the turn line's centre $lineCentre", abs((figure.right - (lineCentre - 2.dp)).value) <= 1f)
+        assertTrue("the kind $kind starts at the turn line's centre $lineCentre", abs((kind.left - (lineCentre + 2.dp)).value) <= 1f)
+        assertEquals("the kind is on the figure's baseline", baseline(NAVIGATION_HUD_DISTANCE_TAG).value, baseline(NAVIGATION_HUD_DISTANCE_KIND_TAG).value, 0.5f)
     }
 
     @Test

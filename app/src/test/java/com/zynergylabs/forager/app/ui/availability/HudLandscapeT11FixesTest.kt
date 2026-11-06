@@ -352,10 +352,27 @@ abstract class HudLandscapeT11Fixes {
     // RECORD -955, D (the owner: "D allow"): Try again may make the card taller. Was "… the display is no taller for it …",
     // `assertEquals((onRoute.bottom - onRoute.top), (hud.bottom - hud.top))` (RECORD -766). The new assertion: taller by no more than
     // Try again's own 48 dp row; its place beside the message and the five real touches across it stay as they were.
+    //
+    // Dispatch 2026-11-05-10 (RECORD -2181, the owner: "move the "by trail" from the bottom to the top right half, on the same line
+    // as 2.2 mi"): on the route the kind no longer takes a line of its own, so the display there is one line shorter than before
+    // the first route, which keeps its status line ("≈ … straight"), as the withheld route does. The row's bound is now measured
+    // from that state, the one with the same lines but the message and Try again, so it is the 48 dp this test had. Was
+    // `(hud.bottom - hud.top) <= (onRoute.bottom - onRoute.top) + 48.5.dp`, which held while the route's kind line stood in for the
+    // status line.
     @Test
     fun `item 2 Try again sits beside its message, the display grows by at most its row, and real touches across it retry`() {
         setScreen(Surface.ROTATION_90, clusterOnRailSide = false)
         val onRoute = tag(NAVIGATION_HUD_TAG)
+        assertEquals("positive control: on the route the status line is empty", "", textOf(NAVIGATION_HUD_STATUS_TAG).orEmpty())
+        composeRule.runOnIdle { route = ReturnRoute.Pending }
+        settle()
+        val pending = tag(NAVIGATION_HUD_TAG)
+        val status = tag(NAVIGATION_HUD_STATUS_TAG)
+        assertTrue("positive control: before the first route there is a status line <${textOf(NAVIGATION_HUD_STATUS_TAG)}>", !textOf(NAVIGATION_HUD_STATUS_TAG).isNullOrEmpty())
+        assertEquals(
+            "before the first route the display is the route's and its status line ($status): $onRoute then $pending",
+            (onRoute.bottom - onRoute.top + (status.bottom - status.top)).value, (pending.bottom - pending.top).value, 0.5f,
+        )
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
         settle()
         val hud = tag(NAVIGATION_HUD_TAG)
@@ -364,8 +381,8 @@ abstract class HudLandscapeT11Fixes {
         assertTrue("positive control: the message reads <${textOf(NAVIGATION_HUD_DISTANCE_TAG)}>", textOf(NAVIGATION_HUD_DISTANCE_TAG) in setOf(ROUTE_UNAVAILABLE_TEXT, ROUTE_UNAVAILABLE_SHORT_TEXT))
         assertTrue("beside: Try again $retry starts right of the message $message", retry.left >= message.right - 0.5.dp)
         assertTrue("beside: Try again $retry is level with the message $message", retry.top < message.bottom && message.top < retry.bottom)
-        println("MEASURED Try again: the display $onRoute on the route, then $hud")
-        assertTrue("the display grows by at most Try again's 48 dp row: $onRoute then $hud", (hud.bottom - hud.top) <= (onRoute.bottom - onRoute.top) + 48.5.dp)
+        println("MEASURED Try again: the display $onRoute on the route, $pending before the first route, then $hud")
+        assertTrue("the display grows by at most Try again's 48 dp row: $pending then $hud", (hud.bottom - hud.top) <= (pending.bottom - pending.top) + 48.5.dp)
         assertTrue("still at least 48 dp tall: $retry", retry.bottom - retry.top >= 47.5.dp)
         fractions().forEachIndexed { i, (fx, fy) ->
             composeRule.touchAt(retry.left + (retry.right - retry.left) * fx, retry.top + (retry.bottom - retry.top) * fy)

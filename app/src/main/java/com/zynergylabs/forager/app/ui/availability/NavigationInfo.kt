@@ -156,7 +156,7 @@ internal fun NavigationInfo(
         val lastBackBy = rememberLastShown(shownBackBy)
         val holdSundown = shownSundown ?: lastSundown.takeIf { sundownVisibility.currentState || !sundownVisibility.isIdle }
         val holdBackBy = shownBackBy ?: lastBackBy.takeIf { backByVisibility.currentState || !backByVisibility.isIdle }
-        val fit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy)
+        val fit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy, distanceUnit)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -239,6 +239,7 @@ private fun measuredNavigationInfoFit(
     metrics: InfoMetrics,
     sundownLine: String?,
     backByLine: String?,
+    distanceUnit: DistanceUnit,
 ): NavigationInfoFit {
     val measurer = rememberTextMeasurer()
     val small = MaterialTheme.typography.labelMedium
@@ -265,6 +266,23 @@ private fun measuredNavigationInfoFit(
         turnWhole = turn,
         turnShort = turnShortForm(turn),
     ).let { fit -> if (fit.overflows) fit.also { android.util.Log.w(CARD_LOG_TAG, "navigation info overflows at $partsPx px: $fit") } else fit }
+        .let { fit ->
+            // Dispatch 2026-11-05-10 (RECORD -2181): where the kind goes on the top line ([topLinePlace]).
+            val place = topLinePlace(
+                kindText = readout.distanceKindText,
+                shownFigure = columnFigure(readout, fit.figureShort),
+                unit = distanceUnit,
+                fit = fit,
+                totalPx = partsPx,
+                dividerPx = metrics.dividerPx,
+                gapPx = metrics.gapPx,
+                arrowPx = metrics.arrowPx,
+                reserveRight = eveningPieces(sundownLine, backByLine).isNotEmpty(),
+                figurePx = { widthOf(it, figureStyle) },
+                kindPx = { widthOf(it, small) },
+            )
+            fit.copy(topLine = place)
+        }
 }
 
 /** The X's touch box: Material's icon button at its 48 dp minimum interactive size. */
