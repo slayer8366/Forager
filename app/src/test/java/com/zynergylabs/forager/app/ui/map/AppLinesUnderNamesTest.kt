@@ -45,6 +45,20 @@ class AppLinesUnderNamesTest {
     /** Every Trail Map style the Worker serves: today's under both its addresses, and the frozen v3, v2 and v1. */
     private val trailStyleFiles = listOf("trail-style-v4.json", "street-style-v4.json", "street-style-v3.json", "street-style-v2.json", "street-style-v1.json")
 
+    /**
+     * The first of each served Trail Map's top run of names and icons. I8 (dispatch 2026-11-06-01 Amendment 1, RECORD -2183;
+     * the owner: "Update v4 in place") moved the Forest Service trail number to the bottom of v4's labels, directly under
+     * `address_label`, so on v4 (both addresses) the run starts with it. v3 keeps it among the roads, and v1 and v2 have
+     * none, so their run starts at `address_label` as before.
+     */
+    private val firstNameOf = mapOf(
+        "trail-style-v4.json" to MapLayerIds.REFERENCE_FS_NUMBER,
+        "street-style-v4.json" to MapLayerIds.REFERENCE_FS_NUMBER,
+        "street-style-v3.json" to "address_label",
+        "street-style-v2.json" to "address_label",
+        "street-style-v1.json" to "address_label",
+    )
+
     private fun layersOfJson(text: String): List<BasemapLayer> =
         json.parseToJsonElement(text).jsonObject.getValue("layers").jsonArray.map { element ->
             val layer = element.jsonObject
@@ -105,11 +119,12 @@ class AppLinesUnderNamesTest {
             val basemap = workerStyle(file)
             val stack = stackAfterOverlays(basemap)
             val firstName = basemap.indexOfLast { !it.namesOrIcons } + 1
-            assertEquals("$file: the app goes under the first of the top run of names and icons", "address_label", namesAnchorOf(basemap))
+            val anchor = firstNameOf.getValue(file)
+            assertEquals("$file: the app goes under the first of the top run of names and icons", anchor, namesAnchorOf(basemap))
             val lastBelow = basemap[firstName - 1].id
             val blockAt = block.map { stack.indexOf(it) }
             assertEquals("$file: the block is one run, directly above $lastBelow", stack.indexOf(lastBelow) + 1, blockAt.min())
-            assertEquals("$file: the block is one run, directly under address_label", stack.indexOf("address_label") - 1, blockAt.max())
+            assertEquals("$file: the block is one run, directly under $anchor", stack.indexOf(anchor) - 1, blockAt.max())
             for (line in appLines) {
                 for (name in basemap.drop(firstName)) {
                     assertTrue("$file: ${name.id} must draw over the app's line $line", stack.indexOf(name.id) > stack.indexOf(line))
@@ -123,12 +138,29 @@ class AppLinesUnderNamesTest {
 
     @Test
     fun `on Trail Map v4 the roads and bridges stay under the lines`() {
-        // The 2b-1 report's premise 1: Trail Map's first symbol layer is the Forest Service trail number, at index 84 of 182,
-        // with every road, rail line, bridge and boundary above it. Under that, a way home along a road would be drawn under the road.
+        // The 2b-1 report's premise 1: before I8, Trail Map's first symbol layer was the Forest Service trail number, at index 84
+        // of 182, with every road, rail line, bridge and boundary above it. Under that, a way home along a road would be drawn
+        // under the road. Since I8 the number is in the top run, and this holds by the same rule.
         val basemap = workerStyle("trail-style-v4.json")
         val stack = stackAfterOverlays(basemap)
         for (road in listOf("roads_bridges_highway", "roads_bridges_major", "roads_major", "roads_rail", "boundaries")) {
             assertTrue("$road must stay under the way home", stack.indexOf(road) < stack.indexOf(RouteHomeIds.AHEAD_LAYER))
+        }
+    }
+
+    @Test
+    fun `on Trail Map v4 the Forest Service trail number draws over every app line, and the roads and bridges stay under them`() {
+        // I5, the owner: "Under all names, trail no. too"; I8: "Update v4 in place". Before I8 the number sat at layer 84 of 182,
+        // just above the trail lines and under the roads, so the app's lines, under address_label, drew over it.
+        for (file in listOf("trail-style-v4.json", "street-style-v4.json")) {
+            val basemap = workerStyle(file)
+            val stack = stackAfterOverlays(basemap)
+            val number = stack.indexOf(MapLayerIds.REFERENCE_FS_NUMBER)
+            assertEquals("$file: the trail number is directly under address_label", stack.indexOf("address_label") - 1, number)
+            for (line in appLines) assertTrue("$file: the trail number must draw over the app's line $line", number > stack.indexOf(line))
+            for (road in listOf("roads_bridges_highway", "roads_bridges_major", "roads_major", "roads_rail", "boundaries")) {
+                assertTrue("$file: $road must stay under the trail number and the way home", stack.indexOf(road) < stack.indexOf(RouteHomeIds.AHEAD_LAYER))
+            }
         }
     }
 
@@ -151,7 +183,7 @@ class AppLinesUnderNamesTest {
         val beneath = COLOUR_FIELD_IDS + MapLayerIds.OFFLINE_REGION_FILL +
             listOf(MapLayerIds.JOURNAL_ENTRY_WAYPOINTS, MapLayerIds.JOURNAL_ENTRY_FINDS, MapLayerIds.JOURNAL_ENTRY_PHOTOS)
         for (id in beneath) {
-            assertTrue("$id must draw under the names", stack.indexOf(id) < stack.indexOf("address_label"))
+            assertTrue("$id must draw under the names", stack.indexOf(id) < stack.indexOf(MapLayerIds.REFERENCE_FS_NUMBER))
             for (line in appLines) assertTrue("$id must draw under the app's line $line", stack.indexOf(id) < stack.indexOf(line))
         }
     }
@@ -212,7 +244,8 @@ class AppLinesUnderNamesTest {
     fun `the style-load log line says where the app's layers went and why`() {
         val trail = workerStyle("trail-style-v4.json")
         val under = namesAnchorLogLine(namesAnchorOf(trail), trail)
-        assertTrue(under, under.contains("below address_label") && under.contains("182"))
+        // Since I8 the trail number is the first name on v4, directly above the last bridge.
+        assertTrue(under, under.contains("below ${MapLayerIds.REFERENCE_FS_NUMBER} (layer 116 of 182)"))
         val topo = layersOfJson((mapStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = false, useOfflineTiles = false) as MapStyleSource.Json).json)
         val kept = namesAnchorLogLine(namesAnchorOf(topo), topo)
         assertTrue(kept, kept.contains("today's placement") && kept.contains(topo.last().id))

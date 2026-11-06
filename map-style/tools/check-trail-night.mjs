@@ -420,15 +420,30 @@ if (V4) {
 
 // 10. v4's creeks under the water (the fill-in rulings, "Water fill to the creek colour", superseded: the owner, "Creeks
 //     under water (Recommended)"): water_stream and water_river draw just before the water fill, so a lake or river
-//     polygon covers the line inside it and the creek shows everywhere else. Nothing else moves.
+//     polygon covers the line inside it and the creek shows everywhere else. Nothing else moves, but for I8's one layer.
+//     I8 (dispatch 2026-11-06-01 Amendment 1, RECORD -2183; the owner: "Update v4 in place"): the Forest Service trail
+//     number, reference_fs_number, moves up from just above the trail lines to the bottom of v4's top run of labels,
+//     directly above the last bridge and directly under address_label, so the app's lines, which go just under that run,
+//     draw under it (I5: "Under all names, trail no. too"). It is the one exception added to this check, and only for v4.
+//     Changing v4 in place is allowed only because Trail Map has not been released yet (the owner: "Nobody is using
+//     Trail maps so updating in place is permitted. Only when we release it do we need to do it properly"); after
+//     release a style change ships as a new version.
 if (V4) {
   const order = designOrder;
   const at = order.indexOf("water");
   const before = order.slice(at - 2, at);
   if (JSON.stringify(before) !== JSON.stringify(["water_stream", "water_river"])) problems.push(`the two layers before the water fill are ${JSON.stringify(before)}; ruled ["water_stream","water_river"]`);
-  const v3order = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8")).layers.map((l) => l.id).filter((id) => id !== "water_stream" && id !== "water_river");
-  const v4rest = order.filter((id) => id !== "water_stream" && id !== "water_river" && v3order.includes(id));
-  if (JSON.stringify(v4rest) !== JSON.stringify(v3order)) problems.push("apart from the two creek layers, v4 moves a layer v3 has");
+  const MOVED = new Set(["water_stream", "water_river", "reference_fs_number"]);
+  const v3order = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8")).layers.map((l) => l.id).filter((id) => !MOVED.has(id));
+  const v4rest = order.filter((id) => !MOVED.has(id) && v3order.includes(id));
+  if (JSON.stringify(v4rest) !== JSON.stringify(v3order)) problems.push("apart from the two creek layers and I8's trail number, v4 moves a layer v3 has");
+  // I8's place, read on the whole layer list: the first of the top run of symbol layers, the run the app's lines go under.
+  const all = style2.layers;
+  const n = all.findIndex((l) => l.id === "reference_fs_number");
+  const topRun = all.findLastIndex((l) => l.type !== "symbol") + 1;
+  if (n !== topRun || all[n + 1]?.id !== "address_label") {
+    problems.push(`reference_fs_number is layer ${n} of ${all.length}, between ${all[n - 1]?.id} and ${all[n + 1]?.id}; I8 rules it first in the top run of labels (layer ${topRun}), directly under address_label`);
+  }
 }
 
 // 11. v4's orchards, plant nurseries and vineyards (the fill-in rulings, "Orchards, plant nurseries and vineyards filled":
