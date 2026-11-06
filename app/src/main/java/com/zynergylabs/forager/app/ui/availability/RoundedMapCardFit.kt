@@ -5,31 +5,33 @@ package com.zynergylabs.forager.app.ui.availability
  * The pure half: every choice is a function of measured widths, so a wrong order is a pinned-literal test failure
  * (`RoundedMapCardFitTest`), not a visual one. Replaces dispatch 2026-10-12-06's three-column fit: the middle column (Alt over the
  * compass) and the grid reference's place are gone, since height and the grid reference are on the compass strip while navigating
- * (RECORD -950), and the kind word is a line of its own under the turn line (RECORD -945), so it no longer competes for width.
+ * (RECORD -950).
  *
- * The parts, as the owner's approved drawing has them:
- * - left: the distance; the turn words, the needle, the north arrow and the heading on one line ("ahead 1° ▲ ▲ 134° SE"); the
- *   kind word ("by trail");
+ * The parts:
+ * - left: the distance and its kind (`NavigationCardTopLine.kt`); the turn line, the degrees in a fixed space and the needle;
  * - a divider, always (RECORD -951, even with no evening stack);
- * - right: the evening stack (RECORD -941), as wide as its widest piece.
+ * - right: the evening stack (RECORD -941), as wide as its widest piece; since Amendment 1, H2 and H5, with the status words under it,
+ *   and never narrower than the evening line's widest on this phone's clock ([NavigationInfoWidths.rightFloorPx]), evening line or
+ *   none, so the parts keep their places when it comes.
  *
- * The order, what is left of the owner's (RECORD -934, -936) once the moot steps are gone (RECORD -950: "the remaining fit steps
- * keep their order"):
- * 1. the turn words shrink to the degrees and the needle ("169° ▲");
- * 2. "within 16 ft" takes its short form, "≤ 16 ft" ([distanceShortForm], RECORD -768, -936).
- * Nothing past that (RECORD -950: "Invent no new trims"): where even step 2 does not fit, [NavigationInfoFit.overflows] says so, it
- * is logged, and the coder's report gives the numbers. The left part then stays whole and the evening pieces wrap in what is left.
+ * Dispatch 2026-11-05-10, Amendment 1 (RECORD -2181):
+ * - G2, the owner: "Drop the words, keep the degrees (Recommended)": the turn line reads "109°", never "right 109°", so the first of
+ *   the old steps ("the turn words shrink to the degrees and the needle", RECORD -934) has nothing left to shrink and is gone;
+ * - H1, the owner: "Keep the compass strip the exact same when in navigation mode as out; so keep the north compass out of the
+ *   navigation panel": the north arrow and the heading are the strip's, so the line no longer holds them, nor the crossed-out compass
+ *   that stood in for a compass status there (RECORD -934);
+ * - G3, "The turn line": "The degrees, the needle, the north arrow and the heading each sit in a fixed space, so the compass never
+ *   jumps" (the north arrow's and the heading's spaces went with H1): the degrees' space is as wide as the widest degrees the line can
+ *   read ([NavigationInfoWidths.turnSpacePx]), held whether or not degrees are shown, so the line is one width for the walk.
  *
- * A compass status that is words, not a reading ("Compass unavailable"), takes the crossed-out compass ([StripHeadingStatusIcon]'s
- * icon, RECORD -735) in place of the north arrow and its words where they do not fit (RECORD -934). It is tried at each step before
- * the next step is taken, since the icon removes nothing a reading would show.
+ * What is left of the owner's order (RECORD -934, -936, -950): "within 16 ft" takes its short form, "≤ 16 ft" ([distanceShortForm],
+ * RECORD -768, -936). Nothing past that (RECORD -950: "Invent no new trims"): where even that does not fit,
+ * [NavigationInfoFit.overflows] says so, it is logged, and the left part stays whole while the evening pieces wrap in what is left.
  */
 internal data class NavigationInfoFit(
-    /** The turn as drawn before the needle: the whole words, the degrees alone, or "" (the needle alone). */
+    /** The turn as drawn before the needle: the degrees ("109°"), or a word in their place ("Target"), or "" (the needle alone). */
     val turnText: String,
-    /** Whether the compass status is drawn as the crossed-out compass rather than the north arrow and its words. */
-    val headingAsIcon: Boolean,
-    /** Step 2: the figure is drawn in its short form ("≤ 16 ft"). */
+    /** The figure is drawn in its short form ("≤ 16 ft"). */
     val figureShort: Boolean = false,
     /** Whether even the last step left the parts wider than the room ([NavigationInfoWidths.availablePx]): reported, not trimmed further. */
     val overflows: Boolean = false,
@@ -37,6 +39,8 @@ internal data class NavigationInfoFit(
     val leftPx: Int = 0,
     /** What the right part keeps: the widest evening piece, 0 with none. */
     val rightPx: Int = 0,
+    /** G3: the degrees' fixed space on the turn line, in pixels ([NavigationInfoWidths.turnSpacePx]). */
+    val turnSpacePx: Int = 0,
     /**
      * Dispatch 2026-11-05-10 (RECORD -2181): where the kind word goes on the left part and the figure the meeting point is set for,
      * decided once the steps above are taken ([topLinePlace]); the steps above never read it, so the turn line and the evening stack
@@ -46,73 +50,56 @@ internal data class NavigationInfoFit(
 )
 
 /**
- * The measured widths the fit is decided on, in pixels. `null` for a part that is not there in this state. The figure, the kind and
- * the heading are the texts the display would draw; [turnWholePx] and [turnShortPx] the turn's two forms (`null` where the form does
- * not exist).
+ * The measured widths the fit is decided on, in pixels. `null` for a part that is not there in this state. The figure and the kind
+ * are the texts the display would draw.
  */
 internal data class NavigationInfoWidths(
     /** What the two parts and the divider between them may take: the info less its padding and the X. */
     val availablePx: Int,
     /** The divider with the gap on either side of it. */
     val dividerPx: Int,
-    /** The gap between the turn words, the needle, the north arrow and the heading. */
+    /** The gap between the degrees' space and the needle. */
     val gapPx: Int,
-    /** The needle's and the north arrow's square. */
+    /** The needle's square. */
     val arrowPx: Int,
     val figurePx: Int,
     /** The figure's short form ("≤ 16 ft"), `null` where it has none. */
     val figureShortPx: Int? = null,
+    /** G3: the widest figure the walk could show ([longestCardFigurePx]); the left part is never sized narrower. 0 counts nothing. */
+    val longestFigurePx: Int = 0,
     val kindPx: Int?,
-    val turnWholePx: Int?,
-    val turnShortPx: Int?,
-    /** The heading's text: a reading ("134° SE") or a status's words; 0 where none is drawn (no fix, only the dash). */
-    val headingPx: Int,
-    /** True when the heading is a status in words rather than a reading; only a status may become the crossed-out icon. */
-    val headingIsStatus: Boolean,
-    /** The crossed-out compass's square. */
-    val headingIconPx: Int,
+    /** G3: the degrees' space, the widest degrees the turn line can read ("0°" to "180°"). */
+    val turnSpacePx: Int,
     /** The widest of the evening pieces stacked in the right part (RECORD -941); `null` with none. */
     val eveningPiecePx: Int? = null,
+    /**
+     * Amendment 1, H2 and H5: the right part's width with no evening piece wider, kept in daytime too, where the status words sit:
+     * the evening line's widest on this phone's clock ([CardEvening.rightFloorPx]). 0 keeps no width.
+     */
+    val rightFloorPx: Int = 0,
 )
 
-private enum class TurnForm { WHOLE, SHORT }
-private data class Step(val turn: TurnForm, val figureShort: Boolean)
+/** G3: the widest of the degrees the turn line can read, "0°" to "180°" ([com.zynergylabs.forager.app.domain.turnText]), by [widthOf]. */
+internal fun widestTurnDegreesPx(widthOf: (String) -> Int): Int = (0..180).maxOf { widthOf("$it°") }
 
-internal fun navigationInfoFit(w: NavigationInfoWidths, turnWhole: String, turnShort: String?): NavigationInfoFit {
-    fun turnPx(form: TurnForm): Int {
-        val words = when (form) {
-            TurnForm.WHOLE -> w.turnWholePx
-            TurnForm.SHORT -> w.turnShortPx ?: w.turnWholePx
-        }
-        return words?.let { it + w.gapPx + w.arrowPx } ?: w.arrowPx
+/** G3 with H1: the turn line's width, the degrees' space, a gap and the needle, the same in every state. */
+internal fun turnLinePx(w: NavigationInfoWidths): Int = w.turnSpacePx + w.gapPx + w.arrowPx
+
+internal fun navigationInfoFit(w: NavigationInfoWidths, turnText: String): NavigationInfoFit {
+    fun leftPx(figureShort: Boolean): Int {
+        val figure = if (figureShort) w.figureShortPx ?: w.figurePx else w.figurePx
+        return maxOf(figure, w.longestFigurePx, turnLinePx(w), w.kindPx ?: 0)
     }
-    fun arrowLinePx(s: Step, icon: Boolean): Int {
-        val compass = if (icon) w.headingIconPx else w.arrowPx + if (w.headingPx > 0) w.gapPx + w.headingPx else 0
-        return turnPx(s.turn) + w.gapPx + compass
-    }
-    fun leftPx(s: Step, icon: Boolean): Int {
-        val figure = if (s.figureShort) w.figureShortPx ?: w.figurePx else w.figurePx
-        return maxOf(figure, arrowLinePx(s, icon), w.kindPx ?: 0)
-    }
-    val rightPx = w.eveningPiecePx ?: 0
-    fun total(s: Step, icon: Boolean): Int = leftPx(s, icon) + w.dividerPx + rightPx
-    val steps = listOf(
-        Step(turn = TurnForm.WHOLE, figureShort = false),
-        Step(turn = TurnForm.SHORT, figureShort = false),
-        Step(turn = TurnForm.SHORT, figureShort = true),
-    )
-    val tries = steps.flatMap { step -> if (w.headingIsStatus) listOf(step to false, step to true) else listOf(step to false) }
-    val chosen = tries.firstOrNull { (s, icon) -> total(s, icon) <= w.availablePx }
-    val (step, icon) = chosen ?: tries.last()
+    val rightPx = maxOf(w.rightFloorPx, w.eveningPiecePx ?: 0)
+    fun total(figureShort: Boolean): Int = leftPx(figureShort) + w.dividerPx + rightPx
+    val chosen = listOf(false, true).firstOrNull { total(it) <= w.availablePx }
+    val figureShort = chosen ?: true
     return NavigationInfoFit(
-        turnText = when (step.turn) {
-            TurnForm.WHOLE -> turnWhole
-            TurnForm.SHORT -> turnShort ?: turnWhole
-        },
-        headingAsIcon = icon,
-        figureShort = step.figureShort && w.figureShortPx != null,
+        turnText = turnText,
+        figureShort = figureShort && w.figureShortPx != null,
         overflows = chosen == null,
-        leftPx = leftPx(step, icon),
+        leftPx = leftPx(figureShort),
         rightPx = rightPx,
+        turnSpacePx = w.turnSpacePx,
     )
 }

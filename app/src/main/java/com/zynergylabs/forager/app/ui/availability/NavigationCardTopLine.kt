@@ -41,6 +41,13 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * centered with no extras", and B4, "Centre it like Arrived (Recommended)", "so a word or mark on its own is always centred". A word
  * wider than the left part starts at its left edge and is cut at its right, as the centred column did before this dispatch. Was B1
  * and B2: ending at the middle, or starting at the left part's left edge where wider than its half.
+ *
+ * Amendment 1, G3, "The top line", the owner: ""616 ft" centred in the left half and "by trail" centred in the right half, in place of
+ * meeting at the middle." Replaces A2's meeting and A5 and A6's starting points (the planner's reading, open to the owner): the
+ * meeting point above now only divides the line into the distance's space and the kind's, each sized as A4 sized the meeting point,
+ * for the longest figure, and each centred in its space; stacked, the stack is centred in the kind's space, "trail" still on the
+ * distance's baseline. With the kind on its own line, each line is its space: the distance centred on the top line, the kind on its
+ * own (the planner's reading of Q4).
  */
 @Composable
 internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, color: Color, modifier: Modifier = Modifier) {
@@ -73,13 +80,15 @@ internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, 
         val figure = figureParts.single().measure(loose)
         val kindPlaceable = kindParts.singleOrNull()?.measure(loose)
         val meeting = TopLineMeeting(width, gapPx, longestFigurePx)
-        // Ends at the meeting point; a word or mark with no kind is centred (B3, B4). Never left of the left part's left edge.
-        val figureX = if (kind == null) maxOf(0, (width - figure.width) / 2) else maxOf(0, meeting.figureEndPx - figure.width)
+        // G3: centred in the distance's own space, from the left part's left edge to the meeting point; a word or mark with no kind
+        // (B3, B4), or a distance whose kind is on its own line (the planner's reading of Q4), has the whole line and is centred on it.
+        // Never left of the left part's left edge.
+        val figureX = if (kind == null || place == KindPlace.OWN_LINE) maxOf(0, (width - figure.width) / 2) else maxOf(0, (meeting.figureEndPx - figure.width) / 2)
+        // G3: the kind centred in its own space, from where it starts to the left part's right edge; on its own line, the whole line.
+        val kindX = kindPlaceable?.let { k -> if (place == KindPlace.OWN_LINE) maxOf(0, (width - k.width) / 2) else meeting.kindStartPx + maxOf(0, (width - meeting.kindStartPx - k.width) / 2) } ?: 0
         if (kindPlaceable == null || place == KindPlace.NONE) {
             layout(width, figure.height) { figure.place(figureX, 0) }
         } else if (place == KindPlace.OWN_LINE) {
-            // Its own line has the left part's whole width: it starts where it would beside the distance, or as near it as fits.
-            val kindX = maxOf(0, minOf(meeting.kindStartPx, width - kindPlaceable.width))
             layout(width, figure.height + kindPlaceable.height) {
                 figure.place(figureX, 0)
                 kindPlaceable.place(kindX, figure.height)
@@ -93,7 +102,7 @@ internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, 
             val kindY = line - kindBaseline
             layout(width, maxOf(figureY + figure.height, kindY + kindPlaceable.height)) {
                 figure.place(figureX, figureY)
-                kindPlaceable.place(meeting.kindStartPx, kindY)
+                kindPlaceable.place(kindX, kindY)
             }
         }
     }
@@ -120,7 +129,9 @@ private fun KindWords(kind: String, place: KindPlace, color: Color) {
     if (place == KindPlace.STACKED && stack != null) {
         Column(
             modifier = Modifier.semantics { text = AnnotatedString(kind) }.testTag(NAVIGATION_HUD_DISTANCE_KIND_TAG),
-            horizontalAlignment = Alignment.Start,
+            // G3: each word centred in the stack, the stack centred in the kind's space. Was Alignment.Start (A6: "both words start at
+            // the meeting point").
+            horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             for (word in listOf(stack.first, stack.second)) {
                 Text(text = word, style = style, color = color, maxLines = 1, softWrap = false, modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_KIND_WORD_TAG))

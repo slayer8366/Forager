@@ -64,6 +64,12 @@ internal fun navigationReadout(
     val headingIsReading = facing == NavigationFacing.FACING_UP &&
         (heading is TrueHeadingReading.Available || heading == TrueHeadingReading.NeedsFix)
     val compassUnreliable = heading is TrueHeadingReading.Unreliable
+    // Amendment 1, H3: the facing notice, for the card's status space ("In the status space (Recommended)").
+    val compassNotice = when (facing) {
+        NavigationFacing.FACING_UP -> null
+        NavigationFacing.CALIBRATING -> COMPASS_CALIBRATING_TEXT
+        NavigationFacing.NORTH_UP -> COMPASS_NORTH_UP_TEXT
+    }
     val northArrowDegrees = headingDegrees?.let { -it }
     // Dispatch 2026-10-28-13: the strip's height, not the fix's raw one, so the two cannot disagree.
     val elevationText = liveFix?.let { heightMeters?.let { formatWholeLength(it, UnitSystem.forDistanceUnit(distanceUnit)) } ?: ELEVATION_UNAVAILABLE_TEXT }
@@ -73,12 +79,13 @@ internal fun navigationReadout(
         return NavigationHudReadout(
             headingText, northArrowDegrees, "Target", null, "—", false, NO_FIX_MESSAGE, null, null, headingIsReading = headingIsReading,
             statusFallbacks = listOf(NO_FIX_SHORT_TEXT), statusFallbacksFor = NO_FIX_MESSAGE, statusIsPositionStatus = true,
+            compassNoticeText = compassNotice,
         )
     }
     if (target == null) {
         return NavigationHudReadout(
             headingText, northArrowDegrees, "No target", null, "—", false, NO_ORIGIN_TEXT, elevationText, coordinatesText, headingIsReading = headingIsReading,
-            statusFallbacks = listOf(NO_ORIGIN_SHORT_TEXT), statusFallbacksFor = NO_ORIGIN_TEXT,
+            statusFallbacks = listOf(NO_ORIGIN_SHORT_TEXT), statusFallbacksFor = NO_ORIGIN_TEXT, compassNoticeText = compassNotice,
         )
     }
 
@@ -188,12 +195,17 @@ internal fun navigationReadout(
             // Dispatch 2026-10-24-10: why the way home is the walker's track, where the line is empty otherwise.
             route is ReturnRoute.Ahead && route.note != null -> route.note.text
             // Plan step 7 PR 3 (RECORD -1631, -1676): the quiet off-trail state, where the line is empty otherwise.
-            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> if (route.toWaypoint) WAYPOINT_OFF_TRAIL_TEXT else OFF_TRAIL_TEXT
+            // Amendment 1, H4, the owner: "Shorten the lines to just Off trail since it's obvious what to do from there." So the way to a
+            // waypoint's notice reads its short form, "Off trail", whole and short alike. Was WAYPOINT_OFF_TRAIL_TEXT, "Off trail · Head
+            // back to the line". The way home's keeps its words (the planner's reading: H4 names the waypoint's line).
+            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> if (route.toWaypoint) WAYPOINT_OFF_TRAIL_SHORT_TEXT else OFF_TRAIL_TEXT
             route is ReturnRoute.Ahead && route.offTrail == OffTrailState.BACK_ON -> BACK_ON_TRAIL_TEXT
             // Step 6 PR 3 (RECORD -1652 Q4): why the way to a waypoint is the straight line.
             // Dispatch 2026-11-05-05 (A8): in the trip's words when a trip is navigated to.
             // Dispatch 2026-11-05-10 (Amendment 1, F2): only the two notes that ask something; the rest leave the line empty.
-            route is ReturnRoute.Straight -> if (route.note in WAY_TO_NOTES_ON_CARD) route.note.textFor(route.kind) else ""
+            // H4, the planner's reading: the two that stay lose "· straight line" on the card, as F's "the straight line is the
+            // explanation" has it, and wrap where they do not fit ("Trail routes not" / "downloaded"). Was `route.note.textFor(route.kind)`.
+            route is ReturnRoute.Straight -> if (route.note in WAY_TO_NOTES_ON_CARD) wayToWaypointNoteShortText(route.note, route.kind) else ""
             else -> ""
         }
     }
@@ -209,8 +221,9 @@ internal fun navigationReadout(
             // The note's short form, and no empty form: a note is never dropped silently.
             route is ReturnRoute.Ahead && route.note != null -> listOf(wayHomeNoteShortText(route.note))
             // The notice's short form, and no empty form, as a note's; "Back on trail" has none shorter.
-            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> listOf(if (route.toWaypoint) WAYPOINT_OFF_TRAIL_SHORT_TEXT else OFF_TRAIL_SHORT_TEXT)
-            route is ReturnRoute.Straight -> if (route.note in WAY_TO_NOTES_ON_CARD) listOf(wayToWaypointNoteShortText(route.note, route.kind)) else emptyList()
+            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> if (route.toWaypoint) emptyList() else listOf(OFF_TRAIL_SHORT_TEXT)
+            // H4: the note is already its short form; it has none shorter, and is never dropped, so it wraps.
+            route is ReturnRoute.Straight -> emptyList()
             else -> emptyList()
         }
     }
@@ -232,6 +245,7 @@ internal fun navigationReadout(
         statusFallbacks = statusFallbacks,
         statusFallbacksFor = statusText,
         statusIsStraightNote = statusIsStraightNote,
+        compassNoticeText = compassNotice,
     )
 }
 
