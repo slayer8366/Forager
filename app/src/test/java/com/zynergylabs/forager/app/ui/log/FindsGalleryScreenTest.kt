@@ -52,7 +52,7 @@ class FindsGalleryScreenTest {
 
     @Test
     fun `an entry with a cover photo renders it`() {
-        val entryWithPhoto = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+        val entryWithPhoto = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1))
             .copy(photos = listOf(LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)))
 
         composeRule.setContent {
@@ -67,7 +67,7 @@ class FindsGalleryScreenTest {
 
     @Test
     fun `an entry with no photos shows the placeholder icon, not a broken image`() {
-        val entryWithoutPhoto = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+        val entryWithoutPhoto = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1))
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(entryWithoutPhoto), isLoading = false, onOpenEntry = {}, onAddEntry = {})
@@ -84,8 +84,8 @@ class FindsGalleryScreenTest {
      */
     @Test
     fun `by default the Log tab shows only committed entries, with the add tile, and no draft is visible`() {
-        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
-        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 2))
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 2))
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
@@ -99,8 +99,8 @@ class FindsGalleryScreenTest {
 
     @Test
     fun `tapping the Drafts tab shows only drafts, hides the committed entry and the add tile`() {
-        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
-        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 2))
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 2))
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
@@ -117,7 +117,7 @@ class FindsGalleryScreenTest {
     /** [LogPanel]'s own usage — no "+" tile inside this list at all, matching the former `LogEntryListScreen`'s shape (the expanded window starts a find via the map's "Log a find" flow instead). */
     @Test
     fun `with onAddEntry null, no add tile is shown even on the Log tab`() {
-        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(committed), isLoading = false, onOpenEntry = {}, onAddEntry = null)
@@ -138,7 +138,7 @@ class FindsGalleryScreenTest {
 
     @Test
     fun `a set loadErrorMessage does not hide entries already showing`() {
-        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(committed), isLoading = false, onOpenEntry = {}, loadErrorMessage = "Log entries unavailable.")

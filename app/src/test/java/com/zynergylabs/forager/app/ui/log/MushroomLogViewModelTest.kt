@@ -117,7 +117,7 @@ class MushroomLogViewModelTest {
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
     // (loaded via getEntries()/GetMushroomLogEntriesUseCase, which excludes drafts) unless it
     // specifically exercises the draft lifecycle itself, in which case it says so.
-    private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+    private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
     /**
      * Reworked for Workstream L4b-R (was: called `onEntryEdited` directly on the committed [entry]

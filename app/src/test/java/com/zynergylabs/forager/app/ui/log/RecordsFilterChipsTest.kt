@@ -143,7 +143,7 @@ class RecordsFilterChipsTest {
                 onOpenCameraForAlbum = {},
                 onOpenCameraForCartographyEntry = {},
                 mapSlot = CHIPS_STUB_MAP,
-                pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
                 basemap = Basemap.DEFAULT,
                 onOpenEntry = { id -> uiState = uiState.copy(editingEntry = uiState.entries.first { it.id == id }) },
                 onCloseEntry = { uiState = uiState.copy(editingEntry = null) },

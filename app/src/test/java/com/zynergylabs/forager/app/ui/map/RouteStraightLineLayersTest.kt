@@ -14,8 +14,8 @@ import org.maplibre.geojson.LineString
  */
 class RouteStraightLineLayersTest {
 
-    private val walker = LatLng(45.32, -122.634)
-    private val waypoint = LatLng(45.326, -122.634)
+    private val walker = LatLng(45.37, -121.6959)
+    private val waypoint = LatLng(45.3736, -121.6959)
 
     @Test
     fun `the straight line goes to its own source, from the walker to the waypoint`() {

@@ -329,7 +329,7 @@ internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null, onNa
 internal fun waypointRowNavigateTag(waypointId: String): String = "waypoint-row-navigate-$waypointId"
 
 /**
- * A point in decimal degrees to four places, "45.3260, -122.6340": how [WaypointRow] and the offline
+ * A point in decimal degrees to four places, "45.3736, -121.6959": how [WaypointRow] and the offline
  * region row print coordinates, and (journal redesign J5c) how the details sheet prints them, so the
  * sheet shows the coordinates exactly as the row does.
  */

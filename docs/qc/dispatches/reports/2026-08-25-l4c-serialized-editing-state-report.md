@@ -70,7 +70,7 @@ The "Set Location" affordance the dispatch described as missing already existed 
 
 Three tests added for the draft-model interaction, mirroring the existing photo-draft test shapes:
 
-- `setting a location during a re-edit writes to the draft row only, never the committed entry` — mutation-checked (temporarily made `onEntryEdited` also patch the committed row's `foundAt`, the exact standalone-draft violation this test exists to catch; confirmed red with `expected:<45.326,-122.634> but was:<46.0,-123.0>`; restored, confirmed green). This test was only argued from a shared code path in this report's first pass, not verified directly — corrected here.
+- `setting a location during a re-edit writes to the draft row only, never the committed entry` — mutation-checked (temporarily made `onEntryEdited` also patch the committed row's `foundAt`, the exact standalone-draft violation this test exists to catch; confirmed red with `expected:<[a point near the owner's home; removed 2026-11-06]> but was:<46.0,-123.0>`; restored, confirmed green). This test was only argued from a shared code path in this report's first pass, not verified directly — corrected here.
 - `Cancelling an edit discards a location changed during the session, leaving the committed entry's location untouched` — mutation-checked (stubbed `onCancelEditing`'s `deleteEntry` call; confirmed red on `"the draft row itself must be gone"`; restored, confirmed green).
 - `an incidental exit persists a location changed during a re-edit into the draft row` — mutation-checked (stubbed `onEntryEdited`'s `saveEntry` call; confirmed red on `"the new location must be durably on the draft row"`; restored, confirmed green).
 

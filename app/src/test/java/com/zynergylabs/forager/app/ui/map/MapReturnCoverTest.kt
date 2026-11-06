@@ -62,9 +62,9 @@ class MapReturnCoverTest {
 
     // ── When a returning map shows the cover ──
 
-    private val region = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+    private val region = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
     private val camera = MapCameraSnapshot(
-        target = LatLng(45.326, -122.634), zoom = 12.0, bearing = 0.0, tilt = 0.0, following = false,
+        target = LatLng(45.3736, -121.6959), zoom = 12.0, bearing = 0.0, tilt = 0.0, following = false,
         appliedTarget = region to null,
     )
 
@@ -81,7 +81,7 @@ class MapReturnCoverTest {
     fun `the cover shows when the picture is of the camera the map restores and nothing will move it`() {
         assertEquals(CoverDecision.SHOW, decide())
         // A following camera creeps with the puck: a few metres is the same picture to the eye.
-        assertEquals(CoverDecision.SHOW, decide(saved = camera.copy(target = LatLng(45.32602, -122.63402), following = true)))
+        assertEquals(CoverDecision.SHOW, decide(saved = camera.copy(target = LatLng(45.37362, -121.69592), following = true)))
     }
 
     @Test

@@ -158,7 +158,7 @@ class RouteCardSundownStepsAsideFont20Test : RouteCardSundownStepsAsideTests() {
 }
 
 /**
- * Just after sunset (pre-main's run 41747193319's hour), when the sundown line does fit the navigation card at 640 x 360 with no card:
+ * Just after sunset ([ROUTE_CARD_AFTER_SUNSET_CLOCK]), when the sundown line does fit the navigation card at 640 x 360 with no card:
  * here D42 has a line to step aside, and it comes back when the card closes.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)

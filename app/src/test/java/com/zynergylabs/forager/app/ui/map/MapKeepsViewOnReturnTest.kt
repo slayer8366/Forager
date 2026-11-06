@@ -27,8 +27,8 @@ import org.maplibre.android.location.modes.CameraMode
 class MapKeepsViewOnReturnTest {
 
     /** The located region at app open, and the one about 67 m north after a walk (the S22 run in RECORD -1468). */
-    private val atOpen: Pair<Region, LatLng?> = Region(lat = 45.3260, lng = -122.6340, radiusKm = 15) to null
-    private val afterWalk: Pair<Region, LatLng?> = Region(lat = 45.3266, lng = -122.6340, radiusKm = 15) to null
+    private val atOpen: Pair<Region, LatLng?> = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15) to null
+    private val afterWalk: Pair<Region, LatLng?> = Region(lat = 45.3742, lng = -121.6959, radiusKm = 15) to null
 
     /** A region that genuinely changed while the map was away: a search cleared on another tab, back to the located one. */
     private val elsewhere: Pair<Region, LatLng?> = Region(lat = 45.4000, lng = -122.5000, radiusKm = 15) to null
@@ -45,7 +45,7 @@ class MapKeepsViewOnReturnTest {
 
     /** The camera the user leaves, as the idle listener saves it. */
     private fun leftCamera(following: Boolean, applied: Pair<Region, LatLng?>?) = MapCameraSnapshot(
-        target = LatLng(45.3270, -122.6330),
+        target = LatLng(45.3746, -121.6949),
         zoom = 16.4,
         bearing = 0.0,
         tilt = 0.0,

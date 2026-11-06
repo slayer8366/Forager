@@ -26,7 +26,7 @@ cap holds. Four real problems remain, in order of what they cost a walker:
 
 Also confirmed on the S22, already logged in -694: at font 2.0 the Record/Stop pill is pushed past the bottom edge (28 of its
 48 dp visible) and the rail's "Tools" label is cut. New at font 2.0 on the S22: the display's grid reference is cut
-("10T ER 28688 …"), against the planner's -699 extension that the coordinates stay whole.
+("[a point near the owner's home; removed 2026-11-06] …"), against the planner's -699 extension that the coordinates stay whole.
 
 ## How it was measured
 
@@ -62,7 +62,7 @@ status bar), so a headless clearance under about +30 dp is inside the central th
 
 States: 01 Return tapped, no fix; 02 the route home with data part B's longest lines in metres, 02f the same in feet
 ("Sharp right · 169°", "1280 ft" "by trail", "≈ 1250 ft straight", 9843 ft); 03 "Unable to calculate route" with "Try
-again"; 04 fix 45 s old; 05 the recording's sundown line, longest form ("Sunset 10:58 PM · start back by 10:48"); 06 the
+again"; 04 fix 45 s old; 05 the recording's sundown line, longest form ("Sunset h:mm PM · start back by h:mm"); 06 the
 same with Back by in its last hour; 08 to 11 navigating to a waypoint with no recording, far (1.1 km), approaching (50 m),
 approaching and 45 s stale, arrived (5 m); 12 far, in the evening, with the screen's own sundown line. 00 and 07 (not
 navigating; the strip) are in the raw output.
@@ -113,13 +113,13 @@ Against the search bar, the rail, the Record/Return pill and the default-side cl
 | 02f-return-longest-feet | 333.0 × 122.0 | +6 | <1280 ft> 0/7; <By trail> 1/8; <≈ 1250 ft straight> 0/18 |
 | 03-return-unavailable-retry | 333.0 × 160.0 | **-32** | <Unable to calculate route> 14/25; <≈ 1250 ft straight> 15/18 |
 | 04-return-stale-45s | 333.0 × 122.0 | +6 | <1280 ft> 0/7; <By trail> 1/8; <Last fix 45 s ago> 0/17 |
-| 05-return-sundown | 333.0 × 154.0 | **-26** | <1280 ft> 0/7; <By trail> 1/8; <≈ 1250 ft straight> 0/18; <Sunset 10:58 PM · start back by 10:48> 25/37 |
-| 06-return-sundown-backby-longest | 333.0 × 186.0 | **-58** | <1280 ft> 0/7; <By trail> 1/8; <≈ 1250 ft straight> 0/18; <Sunset 10:58 PM · start back by 10:48> 25/37 |
+| 05-return-sundown | 333.0 × 154.0 | **-26** | <1280 ft> 0/7; <By trail> 1/8; <≈ 1250 ft straight> 0/18; <Sunset h:mm PM · start back by h:mm> 25/37 |
+| 06-return-sundown-backby-longest | 333.0 × 186.0 | **-58** | <1280 ft> 0/7; <By trail> 1/8; <≈ 1250 ft straight> 0/18; <Sunset h:mm PM · start back by h:mm> 25/37 |
 | 08-waypoint-far | 333.0 × 122.0 | +6 | <Straight> 7/8 |
 | 09-waypoint-approaching | 333.0 × 122.0 | +6 | <≈ 150 ft> 4/8; <Straight> 7/8; <Approaching> 0/11 |
 | 10-waypoint-approaching-stale-45s | 333.0 × 122.0 | +6 | <≈ 150 ft> 4/8; <Straight> 7/8; <Last fix 45 s ago> 0/17 |
 | 11-waypoint-arrived | 333.0 × 122.0 | +6 | none |
-| 12-waypoint-far-screen-sundown | 333.0 × 154.0 | **-26** | <Straight> 7/8; <Sunset 1:46 AM · in 1 h 10 min · dark 2:16> 25/42 |
+| 12-waypoint-far-screen-sundown | 333.0 × 154.0 | **-26** | <Straight> 7/8; <Sunset h:mm AM · in 1 h 10 min · dark h:mm> 25/42 |
 
 #### 780 × 360 dp, font 1.0 (rotation 90 and 270 identical)
 
@@ -153,7 +153,7 @@ Against the search bar, the rail, the Record/Return pill and the default-side cl
 | 09-waypoint-approaching | 318.0 × 95.3 | +25 | <Approaching> 4/11 |
 | 10-waypoint-approaching-stale-45s | 318.0 × 95.3 | +25 | <Last fix 45 s ago> 4/17 |
 | 11-waypoint-arrived | 318.0 × 95.3 | +25 | none |
-| 12-waypoint-far-screen-sundown | 318.0 × 116.3 | +4 | <Sunset 1:46 AM · in 1 h 10 min · dark 2:16> 39/42 |
+| 12-waypoint-far-screen-sundown | 318.0 × 116.3 | +4 | <Sunset h:mm AM · in 1 h 10 min · dark h:mm> 39/42 |
 
 #### 780 × 360 dp, font 2.0 (rotation 90 and 270 identical)
 
@@ -164,13 +164,13 @@ Against the search bar, the rail, the Record/Return pill and the default-side cl
 | 02f-return-longest-feet | 292.0 × 122.0 | **-2** | <1280 ft> 0/7; <By trail> 1/8; <≈ 1250 ft straight> 0/18; <10T ER 24991 40768> 16/18 |
 | 03-return-unavailable-retry | 292.0 × 160.0 | **-40** | <Unable to calculate route> 10/25; <≈ 1250 ft straight> 11/18; <10T ER 24991 40768> 16/18 |
 | 04-return-stale-45s | 292.0 × 122.0 | **-2** | <1280 ft> 0/7; <By trail> 1/8; <Last fix 45 s ago> 0/17; <10T ER 24991 40768> 16/18 |
-| 05-return-sundown | 292.0 × 154.0 | **-34** | <1280 ft> 0/7; <By trail> 1/8; <≈ 1250 ft straight> 0/18; <10T ER 24991 40768> 16/18; <Sunset 10:58 PM · start back by 10:48> 21/37 |
-| 06-return-sundown-backby-longest | 292.0 × 186.0 | **-66** | <1280 ft> 0/7; <By trail> 1/8; <≈ 1250 ft straight> 0/18; <10T ER 24991 40768> 16/18; <Sunset 10:58 PM · start back by 10:48> 21/37 |
+| 05-return-sundown | 292.0 × 154.0 | **-34** | <1280 ft> 0/7; <By trail> 1/8; <≈ 1250 ft straight> 0/18; <10T ER 24991 40768> 16/18; <Sunset h:mm PM · start back by h:mm> 21/37 |
+| 06-return-sundown-backby-longest | 292.0 × 186.0 | **-66** | <1280 ft> 0/7; <By trail> 1/8; <≈ 1250 ft straight> 0/18; <10T ER 24991 40768> 16/18; <Sunset h:mm PM · start back by h:mm> 21/37 |
 | 08-waypoint-far | 292.0 × 122.0 | **-2** | <0.7 mi> 2/6; <Straight> 4/8; <10T ER 24991 40768> 16/18 |
 | 09-waypoint-approaching | 292.0 × 122.0 | **-2** | <≈ 150 ft> 2/8; <Straight> 4/8; <Approaching> 0/11; <10T ER 24987 41829> 16/18 |
 | 10-waypoint-approaching-stale-45s | 292.0 × 122.0 | **-2** | <≈ 150 ft> 2/8; <Straight> 4/8; <Last fix 45 s ago> 0/17; <10T ER 24987 41829> 16/18 |
 | 11-waypoint-arrived | 292.0 × 122.0 | **-2** | <10T ER 24987 41874> 16/18 |
-| 12-waypoint-far-screen-sundown | 292.0 × 154.0 | **-34** | <0.7 mi> 2/6; <Straight> 4/8; <10T ER 24991 40768> 16/18; <Sunset 1:46 AM · in 1 h 10 min · dark 2:16> 22/42 |
+| 12-waypoint-far-screen-sundown | 292.0 × 154.0 | **-34** | <0.7 mi> 2/6; <Straight> 4/8; <10T ER 24991 40768> 16/18; <Sunset h:mm AM · in 1 h 10 min · dark h:mm> 22/42 |
 
 #### The cluster on the rail side (stored `landscapeOnPortSide = true`), rotation 90 and 270 identical
 
@@ -209,11 +209,11 @@ The enumeration rule: each cut or overlap above, by what it hides.
   line**, moderate for the others.
 - **"Location services unavailable" cut** (6 to 25 of 29): the first words survive at font 1.0 to 1.3 ("Location
   serv…"); at font 2.0 "Locati…". Readable as "something about location" at best. **Moderate.**
-- **The grid reference cut** (16 of 18 at 780, font 2.0; "10T ER 28688 …" on the S22 at font 2.0): the reference read out
+- **The grid reference cut** (16 of 18 at 780, font 2.0; "[a point near the owner's home; removed 2026-11-06] …" on the S22 at font 2.0): the reference read out
   to get help loses its last digits, so the position given is wrong by up to a kilometre. **Serious when it is needed**, and
   it contradicts the -699 extension's promise.
-- **The sundown line cut** (21 to 39 of 37 to 42 at font 1.3 to 2.0): the start-back time ("· start back by 10:48") is the
-  part dropped. The short S22 form ("Dark since 7:06 PM") fit whole. **Moderate.**
+- **The sundown line cut** (21 to 39 of 37 to 42 at font 1.3 to 2.0): the start-back time ("· start back by h:mm") is the
+  part dropped. The short S22 form ("Dark since h:mm PM") fit whole. **Moderate.**
 - **Into the central third**: the HUD covers map **ahead of the walker** in the heading-up view, not the walker's own dot
   (on the S22 the dot sat at about y 252 dp, the HUD's bottom at 138 dp at font 1.0 and about 186 dp at font 2.0). The
   needle and the X are never covered by anything; the HUD is on top of everything but the rail, the bottom chrome and the
@@ -239,7 +239,7 @@ The enumeration rule: each cut or overlap above, by what it hides.
 | Search bar overlap | none | none (rot 90: bar ends ≈ 404 dp, HUD starts ≈ 404) | none | none |
 | Distance | whole | whole ("≈ 700 ft") | "…" | "••" |
 | Kind | first row | moved to the status line, "Straight ·" | "By trail" 1/8 | "S·" |
-| Grid reference | whole | whole | whole | **cut, "10T ER 28688 …"** |
+| Grid reference | whole | whole | whole | **cut, "[a point near the owner's home; removed 2026-11-06] …"** |
 | Heading on the second row | shown | **dropped** | dropped | dropped |
 
 **Heights agree** once the S22's 30.1 dp status bar is added (inferred from the map's top edge at 113 px). **Widths do
@@ -298,7 +298,7 @@ Priced first by what each asks of the walker ("Don't make me think"), then by si
 - C. Leave it.
 
 **P3. The HUD grows into the central third (on the S22, from the first extra line at font 1.0).**
-- **A. One evening line, not two.** When both are shown, "Dark since 7:06 PM · Back by 7:30 PM" on one line (shortening
+- **A. One evening line, not two.** When both are shown, "Dark since h:mm PM · Back by 7:30 PM" on one line (shortening
   with "…" as now), and "Try again" beside "Unable to calculate route" instead of under it. Saves 16 to 40 dp, asks nothing
   of the walker. At font 1.0 on the S22 that is still about 10 dp into the third with one line. Small. **Recommended, with
   B for the owner to rule on.**
@@ -331,7 +331,7 @@ in this report.
 
 - Confirmed (headless, read from the JUnit XML): every figure in the tables; rotation 90 and 270 equal; the cap keeps the
   HUD off the search bar in all 312 rows; the HUD's bounds are equal after a first and a second turn.
-- Confirmed (S22 captures, uiautomator bounds): the HUD with a waypoint and "Dark since 7:06 PM" at font 1.0 and 2.0, both
+- Confirmed (S22 captures, uiautomator bounds): the HUD with a waypoint and "Dark since h:mm PM" at font 1.0 and 2.0, both
   rotations; distance "••", "S·", grid reference cut, Record/Stop pill past the bottom edge and "Tools" cut at font 2.0;
   heading dropped and "Straight ·" at font 1.0; no search bar overlap.
 - Inferred: the HUD's own edges on the S22 (its box has no accessibility node; from text bounds, button bounds and pixels,
@@ -568,3 +568,5 @@ phone: no screen driven, no setting changed.
   space, not a cut.
 - "Straight" beside the figure is 7 of 8 at font 2.0 when navigating to a far waypoint, as before the fixes.
 - The pre-existing 1 to 9 dp move of the other-side L (above).
+
+_Clock times taken at the owner's home are shown as h:mm (dispatch 2026-11-05-11, removed 2026-11-06)._
