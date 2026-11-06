@@ -355,12 +355,15 @@ internal fun CompassElevationStripContent(
                                 } else {
                                     widthOf(coordinatesText, readoutStyle)
                                 }
-                                val separatorPx = widthOf("·", readoutLabelStyle) + with(density) { 2 * Spacing.sm.roundToPx() }
+                                // H7, the planner's reading of the squeeze: "Labels and readouts drop by RECORD -713's order only where even
+                                // the squeezed form doesn't fit", so the dots' gaps are counted at their squeezed least, Spacing.xs. Was
+                                // Spacing.sm, the gaps as drawn with room to spare.
+                                val separatorPx = widthOf("·", readoutLabelStyle) + with(density) { 2 * Spacing.xs.roundToPx() }
                                 val headingPx = if (headingIcon) with(density) { stripHeadingIconSize().roundToPx() } else widthOf(headingText, readoutStyle)
                                 val elevationPx = widthOf(elevationText, readoutStyle)
                                 // RECORD -713 (the owner: "Drop labels, then values (Recommended)"): labels go first, then facing,
-                                // then altitude; whatever is shown is whole. See readoutsFitBeside. Decided on the values as drawn, as
-                                // before Amendment 1, H7, so the line keeps what it keeps today (the planner's reading of H7's squeeze).
+                                // then altitude; whatever is shown is whole. See readoutsFitBeside. Decided on the values as drawn, never
+                                // the windows, so the line keeps at least what it kept before Amendment 1, H7.
                                 val fit = readoutsFitBeside(
                                     availablePx = availablePx,
                                     coordinatesPx = coordinatesPx,
