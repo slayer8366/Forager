@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.domain.nextturn
 
+import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.nextturn.TurnGround.FOLDER
 import com.zynergylabs.forager.app.domain.nextturn.TurnGround.at
 import com.zynergylabs.forager.app.domain.nextturn.TurnGround.lineOf
@@ -63,16 +64,31 @@ class NextTurnAheadTest {
     // D1: "the figure counts from the needle's place, never below 0. A turn is passed only when the walker's place
     // passes its node, so it never passes early, and the place's only-forward rule is the hysteresis."
 
+    /** The line's metres from the node nearest [east], [north] to [walk]'s turn or fork at [node]: what the needle's place reads. */
+    private fun fromNearestNode(walk: Walk, node: Int, east: Double, north: Double): Double {
+        val fix = at(east, north)
+        val nearest = walk.line.nodes.indices.minBy { GeoDistance.metersBetween(walk.line.nodes[it], fix) }
+        return walk.line.alongMeters[node] - walk.line.alongMeters[nearest]
+    }
+
+    private fun nodeOf(walk: Walk, junctionClass: JunctionClass, nth: Int = 0) =
+        (walk.turns as RouteTurns.Read).junctions.filter { it.judgement.junctionClass == junctionClass }[nth].node
+
     @Test
     fun `D1 - the distance counts from the needle's place, not the walker's place behind it`() {
         val walk = Walk(leftAt200, crossroads200)
         val next = turn(walk.at(0.0, 170.0))
+        val turnNode = nodeOf(walk, JunctionClass.TURN)
+        val place = (walk.progress as WayHomeProgress.Placed).place.index
 
         assertEquals(TurnBand.PLAIN, next.band)
         assertEquals(TurnSide.LEFT, next.side)
-        // The place is the earliest node within 25 m, at 150 m north: 50 m from the turn. The needle's is at the walker.
-        assertEquals(150.0, (walk.progress as WayHomeProgress.Placed).place.let { walk.line.alongMeters[it.index] } - 60.0, 0.01)
-        assertEquals(30.0, next.metersAway, 0.01)
+        // The needle's place is the node nearest the walker, 30 m before the turn; the walker's place, the earliest node
+        // within 25 m, is about 20 m further back.
+        assertEquals(fromNearestNode(walk, turnNode, 0.0, 170.0), next.metersAway, 1e-9)
+        assertEquals(30.0, next.metersAway, 5.0)
+        val fromPlace = walk.line.alongMeters[turnNode] - walk.line.alongMeters[place]
+        assertTrue("from the place it would read $fromPlace", fromPlace > next.metersAway + 15.0)
     }
 
     @Test
@@ -112,7 +128,8 @@ class NextTurnAheadTest {
         walk.at(30.0, 100.0)
         val second = turn(walk.at(60.0, 100.0))
         assertEquals(TurnSide.LEFT, second.side)
-        assertEquals(140.0, second.metersAway, 0.01)
+        assertEquals(fromNearestNode(walk, nodeOf(walk, JunctionClass.TURN, nth = 1), 60.0, 100.0), second.metersAway, 1e-9)
+        assertEquals(140.0, second.metersAway, 5.0)
     }
 
     // The owner's TalkBack ruling: "If other paths leave on the same side before your turn, it counts them".
@@ -214,10 +231,12 @@ class NextTurnAheadTest {
 
     @Test
     fun `E2 - on the way home's track back, the next turn is the coming joint`() {
-        val next = turn(Walk(home(listOf(-10.0 to 100.0, -100.0 to 100.0)), homeTrail).at(-100.0, -100.0))
+        val walk = Walk(home(listOf(-10.0 to 100.0, -100.0 to 100.0)), homeTrail)
+        val next = turn(walk.at(-100.0, -100.0))
 
         assertEquals(TurnSide.LEFT, next.side)
-        assertEquals("from the walker's newest point, 90 m of track and 10 m of joint", 100.0, next.metersAway, 0.01)
+        assertEquals(fromNearestNode(walk, nodeOf(walk, JunctionClass.TURN), -100.0, -100.0), next.metersAway, 1e-9)
+        assertEquals("from the walker's newest point, 90 m of track and 10 m of joint", 100.0, next.metersAway, 0.5)
     }
 
     @Test
@@ -294,9 +313,11 @@ class NextTurnAheadTest {
             way(0.0 to 100.0, 100.0 to 273.2), // 30 degrees right of the route's way
         )
         val way = wayTo(listOf(0.0 to -60.0, 0.0 to -50.0), listOf(0.0 to -50.0, 0.0 to 100.0, 0.0 to 300.0), listOf(0.0 to 300.0, 0.0 to 350.0))
-        val next = Walk(way, ways).at(0.0, -60.0)
+        val walk = Walk(way, ways)
+        val next = walk.at(0.0, -60.0)
 
         assertTrue("a fork, not $next", next is NextTurn.Fork)
-        assertEquals(160.0, (next as NextTurn.Fork).metersAway, 0.01)
+        assertEquals(fromNearestNode(walk, nodeOf(walk, JunctionClass.FORK), 0.0, -60.0), (next as NextTurn.Fork).metersAway, 1e-9)
+        assertEquals(160.0, next.metersAway, 0.5)
     }
 }
