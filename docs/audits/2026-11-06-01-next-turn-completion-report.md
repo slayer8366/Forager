@@ -311,3 +311,23 @@ Each is open to the planner, and each is one place in the code.
 - **Scratch worktrees:** the probes' and the reverts' worktrees under `/mnt/work/scratch/next-turn-2a/` are removed. The scratch folder itself, holding the scripts, the saved copies and the downloads, is deleted at hand-back, after the last CI check.
 - **Not touched:** no other branch, no git stash, no Gradle on the laptop, and the planner's worktree.
 - **Not added:** no row in `docs/audits/README.md`, as the dispatch said.
+
+## Phase 2b-1 (draft: built, not yet run on CI, not pushed)
+
+Hazel Cairnwright, 2026-11-06. The scope is Amendment 1, H4, verbatim: "2b-1, now: `routeTurnsFor` held where each line is held (WayHomeWatch, AvailabilityWaypointRoute) with its route data folder, recomputed on each re-route. Then the card's state mapping (`NextTurnCardState`) as a pure function, and H3. These have no UI, and tests come first." The owner's go, verbatim: "#500: restart Phase 2b-1", and earlier "Carry on with the building".
+
+**Status: stopped before the first push.** The privacy scan the dispatch requires before every push (`git diff origin/next-turn HEAD`) reports 6 matches, not 0. All 6 are in six files the pre-main merge (`ec738c364`, a clean merge of `64be65216` and `61f99fbe2`: its tree equals `git merge-tree` of the two) brings in, each byte-identical to pre-main `61f99fbe2`, and on added lines only. The two 2b-1 commits alone scan 0 (`git diff ec738c364 HEAD`). The question is with the planner; nothing has been pushed.
+
+### What is built (local commits `b99797aea` tests first against stubs, `b64d6f571` the code)
+
+- **The folder.** `WayHomeResult.AlongTrails` and `WayToWaypointResult.AlongTrails` carry `routeData`, the folder the route was found on, set by both use cases. `null` only where a test builds a result without one.
+- **The reader** (`domain/nextturn/RouteTurnsReader.kt`, new). `RouteTurnsReader`, the project's own seam, and `RouteWaysTurnsReader`, which calls `routeTurnsFor`. No folder, a failed read and a reader that throws each give an explicit `RouteTurns.Unread`, warned of; a throw is named by its class, never its message.
+- **One read per holder** (`domain/nextturn/HeldRouteTurns.kt`, new). Each new line cancels the read in flight and starts its own.
+- **WayHomeWatch.** `WayHomeShown.turns`: `null` while read and with no line. Read for each line found, at Return and at each re-route; kept only on the line it was read for; cancelled by a fallback to the track and by Stop.
+- **AvailabilityWaypointRoute.** `WaypointRouteShown.turns`, the same, held while the walker is off the line, since the line is still held then. The ViewModel and its factory pass the reader on; `AppContainer` builds one for both.
+- **The card's state** (`ui/availability/NextTurnCardStateOf.kt`, new). `nextTurnCardState(readout, hasFix)` reads the card's own readout: no fix, "Arrived" (live or held), "Unable to calculate route" (a new `NextTurnCardState.ROUTE_WITHHELD`), the dash, else a figure.
+- **H3.** A join whose lead-in (or final leg), measured along the line, is shorter than `TURN_MEASURE_METERS` is a new `JunctionClass.SHORT_LEG`: never a turn, no side for its ways, counted apart in the M1 line ("0 short legs" in its header, so the pinned format test's header gains it).
+
+### Still to do once the scan is ruled on
+
+Red run on the stubs, green, the one-line revert per ruling, full CI compared by test name with pre-main, and the four disclosure sections.
