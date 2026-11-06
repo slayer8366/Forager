@@ -64,13 +64,13 @@ class ForecastCellLayerTest {
 
     @Test
     fun `a view asks for the blocks its cells can reach`() {
-        // Cells reach 0.05 degree past their centres, so a view whose south edge is 44.92 still shows
-        // the cells centred on 44.9 (block 45) but none centred on 44.8 (block 44).
-        assertEquals(setOf(ForecastBlock(45, -123)), forecastBlocksToRequest(zoom = 10.0, south = 44.92, west = -122.98, north = 45.4, east = -122.3))
-        // A north edge of 45.86 shows the cells centred on 45.9, which are in block 46.
+        // Cells reach 0.05 degree past their centres, so a view whose south edge is 44.02 still shows
+        // the cells centred on 44.0 (block 44) but none centred on 43.9 (block 43).
+        assertEquals(setOf(ForecastBlock(44, -123)), forecastBlocksToRequest(zoom = 10.0, south = 44.02, west = -122.98, north = 44.5, east = -122.3))
+        // A north edge of 44.96 shows the cells centred on 45.0, which are in block 45.
         assertEquals(
-            setOf(ForecastBlock(45, -123), ForecastBlock(46, -123)),
-            forecastBlocksToRequest(zoom = 10.0, south = 44.92, west = -122.98, north = 45.86, east = -122.3),
+            setOf(ForecastBlock(44, -123), ForecastBlock(45, -123)),
+            forecastBlocksToRequest(zoom = 10.0, south = 44.02, west = -122.98, north = 44.96, east = -122.3),
         )
     }
 
@@ -84,12 +84,12 @@ class ForecastCellLayerTest {
      */
     @Test
     fun `below the minimum zoom nothing is requested, and at it even a tablet-sized view stays under the backstop`() {
-        val view = { zoom: Double -> forecastBlocksToRequest(zoom = zoom, south = 44.92, west = -122.98, north = 45.4, east = -122.3) }
+        val view = { zoom: Double -> forecastBlocksToRequest(zoom = zoom, south = 44.02, west = -122.98, north = 44.5, east = -122.3) }
         assertNull(view(MIN_FORECAST_ZOOM - 0.01))
         // Data part C: the same edge decides the legend's "Zoom in to see the forecast".
         assertTrue(isBelowForecastZoom(MIN_FORECAST_ZOOM - 0.01))
         assertFalse(isBelowForecastZoom(MIN_FORECAST_ZOOM))
-        assertEquals(setOf(ForecastBlock(45, -123)), view(MIN_FORECAST_ZOOM))
+        assertEquals(setOf(ForecastBlock(44, -123)), view(MIN_FORECAST_ZOOM))
 
         val degreesPerDp = 360.0 / (512 * Math.pow(2.0, MIN_FORECAST_ZOOM))
         val worstCase = forecastBlocksToRequest(

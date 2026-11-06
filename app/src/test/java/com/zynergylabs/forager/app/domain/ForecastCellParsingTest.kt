@@ -140,9 +140,9 @@ class ForecastCellParsingTest {
 
     @Test
     fun `a cell belongs to the block holding its centre, whole degrees included, south and west of zero too`() {
-        assertEquals(ForecastBlock(45, -123), ForecastBlock.containing(LatLng(45.4, -122.1)))
-        assertEquals(ForecastBlock(45, -122), ForecastBlock.containing(LatLng(46.3, -122.0)))
-        assertEquals(ForecastBlock(46, -122), ForecastBlock.containing(LatLng(46.4, -121.9)))
+        assertEquals(ForecastBlock(44, -123), ForecastBlock.containing(LatLng(44.0, -122.1)))
+        assertEquals(ForecastBlock(44, -122), ForecastBlock.containing(LatLng(44.9, -122.0)))
+        assertEquals(ForecastBlock(45, -122), ForecastBlock.containing(LatLng(45.0, -121.9)))
         assertEquals(ForecastBlock(-1, -1), ForecastBlock.containing(LatLng(-0.1, -0.1)))
         assertEquals(ForecastBlock(0, 0), ForecastBlock.containing(LatLng(0.0, 0.0)))
         // A centre computed in floating point, a hair under a whole degree, is still that degree's.
@@ -152,10 +152,10 @@ class ForecastCellParsingTest {
     @Test
     fun `the blocks touching an area are every block it overlaps and no other`() {
         assertEquals(
-            setOf(ForecastBlock(45, -123), ForecastBlock(45, -122), ForecastBlock(46, -123), ForecastBlock(46, -122)),
-            ForecastBlock.touching(south = 45.6, west = -122.8, north = 46.5, east = -121.9),
+            setOf(ForecastBlock(44, -123), ForecastBlock(44, -122), ForecastBlock(45, -123), ForecastBlock(45, -122)),
+            ForecastBlock.touching(south = 44.2, west = -122.8, north = 45.1, east = -121.9),
         )
-        assertEquals(setOf(ForecastBlock(45, -123)), ForecastBlock.touching(south = 45.6, west = -122.8, north = 46.0, east = -122.3))
+        assertEquals(setOf(ForecastBlock(44, -123)), ForecastBlock.touching(south = 44.2, west = -122.8, north = 44.6, east = -122.3))
     }
 
     @Test

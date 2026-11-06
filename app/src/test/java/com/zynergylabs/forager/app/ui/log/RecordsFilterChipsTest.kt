@@ -341,7 +341,7 @@ class RecordsFilterChipsTest {
         composeRule.onNodeWithText("Records").assertIsSelected()
         chip(FINDS_CHIP).assertIsSelected()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
-        composeRule.onNodeWithText("Found at 45.5000, -121.09375").assertIsDisplayed()
+        composeRule.onNodeWithText("Found at 45.5000, -121.0938").assertIsDisplayed()
     }
 
     @Test
