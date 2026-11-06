@@ -35954,4 +35954,5 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Phase 2 runs after the owner's ruling.
   - The edge shade (PR #495) touches none of the navigation card's files, so this runs on its own branch.
 - **Read before writing:** the kind word sits in a fitted status line (NavigationHudFit.kt statusLineFit, with kindLead; NavigationInfo.kt:182). It can lead other status words, and a route message takes its own line.
+- **Added (2026-11-06T05:21:09Z), the owner, verbatim:** **"Keep the text size the same size"**. The distance, the kind word, the turn line and the rest keep today's text styles and sizes in the new layout; nothing is shrunk or auto-fitted to make the top line hold both. Where it can't hold both at today's sizes, the answer is a layout choice, not a smaller font. Told to Hazel (Phase 1) by message, with the words quoted.
 **Notes:** Written by the planner by hand. Next free ID -2182.
