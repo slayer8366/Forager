@@ -35,17 +35,20 @@ internal data class NextTurnSpaceShown(val arrow: NextTurnArrow?, val figure: St
  */
 internal fun nextTurnSpaceShown(readout: NavigationHudReadout, hasFix: Boolean, ahead: NextTurn, unit: DistanceUnit): NextTurnSpaceShown {
     val space = nextTurnSpace(nextTurnCardState(readout, hasFix), ahead)
+    // A blank space (E1 to E3) has no arrow, and so nothing at all: the arrow is the one gate.
     val arrow = nextTurnArrow(space) ?: return NextTurnSpaceShown.BLANK
     val figure = when (space) {
         is NextTurn.Turn -> formatDistanceMeters(space.metersAway, unit)
         is NextTurn.Fork -> formatDistanceMeters(space.metersAway, unit)
         NextTurn.NoTurnLeft -> readout.distanceText
-        is NextTurn.Blank -> return NextTurnSpaceShown.BLANK
+        is NextTurn.Blank -> null
     }
-    val spokenDistance = spokenFigure(figure) ?: figure.also {
-        android.util.Log.w(NEXT_TURN_SPACE_LOG_TAG, "the next turn's figure has no unit to spell out; TalkBack reads it as written")
-    }
-    return NextTurnSpaceShown(arrow, figure, nextTurnWords(space, spokenDistance))
+    val spoken = figure?.let { f -> nextTurnWords(space, spokenDistanceOf(f)) }
+    return NextTurnSpaceShown(arrow, figure, spoken)
+}
+
+private fun spokenDistanceOf(figure: String): String = spokenFigure(figure) ?: figure.also {
+    android.util.Log.w(NEXT_TURN_SPACE_LOG_TAG, "the next turn's figure has no unit to spell out; TalkBack reads it as written")
 }
 
 private const val NEXT_TURN_SPACE_LOG_TAG = "NextTurn"
