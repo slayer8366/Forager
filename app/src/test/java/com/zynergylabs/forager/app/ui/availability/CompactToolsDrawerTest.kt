@@ -58,7 +58,8 @@ import org.robolectric.shadows.ShadowDisplay
  *    either edge, in portrait and in short landscape, leaves it closed. This passes before and
  *    after B3 by design; its revert check (`gesturesEnabled = true`) is what makes it evidence.
  * 3. **The drawer opens from the rail side in a short landscape window** (owner ruling 2, "Flip
- *    layout direction"): the port edge, right at `ROTATION_90` and left at `ROTATION_270`, while
+ *    layout direction"): the rail's edge, the right at both rotations since RECORD -956 (was the port edge, the left at
+ *    `ROTATION_270`), while
  *    the drawer's own content still reads in the ambient direction. Portrait is unchanged.
  *
  * The sheet's horizontal extent is read from the drawer header ("Close search options"), a
@@ -279,12 +280,14 @@ class CompactToolsDrawerTest {
         assertDrawerContentReads(LayoutDirection.Ltr)
     }
 
+    // RECORD -956 (the owner: "One should look exactly line the other"): the rail, and so the drawer, is on the right at 270 too. Was
+    // `the open sheet is on the left edge`, `assertSheetOnEdge(left = true)`.
     @Test
     @Config(qualifiers = SHORT_LANDSCAPE)
-    fun `short landscape at ROTATION_270 - the open sheet is on the left edge, the rail side, reading left to right`() {
+    fun `short landscape at ROTATION_270 - the open sheet is on the right edge, the rail side, reading left to right`() {
         setScreen(Surface.ROTATION_270)
         assertEquals(LayoutDirection.Ltr, directionSeenByScreen)
-        assertSheetOnEdge(left = true)
+        assertSheetOnEdge(left = false)
         assertDrawerContentReads(LayoutDirection.Ltr)
     }
 
@@ -310,12 +313,13 @@ class CompactToolsDrawerTest {
         assertDrawerContentReads(LayoutDirection.Rtl)
     }
 
+    // RECORD -956 (the owner: "One should look exactly line the other"). Was `the open sheet is on the left edge`, `assertSheetOnEdge(left = true)`.
     @Test
     @Config(qualifiers = RTL_SHORT_LANDSCAPE)
-    fun `RTL short landscape at ROTATION_270 - the open sheet is on the left edge, the rail side, reading right to left`() {
+    fun `RTL short landscape at ROTATION_270 - the open sheet is on the right edge, the rail side, reading right to left`() {
         setScreen(Surface.ROTATION_270)
         assertEquals("the ambient direction is right to left", LayoutDirection.Rtl, directionSeenByScreen)
-        assertSheetOnEdge(left = true)
+        assertSheetOnEdge(left = false)
         assertDrawerContentReads(LayoutDirection.Rtl)
     }
 
@@ -356,35 +360,41 @@ private val stubMapSlot: MapSlot = { _, _, _, _, _, _, _, _, modifier ->
 private fun DrawerTestScreen() {
     AvailabilityScreen(
         uiState = SEARCHED,
-        onUseCurrentLocation = {},
-        onManualLatChanged = {},
-        onManualLngChanged = {},
-        onSearchManualCoordinates = {},
-        onRadiusChanged = {},
-        onMonthSelected = {},
-        onMapTabSelected = {},
-        onSeasonalTabSelected = {},
-        onTaxonSearchQueryChanged = {},
-        onTaxonSearchResultSelected = {},
-        onDismissTaxonSuggestions = {},
-        onReopenTaxonSuggestions = {},
-        onPlaceTripPin = { _, _, _ -> },
-        onDeletePlannedTrip = {},
-        onRecentSearchSelected = {},
-        onOfflineMapLatChanged = {},
-        onOfflineMapLngChanged = {},
-        onOfflineMapRadiusChanged = {},
-        onOfflineMapNameChanged = {},
-        onOfflineMapsOpened = {},
-        onDownloadOfflineMaps = {},
-        onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        searchInputs = AvailabilityScreenSearchInputs(
+            onUseCurrentLocation = {},
+            onManualLatChanged = {},
+            onManualLngChanged = {},
+            onSearchManualCoordinates = {},
+            onRadiusChanged = {},
+            onMonthSelected = {},
+            onMapTabSelected = {},
+            onSeasonalTabSelected = {},
+            onTaxonSearchQueryChanged = {},
+            onTaxonSearchResultSelected = {},
+            onDismissTaxonSuggestions = {},
+            onReopenTaxonSuggestions = {},
+            onPlaceTripPin = { _, _, _ -> },
+            onDeletePlannedTrip = {},
+            onRecentSearchSelected = {},
+        ),
+        offlineMaps = AvailabilityScreenOfflineMaps(
+            onOfflineMapLatChanged = {},
+            onOfflineMapLngChanged = {},
+            onOfflineMapRadiusChanged = {},
+            onOfflineMapNameChanged = {},
+            onOfflineMapsOpened = {},
+            onDownloadOfflineMaps = {},
+            onDeleteOfflineRegion = {},
+        ),
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = stubMapSlot,
     )
 }
 
-private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
 private val SEARCHED = AvailabilityUiState(
     region = REGION,

@@ -21,6 +21,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import org.junit.Assert.assertEquals
@@ -57,30 +58,36 @@ private fun ComposeContentTestRule.setUnsearchedScreen(onReopenTaxonSuggestions:
     setContent {
         AvailabilityScreen(
             uiState = UNSEARCHED_SEPTEMBER,
-            onUseCurrentLocation = {},
-            onManualLatChanged = {},
-            onManualLngChanged = {},
-            onSearchManualCoordinates = {},
-            onRadiusChanged = {},
-            onMonthSelected = {},
-            onMapTabSelected = {},
-            onSeasonalTabSelected = {},
-            onTaxonSearchQueryChanged = {},
-            onTaxonSearchResultSelected = {},
-            onDismissTaxonSuggestions = {},
-            onReopenTaxonSuggestions = onReopenTaxonSuggestions,
-            onPlaceTripPin = { _, _, _ -> },
-            onDeletePlannedTrip = {},
-            onRecentSearchSelected = {},
-            onOfflineMapLatChanged = {},
-            onOfflineMapLngChanged = {},
-            onOfflineMapRadiusChanged = {},
-            onOfflineMapNameChanged = {},
-            onOfflineMapsOpened = {},
-            onDownloadOfflineMaps = {},
-            onDeleteOfflineRegion = {},
-            onNightModeMapsChanged = {},
-            onThemeModeChanged = {},
+            searchInputs = AvailabilityScreenSearchInputs(
+                onUseCurrentLocation = {},
+                onManualLatChanged = {},
+                onManualLngChanged = {},
+                onSearchManualCoordinates = {},
+                onRadiusChanged = {},
+                onMonthSelected = {},
+                onMapTabSelected = {},
+                onSeasonalTabSelected = {},
+                onTaxonSearchQueryChanged = {},
+                onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = {},
+                onReopenTaxonSuggestions = onReopenTaxonSuggestions,
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
+            ),
+            offlineMaps = AvailabilityScreenOfflineMaps(
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+            ),
+            settings = AvailabilityScreenSettings(
+                onNightModeMapsChanged = {},
+                onThemeModeChanged = {},
+            ),
             mapSlot = SummaryStubMapSlot,
         )
     }
@@ -105,31 +112,31 @@ class CompactSearchBarCopyTest {
 }
 
 /**
- * Continuations 2026-09-28-39 and -40: what a real touch on the compact search bar shows. The
- * dropdown opens with "Set on map" and "Use current location" at its top level, and, since the
- * owner's "Also open manual coordinates" (-40), with "Advanced search" and "Enter coordinates
- * manually" both expanded, so Latitude, Longitude and "Search this location" show at once.
+ * Continuations 2026-09-28-39 and -40, as reordered by dispatch 2026-09-28-697: what a real touch on
+ * the compact search bar shows. The coordinates show at once and first, with no "Advanced search" or
+ * "Enter coordinates manually" fold (owner: "remove the drop down functions for the advanced
+ * search"), and the dropdown opens at its top, not scrolled: the Latitude field's top is the panel's
+ * own padding below the panel's top. "Search coordinates" shows under the fields (RECORD -700). "Use
+ * current location" (renamed Search) and "Search this location" are gone as labels; Set on map and
+ * Search are in the panel.
  */
-private fun ComposeContentTestRule.assertCompactBarTapShowsLocationControls(topButtonsInView: Boolean = true) {
+private fun ComposeContentTestRule.assertCompactBarTapShowsCoordinatesFirst() {
     setUnsearchedScreen()
     onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performTouchInput { click(center) }
     waitForIdle()
 
     onNodeWithTag(SEARCH_DROPDOWN_TAG).assertIsDisplayed()
-    if (topButtonsInView) {
-        onNodeWithText("Use current location").assertIsDisplayed()
-        onNodeWithText("Set on map").assertIsDisplayed()
-    } else {
-        // Short landscape (owner, continuation 2026-09-28-41, "Expand and auto-scroll"): the
-        // dropdown has scrolled them out of view to show the coordinates; they are still in it.
-        onNodeWithText("Use current location").assertExists()
-        onNodeWithText("Set on map").assertExists()
-    }
-    onNodeWithContentDescription("Collapse Advanced search").assertExists()
-    onNodeWithContentDescription("Collapse Enter coordinates manually").assertExists()
     onNodeWithText("Latitude").assertIsDisplayed()
     onNodeWithText("Longitude").assertIsDisplayed()
-    onNodeWithText("Search this location").assertIsDisplayed()
+    val panelTop = onNodeWithTag(SEARCH_DROPDOWN_TAG).getUnclippedBoundsInRoot().top
+    val latitudeTop = onNodeWithTag(SEARCH_DROPDOWN_LATITUDE_TAG).getUnclippedBoundsInRoot().top
+    assertEquals("the dropdown opened at its top, not scrolled", Spacing.lg.value, (latitudeTop - panelTop).value, 0.5f)
+    onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).assertIsDisplayed()
+    onNodeWithTag(SEARCH_DROPDOWN_SET_ON_MAP_TAG).assertExists()
+    onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).assertExists()
+    for (removed in listOf("Advanced search", "Enter coordinates manually", "Use current location", "Search this location")) {
+        assertEquals("\"$removed\" is gone", 0, onAllNodesWithText(removed, substring = true).fetchSemanticsNodes().size)
+    }
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -142,21 +149,8 @@ class CompactSearchBarLocationControlsTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity()).around(composeRule)
 
     @Test
-    fun `in portrait a real touch on the compact search bar shows Set on map, Use current location and the manual coordinates at once`() {
-        composeRule.assertCompactBarTapShowsLocationControls()
-    }
-
-    /** Continuation 2026-09-28-40: after the tap's one-time expand, a collapse the user makes stands. */
-    @Test
-    fun `in portrait the user's own collapse of the manual coordinates stands after the tap expanded them`() {
-        composeRule.assertCompactBarTapShowsLocationControls()
-
-        composeRule.onNodeWithContentDescription("Collapse Enter coordinates manually").performTouchInput { click(center) }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithContentDescription("Expand Enter coordinates manually").assertIsDisplayed()
-        assertEquals("collapsed by the user", 0, composeRule.onAllNodesWithText("Latitude").fetchSemanticsNodes().size)
-        composeRule.onNodeWithContentDescription("Collapse Advanced search").assertExists()
+    fun `in portrait a real touch on the compact search bar shows the coordinates first, at the top, without scrolling`() {
+        composeRule.assertCompactBarTapShowsCoordinatesFirst()
     }
 }
 
@@ -170,7 +164,7 @@ class CompactSearchBarLocationControlsShortLandscapeTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity()).around(composeRule)
 
     @Test
-    fun `in short landscape a real touch on the compact search bar scrolls the dropdown once to show the manual coordinates at once`() {
-        composeRule.assertCompactBarTapShowsLocationControls(topButtonsInView = false)
+    fun `in short landscape a real touch on the compact search bar shows the coordinates first, at the top, without scrolling`() {
+        composeRule.assertCompactBarTapShowsCoordinatesFirst()
     }
 }

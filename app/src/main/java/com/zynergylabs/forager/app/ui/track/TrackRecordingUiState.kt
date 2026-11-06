@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.track
 
+import com.zynergylabs.forager.app.domain.KeptTail
 import com.zynergylabs.forager.app.domain.PathHome
+import com.zynergylabs.forager.app.domain.recordingLineOf
 import com.zynergylabs.forager.app.domain.PendingDelete
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteLine
@@ -8,10 +10,16 @@ import com.zynergylabs.forager.app.domain.nextRouteLine
 import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.Track
-import com.zynergylabs.forager.app.domain.model.SundownCountdown
+import com.zynergylabs.forager.app.domain.BackByShown
+import com.zynergylabs.forager.app.domain.SundownLine
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.RouteLinePartKind
+import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeResult
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeShown
 
 /**
  * A track currently being recorded. [ActiveTrack.trackId] is the id
@@ -33,6 +41,11 @@ data class TrackRecordingUiState(
      * for why this is polled rather than reactive. Empty whenever [activeTrack] is null.
      */
     val breadcrumbPoints: List<TrackPoint> = emptyList(),
+    /**
+     * The recording's newest kept points, written or not, as `AppContainer.recordingKeptTail` last gave them (dispatch
+     * 2026-10-26-05, RECORD -1651). Read only by [recordingLine]; [breadcrumbPoints] stays the stored track.
+     */
+    val recordingKeptTail: KeptTail = KeptTail.NONE,
     val waypoints: List<Waypoint> = emptyList(),
     val waypointsErrorMessage: String? = null,
     /**
@@ -40,7 +53,7 @@ data class TrackRecordingUiState(
      * list says nothing, so a waypoint being navigated to that is not in it is not yet "deleted".
      */
     val waypointsLoaded: Boolean = false,
-    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning. Loaded alongside [waypoints]; a waypoint missing from this map has never been counted, treated as zero the same as an explicit zero. */
+    /** How many Cartography entries currently keep a reference to each waypoint (by id) — Journal Stage 2b's 4b deletion warning. Live since dispatch 2026-10-28-08 (`EntryReferenceCountSource`), not loaded with [waypoints]; a waypoint missing from this map has no committed entry keeping it, and reads as zero. */
     val waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /**
      * Whether the walker has said they're now heading back, distinct from [isRecording] — outbound
@@ -55,6 +68,13 @@ data class TrackRecordingUiState(
     val isReturning: Boolean = false,
     /** What [com.zynergylabs.forager.app.domain.ReturnWatch] last decided, while [isReturning]. A copy, on the same rule as [isReturning]. */
     val isOffTrack: Boolean = false,
+    /**
+     * RECORD -844, -845: the return on this screen's recording has just ended because the walker reached
+     * the start, and the navigation display is holding "Arrived", with the start ringed, for
+     * [ARRIVAL_HOLD_MILLIS] before it closes by itself. Held, not live: what the display shows while this
+     * is true does not depend on where the walker is. Never true while [isReturning].
+     */
+    val isArrivalHeld: Boolean = false,
     /**
      * Bearing/distance/elevation back to the track's start, refreshed on every live fix while
      * recording — see [TrackRecordingViewModel]'s own doc comment for why this is now pushed from
@@ -88,6 +108,12 @@ data class TrackRecordingUiState(
      */
     val routeLine: RouteLine? = null,
     /**
+     * The way home along trails for this screen's recording (dispatch 2026-10-24-10; RECORD -1613), copied from the
+     * app's `WayHomeWatch` while it is for this recording; `null` otherwise. A `null` result is still being worked out,
+     * and the route tick shows the track meanwhile.
+     */
+    val wayHome: WayHomeShown? = null,
+    /**
      * Every recorded track, newest-started first — the Settings "Recorded Tracks" export surface's
      * only data source. Loaded on init and refreshed whenever that panel is opened (see
      * [TrackRecordingViewModel.loadTracks]), not reactively: [TrackRepository] is plain suspend
@@ -112,6 +138,13 @@ data class TrackRecordingUiState(
      */
     val tripStartWarning: RecordingNotice? = null,
     /**
+     * Dispatch 2026-09-28-626 (plan T14): [com.zynergylabs.forager.app.domain.BACKGROUND_RUN_PROMPT]
+     * for the recording that just started, when the phone would block the off-track reminder and
+     * had not already been seen blocking it; `null` otherwise. Shown once in the map's Snackbar
+     * host; a tap opens Forager's App info page. Same one-shot shape as [tripStartWarning].
+     */
+    val backgroundRunPrompt: RecordingNotice? = null,
+    /**
      * Timestamp-filter dispatch, Item 3: the once-per-recording notice that the read seam is
      * excluding most of the active track as network-provider fixes
      * ([com.zynergylabs.forager.app.domain.isMostlyNetworkFixes]) — the case where a device's GPS clock is not
@@ -122,13 +155,20 @@ data class TrackRecordingUiState(
     val networkFixesNotice: RecordingNotice? = null,
 
     /**
-     * When the light goes, for the position this recording last had a fix at.
-     *
-     * Always present and never null: [SundownCountdown] has a case for every situation including
-     * "no position yet", so a screen cannot render a blank where a time should be. See that type
-     * for why a blank is the specific failure worth designing against here.
+     * The sundown line for this screen's recording, as [com.zynergylabs.forager.app.domain.SundownWatch]
+     * publishes it (dispatch 2026-09-28-592, Amendment 1): the map's strip shows it while recording,
+     * the navigation display once Return or Navigate is tapped. `null` with no recording. While
+     * recording it is never blank: [SundownLine] has a case for every situation, "finding your
+     * position" included. Replaces the countdown this state carried, which nothing rendered.
      */
-    val sundownCountdown: SundownCountdown = SundownCountdown.NoPositionYet,
+    val sundownLine: SundownLine? = null,
+    /**
+     * This recording's Back by (dispatch 2026-09-28-645, plan task T15), as
+     * [com.zynergylabs.forager.app.domain.BackByWatch] publishes it: the time set and the clock it was
+     * published at. `null` with none set, or no recording. The strip shows its line in the last hour
+     * ([BackByShown.lineShown]); the quick menu and the gear's dot show it whenever it is set.
+     */
+    val backBy: BackByShown? = null,
     /**
      * The waypoint whose delete was asked for (a swipe on its Records row, journal redesign J4) and
      * has not run yet: the Undo snackbar is still up. See [TrackRecordingViewModel.requestRemoveWaypoint].
@@ -136,7 +176,7 @@ data class TrackRecordingUiState(
     val pendingWaypointDelete: PendingDelete<Waypoint>? = null,
     /** The track whose delete was asked for (swipe or the details' Delete) and has not run yet: the Undo snackbar is still up. Part 2 follow-ups F1 item 5. */
     val pendingTrackDelete: PendingDelete<Track>? = null,
-    /** How many journal entries keep each track (loaded with [tracks]); a track missing here has no count and the snackbar says nothing about entries. */
+    /** How many journal entries keep each track (live since dispatch 2026-10-28-08, `EntryReferenceCountSource`); a track missing here has no committed entry keeping it, and the snackbar says nothing about entries. */
     val trackEntryReferenceCounts: Map<String, Int> = emptyMap(),
     /** Set when a committed track delete failed (the track is back in [tracks]); cleared by the next successful load. */
     val tracksErrorMessage: String? = null,
@@ -149,11 +189,35 @@ data class TrackRecordingUiState(
      * so it comes from the same route search (dispatch 2026-09-28-423, the planner's ruling on
      * question 1; until then the 15 s poll ran a search of its own for it). `null` whenever
      * [routeHome] is not [RouteHome.Ahead], which, unlike before, includes a walker in the far hop
-     * band; nothing reads it there, since the HUD shows [routeHome] itself. The walking time built
-     * on the same value ([com.zynergylabs.forager.app.domain.returnWalkingTime]) still has no
-     * caller, on purpose.
+     * band; nothing reads it there, since the HUD shows [routeHome] itself. The walking time is
+     * worked out by `SundownWatch`, from the track or the way home shown, not from this value.
      */
     val pathHome: PathHome? get() = (routeHome as? RouteHome.Ahead)?.pathHome
+
+    /** Why the way home is the walker's track, shown beside it (RECORD -1586, -1589), or `null` with nothing to say. */
+    val wayHomeNote: WayHomeNote? get() = (wayHome?.result as? WayHomeResult.TrackOnly)?.note
+
+    /** The way home's quiet off-trail state (plan step 7 PR 3; RECORD -1631), [OffTrailState.ON] with no way home along trails. */
+    val wayHomeOffTrail: OffTrailState get() = wayHome?.takeIf { it.line != null }?.offTrail ?: OffTrailState.ON
+
+    /**
+     * [routeLine] as the map draws it (plan step 7 PR 3; RECORD -1676, "A: trail dims only"): its trail part dimmed while
+     * the walker is off the trail ([wayHomeOffTrail]), when the line ahead has one. Derived, so the 5 s route tick never
+     * holds a stale flag.
+     */
+    val routeLineShown: RouteLine?
+        get() = routeLine?.let { line ->
+            val dim = wayHomeOffTrail == OffTrailState.OFF && line.aheadParts.any { it.kind == RouteLinePartKind.TRAIL }
+            if (dim) line.copy(trailDimmed = true) else line
+        }
+
+    /**
+     * The recording line the map draws (dispatch 2026-10-26-05, RECORD -1651, the owner: "(b) Reach the dot
+     * (Recommended)"): [breadcrumbPoints], the stored track, with the kept points not yet written after it, so the line
+     * reaches the walker's newest kept point rather than the last written one. Only for this screen's recording; with
+     * none, [breadcrumbPoints], which is then empty. See [recordingLineOf].
+     */
+    val recordingLine: List<TrackPoint> get() = recordingLineOf(breadcrumbPoints, recordingKeptTail, activeTrack?.trackId)
 
     /**
      * [waypoints] without [pendingWaypointDelete]: what every screen shows (J4, "a pending record is

@@ -8,7 +8,9 @@ import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.RampStop
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.geojson.Polygon
@@ -84,6 +86,9 @@ class ForecastCellLayerTest {
     fun `below the minimum zoom nothing is requested, and at it even a tablet-sized view stays under the backstop`() {
         val view = { zoom: Double -> forecastBlocksToRequest(zoom = zoom, south = 45.02, west = -122.98, north = 45.5, east = -122.3) }
         assertNull(view(MIN_FORECAST_ZOOM - 0.01))
+        // Data part C: the same edge decides the legend's "Zoom in to see the forecast".
+        assertTrue(isBelowForecastZoom(MIN_FORECAST_ZOOM - 0.01))
+        assertFalse(isBelowForecastZoom(MIN_FORECAST_ZOOM))
         assertEquals(setOf(ForecastBlock(45, -123)), view(MIN_FORECAST_ZOOM))
 
         val degreesPerDp = 360.0 / (512 * Math.pow(2.0, MIN_FORECAST_ZOOM))

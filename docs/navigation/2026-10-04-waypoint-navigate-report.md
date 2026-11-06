@@ -245,10 +245,10 @@ The owner chose "Keep the last line, faded", and the planner relayed "Fade with 
 
 **On that build the owner saw the line disappear when the fix dropped indoors.** They suggested "An offline grey color will work" and chose "Grey once location is lost" (built, `631b913b`, installed). Why the faded line looked gone is **not established**. Inferred: from 30 s without a fix it was a thin blue line at 0.4, which may be nearly invisible over the pale map. Not confirmed on the phone.
 
-**The owner suspected the build had broken GPS** ("a mainstream maps app shows my GPS just fine"). Checked from the phone's own records:
+**The owner suspected the build had broken GPS** ("[a mainstream maps app] shows my GPS just fine"). Checked from the phone's own records:
 - The app was registered for GPS every second, and GPS was on.
 - The GPS chip's last fix was about 1 h 31 min old: 265 m, 4 weak satellites.
-- The phone did have a network location about 7 min old at 100 m. That is what a mainstream maps app shows, and this app's gate refuses anything worse than 50 m (`domain/LiveFixGate.kt`, unchanged).
+- The phone did have a network location about 7 min old at 100 m. That is what the maps app shows, and this app's gate refuses anything worse than 50 m (`domain/LiveFixGate.kt`, unchanged).
 - `git diff a501a8a0..HEAD` touches no location code.
 
 The owner chose to compare against main's build (`1.0.2654+ge295fbe1`, the same app code as `a501a8a0`), which was installed. The owner's next message reported the line disappearing, from the -502 build. **The comparison itself was not completed:** no screenshot of main's build was taken. The -502 build was then reinstalled. So "the build broke GPS" is unconfirmed rather than ruled out by a side-by-side, though the phone's records point to indoor GPS.

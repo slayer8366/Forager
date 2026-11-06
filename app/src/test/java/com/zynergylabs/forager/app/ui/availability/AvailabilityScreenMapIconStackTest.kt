@@ -42,9 +42,12 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.unit.DpOffset
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.CompassReading
@@ -101,7 +104,7 @@ import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
-import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.centrePinFillPixel
 import com.zynergylabs.forager.app.ui.theme.MapPalette
@@ -191,6 +194,8 @@ class AvailabilityScreenMapIconStackTest {
         currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
         /** Dispatch 2026-09-28-423: the route home a return is fed, as `MainActivity` feeds it. Pending is the state before the first result. */
         returnRoute: ReturnRoute = ReturnRoute.Pending,
+        /** Dispatch 2026-09-28-549: metric unless a test opts into Imperial (US). */
+        unitSystemPreferenceRepository: UnitSystemPreferenceRepository = IconStackStubUnitSystemPreferenceRepository,
     ) {
         val plannedTripRepository = IconStackInMemoryPlannedTripRepository()
         viewModel = AvailabilityViewModel(
@@ -212,9 +217,13 @@ class AvailabilityScreenMapIconStackTest {
             ),
             offlineMapRepository = IconStackStubOfflineMapRepository,
             mapPreferencesRepository = mapPreferencesRepository,
-            unitSystemPreferenceRepository = IconStackStubUnitSystemPreferenceRepository,
+            unitSystemPreferenceRepository = unitSystemPreferenceRepository,
             appThemePreferenceRepository = IconStackStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(IconStackStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
+            // Dispatch 2026-10-28-13: the strip shows the height above sea level. A zero offset keeps this class's
+            // heights (feet against metres, the strip's rows) the fixes' own; the conversion is AvailabilityScreenSeaLevelHeightTest's.
+            seaLevelConverter = FixedOffsetSeaLevelConverter(0.0),
         )
         // Live-fix collection is acquired on the hosting Activity's ON_START and released on
         // ON_STOP, not from the ViewModel's init. Composing this screen at all implies a STARTED
@@ -226,47 +235,61 @@ class AvailabilityScreenMapIconStackTest {
             val uiState by viewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = viewModel::useCurrentLocation,
-                onManualLatChanged = viewModel::onManualLatChanged,
-                onManualLngChanged = viewModel::onManualLngChanged,
-                onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                onRadiusChanged = viewModel::onRadiusChanged,
-                onMonthSelected = viewModel::onMonthSelected,
-                onMapTabSelected = viewModel::onMapTabSelected,
-                onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                onPlaceTripPin = viewModel::onPlaceTripPin,
-                onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
-                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
-                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
-                onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
-                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                onThemeModeChanged = viewModel::onThemeModeChanged,
-                onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
-                onStartLogEntry = onStartLogEntry,
-                onLocateMe = onLocateMe,
-                isRecording = isRecording,
-                tripStartWarning = tripStartWarning,
-                networkFixesNotice = networkFixesNotice,
-                onToggleRecording = onToggleRecording,
-                returnToStart = returnToStart,
-                isReturning = returning?.value ?: isReturning,
-                isOffTrack = isOffTrack,
-                onToggleReturning = onToggleReturning,
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = viewModel::useCurrentLocation,
+                    onManualLatChanged = viewModel::onManualLatChanged,
+                    onManualLngChanged = viewModel::onManualLngChanged,
+                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                    onRadiusChanged = viewModel::onRadiusChanged,
+                    onMonthSelected = viewModel::onMonthSelected,
+                    onMapTabSelected = viewModel::onMapTabSelected,
+                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = viewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
+                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = viewModel::onThemeModeChanged,
+                ),
+                findsLog = AvailabilityScreenFindsLog(
+                    onStartLogEntry = onStartLogEntry,
+                ),
+                mapControls = AvailabilityScreenMapControls(
+                    onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
+                    onLocateMe = onLocateMe,
+                ),
+                recording = AvailabilityScreenRecording(
+                    isRecording = isRecording,
+                    tripStartWarning = tripStartWarning,
+                    networkFixesNotice = networkFixesNotice,
+                    onToggleRecording = onToggleRecording,
+                ),
                 compassProvider = compassProvider,
                 mapSlot = mapSlot,
                 computeTrueHeading = computeTrueHeading,
-                navigationTarget = navigationTarget,
                 currentTime = currentTime,
-                returnRoute = returnRoute,
+                navigation = AvailabilityScreenNavigation(
+                    returnToStart = returnToStart,
+                    isReturning = returning?.value ?: isReturning,
+                    isOffTrack = isOffTrack,
+                    onToggleReturning = onToggleReturning,
+                    navigationTarget = navigationTarget,
+                    returnRoute = returnRoute,
+                ),
             )
         }
     }
@@ -276,9 +299,9 @@ class AvailabilityScreenMapIconStackTest {
     // this harness's distance-unit stub reports kilometres). Magnetic 80° + a fake +15°
     // declination = 95° true, "95° E".
 
-    private val hudFix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = 1_700_000_000_000L)
+    private val hudFix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = 1_700_000_000_000L, provider = FixProvider.GPS)
     /** MgrsConverterTest's own Portland point ("10T ER 25118 40235"), with an altitude — for the HUD's second row. */
-    private val portlandFix = LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 1_700_000_000_000L)
+    private val portlandFix = LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 1_700_000_000_000L, provider = FixProvider.GPS)
     private val hudOrigin = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 1_700_000_000_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private val hudClock = CurrentTimeProvider { 1_700_000_001_000L }
 
@@ -298,6 +321,7 @@ class AvailabilityScreenMapIconStackTest {
         returning: State<Boolean>? = null,
         onToggleReturning: () -> Unit = {},
         returnRoute: ReturnRoute = hudRoute,
+        unitSystemPreferenceRepository: UnitSystemPreferenceRepository = IconStackStubUnitSystemPreferenceRepository,
     ) = setScreen(
         compassProvider = FakeCompassProvider(compassHeading),
         locationTracker = if (withFix) IconStackFixedLocationTracker(fix) else IconStackNoOpLocationTracker,
@@ -309,6 +333,7 @@ class AvailabilityScreenMapIconStackTest {
         navigationTarget = hudOrigin,
         currentTime = hudClock,
         returnRoute = returnRoute,
+        unitSystemPreferenceRepository = unitSystemPreferenceRepository,
     )
 
     private fun textOfTag(tag: String): String =
@@ -325,12 +350,17 @@ class AvailabilityScreenMapIconStackTest {
      * magnetic + 15° declination). Fails with the strip composed while navigating (two "95° E"
      * nodes) and with the HUD back on magnetic ("80° E").
      */
+    // Dispatch 2026-10-12-08 (RECORD -948, -950: the strip stays while navigating and its line drops the heading; "Nothing
+    // repeats"): the strip is on screen, and the heading still appears exactly once, in the navigation info. Was "while navigating
+    // the compass strip is absent and the true heading appears exactly once": `onAllNodesWithTag("compass-elevation-strip")
+    // .assertCountEquals(0)`. The count of "95° E" nodes is the claim that matters, and it stands.
     @Test
-    fun `while navigating the compass strip is absent and the true heading appears exactly once`() {
+    fun `while navigating the compass strip stays without its heading, and the true heading appears exactly once`() {
         setNavigatingScreen()
         composeRule.waitForIdle()
 
-        composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(1)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
         composeRule.onAllNodesWithText("95° E").assertCountEquals(1)
         assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
     }
@@ -430,19 +460,23 @@ class AvailabilityScreenMapIconStackTest {
         compass.emit(CompassReading(170f, HeadingUncertainty.Status(CompassStatus.HIGH), timestampMillis = 3_000L))
         composeRule.waitForIdle()
         assertEquals("185° S", textOfTag(NAVIGATION_HUD_HEADING_TAG))
-        assertEquals("Turn 175°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("behind 175°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     /**
      * The other half of item 1: the strip comes back when navigation ends — asserted by leaving,
      * not by a second screen that never navigated. Heading still exactly once, now in the strip.
      */
+    // Dispatch 2026-10-12-08 (RECORD -950, step 3: "the heading returns to the strip's line"): the strip was there all along, its
+    // line without the heading. Was "leaving navigation brings the compass strip back with the heading, still exactly once", with
+    // `onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)` before leaving.
     @Test
-    fun `leaving navigation brings the compass strip back with the heading, still exactly once`() {
+    fun `leaving navigation puts the heading back on the strip's line, still exactly once`() {
         val returning = mutableStateOf(true)
         setNavigatingScreen(returning = returning)
         composeRule.waitForIdle()
-        composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)
+        composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(1)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
 
         composeRule.runOnUiThread { returning.value = false }
         composeRule.waitForIdle()
@@ -465,9 +499,10 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         assertEquals("1.5 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("Straight line 1.1 km", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -942: on the route, no straight-line note. Was "1.1 km straight".
+        assertEquals("", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         // Target due north (0°) from a device facing 95° true: 265° relative, a left turn.
-        assertEquals("Turn 265°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("left 95°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     /**
@@ -477,15 +512,22 @@ class AvailabilityScreenMapIconStackTest {
      * not kept alongside. Magnetic is still never shown (the "80° E" count).
      */
     @Test
-    fun `with no fix the HUD shows one message, a dash for the heading, and no elevation or coordinates row`() {
+    fun `with no fix the HUD shows one message, no heading line, and no elevation or coordinates row`() {
         setNavigatingScreen(withFix = false)
         composeRule.waitForIdle()
 
-        assertEquals("—", textOfTag(NAVIGATION_HUD_HEADING_TAG))
-        assertEquals("Location services unavailable", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        // Dispatch 2026-09-28-677 changed this: the heading moved from under the north arrow to the second row, which with no
+        // fix and only the dash to show is not drawn. Before, the dash showed under the arrow; the one message is unchanged.
+        composeRule.onAllNodesWithTag(NAVIGATION_HUD_HEADING_TAG).assertCountEquals(0)
+        // Dispatch 2026-10-12-08 (RECORD -951, option (a): GPS status messages show on the strip only): the message is the
+        // strip's, once, and the card's status line leaves it out. Was `assertEquals("Location services unavailable",
+        // textOfTag(NAVIGATION_HUD_STATUS_TAG))`, the strip not composed; and no elevation or coordinates in the card's tags,
+        // which since -950 are the strip's.
+        assertEquals("Location services unavailable", textOfTag(COMPASS_STRIP_NO_FIX_TAG))
+        assertEquals("the card's status line leaves it out", "", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         composeRule.onAllNodesWithText("Location services unavailable").assertCountEquals(1)
-        composeRule.onAllNodesWithTag(NAVIGATION_HUD_COORDINATES_TAG).assertCountEquals(0)
-        composeRule.onAllNodesWithTag(NAVIGATION_HUD_ELEVATION_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_COORDINATES_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_ELEVATION_TAG).assertCountEquals(0)
         composeRule.onAllNodesWithText("Compass needs a fix").assertCountEquals(0)
         composeRule.onAllNodesWithText("Waiting for a fix").assertCountEquals(0)
         composeRule.onAllNodesWithText("80° E").assertCountEquals(0)
@@ -496,14 +538,31 @@ class AvailabilityScreenMapIconStackTest {
      * on the HUD's second row. Pinned against MgrsConverterTest's own Portland point, the same
      * value the strip's own MGRS test uses, so the two readouts are held to one converter.
      */
+    /**
+     * Dispatch 2026-09-28-549: under Imperial (US) the HUD's elevation reads in whole feet, the same
+     * 210 m fix as the metric test below (210 / 0.3048 = 688.98), and the metre figure is gone.
+     */
+    // Dispatch 2026-10-12-08 (RECORD -950): navigating, the height is on the strip's line. Was NAVIGATION_HUD_ELEVATION_TAG.
     @Test
-    fun `while navigating the HUD's second row shows the elevation and the MGRS grid reference`() {
+    fun `under the imperial setting the elevation shown while navigating reads in feet`() {
+        setNavigatingScreen(fix = portlandFix, unitSystemPreferenceRepository = IconStackImperialUnitSystemPreferenceRepository)
+        composeRule.waitForIdle()
+
+        assertEquals("689 ft", textOfTag(COMPASS_STRIP_ELEVATION_TAG))
+        composeRule.onAllNodesWithText("210 m").assertCountEquals(0)
+    }
+
+    // Dispatch 2026-10-12-08 (RECORD -950: "Height, grid reference and ⋮ show once, on the strip"). Was "while navigating the
+    // HUD's second row shows the elevation and the MGRS grid reference", on the card's tags.
+    @Test
+    fun `while navigating the strip shows the elevation and the MGRS grid reference, once`() {
         setNavigatingScreen(fix = portlandFix)
         composeRule.waitForIdle()
 
-        assertEquals("210 m", textOfTag(NAVIGATION_HUD_ELEVATION_TAG))
-        assertEquals("10T ER 25118 40235", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+        assertEquals("210 m", textOfTag(COMPASS_STRIP_ELEVATION_TAG))
+        assertEquals("10T ER 25118 40235", textOfTag(COMPASS_STRIP_COORDINATES_TAG))
         composeRule.onAllNodesWithText("10T ER 25118 40235").assertCountEquals(1)
+        composeRule.onAllNodesWithText("210 m").assertCountEquals(1)
     }
 
     /**
@@ -522,9 +581,10 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription("Hide map controls")) }
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Show map controls").assertIsDisplayed()
-        assertEquals("10T ER 25118 40235", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+        // Dispatch 2026-10-12-08 (RECORD -950): the toggle is the strip's while navigating. Was NAVIGATION_HUD_COORDINATES_TAG.
+        assertEquals("10T ER 25118 40235", textOfTag(COMPASS_STRIP_COORDINATES_TAG))
 
-        val bounds = composeRule.onNodeWithTag(NAVIGATION_HUD_COORDINATES_TAG).getUnclippedBoundsInRoot()
+        val bounds = composeRule.onNodeWithTag(COMPASS_STRIP_COORDINATES_TAG).getUnclippedBoundsInRoot()
         val inset = 4.dp
         val samples = listOf(
             DpOffset((bounds.left + bounds.right) / 2, (bounds.top + bounds.bottom) / 2),
@@ -533,12 +593,12 @@ class AvailabilityScreenMapIconStackTest {
             DpOffset(bounds.left + inset, bounds.bottom - inset),
             DpOffset(bounds.right - inset, bounds.bottom - inset),
         )
-        val formats = listOf("10T ER 25118 40235", "Lat. 45.5152 Long. -122.6784")
+        val formats = listOf("10T ER 25118 40235", "45.5152, -122.6784")
         samples.forEachIndexed { index, sample ->
             val point = with(composeRule.density) { Offset(sample.x.toPx(), sample.y.toPx()) }
             composeRule.onRoot().performTouchInput { click(point) }
             composeRule.waitForIdle()
-            assertEquals("touch $index at $sample must flip the format", formats[(index + 1) % 2], textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+            assertEquals("touch $index at $sample must flip the format", formats[(index + 1) % 2], textOfTag(COMPASS_STRIP_COORDINATES_TAG))
             // Still in fullscreen: no touch fell through to the map. The nav is the witness.
             composeRule.onAllNodesWithText("Tools").assertCountEquals(0)
         }
@@ -551,21 +611,24 @@ class AvailabilityScreenMapIconStackTest {
      * would come back on MGRS). A semantic click is enough here: the claim is state, not routing —
      * routing is the real-touch test above.
      */
+    // Dispatch 2026-10-12-08 (RECORD -950): navigating, the format is chosen on the strip, which stays; the claim is that the
+    // choice survives leaving navigation. Was "a coordinate format chosen in the HUD is the format the strip shows after leaving
+    // navigation", choosing on NAVIGATION_HUD_COORDINATES_TAG.
     @Test
-    fun `a coordinate format chosen in the HUD is the format the strip shows after leaving navigation`() {
+    fun `a coordinate format chosen on the strip while navigating is the format it shows after leaving navigation`() {
         val returning = mutableStateOf(true)
         setNavigatingScreen(fix = portlandFix, returning = returning)
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag(NAVIGATION_HUD_COORDINATES_TAG).performClick()
+        composeRule.onNodeWithTag(COMPASS_STRIP_COORDINATES_TAG).performClick()
         composeRule.waitForIdle()
-        assertEquals("Lat. 45.5152 Long. -122.6784", textOfTag(NAVIGATION_HUD_COORDINATES_TAG))
+        assertEquals("45.5152, -122.6784", textOfTag(COMPASS_STRIP_COORDINATES_TAG))
 
         composeRule.runOnUiThread { returning.value = false }
         composeRule.waitForIdle()
 
         composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
-        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").assertIsDisplayed()
+        composeRule.onNodeWithText("45.5152, -122.6784").assertIsDisplayed()
         composeRule.onAllNodesWithText("10T ER 25118 40235").assertCountEquals(0)
     }
 
@@ -700,6 +763,10 @@ class AvailabilityScreenMapIconStackTest {
      * Dispatch 2026-09-28-497 changed this (Amendment 2): the large slot asserted "12 m", the route
      * figure. Arrival's radius, max(2 x accuracy, 15 m), is never smaller than approaching's, so a
      * return inside the approach threshold has arrived, and the large slot reads "Arrived", once.
+     *
+     * Dispatch 2026-09-28-578 (Amendment 1, -579) changed this: the status line asserted "Approaching".
+     * Arrived, "Arrived" stands alone (the owner: "Drop "Approaching" when arrived"), so it is empty,
+     * and "Approaching" does not appear anywhere on screen.
      */
     @Test
     fun `inside the approach threshold the distance appears exactly once and the target column is empty`() {
@@ -707,11 +774,27 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.waitForIdle()
 
         assertEquals(ARRIVED_TEXT, textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("Approaching", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        composeRule.onAllNodesWithText("Approaching", substring = true).assertCountEquals(0)
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
         composeRule.onAllNodesWithText(ARRIVED_TEXT).assertCountEquals(1)
         composeRule.onAllNodesWithText("within 13 m").assertCountEquals(0)
         composeRule.onAllNodesWithText("10 m").assertCountEquals(0)
+    }
+
+    /**
+     * Dispatch 2026-09-28-578 (Amendment 1, -579), through the real screen: 50 m from the origin with
+     * 12.5 m accuracy has not arrived (25 m) and is inside "Approaching"'s own 100 m zone (the owner:
+     * "Give Approaching its own zone", "100 m / 330 ft"), so the status line reads "Approaching" and
+     * the large slot holds the route figure, not "Arrived".
+     */
+    @Test
+    fun `inside the approaching zone and not arrived the status line reads Approaching under the route figure`() {
+        setNavigatingScreen(fix = hudFix.copy(lat = 45.53045), returnRoute = ReturnRoute.Ahead(LatLng(hudOrigin.lat, hudOrigin.lng), 60.0))
+        composeRule.waitForIdle()
+
+        assertEquals("Approaching", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        composeRule.onAllNodesWithText(ARRIVED_TEXT).assertCountEquals(0)
     }
 
     /**
@@ -732,7 +815,9 @@ class AvailabilityScreenMapIconStackTest {
             computeTrueHeading = ComputeTrueHeadingUseCase(IconStackFixedDeclination(15f)),
             navigationTarget = hudOrigin,
             currentTime = hudClock,
-            returnRoute = hudRoute,
+            // RECORD -942: the straight-line note, this test's reading of the held fix, shows only before the first route, so the
+            // route is pending here. Was hudRoute (on the route), where the note no longer shows.
+            returnRoute = ReturnRoute.Pending,
         )
         composeRule.waitForIdle()
 
@@ -740,13 +825,13 @@ class AvailabilityScreenMapIconStackTest {
         // line now; these two assertions read "1.1 km" from the large slot before.
         fixes.tryEmit(hudFix)
         composeRule.waitForIdle()
-        assertEquals("Straight line 1.1 km", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("1.1 km straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
 
         // 0.0045° of latitude north of the fix is 500 m; 60 m accuracy fails the 50 m gate.
         fixes.tryEmit(hudFix.copy(lat = 45.5245, accuracyMeters = 60f, timestampEpochMillis = 1_700_000_001_000L))
         composeRule.waitForIdle()
 
-        assertEquals("Straight line 1.1 km", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("1.1 km straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         composeRule.onAllNodesWithText("≈ 600 m", substring = true).assertCountEquals(0)
     }
 
@@ -926,19 +1011,19 @@ class AvailabilityScreenMapIconStackTest {
      * and this helper makes none.
      */
     private fun searchAReferenceRegion() {
-        // The bar's tap opens "Advanced search" and "Enter coordinates manually" expanded (owner,
-        // continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
+        // Latitude and Longitude are the dropdown's first row, with no fold (dispatch
+        // 2026-09-28-697), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        // performScrollTo(): radius and month, promoted to SearchDropdown's own top level ahead of
-        // this section (map/navigation redesign dispatch D), push "Search this location" below the
-        // dropdown's own bounded, scrolled viewport on this suite's w360dp-h640dp config — without
+        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.3736")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
+        // performScrollTo(): "Search coordinates" sits under the fields (RECORD -700); kept in case it
+        // is ever below the dropdown's own bounded, scrolled viewport on this suite's w360dp-h640dp
+        // config — without
         // this, performClick() reports the tap against this node's own (correct, but currently
         // off-screen) semantic bounds, which lands on nothing actually rendered there, so the
         // region never gets set and every downstream assertion in this file that depends on
         // searchAReferenceRegion having actually run a search fails silently.
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
@@ -1054,7 +1139,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Reset orientation to north").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Layers: Topographical map. Choose the map type and overlays.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Trail map. Choose the map type.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }
 
@@ -1104,7 +1189,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()
 
-        assertEquals(LatLng(45.326, -122.634), startedLogEntryAt)
+        assertEquals(LatLng(45.3736, -121.6959), startedLogEntryAt)
     }
 
     /**
@@ -1473,7 +1558,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onAllNodesWithText("Location services unavailable").assertCountEquals(1)
         composeRule.onAllNodesWithText("Compass unavailable").assertCountEquals(0)
         composeRule.onAllNodesWithText("Compass needs a fix").assertCountEquals(0)
-        composeRule.onAllNodesWithText("Elevation unavailable").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Alt unavailable").assertCountEquals(0)
         composeRule.onAllNodesWithText("Coordinates unavailable").assertCountEquals(0)
         composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
     }
@@ -1484,6 +1569,23 @@ class AvailabilityScreenMapIconStackTest {
      * separately from the no-fix case above, since a test covering only one would pass while the
      * other collapsed into it.
      */
+    /**
+     * Dispatch 2026-09-28-549: under Imperial (US) the compass strip's elevation reads in whole feet
+     * (210 / 0.3048 = 688.98). The metric "210 m" is the test below.
+     */
+    @Test
+    fun `under the imperial setting the compass strip's elevation reads in feet`() {
+        setScreen(
+            compassProvider = FakeCompassProvider(null),
+            locationTracker = IconStackFixedLocationTracker(portlandFix),
+            unitSystemPreferenceRepository = IconStackImperialUnitSystemPreferenceRepository,
+        )
+        searchAReferenceRegion()
+
+        composeRule.onNodeWithText("689 ft").assertIsDisplayed()
+        composeRule.onAllNodesWithText("210 m").assertCountEquals(0)
+    }
+
     @Test
     fun `with a fix but no sensor the compass strip says the compass is unavailable and still shows elevation and coordinates`() {
         setScreen(compassProvider = FakeCompassProvider(null), locationTracker = IconStackFixedLocationTracker(portlandFix))
@@ -1545,12 +1647,12 @@ class AvailabilityScreenMapIconStackTest {
         setScreen(locationTracker = IconStackFakeLocationTracker(fixes))
         searchAReferenceRegion()
 
-        fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L))
+        fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L, provider = FixProvider.GPS))
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
-        composeRule.onNodeWithText("10T ER 25118 40235 · Lat. 45.5152 Long. -122.6784").assertDoesNotExist()
-        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").assertDoesNotExist()
+        composeRule.onNodeWithText("10T ER 25118 40235 · 45.5152, -122.6784").assertDoesNotExist()
+        composeRule.onNodeWithText("45.5152, -122.6784").assertDoesNotExist()
     }
 
     // @Ignore: harness-only dismissal failure — see docs/audits/2026-08-31-search-dropdown-dismiss-chip-unmount.md
@@ -1561,14 +1663,14 @@ class AvailabilityScreenMapIconStackTest {
         setScreen(locationTracker = IconStackFakeLocationTracker(fixes))
         searchAReferenceRegion()
 
-        fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L))
+        fixes.tryEmit(LocationFix.Update(lat = 45.5152, lng = -122.6784, altitude = 210.0, accuracyMeters = null, timestampEpochMillis = 0L, provider = FixProvider.GPS))
         composeRule.waitForIdle()
 
         composeRule.onNodeWithText("10T ER 25118 40235").performClick()
-        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").assertIsDisplayed()
+        composeRule.onNodeWithText("45.5152, -122.6784").assertIsDisplayed()
         composeRule.onNodeWithText("10T ER 25118 40235").assertDoesNotExist()
 
-        composeRule.onNodeWithText("Lat. 45.5152 Long. -122.6784").performClick()
+        composeRule.onNodeWithText("45.5152, -122.6784").performClick()
         composeRule.onNodeWithText("10T ER 25118 40235").assertIsDisplayed()
     }
 
@@ -1581,7 +1683,11 @@ class AvailabilityScreenMapIconStackTest {
         // not silently reveal a fabricated decimal-degree pair for a location that was never fixed.
         composeRule.onNodeWithTag(COMPASS_STRIP_NO_FIX_TAG).performClick()
         composeRule.onNodeWithText("Location services unavailable").assertIsDisplayed()
-        composeRule.onAllNodesWithText("Lat. ", substring = true).assertCountEquals(0)
+        // Dispatch -677, Amendment 1 changed this: the pair has no "Lat." any more, so the check looks for any decimal pair.
+        composeRule.onAllNodes(androidx.compose.ui.test.SemanticsMatcher("shows a decimal pair") { node ->
+            node.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text).orEmpty()
+                .any { Regex("""-?\d+\.\d{4}, -?\d+\.\d{4}""").containsMatchIn(it.text) }
+        }).assertCountEquals(0)
     }
 
     /**
@@ -1639,6 +1745,27 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
+     * Dispatch 2026-09-28-549, Amendment 1 (RECORD -557): the rise in the same sentence follows Units
+     * with the distance, so a TalkBack user does not hear miles and metres in one breath. 1200 m is
+     * 0.75 mi ("0.7 mi", formatDistanceMeters' one decimal), -45 / 0.3048 = -147.64.
+     */
+    @Test
+    fun `under the imperial setting the return sentence gives the rise in feet`() {
+        setScreen(
+            isRecording = true,
+            isReturning = false,
+            returnToStart = ReturnToStartInfo(bearingDegrees = 180.0, distanceMeters = 1200.0, elevationDifferenceMeters = -45.0),
+            unitSystemPreferenceRepository = IconStackImperialUnitSystemPreferenceRepository,
+        )
+        searchAReferenceRegion()
+
+        composeRule.onNode(
+            hasTestTag("control-pill-return-to-vehicle") and
+                hasContentDescription("Return: 180° S · 0.7 mi · -148 ft"),
+        ).assertIsDisplayed()
+    }
+
+    /**
      * This control is used on the return leg — walking, possibly dark, possibly gloved — so its
      * touch target must be a full 48dp regardless of how tall [ControlPill] itself ends up.
      */
@@ -1661,18 +1788,34 @@ class AvailabilityScreenMapIconStackTest {
      * strip was always well under 64dp even while pinned to exactly 48dp), so it proved nothing
      * about this specific change. `< 48.dp` fails if the old pin — or the `fillMaxSize()` regression
      * this test originally guarded against — ever comes back.
+     *
+     * **Superseded by dispatch 2026-09-28-645, Amendment 2 (RECORD -647).** The strip now holds the
+     * map's quick-settings button inside its own height. The owner, asked whether the strip should
+     * grow to fit it or keep it smaller or hanging over the map: "Taller strip (Recommended)". That
+     * ruling changed exactly the property this test asserted, so the assertion was replaced, not
+     * weakened (the planner's word, -645 Amendment 2), first with the gear's 48 dp.
+     *
+     * **Then by Amendment 3 (RECORD -648).** The owner, verbatim: "48 is a lot for the strip. It needs
+     * to be thin to keep the UI compact. This matters more for smaller phones. Let's start with 36dp on
+     * the gear tap. Instead of a gear, have it be a 3 dot menu at the far right." So with a one-line
+     * readout the strip is the three-dot button's 36 dp ([QUICK_SETTINGS_TAP_TARGET]), and not more. It
+     * still fails on the `fillMaxSize()` regression it was first written for (the strip would be the
+     * map's height), and on anything else that grows the strip past its tallest child; the paragraphs
+     * above are kept as the record of what it asserted before.
      */
     @Test
-    fun `the compass strip container wraps its text content, not a fixed touch-target height or the whole map's height`() {
+    fun `the compass strip container wraps its content, the quick-settings button's 36dp with a one-line readout, not the whole map's height`() {
         setScreen(isRecording = true)
         searchAReferenceRegion()
 
         val bounds = composeRule.onNodeWithTag("compass-elevation-strip").getUnclippedBoundsInRoot()
 
-        assertTrue(
-            "expected the compass strip to wrap its own text content height, well under the old " +
-                "48dp touch-target pin (was ${bounds.height}) — see this test's own doc comment",
-            bounds.height < 48.dp,
+        assertEquals(
+            "expected the compass strip to be its tallest child, the 36dp quick-settings button (was ${bounds.height}) — " +
+                "see this test's own doc comment",
+            36f,
+            bounds.height.value,
+            0.5f,
         )
     }
 
@@ -2297,7 +2440,8 @@ class AvailabilityScreenMapIconStackTest {
 
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
         composeRule.onNodeWithTag(SEARCH_DROPDOWN_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Advanced search").performClick()
+        // The tap on "Advanced search" that was here went with that fold (dispatch 2026-09-28-697);
+        // Set on map is at the dropdown's top level, in its bottom row.
 
         val setOnMapBounds = composeRule.onNodeWithText("Set on map").getUnclippedBoundsInRoot()
         val setOnMapCenter = with(composeRule.density) {
@@ -2319,8 +2463,8 @@ class AvailabilityScreenMapIconStackTest {
     // ── Expanded-panels dispatch: AddActionTile follows the bar's live position (the map mode ──
     // ── popover did too, until map layers L0b replaced it with the Layers sheet)             ──
 
-    /** [MapIconBar]'s layers row, as it reads at this file's default basemap (Topographical). */
-    private val layersRowDescription = "Layers: Topographical map. Choose the map type and overlays."
+    /** [MapIconBar]'s layers row, as it reads at this file's default basemap: Trail since dispatch 2026-10-22-01 (RECORD -1554); Street before that (RECORD -1297), and Topographical before that. */
+    private val layersRowDescription = "Layers: Trail map. Choose the map type."
 
     /** [MapIconBar]'s add row. */
     private val addRowDescription = "Plan a trip or log a find here"
@@ -2460,31 +2604,51 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Map layers L0b (planner's ruling on F3): the popover these two tests used to anchor-check is
-     * gone, replaced by the Layers sheet, which is a modal bottom sheet with no anchor to the bar. What
-     * still holds, and what these check with real touches, is that the layers row opens it from
-     * wherever the bar has been dragged, on either edge, and that the sheet's map-type chips work: a
-     * touch on "Street" changes the row's description. The sheet is its own window, so the touch on
-     * the chip is through the chip's own node rather than the app's root.
+     * Dispatch 2026-10-28-02 (RECORD -1764): the map type panel is back, anchored to the Layers row wherever the bar has
+     * been dragged, on either edge, as `MapModePicker` was before L0b. With real touches: the Layers row opens it; its
+     * vertical centre is level with the row's (within 2 dp: the anchor is computed from the bar's rows, not measured,
+     * `MapIconBarSizes.kt`), it overlaps the row, and it extends toward the map's middle from the bar's side; a real
+     * touch on its Topo chip, at screen coordinates, applies Topo and closes it.
      */
-    @Test
-    fun `with the bar dragged to the bottom on the right, a real touch on the layers row opens the Layers sheet and its map types work`() {
-        setScreen()
-
-        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+    private fun assertPanelAnchoredToLayersRow(onLeft: Boolean) {
+        val row = composeRule.onNodeWithContentDescription(layersRowDescription).getUnclippedBoundsInRoot()
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Street").performTouchInput { click() }
+        val panel = composeRule.onNodeWithTag(MAP_TYPE_PANEL_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
+        val rowMid = (row.top + row.bottom) / 2
+        val panelMid = (panel.top + panel.bottom) / 2
+        assertTrue("the panel's middle ($panelMid) is level with the Layers row's ($rowMid)", abs((panelMid - rowMid).value) <= 2f)
+        assertTrue("the panel ($panel) overlaps the Layers row ($row)", panel.left < row.right && panel.right > row.left)
+        if (onLeft) {
+            assertTrue("on the left it grows rightward from the bar ($panel, $row)", panel.right > row.right && panel.left <= row.left + 1.dp)
+        } else {
+            assertTrue("on the right it grows leftward from the bar ($panel, $row)", panel.left < row.left && panel.right >= row.right - 1.dp)
+        }
+
+        composeRule.onRoot().performTouchInput { click(centerOfText("Topo")) }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Topo map. Choose the map type.").assertIsDisplayed()
+        assertEquals("one tap closes it", 0, composeRule.onAllNodesWithTag(MAP_TYPE_PANEL_TAG).fetchSemanticsNodes().size)
+    }
+
+    @Test
+    fun `with the bar at rest on the right, the Layers row opens the map type panel beside it and a real touch on Topo applies it`() {
+        setScreen()
+        assertPanelAnchoredToLayersRow(onLeft = false)
+    }
+
+    @Test
+    fun `with the bar dragged to the bottom on the right, the map type panel opens beside the Layers row and its map types work`() {
+        setScreen()
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
+        assertPanelAnchoredToLayersRow(onLeft = false)
     }
 
     /** The same on the left edge: one drag snaps the bar left and drops it to the bottom of its range. */
     @Test
-    fun `with the bar dragged to the bottom on the left, a real touch on the layers row opens the Layers sheet and its map types work`() {
+    fun `with the bar dragged to the bottom on the left, the map type panel opens beside the Layers row and its map types work`() {
         setScreen()
         val fullscreenLeftBefore = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
 
@@ -2495,15 +2659,7 @@ class AvailabilityScreenMapIconStackTest {
             "expected the bar to have snapped to the left edge (left=$fullscreenLeftAfter, was $fullscreenLeftBefore)",
             fullscreenLeftAfter.value < fullscreenLeftBefore.value,
         )
-
-        composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Street").performTouchInput { click() }
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithContentDescription("Layers: Street map. Choose the map type and overlays.").assertIsDisplayed()
+        assertPanelAnchoredToLayersRow(onLeft = true)
     }
 
     /**
@@ -3098,8 +3254,8 @@ private val TAPPED_SIGHTING = Sighting(
     taxonId = 47348L,
     scientificName = "Cantharellus formosus",
     commonName = "Chanterelle",
-    lat = 45.33,
-    lng = -122.64,
+    lat = 45.38,
+    lng = -121.70,
     observedOn = LocalDate.of(2026, 8, 1),
     photoUrl = null,
 )
@@ -3304,6 +3460,12 @@ private object IconStackStubMapPreferencesRepository : MapPreferencesRepository 
 /** [DistanceUnit.KILOMETERS] fixed — this file's assertions are hardcoded to "km" text and have nothing to do with the km/mi preference. */
 private object IconStackStubUnitSystemPreferenceRepository : UnitSystemPreferenceRepository {
     override suspend fun getUnitSystem(): Result<UnitSystem> = Result.success(UnitSystem.METRIC)
+    override suspend fun setUnitSystem(system: UnitSystem): Result<Unit> = Result.success(Unit)
+}
+
+/** Dispatch 2026-09-28-549: Imperial (US), for the tests that check elevation follows Units. */
+private object IconStackImperialUnitSystemPreferenceRepository : UnitSystemPreferenceRepository {
+    override suspend fun getUnitSystem(): Result<UnitSystem> = Result.success(UnitSystem.IMPERIAL)
     override suspend fun setUnitSystem(system: UnitSystem): Result<Unit> = Result.success(Unit)
 }
 

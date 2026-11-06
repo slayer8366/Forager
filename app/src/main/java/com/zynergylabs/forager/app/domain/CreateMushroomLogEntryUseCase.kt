@@ -2,7 +2,9 @@ package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.util.UUID
 
 /**
@@ -31,15 +33,23 @@ import java.util.UUID
  *
  * [today] and [idGenerator] are injected for the same reason as [GetPlannedTripsUseCase]/
  * [SavePlannedTripUseCase]: a test can fix both instead of racing the clock or asserting against a
- * random id.
+ * random id. [nowEpochMillis] and [zone] likewise.
+ *
+ * **The time it was found** (data part D, RECORD -703, the owner: "Option 1"): the moment of creation is saved as
+ * [MushroomLogEntry.foundAtEpochMillis] when the find is for the day it is created on in [zone]. A find created for another
+ * day (a caller passing [date]) gets none: now is not when it was found, and a wrong time would be worse than no time.
  */
 class CreateMushroomLogEntryUseCase(
     private val repository: MushroomLogRepository,
     private val today: () -> LocalDate = LocalDate::now,
     private val idGenerator: () -> String = { UUID.randomUUID().toString() },
+    private val nowEpochMillis: () -> Long = System::currentTimeMillis,
+    private val zone: () -> ZoneId = ZoneId::systemDefault,
 ) {
     suspend operator fun invoke(location: LatLng?, date: LocalDate = today()): Result<MushroomLogEntry> {
-        val entry = MushroomLogEntry.draft(id = idGenerator(), location = location, date = date)
+        val now = nowEpochMillis()
+        val foundAt = now.takeIf { Instant.ofEpochMilli(it).atZone(zone()).toLocalDate() == date }
+        val entry = MushroomLogEntry.draft(id = idGenerator(), location = location, date = date).copy(foundAtEpochMillis = foundAt)
         return repository.save(entry).map { entry }
     }
 }

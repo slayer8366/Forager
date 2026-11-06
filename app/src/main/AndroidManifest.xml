@@ -115,9 +115,10 @@
 
       Two earlier planner rulings are SUPERSEDED — not violated. Recorded here so a later session
       does not re-derive them and think they are new:
-        1. "Keep backup on, add exclusion rules for crash logs only." Superseded: it predates the
-           restore-corruption argument above, which is about the database and the photos, not the
-           crash logs.
+        1. Keep backup on, with exclusion rules for the app's development log files only
+           (paraphrased; those files are no longer in this build). Superseded: it predates the
+           restore-corruption argument above, which is about the database and the photos, not those
+           log files.
         2. "Keep the rules file, add the database and the photo directory to the exclusions."
            Withdrawn before the owner decided: excluding the database and the photo directory
            excludes essentially all user data, so it reaches the same end state as
@@ -128,10 +129,25 @@
       device-to-device transfer that docs/plans/journal-trips-and-offline-regions.md (the "Leak
       paths" list) intended to keep. GPX export covers tracks and waypoints, not the journal, so it
       is not the in-app export described above and is not a substitute for it.
+
+      android:dataExtractionRules (lint dispatch 2026-10-17-03, RECORD -1195): carries out the ruling
+      above on Android 12 and later, it does not change it. Lint's DataExtractionRules check says that
+      from Android 12 allowBackup="false" no longer stops device-to-device transfer, which follows
+      these rules instead; res/xml/data_extraction_rules.xml excludes every domain from both cloud
+      backup and device transfer. allowBackup="false" stays: it is what covers Android 11 and below.
+      This is not the withdrawn ruling 2 above, which used rules *instead of* allowBackup="false".
+      Its worry, a rule that is silently inert, is what BackupAndTransferRulesTest checks against the
+      merged manifest; whether a transfer really carries nothing is a device check.
+      android:fullBackupContent="false": lint then asks for the pre-Android 12 attribute as well. On
+      Android 11 and below allowBackup="false" already turns every form of backup and transfer off, so
+      this changes nothing there; it is the same "no" said in the attribute those versions also read.
+      A boolean, not a second rules file, so there is no second list to keep in step.
     -->
     <application
         android:name=".ForagerApplication"
         android:allowBackup="false"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="false"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
         android:supportsRtl="true"
@@ -165,10 +181,73 @@
             </intent-filter>
         </activity>
 
+        <!-- Plan T16, GPX import (dispatch 2026-09-28-634; the owner's "Invisible doorway", RECORD -636):
+             Open with and Share for a GPX file reach this no-UI Activity, never MainActivity, so the
+             sending app's task never gets a second MainActivity and a running recording is never taken
+             up again (see GpxImportActivity). It saves the file, opens MainActivity in Forager's own task
+             on the new track, and finishes; noHistory and excludeFromRecents keep it out of Back and
+             Recents, and configChanges keeps a rotation from importing the file twice.
+             The filters, as the owner's answer lists them:
+             1. VIEW of application/gpx+xml, text/xml or application/xml, from a content: or file: Uri.
+             2. VIEW of application/octet-stream or */* only where the path ends in .gpx (any case the
+                pattern lists). Many file managers send a .gpx as octet-stream; the path is what tells it
+                apart. A path pattern needs a host, hence host="*". A content: Uri whose path has no
+                .gpx in it does not match this filter; filter 1 or the in-app button covers it.
+             3. SEND (Share) of application/gpx+xml, text/xml or application/xml. A Share carries a type
+                and no path, so octet-stream is left out here: it would offer Forager for every file. -->
+        <activity
+            android:name=".importgpx.GpxImportActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:noHistory="true"
+            android:taskAffinity=""
+            android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize|keyboard|keyboardHidden|navigation|uiMode|density|fontScale|locale|layoutDirection"
+            android:theme="@style/Theme.Forager.Import">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:mimeType="application/gpx+xml" />
+                <data android:mimeType="text/xml" />
+                <data android:mimeType="application/xml" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:scheme="content" />
+                <data android:scheme="file" />
+                <data android:host="*" />
+                <data android:mimeType="application/octet-stream" />
+                <data android:mimeType="*/*" />
+                <data android:pathPattern=".*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\..*\\..*\\.gpx" />
+                <data android:pathPattern=".*\\.GPX" />
+                <data android:pathPattern=".*\\..*\\.GPX" />
+                <data android:pathPattern=".*\\..*\\..*\\.GPX" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="application/gpx+xml" />
+                <data android:mimeType="text/xml" />
+                <data android:mimeType="application/xml" />
+            </intent-filter>
+        </activity>
+
         <!-- The "Try again" action on the failed scheduled-backup notification: runs one backup to the same
              folder (dispatch 2026-09-28-153). Not exported: only this app's own PendingIntent reaches it. -->
         <receiver
             android:name=".data.backup.BackupRetryReceiver"
+            android:exported="false" />
+
+        <!-- The wake-up alarm for Back by and the sundown alerts (dispatch 2026-09-28-796, RECORD -797): an inexact
+             allow-while-idle alarm, so no exact-alarm permission. A receiver, not the service, because the platform holds
+             the processor awake while a receiver handles its alarm, and the app holds no wake lock of its own. Not
+             exported: only this app's own PendingIntent reaches it. -->
+        <receiver
+            android:name=".alert.WakeUpAlarmReceiver"
             android:exported="false" />
 
         <service

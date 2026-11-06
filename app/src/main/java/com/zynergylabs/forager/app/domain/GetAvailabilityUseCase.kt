@@ -48,12 +48,15 @@ class GetAvailabilityUseCase(
         region: Region,
         month: Int,
         filter: TaxonFilter,
+        // The searched species' group, stored with the search so a recent search keeps it (dispatch
+        // 2026-09-28-695, amendment 1). Null for a category, whose group is in the filter itself.
+        speciesIconicTaxonName: String? = null,
     ): Result<AvailabilitySearchResult> = predictAvailability(region, month, filter).fold(
         onSuccess = { forecast ->
             // Write-through, not a separate "save this" call the ViewModel could forget to make.
             // save() is best-effort by contract (see SearchCacheRepository) precisely so a storage
             // problem here cannot turn a successful live search into a failed one.
-            cache.save(forecast)
+            cache.save(forecast, speciesIconicTaxonName)
             Result.success(AvailabilitySearchResult.Live(forecast))
         },
         onFailure = { error ->

@@ -24,12 +24,12 @@ import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
-import com.zynergylabs.forager.app.photo.GatedFakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -49,6 +49,15 @@ import org.robolectric.shadows.ShadowDisplay
  *
  * What a Robolectric window cannot show: whether `LOCKED` actually pins the device's window, and
  * whether the frame stays still on a real rotation. Those are on the device check by name.
+ *
+ * **Since dispatch 2026-10-13-03 there is one state of the setting**: "Lock camera to portrait" was
+ * removed (RECORD -968), and with it three tests here: `wiring only, setting on, the portrait
+ * arrangement is used and a control turns for whatever value the dialog is handed`, `setting on,
+ * through the gate, nothing turns for any sensor reading, before or after the window flips`, and
+ * `setting off, through the gate, the count still turns when the sensor does`, the last a duplicate
+ * of `setting off in a landscape window, the count turns in place when the device does, as in
+ * portrait` through a fake (`GatedFakeCameraCaptureSession`, also removed) whose gate no longer
+ * exists. They are recorded in `docs/archive/camera-portrait-lock.md`.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xhdpi")
@@ -69,8 +78,19 @@ class InAppCameraDialogLandscapeTest {
     private val session = FakeCameraCaptureSession()
     private var setOrientation: (Int) -> Unit = {}
 
+    /**
+     * RECORD -985: a full-screen window whose display is turned is now held in the device's natural frame
+     * (`NaturalOrientationHold`, tested in `InAppCameraLargeScreenHoldTest`), so the landscape arrangement this class
+     * measures, at a turned display, is reached only in split screen or a freeform window. Every test here runs in one.
+     * Setup only: no assertion in this class changed. Before RECORD -985 the window was full screen.
+     */
+    @Before
+    fun inAMultiWindowWindow() {
+        Shadows.shadowOf(composeRule.activity).setInMultiWindowMode(true)
+    }
+
     /** The dialog under a configuration this test controls, so "the window turned underneath it" can be simulated. */
-    private fun setDialog(lockToPortrait: Boolean, session: CameraCaptureSession = this.session) {
+    private fun setDialog(session: CameraCaptureSession = this.session) {
         composeRule.setContent {
             val base = LocalConfiguration.current
             var orientation by remember { mutableStateOf(base.orientation) }
@@ -80,7 +100,6 @@ class InAppCameraDialogLandscapeTest {
                 InAppCameraDialog(
                     session = session,
                     cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                    lockToPortrait = lockToPortrait,
                     onPhotoCaptured = {},
                     onDismiss = {},
                     gridMode = GridMode.Off,
@@ -101,7 +120,7 @@ class InAppCameraDialogLandscapeTest {
 
     @Test
     fun `the window really is landscape here, before anything else is claimed about it`() {
-        setDialog(lockToPortrait = false)
+        setDialog()
         val frame = bounds(IN_APP_CAMERA_TAG)
         assertTrue("${frame.width} x ${frame.height}", frame.width > frame.height)
         assertEquals(Configuration.ORIENTATION_LANDSCAPE, composeRule.activity.resources.configuration.orientation)
@@ -120,48 +139,39 @@ class InAppCameraDialogLandscapeTest {
         assertEquals("the harness must actually report the rotation this test is about", rotation, reported)
     }
 
-    @Test
-    fun `at ROTATION_90 the port edge is the screen's right, so the shutter is there with the count inboard`() {
-        setDisplayRotation(Surface.ROTATION_90)
-        setDialog(lockToPortrait = false)
+    /**
+     * RECORD -958 (asked whether the in-app camera should look the same both ways, as the map does since RECORD -956, the owner:
+     * "Yes"): in a landscape window the camera's layout is ROTATION_90's at both rotations: the shutter on the screen's right,
+     * vertically centred, the count inboard to its left, and the strip flush with the screen's left, full height. Each rotation is
+     * held to the same absolute bounds in this same window, which is the equality: a compose rule takes `setContent` once, so one
+     * test cannot open the dialog at both. Was (2026-09-17 device-check run): ROTATION_270 the mirror, the shutter on the screen's
+     * left (the charger port's edge there), `assertEquals((frame.left + Spacing.lg), shutter.left)`, the count to its right, "left of
+     * centre, the mirror claim".
+     */
+    private fun assertLandscapeLayout(rotation: Int) {
+        setDisplayRotation(rotation)
+        setDialog()
         val frame = bounds(IN_APP_CAMERA_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
         val count = bounds(CAMERA_COUNT_TAG)
+        val strip = bounds(CAMERA_STRIP_TAG)
+        println("MEASURED camera at rotation $rotation: frame $frame, shutter $shutter, count $count, strip $strip")
 
-        assertEquals("port edge (right at ROTATION_90), inside the frame's padding", (frame.right - Spacing.lg).value, shutter.right.value, 0.51f)
+        assertEquals("the shutter on the screen's right, inside the frame's padding", (frame.right - Spacing.lg).value, shutter.right.value, 0.51f)
         assertEquals("vertically centred", frame.centreY(), shutter.centreY(), 0.51f)
         assertTrue("never along the bottom: ${shutter.bottom} of ${frame.bottom}", shutter.bottom < frame.bottom - Spacing.lg * 2)
         assertTrue("the count sits beside the shutter, to its left: ${count.right} vs ${shutter.left}", count.right <= shutter.left)
         assertEquals("the count is level with the shutter", shutter.centreY(), count.centreY(), 1f)
-        assertTrue("right of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() > frame.centreX())
+        assertEquals("the strip flush with the screen's left", frame.left.value, strip.left.value, 0.51f)
+        assertEquals("full height", frame.top.value, strip.top.value, 0.51f)
+        assertEquals(frame.bottom.value, strip.bottom.value, 0.51f)
     }
 
-    /**
-     * The mirror of the test above, and the one the 2026-09-17 device-check run was reported
-     * against: at `ROTATION_270` the charger port is on the user's left, so the shutter belongs on
-     * the screen's left. Before the fix this drew on the right — the punch-hole end of an S26
-     * Ultra — because the arrangement had no rotation input and both landscapes got `CenterEnd`.
-     */
     @Test
-    fun `at ROTATION_270 the port edge is the screen's left, so the shutter is there with the count inboard`() {
-        setDisplayRotation(Surface.ROTATION_270)
-        setDialog(lockToPortrait = false)
-        val frame = bounds(IN_APP_CAMERA_TAG)
-        val shutter = bounds(CAMERA_SHUTTER_TAG)
-        val count = bounds(CAMERA_COUNT_TAG)
+    fun `at ROTATION_90 the shutter is on the screen's right with the count inboard, and the strip on its left`() = assertLandscapeLayout(Surface.ROTATION_90)
 
-        assertEquals("port edge (left at ROTATION_270), inside the frame's padding", (frame.left + Spacing.lg).value, shutter.left.value, 0.51f)
-        assertEquals("vertically centred", frame.centreY(), shutter.centreY(), 0.51f)
-        assertTrue("never along the bottom: ${shutter.bottom} of ${frame.bottom}", shutter.bottom < frame.bottom - Spacing.lg * 2)
-        assertTrue("the count sits beside the shutter, to its right: ${count.left} vs ${shutter.right}", count.left >= shutter.right)
-        assertEquals("the count is level with the shutter", shutter.centreY(), count.centreY(), 1f)
-        assertTrue("left of centre, the mirror claim: ${shutter.centreX()} vs ${frame.centreX()}", shutter.centreX() < frame.centreX())
-    }
-
-    // The two landscapes being mirror images is asserted by the side-of-centre line in each of the
-    // two tests above, not by a third test comparing them: a compose rule takes `setContent` once,
-    // so one test cannot open the dialog at both rotations. The pure-function form of the same
-    // claim — that the two rotations never resolve to one arrangement — is in CameraArrangementTest.
+    @Test
+    fun `at ROTATION_270 the layout is the same as at ROTATION_90, shutter right and strip left`() = assertLandscapeLayout(Surface.ROTATION_270)
 
     /**
      * **One rotation rule, every arrangement** (owner, 2026-09-17). This test used to be the
@@ -177,7 +187,7 @@ class InAppCameraDialogLandscapeTest {
      */
     @Test
     fun `setting off in a landscape window, the count turns in place when the device does, as in portrait`() {
-        setDialog(lockToPortrait = false)
+        setDialog()
         val countBefore = bounds(CAMERA_COUNT_TAG)
         // Done is gone (Back is the way out), so "turned" and "in place" are both asserted on the count.
         // No such aspect check on the count, deliberately. This harness measures "No photos yet" at
@@ -199,39 +209,13 @@ class InAppCameraDialogLandscapeTest {
     @Test
     fun `turning the controls leaves the shutter exactly where it was`() {
         setDisplayRotation(Surface.ROTATION_270)
-        setDialog(lockToPortrait = false)
+        setDialog()
         val shutterBefore = bounds(CAMERA_SHUTTER_TAG)
 
         session.deviceRotation = Surface.ROTATION_0
         composeRule.waitForIdle()
 
         assertEquals("the shutter does not move when the controls beside it turn", shutterBefore, bounds(CAMERA_SHUTTER_TAG))
-    }
-
-    @Test
-    fun `wiring only, setting on, the portrait arrangement is used and a control turns for whatever value the dialog is handed`() {
-        // This drives the fake's deviceRotation directly, past the gate, and so says nothing about
-        // whether the setting stops the controls turning — it says the dialog turns a control for
-        // the value it is given. That was the only test named for the setting-on case until
-        // 2026-09-18, which is how the code (nothing turns), v4 step 4.2 (controls turn) and this
-        // test disagreed for four days unnoticed. The gated behaviour is the next two tests.
-        setDialog(lockToPortrait = true)
-        val frame = bounds(IN_APP_CAMERA_TAG)
-        val shutter = bounds(CAMERA_SHUTTER_TAG)
-        assertEquals("shutter along the bottom, centred: the window is about to be forced portrait", frame.centreX(), shutter.centreX(), 0.51f)
-        assertEquals((frame.bottom - Spacing.lg).value, shutter.bottom.value, 0.51f)
-
-        // The portrait arrangement's angle is sensor minus display. Robolectric's landscape window
-        // reports a turned display (the real one would be forced portrait by the setting, which
-        // this harness cannot do), so a device reading equal to the display's would cancel to no
-        // turn — correctly. A reading a quarter turn from the display's is what must turn here.
-        @Suppress("DEPRECATION") val displayRotation = composeRule.activity.windowManager.defaultDisplay.rotation
-        val countBefore = bounds(CAMERA_COUNT_TAG)
-        session.deviceRotation = (displayRotation + 1) % 4
-        composeRule.waitForIdle()
-        val countAfter = bounds(CAMERA_COUNT_TAG)
-        assertEquals("a quarter turn from a display at $displayRotation swaps the count's extents", countBefore.width.value, countAfter.height.value, 0.51f)
-        assertEquals(countBefore.height.value, countAfter.width.value, 0.51f)
     }
 
     /**
@@ -250,7 +234,7 @@ class InAppCameraDialogLandscapeTest {
     @Test
     fun `the arrangement follows when the window turns underneath the dialog, the shutter moving to the new window's port edge`() {
         setDisplayRotation(Surface.ROTATION_90)
-        setDialog(lockToPortrait = false)
+        setDialog()
         val frame = bounds(IN_APP_CAMERA_TAG)
         val before = bounds(CAMERA_SHUTTER_TAG)
         assertEquals("precondition: landscape arrangement, shutter on the right (port) edge", (frame.right - Spacing.lg).value, before.right.value, 0.51f)
@@ -271,7 +255,7 @@ class InAppCameraDialogLandscapeTest {
     @Test
     fun `while the window does not turn, a device turn moves neither the shutter nor the strip`() {
         setDisplayRotation(Surface.ROTATION_90)
-        setDialog(lockToPortrait = false)
+        setDialog()
         val shutterBefore = bounds(CAMERA_SHUTTER_TAG)
         val stripBefore = bounds(CAMERA_STRIP_TAG)
 
@@ -291,7 +275,7 @@ class InAppCameraDialogLandscapeTest {
     @Test
     fun `at ROTATION_90 the strip is flush with the left edge, the punch-hole side, full height`() {
         setDisplayRotation(Surface.ROTATION_90)
-        setDialog(lockToPortrait = false)
+        setDialog()
         val frame = bounds(IN_APP_CAMERA_TAG)
         val strip = bounds(CAMERA_STRIP_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
@@ -306,14 +290,15 @@ class InAppCameraDialogLandscapeTest {
     }
 
     /**
-     * All four chips fit down the landscape strip (decision B8, Closed decision A), in both
-     * arrangements: each inside the strip, in order Flash, Timer, Grid, Location from its top, none
-     * overlapping the next. This class's window is 360 dp tall; four chips and three gaps are
-     * 216 dp. Robolectric reports zero insets, so this is not evidence about the cut-out.
+     * All five chips fit down the landscape strip (decision B8, Closed decision A; the gear since
+     * dispatch 2026-09-28-707), in both arrangements: each inside the strip, in order Flash, Timer,
+     * Grid, Location, gear from its top, none overlapping the next. This class's window is 360 dp
+     * tall; five chips and four gaps are 272 dp. Robolectric reports zero insets, so this is not
+     * evidence about the cut-out.
      */
-    private fun assertFourChipsDownTheStrip() {
+    private fun assertFiveChipsDownTheStrip() {
         val strip = bounds(CAMERA_STRIP_TAG)
-        val tags = listOf(CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG)
+        val tags = listOf(CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG, CAMERA_SETTINGS_CHIP_TAG)
         val chips = tags.map { bounds(it) }
         tags.zip(chips).forEach { (tag, chip) ->
             assertTrue("$tag inside the strip: $chip in $strip", chip.left >= strip.left && chip.right <= strip.right && chip.top >= strip.top && chip.bottom <= strip.bottom)
@@ -324,32 +309,84 @@ class InAppCameraDialogLandscapeTest {
     }
 
     @Test
-    fun `at ROTATION_90 all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping`() {
+    fun `at ROTATION_90 all five chips sit inside the strip, Flash, Timer, Grid, Location, gear, none overlapping`() {
         setDisplayRotation(Surface.ROTATION_90)
-        setDialog(lockToPortrait = false)
-        assertFourChipsDownTheStrip()
+        setDialog()
+        assertFiveChipsDownTheStrip()
     }
 
     @Test
-    fun `at ROTATION_270 all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping`() {
+    fun `at ROTATION_270 all five chips sit inside the strip, Flash, Timer, Grid, Location, gear, none overlapping`() {
         setDisplayRotation(Surface.ROTATION_270)
-        setDialog(lockToPortrait = false)
-        assertFourChipsDownTheStrip()
+        setDialog()
+        assertFiveChipsDownTheStrip()
     }
 
+    /**
+     * RECORD -958 (the owner: "Yes", the camera the same at both rotations). Was `at ROTATION_270 the strip is flush with the right
+     * edge, the punch-hole side, full height`: `assertEquals(frame.right, strip.right)` and the strip right of the shutter,
+     * `strip.left > shutter.right`. Now the left edge, as at ROTATION_90. On a device the cut-out inset still moves the strip (or the
+     * shutter band) inboard on whichever side the camera falls (CameraBands pads each band by the cut-out on its own edge).
+     */
     @Test
-    fun `at ROTATION_270 the strip is flush with the right edge, the punch-hole side, full height`() {
+    fun `at ROTATION_270 the strip is flush with the left edge, as at ROTATION_90, full height`() {
         setDisplayRotation(Surface.ROTATION_270)
-        setDialog(lockToPortrait = false)
+        setDialog()
         val frame = bounds(IN_APP_CAMERA_TAG)
         val strip = bounds(CAMERA_STRIP_TAG)
         val shutter = bounds(CAMERA_SHUTTER_TAG)
 
-        assertEquals("flush with the punch-hole edge", frame.right.value, strip.right.value, 0.51f)
+        assertEquals("flush with the screen's left", frame.left.value, strip.left.value, 0.51f)
         assertEquals(frame.top.value, strip.top.value, 0.51f)
         assertEquals(frame.bottom.value, strip.bottom.value, 0.51f)
         assertEquals(STRIP_ROW_HEIGHT.value, strip.width.value, 0.51f)
-        assertTrue("on the opposite side from the shutter: ${strip.left} vs ${shutter.right}", strip.left > shutter.right)
+        assertTrue("on the opposite side from the shutter: ${strip.right} vs ${shutter.left}", strip.right < shutter.left)
+    }
+
+    /**
+     * RECORD -958: the camera controls' bounds at ROTATION_90 and ROTATION_270, compared directly. The dialog is opened at one
+     * rotation, closed, and opened afresh at the other in the same composition (a new key, so it reads the rotation at open as a real
+     * opening does), and every control's bounds must match: the shutter, its band, the count, the strip and its five chips.
+     */
+    @Test
+    fun `the camera's controls have the same bounds at ROTATION_90 and ROTATION_270`() {
+        var opening by mutableStateOf(0)
+        setDisplayRotation(Surface.ROTATION_90)
+        composeRule.setContent {
+            androidx.compose.runtime.key(opening) {
+                InAppCameraDialog(
+                    session = session,
+                    cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
+                    onPhotoCaptured = {},
+                    onDismiss = {},
+                    gridMode = GridMode.Off,
+                    onGridModeChanged = {},
+                    autoSaveLocationToPhotos = true,
+                    onAutoSaveLocationToPhotosChanged = {},
+                    levelProvider = FakeLevelProvider(),
+                    viewfinder = { modifier -> Box(modifier) },
+                )
+            }
+        }
+        composeRule.waitForIdle()
+        val tags = listOf(
+            CAMERA_SHUTTER_TAG, CAMERA_SHUTTER_BAND_TAG, CAMERA_COUNT_TAG, CAMERA_STRIP_TAG,
+            CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG, CAMERA_SETTINGS_CHIP_TAG,
+        )
+        val at90 = tags.associateWith { bounds(it) }
+
+        setDisplayRotation(Surface.ROTATION_270)
+        opening = 1
+        composeRule.waitForIdle()
+        val at270 = tags.associateWith { bounds(it) }
+        println("MEASURED camera controls: ROTATION_90 $at90; ROTATION_270 $at270")
+
+        val differ = tags.filter { tag ->
+            val a = at90.getValue(tag)
+            val b = at270.getValue(tag)
+            listOf(a.left - b.left, a.top - b.top, a.right - b.right, a.bottom - b.bottom).any { kotlin.math.abs(it.value) > 0.51f }
+        }
+        assertTrue("the same at both rotations; differ: ${differ.map { "$it: ${at90[it]} vs ${at270[it]}" }}", differ.isEmpty())
     }
 
     /**
@@ -362,7 +399,7 @@ class InAppCameraDialogLandscapeTest {
     @Test
     fun `the flash chip turns in place when the device does`() {
         setDisplayRotation(Surface.ROTATION_90)
-        setDialog(lockToPortrait = false)
+        setDialog()
         val before = bounds(CAMERA_FLASH_CHIP_TAG)
         assertEquals("no reading yet, no turn", 0f, chipAngle(), 0.01f)
 
@@ -375,71 +412,5 @@ class InAppCameraDialogLandscapeTest {
     }
 
     private fun chipAngle(): Float = composeRule.onNodeWithTag(CAMERA_FLASH_CHIP_TAG).fetchSemanticsNode().config[RotateWithDeviceTarget]
-
-
-    /**
-     * **With the setting on, nothing turns** (owner's ruling, 2026-09-18; the setting's own doc;
-     * `effectiveDeviceRotation`). Through the gate, not past it: the sensor is driven through all
-     * four readings and neither the count moves a pixel nor the flash chip's angle changes (its
-     * angle, because the chip is square and its bounds cannot show a turn; the angle is still, not
-     * zero — before the flip the window is at `ROTATION_90` and the pinned sensor is `ROTATION_0`). Then the window is
-     * turned underneath the dialog — the one flip a landscape open makes — and the sensor driven
-     * again, because the strip's since-retired placeholder label was seen turned only after that
-     * flip on the emulator.
-     *
-     * **What this test cannot see, stated rather than implied:** the emulator's after-flip label
-     * turn is a stale display term inside the dialog's composition (`2026-09-18-placeholder-label-
-     * stale-display-term.md`), and this harness provides `LocalConfiguration` from outside the
-     * dialog, where it does update. So this test passes on the defective code too; it guards the
-     * gate, not the invalidation.
-     */
-    @Test
-    fun `setting on, through the gate, nothing turns for any sensor reading, before or after the window flips`() {
-        setDisplayRotation(Surface.ROTATION_90)
-        val gated = GatedFakeCameraCaptureSession(lockToPortrait = true)
-        setDialog(lockToPortrait = true, session = gated)
-        val count0 = bounds(CAMERA_COUNT_TAG)
-        val angle0 = chipAngle()
-
-        for (reading in listOf(Surface.ROTATION_0, Surface.ROTATION_90, Surface.ROTATION_180, Surface.ROTATION_270)) {
-            gated.sensorRotation = reading
-            composeRule.waitForIdle()
-            assertEquals("count unmoved at sensor $reading", count0, bounds(CAMERA_COUNT_TAG))
-            assertEquals("chip unturned at sensor $reading", angle0, chipAngle(), 0.01f)
-        }
-
-        // The flip: the window the setting forces.
-        setDisplayRotation(Surface.ROTATION_0)
-        setOrientation(Configuration.ORIENTATION_PORTRAIT)
-        composeRule.waitForIdle()
-        val countP = bounds(CAMERA_COUNT_TAG)
-        val angleP = chipAngle()
-        // No "upright" aspect check on the count: this harness measures it narrower than tall (7x20
-        // dp, recorded in this class on 2026-09-18), so width > height is not what upright looks
-        // like here and would fail on correct code. The claim is stillness, and for the square chip
-        // stillness is its angle.
-        for (reading in listOf(Surface.ROTATION_90, Surface.ROTATION_180, Surface.ROTATION_270, Surface.ROTATION_0)) {
-            gated.sensorRotation = reading
-            composeRule.waitForIdle()
-            assertEquals("count unmoved after the flip at sensor $reading", countP, bounds(CAMERA_COUNT_TAG))
-            assertEquals("chip unturned after the flip at sensor $reading", angleP, chipAngle(), 0.01f)
-        }
-    }
-
-    /** The control: the same gated session with the setting off turns the count, as today. */
-    @Test
-    fun `setting off, through the gate, the count still turns when the sensor does`() {
-        setDisplayRotation(Surface.ROTATION_90)
-        val gated = GatedFakeCameraCaptureSession(lockToPortrait = false)
-        setDialog(lockToPortrait = false, session = gated)
-        val before = bounds(CAMERA_COUNT_TAG)
-
-        gated.sensorRotation = Surface.ROTATION_0
-        composeRule.waitForIdle()
-        val after = bounds(CAMERA_COUNT_TAG)
-
-        assertEquals("a quarter turn swaps the extents", before.width.value, after.height.value, 0.51f)
-        assertEquals(before.height.value, after.width.value, 0.51f)
-    }
 
 }

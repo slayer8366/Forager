@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import android.graphics.PointF
 import android.graphics.RectF
 import android.util.Log
+import androidx.core.graphics.createBitmap
 import com.google.gson.JsonArray
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.map.fanout.FanKey
@@ -108,7 +109,7 @@ internal const val FAN_CIRCLE_SORT_KEY = -1000
  */
 internal fun fanCircleBitmap(density: Float, colour: Int): android.graphics.Bitmap {
     val px = kotlin.math.ceil(FAN_CIRCLE_DIAMETER_DP * density).toInt()
-    val bitmap = android.graphics.Bitmap.createBitmap(px, px, android.graphics.Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(px, px, android.graphics.Bitmap.Config.ARGB_8888)
     val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG).apply {
         this.color = colour
         alpha = Math.round(255f * FAN_CIRCLE_OPACITY)
@@ -311,6 +312,12 @@ internal fun applyFanOutHiding(style: Style, members: List<FanMember>) {
             null -> Log.w(FAN_OUT_TAG, "Layer ${spec.id} is not in the loaded style; its originals were not hidden.")
             else -> Log.w(FAN_OUT_TAG, "Layer ${spec.id} is a ${layer::class.java.simpleName}; its originals were not hidden.")
         }
+    }
+    // Dispatch 2026-11-02-04: a fanned pin's name goes with its pin (WaypointNameLayers.kt), by the same waypoint ids.
+    when (val names = style.getLayer(WaypointNameIds.LAYER)) {
+        is SymbolLayer -> names.setFilter(fanOutHiddenFilter(FEATURE_ID_PROPERTY, fanHiddenNameIds(members)))
+        null -> Log.w(FAN_OUT_TAG, "Layer ${WaypointNameIds.LAYER} is not in the loaded style; the fanned pins' names were not hidden.")
+        else -> Log.w(FAN_OUT_TAG, "Layer ${WaypointNameIds.LAYER} is a ${names::class.java.simpleName}; the fanned pins' names were not hidden.")
     }
 }
 

@@ -50,7 +50,7 @@ class FilePhotoExporter(
 ) : PhotoExporter {
 
     override suspend fun describe(photo: LogPhoto): Result<ExportFile> = withContext(Dispatchers.IO) {
-        runCatchingCancellable { exportFileFor(photo, storedFile(photo.relativePath)) }.loggedOnFailure("name and type '${photo.relativePath}'")
+        runCatchingCancellable { exportFileFor(photo, storedFile(photo.exportRelativePath)) }.loggedOnFailure("name and type '${photo.exportRelativePath}'")
     }
 
     override suspend fun saveToGallery(photo: LogPhoto): Result<Unit> = withContext(Dispatchers.IO) {
@@ -58,7 +58,7 @@ class FilePhotoExporter(
             check(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 "Saving to the Gallery needs API 29 or later without a storage permission, and this is API ${Build.VERSION.SDK_INT}"
             }
-            val file = storedFile(photo.relativePath)
+            val file = storedFile(photo.exportRelativePath)
             val target = exportFileFor(photo, file)
             val values = ContentValues().apply {
                 put(MediaStore.MediaColumns.DISPLAY_NAME, target.displayName)
@@ -97,7 +97,7 @@ class FilePhotoExporter(
                 throw failure
             }
             Unit
-        }.loggedOnFailure("save '${photo.relativePath}' to the Gallery")
+        }.loggedOnFailure("save '${photo.exportRelativePath}' to the Gallery")
     }
 
     override suspend fun saveToDocument(relativePath: String, destination: Uri): Result<Unit> = withContext(Dispatchers.IO) {
@@ -119,7 +119,14 @@ class FilePhotoExporter(
             val read = input.read(buffer) // a file stream fills the buffer unless the file is shorter
             if (read <= 0) ByteArray(0) else buffer.copyOf(read)
         }
-        val type = sniffImageType(header) ?: error("'${photo.relativePath}' is not a picture type this app recognises; its name says .jpg, which is not evidence")
+        // A RAW shot exports its DNG (RECORD -1004: "Export sends the final file"). Its type is known from the record, not
+        // guessed from the name; the bytes must still be a TIFF container, or the file is not what the record says.
+        val type = if (photo.rawRelativePath != null) {
+            check(isTiffHeader(header)) { "'${photo.rawRelativePath}' is recorded as a RAW shot's DNG but is not a TIFF container" }
+            DNG_EXPORT_TYPE
+        } else {
+            sniffImageType(header)?.let { ExportType(it.mimeType, it.extension) } ?: error("'${photo.relativePath}' is not a picture type this app recognises; its name says .jpg, which is not evidence")
+        }
         val takenAt = photo.createdAtEpochMillis ?: now().also { Log.i(TAG, "'${photo.relativePath}' has no capture time; naming its copy from the clock.") }
         // A fresh SimpleDateFormat per call: it is not thread-safe.
         val stamp = SimpleDateFormat("yyyyMMdd-HHmmss", Locale.US).format(Date(takenAt))
@@ -133,6 +140,18 @@ class FilePhotoExporter(
         const val GALLERY_RELATIVE_PATH = "Pictures/Forager"
         const val HEADER_BYTES = 16
     }
+}
+
+/** A RAW shot's DNG as it leaves the app: Adobe's registered DNG type and extension. Whether the Gallery accepts it is a device check. */
+internal val DNG_EXPORT_TYPE = ExportType(mimeType = "image/x-adobe-dng", extension = "dng")
+
+/** A type and extension for an exported copy. */
+internal data class ExportType(val mimeType: String, val extension: String)
+
+/** TIFF's byte-order mark and magic number, either order: what a DNG starts with. */
+internal fun isTiffHeader(header: ByteArray): Boolean {
+    fun b(i: Int) = if (i < header.size) header[i].toInt() and 0xFF else -1
+    return (b(0) == 0x49 && b(1) == 0x49 && b(2) == 0x2A && b(3) == 0x00) || (b(0) == 0x4D && b(1) == 0x4D && b(2) == 0x00 && b(3) == 0x2A)
 }
 
 /** A picture type read from a file's own first bytes, with the type and file extension that go with it. */

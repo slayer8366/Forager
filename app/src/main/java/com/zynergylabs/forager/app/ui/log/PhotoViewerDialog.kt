@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import android.graphics.Bitmap
 import android.content.Context
 import android.content.Intent
@@ -54,6 +56,7 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsPropertyKey
@@ -72,7 +75,6 @@ import com.zynergylabs.forager.app.photo.oriented
 import com.zynergylabs.forager.app.photo.readPhotoOrientation
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
-import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
@@ -206,7 +208,7 @@ private fun ViewerControl(
     enabled: Boolean = true,
     icon: @Composable () -> Unit,
 ) {
-    IconButton(onClick = onClick, enabled = enabled, modifier = modifier.semantics { contentDescription = description }) {
+    BouncingIconButton(onClick = onClick, enabled = enabled, modifier = modifier.semantics { contentDescription = description }) {
         Box(
             modifier = Modifier
                 .size(VIEWER_CONTROL_SCRIM_SIZE_DP.dp)
@@ -267,7 +269,8 @@ private fun SaveControl(photo: LogPhoto, exporter: PhotoExporter, modifier: Modi
                 if (toFolder) {
                     exporter.describe(photo).fold(
                         onSuccess = { file ->
-                            pendingPath = photo.relativePath
+                            // The file the photo is: a RAW shot's DNG, otherwise the photo (LogPhoto.exportRelativePath).
+                            pendingPath = photo.exportRelativePath
                             pickDocument.launch(file)
                         },
                         onFailure = {
@@ -325,7 +328,10 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
     var rotationDegrees by remember(relativePath) { mutableIntStateOf(0) }
     var decodeFailed by remember(relativePath) { mutableStateOf(false) }
     LaunchedEffect(relativePath) {
-        val decoded = withContext(Dispatchers.IO) {
+        // PhotoDecodeDispatcher, as DecodedPhoto's decode: Dispatchers.IO in production, the main looper under the unit
+        // tests, so the Compose test rule never resumes this effect, and recomposes, on an IO worker (pre-main run
+        // 41766149924; PhotoViewerDecodeThreadTest).
+        val decoded = withContext(PhotoDecodeDispatcher.current) {
             runCatching { decodeBoundedPhoto(File(context.filesDir, relativePath), VIEWER_MAX_EDGE_PX) }
                 .onFailure { error -> Log.w(TAG, "Couldn't decode photo at '$relativePath' for the viewer.", error) }
                 .getOrNull()
@@ -339,10 +345,18 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
     var scale by remember(relativePath) { mutableFloatStateOf(1f) }
     var offset by remember(relativePath) { mutableStateOf(Offset.Zero) }
 
+    // Motion Part 3, Amendment 2 (RECORD -682; scout V4): the spinner, the photo and "Couldn't load" crossfade instead of
+    // swapping in one frame (motion/StateCrossfade.kt). The viewer's window keeps the system's own behaviour (the planner's call).
+    val viewerState = when {
+        bitmap != null -> ViewerPhotoState.LOADED
+        decodeFailed -> ViewerPhotoState.FAILED
+        else -> ViewerPhotoState.LOADING
+    }
     Box(modifier = modifier.onSizeChanged { viewport = it }, contentAlignment = Alignment.Center) {
+        StateCrossfade(targetState = viewerState, modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { shownState ->
         val loaded = bitmap
         when {
-            loaded != null -> {
+            shownState == ViewerPhotoState.LOADED && loaded != null -> {
                 // EXIF-orientation-display dispatch: a 90°/270° photo is drawn by rotating the
                 // layer, not by allocating a turned copy of a bitmap this large. ContentScale.Fit
                 // has already fitted the *unrotated* bitmap, so the layer also scales by
@@ -364,7 +378,8 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
                     return Offset(axis(candidate.x, shownWidth, viewport.width), axis(candidate.y, shownHeight, viewport.height))
                 }
                 val centre = Offset(viewport.width / 2f, viewport.height / 2f)
-                val zoomLabel = String.format(Locale.getDefault(), "Zoom %.1f×", scale)
+                // The configuration's language, which Compose observes, not Locale.getDefault(), which it does not (lint NonObservableLocale; dispatch 2026-10-17-03).
+                val zoomLabel = String.format(LocalConfiguration.current.locales[0], "Zoom %.1f×", scale)
 
                 Image(
                     bitmap = loaded,
@@ -409,17 +424,21 @@ private fun ZoomablePhoto(relativePath: String, modifier: Modifier = Modifier) {
                 )
             }
 
-            decodeFailed -> Text(
+            shownState == ViewerPhotoState.FAILED -> Text(
                 text = "Couldn't load this photo.",
                 color = Color.White,
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.testTag(PHOTO_VIEWER_FAILED_TAG),
             )
 
-            else -> CircularProgressIndicator()
+            shownState == ViewerPhotoState.LOADING -> CircularProgressIndicator()
+        }
         }
     }
 }
+
+/** What one page of the viewer shows (motion Part 3, Amendment 2): one value, so the three can crossfade. */
+private enum class ViewerPhotoState { LOADING, LOADED, FAILED }
 
 /**
  * What the viewer draws: the decoded bitmap plus the clockwise rotation the layer must apply to

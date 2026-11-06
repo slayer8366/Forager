@@ -33,4 +33,14 @@ data class LogPhoto(
     val createdAtEpochMillis: Long?,
     val latitude: Double? = null,
     val longitude: Double? = null,
-)
+    /**
+     * A RAW shot's DNG, relative to app-private storage like [relativePath] (dispatch 2026-10-15-01, `MIGRATION_21_22`).
+     * `null` for every other photo. When set, [relativePath] is the shot's JPG, which is what the journal, the viewer and
+     * every thumbnail show (RECORD -1004: "a preview for the photo, a thumbnail, and a placeholder"), and this is the file
+     * the photo *is*: export sends it, backup carries it, delete removes it.
+     */
+    val rawRelativePath: String? = null,
+) {
+    /** The file that leaves the app when this photo is exported: the DNG for a RAW shot (RECORD -1004: "Export sends the final file"), otherwise the photo itself. */
+    val exportRelativePath: String get() = rawRelativePath ?: relativePath
+}

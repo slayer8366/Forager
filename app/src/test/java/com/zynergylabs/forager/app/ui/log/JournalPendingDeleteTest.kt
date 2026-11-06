@@ -1,5 +1,9 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
+import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
+import com.zynergylabs.forager.app.ui.availability.requestDeleteOfflineRegion
+import com.zynergylabs.forager.app.ui.availability.undoDeleteOfflineRegion
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -160,6 +164,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.SemanticsNodeInteraction
+import org.junit.Assert.assertFalse
 
 /**
  * Journal redesign J4 (`prompts/preserved/2026-09-27-21.md`): delete with swipe and Undo, driven
@@ -228,7 +235,7 @@ class JournalPendingDeleteTest {
             deleteGalleryPhoto = DeleteGalleryPhotoUseCase(logRepository, photoStore),
             locationProvider = PendingDeleteUnusedLocationProvider,
             updatePhotoLocation = UpdatePhotoLocationUseCase(logRepository),
-            getPhotoEntryReferenceCount = { id -> photoJournalCounts[id] ?: 0 },
+            entryReferenceCounts = FakeEntryReferenceCountSource(photos = photoJournalCounts),
         )
         availabilityViewModel = AvailabilityViewModel(
             locationProvider = PendingDeleteUnusedLocationProvider,
@@ -252,7 +259,7 @@ class JournalPendingDeleteTest {
             unitSystemPreferenceRepository = PendingDeleteUnitSystem,
             appThemePreferenceRepository = PendingDeleteTheme,
             getTodaysForecast = GetTodaysForecastUseCase(PendingDeleteWeather),
-            getOfflineRegionReferenceCount = { id -> regionReferenceCounts[id] ?: 0 },
+            entryReferenceCounts = FakeEntryReferenceCountSource(offlineRegions = regionReferenceCounts),
         )
         trackViewModel = TrackRecordingViewModel(
             trackRepository = trackRepository,
@@ -269,7 +276,7 @@ class JournalPendingDeleteTest {
             getTracks = GetTracksUseCase(trackRepository),
             returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), { _: Alert -> }),
             alertAudibility = PendingDeleteAudible,
-            getWaypointReferenceCount = { id -> waypointReferenceCounts[id] ?: 0 },
+            entryReferenceCounts = FakeEntryReferenceCountSource(waypoints = waypointReferenceCounts),
         )
         cartographyRepository = PendingDeleteCartographyRepository(cartographyEntries)
         cartographyViewModel = CartographyViewModel(
@@ -306,7 +313,7 @@ class JournalPendingDeleteTest {
                     onOpenCameraForAlbum = {},
                     onOpenCameraForCartographyEntry = {},
                     mapSlot = PD_STUB_MAP,
-                    pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                    pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
                     basemap = Basemap.DEFAULT,
                     onOpenEntry = logViewModel::onOpenEntry,
                     onCloseEntry = logViewModel::onCloseEntry,
@@ -542,14 +549,16 @@ class JournalPendingDeleteTest {
     @Test
     fun `swiping a region row hides it, warns of its references, and runs no tile delete yet`() {
         setScreen(chip = RecordsSubTab.OFFLINE_MAPS)
-        composeRule.onNodeWithText("Tile budget: 150", substring = true).assertExists()
+        // Since T1 (dispatch 2026-10-26-21, RECORD -1703) each area counts by its estimate, not its stored count (100 and
+        // 50 here): Ridge 243 and Saddle 238, 5 km each, zooms 10 to 15.
+        composeRule.onNodeWithText("Tile budget: 481", substring = true).assertExists()
 
         // Two row positions: the first region, then (after Undo) the second.
         swipeRowLeft(RecordType.OFFLINE_MAPS, "7")
         composeRule.onNodeWithText("Offline map deleted · used in 2 journal entries").assertIsDisplayed()
         composeRule.onNodeWithText("Ridge").assertDoesNotExist()
         // Its tiles are still on disk, so the budget still counts them until the delete runs.
-        composeRule.onNodeWithText("Tile budget: 150", substring = true).assertExists()
+        composeRule.onNodeWithText("Tile budget: 481", substring = true).assertExists()
         assertEquals(emptyList<Long>(), offlineMapRepository.deletedIds)
         touchUndo()
         composeRule.onNodeWithText("Ridge").assertExists()
@@ -561,7 +570,7 @@ class JournalPendingDeleteTest {
     }
 
     @Test
-    fun `the region row has no Delete button any more`() {
+    fun `the region row has no text Delete control at rest`() {
         setScreen(chip = RecordsSubTab.OFFLINE_MAPS)
         composeRule.onNodeWithText("Ridge").assertExists()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7")).assertExists()
@@ -641,8 +650,38 @@ class JournalPendingDeleteTest {
     }
     // ── Finds, from the report (D4) ──
 
+    /** The tile title of the fixture find dated [date]: its given name. */
+    private fun findTileName(date: String): String = listOf(PD_FIND_A, PD_FIND_B).single { it.foundOn.toString() == date }.ownIdentification!!
+
+    // RECORD -717: the Finds grid is lazy, and with a heading per day (data part D) the second day's tile sits below a 1280 px
+    // window (measured at the build: the Sep 20 heading at 1240-1280 px, its tile not composed). So a tile is scrolled to
+    // before it is touched or counted, and "gone" is checked over the whole grid, never against a tile that was never
+    // composed. The assertions are otherwise as they were.
+    private fun findsGrid() = composeRule.onNodeWithTag(FINDS_GRID_TAG)
+
+    /** Scrolls the grid until the tile for [date] is composed; fails if no tile in the whole grid has its name. */
+    private fun scrollToTile(date: String) {
+        findsGrid().performScrollToNode(hasText(findTileName(date)))
+        composeRule.waitForIdle()
+    }
+
+    /** The tile for [date] is in the grid, once. */
+    private fun assertTileShown(date: String) {
+        scrollToTile(date)
+        composeRule.onAllNodesWithText(findTileName(date), useUnmergedTree = true).assertCountEquals(1)
+    }
+
+    /** No tile in the whole grid has [date]'s name: scrolling the grid through to its end finds none. */
+    private fun assertTileGone(date: String) {
+        findsGrid().assertExists()
+        val found = runCatching { findsGrid().performScrollToNode(hasText(findTileName(date))) }.isSuccess
+        assertFalse("no tile for $date anywhere in the grid", found)
+        composeRule.onAllNodesWithText(findTileName(date), useUnmergedTree = true).assertCountEquals(0)
+    }
+
     private fun openFindReport(date: String) {
-        composeRule.onNodeWithText("Find on $date", useUnmergedTree = true).performClick()
+        scrollToTile(date)
+        composeRule.onNodeWithText(findTileName(date), useUnmergedTree = true).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
     }
@@ -653,7 +692,6 @@ class JournalPendingDeleteTest {
         composeRule.waitForIdle()
     }
 
-    private fun findTiles(date: String) = composeRule.onAllNodesWithText("Find on $date", useUnmergedTree = true)
 
     @Test
     fun `deleting a find from its report closes the report, hides the find, says Find deleted, and deletes nothing yet`() {
@@ -663,9 +701,9 @@ class JournalPendingDeleteTest {
         deleteFromReport()
 
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
-        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
-        findTiles("2026-09-20").assertCountEquals(0)
-        findTiles("2026-09-21").assertCountEquals(1)
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
+        assertTileGone("2026-09-20")
+        assertTileShown("2026-09-21")
         composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
         assertEquals(emptyList<String>(), logRepository.deletedIds)
     }
@@ -680,8 +718,8 @@ class JournalPendingDeleteTest {
         letSnackbarTimeOut()
 
         assertEquals(listOf("find-b"), logRepository.deletedIds)
-        findTiles("2026-09-21").assertCountEquals(0)
-        findTiles("2026-09-20").assertCountEquals(1)
+        assertTileGone("2026-09-21")
+        assertTileShown("2026-09-20")
     }
 
     @Test
@@ -693,7 +731,7 @@ class JournalPendingDeleteTest {
         touchUndo()
         letSnackbarTimeOut()
 
-        findTiles("2026-09-20").assertCountEquals(1)
+        assertTileShown("2026-09-20")
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
         assertEquals(emptyList<String>(), logRepository.deletedIds)
     }
@@ -728,7 +766,7 @@ class JournalPendingDeleteTest {
         letSnackbarTimeOut()
         // The form was editing the re-edit's draft row, so that row is what is deleted, as before J4.
         assertEquals(listOf("draft-of-find"), logRepository.deletedIds)
-        findTiles("2026-09-20").assertCountEquals(1)
+        assertTileShown("2026-09-20")
     }
 
     @Test
@@ -742,13 +780,13 @@ class JournalPendingDeleteTest {
         letSnackbarTimeOut()
 
         assertEquals(emptyList<String>(), logRepository.deletedIds)
-        findTiles("2026-09-20").assertCountEquals(1)
+        assertTileShown("2026-09-20")
     }
 
     @Test
     fun `Delete in a new find's form, with no committed original, still says Find deleted`() {
         setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A))
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithContentDescription("Delete this entry").assertIsDisplayed()
 
@@ -1135,7 +1173,10 @@ class JournalPendingDeleteTest {
     // (The owner's "grids long-press": find tiles and album photos keep long-press.) Real
     // long-presses at several points of each tile; the menu's items chosen by coordinate touches.
 
-    private fun findTile(date: String) = composeRule.onNodeWithText("Find on $date")
+    private fun findTile(date: String): SemanticsNodeInteraction {
+        scrollToTile(date)
+        return composeRule.onNodeWithText(findTileName(date))
+    }
 
     private fun menuItems() = composeRule.onAllNodes(hasClickAction() and hasAnyAncestor(isPopup()))
 
@@ -1186,8 +1227,8 @@ class JournalPendingDeleteTest {
 
         touchMenuItem(TILE_OPTIONS_DELETE_TAG)
 
-        findTiles("2026-09-20").assertCountEquals(0)
-        findTiles("2026-09-21").assertCountEquals(1)
+        assertTileGone("2026-09-20")
+        assertTileShown("2026-09-21")
         composeRule.onNodeWithText("Find deleted").assertIsDisplayed()
         assertEquals(emptyList<String>(), logRepository.deletedIds)
         letSnackbarTimeOut()
@@ -1198,7 +1239,7 @@ class JournalPendingDeleteTest {
     fun `a find tile's Edit and Delete accessibility actions, and its long-press label`() {
         setScreen(chip = RecordsSubTab.FINDS, finds = listOf(PD_FIND_A, PD_FIND_B))
         val node = findTile("2026-09-20").fetchSemanticsNode()
-        assertEquals("Options for Find on 2026-09-20", node.config[SemanticsActions.OnLongClick].label)
+        assertEquals("Options for Morel", node.config[SemanticsActions.OnLongClick].label)
         assertEquals(listOf("Edit", "Delete"), node.config[SemanticsActions.CustomActions].map { it.label })
 
         val delete = node.config[SemanticsActions.CustomActions].single { it.label == "Delete" }
@@ -1226,8 +1267,15 @@ class JournalPendingDeleteTest {
         menuItems().assertCountEquals(0)
     }
 
+    /**
+     * RECORD -876 (the owner: "Yes, Edit opens over All too (Recommended)"). Rewritten for it: this was "… whose Edit
+     * opens its form under the Finds chip" and asserted the Finds chip selected after Edit. Now Edit opens the form over
+     * All: the find over the view is up and All is still selected; then Back through the Activity's real dispatcher
+     * closes the unchanged form and shows All again, with find-b's tile and no find open. The Delete half and the
+     * form's own assertions (its delete control, the open draft of find-b) are unchanged.
+     */
     @Test
-    fun `a find tile in All has the same menu, whose Delete pends it and whose Edit opens its form under the Finds chip`() {
+    fun `a find tile in All has the same menu, whose Delete pends it and whose Edit opens its form over All, Back returning to All`() {
         setScreen(chip = RecordsSubTab.ALL, finds = listOf(PD_FIND_A, PD_FIND_B))
         val rowA = composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-a")).performScrollTo()
         rowA.performTouchInput { longClick(Offset(width * 0.4f, height * 0.6f)) }
@@ -1242,9 +1290,18 @@ class JournalPendingDeleteTest {
             .performTouchInput { longClick(Offset(width * 0.6f, height * 0.4f)) }
         composeRule.waitForIdle()
         touchMenuItem(TILE_OPTIONS_EDIT_TAG)
-        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.FINDS)).assert(androidx.compose.ui.test.isSelected())
+        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertExists()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assert(androidx.compose.ui.test.isSelected())
         composeRule.onNodeWithContentDescription("Delete this entry").assertIsDisplayed()
         assertEquals(PD_FIND_B.id, logViewModel.uiState.value.editingEntry?.draftOfEntryId)
+
+        composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertDoesNotExist()
+        assertEquals("Back closed the form", null, logViewModel.uiState.value.editingEntry)
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).assert(androidx.compose.ui.test.isSelected())
+        composeRule.onNodeWithTag(logbookRowTag(RecordType.FINDS, "find-b")).assertIsDisplayed()
     }
 
     // ── J4b L3: album photos open a long-press menu ──
@@ -1510,8 +1567,10 @@ private object PendingDeleteTheme : AppThemePreferenceRepository {
     override suspend fun setThemeMode(mode: AppThemeMode): Result<Unit> = Result.success(Unit)
 }
 
-private val PD_FIND_A = MushroomLogEntry.draft(id = "find-a", location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
-private val PD_FIND_B = MushroomLogEntry.draft(id = "find-b", location = null, date = LocalDate.of(2026, 9, 21)).copy(isDraft = false)
+// Named, because a find tile shows the name the user gave it, not its date (data part D, RECORD -702); these tests tell the two
+// tiles apart by it ([findTileName]). Before that they were unnamed and told apart by "Find on <date>".
+private val PD_FIND_A = MushroomLogEntry.draft(id = "find-a", location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false, ownIdentification = "Morel")
+private val PD_FIND_B = MushroomLogEntry.draft(id = "find-b", location = null, date = LocalDate.of(2026, 9, 21)).copy(isDraft = false, ownIdentification = "Oyster")
 
 /**
  * Finds kept in memory, and (J4b L3) gallery photos; every [delete] and [deletePhotoFromGallery]

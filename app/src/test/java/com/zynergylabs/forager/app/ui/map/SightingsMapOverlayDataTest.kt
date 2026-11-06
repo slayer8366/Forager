@@ -61,7 +61,7 @@ import org.maplibre.geojson.Point
  */
 class SightingsMapOverlayDataTest {
 
-    private val region = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+    private val region = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
     private val sightings = listOf(
         Sighting(
@@ -69,8 +69,8 @@ class SightingsMapOverlayDataTest {
             taxonId = 47348L,
             scientificName = "Cantharellus formosus",
             commonName = "Chanterelle",
-            lat = 45.33,
-            lng = -122.64,
+            lat = 45.38,
+            lng = -121.70,
             observedOn = LocalDate.of(2024, 8, 1),
             photoUrl = null,
         ),
@@ -79,8 +79,8 @@ class SightingsMapOverlayDataTest {
             taxonId = 48522L,
             scientificName = "Morchella americana",
             commonName = null,
-            lat = 45.34,
-            lng = -122.65,
+            lat = 45.39,
+            lng = -121.71,
             observedOn = null,
             photoUrl = null,
         ),
@@ -90,7 +90,7 @@ class SightingsMapOverlayDataTest {
         PlannedTrip(
             id = "trip-1",
             name = "Trip 1",
-            location = LatLng(45.35, -122.66),
+            location = LatLng(45.40, -121.72),
             date = LocalDate.of(2026, 9, 1),
         ),
     )
@@ -340,6 +340,14 @@ class SightingsMapOverlayDataTest {
         assertEquals(plannedTrips[0].date.toString(), feature.getStringProperty("snippet"))
     }
 
+    // Schema 23 (dispatch 2026-10-30-02): an undated trip's feature carries no snippet rather than the word "null".
+    @Test
+    fun `an undated planned trip's feature has no snippet`() {
+        val feature = plannedTripsFeatureCollection(listOf(plannedTrips[0].copy(date = null))).features()!!.single()
+
+        assertEquals(false, feature.hasProperty("snippet"))
+    }
+
     /**
      * The data-shaping functions above take no [Basemap] parameter at all — the structural half of
      * "a basemap swap leaves overlays untouched" this test can actually establish. See this class's
@@ -381,9 +389,9 @@ class SightingsMapOverlayDataTest {
     }
 
     private val breadcrumbPoints = listOf(
-        LatLng(45.326, -122.634),
-        LatLng(45.330, -122.640),
-        LatLng(45.335, -122.645),
+        LatLng(45.3736, -121.6959),
+        LatLng(45.3776, -121.7019),
+        LatLng(45.3826, -121.7069),
     )
 
     @Test

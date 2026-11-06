@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 
 /**
@@ -47,8 +48,21 @@ import androidx.compose.ui.unit.dp
  *   the text. The stroked copy clears its semantics, so accessibility and tests see one text node,
  *   and the caller's modifier (tag, rotation) goes on the box so both passes turn together.
  * - **Icons**: an `ImageVector` cannot be stroked, so the outline is the same icon painted in the
- *   outline colour at eight offsets of the outline width around the filled one. Coarser than a
- *   true stroke, adequate at 24 dp, and it needs no second asset.
+ *   outline colour at eight offsets around the filled one, by [OVERLAY_ICON_OUTLINE_OFFSET]. Coarser
+ *   than a true stroke, adequate at 24 dp, and it needs no second asset.
+ *
+ *   **Thinner since dispatch 2026-10-13-03** (RECORD -970; the owner found the strip icons too
+ *   thick, "the lines aren't melting into each other", and chose "C both": the thin-line style of
+ *   the same symbols, and a thinner outline). The strip's glyphs are now Material's Outlined set,
+ *   and the offset went from 1.5 dp (half of [OVERLAY_OUTLINE_WIDTH]) to 0.75 dp. Chosen from a
+ *   sheet of 1.5, 1.0, 0.75 and 0.5 dp rendered over a near-white and a dark scene
+ *   (`CameraStripIconsScreenshotTest`): at 1.5 dp the outline fills the gaps inside the location
+ *   pin, the gear's two rings and the ruler's ticks; at 1.0 dp the ruler's ticks and the gear's
+ *   rings still nearly close; at 0.75 dp every gap in the timer, grid, ruler, location and gear
+ *   glyphs is open; 0.5 dp keeps them open too but leaves a hairline outline over the bright
+ *   scene. The rule stands: every glyph still has its outline (`CameraStripOutlinePixelsTest`).
+ *   The offset is rounded to whole pixels once and applied the same each way; an offset in dp
+ *   rounded per copy put one more pixel on the right and bottom than on the left and top.
  * - **The shutter's ring** and **the progress spinner** are circles, and get a black ring outside
  *   their white one by a second border or a second indicator with a wider stroke underneath.
  *
@@ -67,8 +81,11 @@ internal val OverlayFill: Color = Color.White
  */
 internal val OverlayLevelFill: Color = Color(0xFFFFD600)
 
-/** Stroke width for text and the offset for icons. Three dp reads as an outline at body size and does not fill a letter's counter. */
+/** Stroke width for text (and, until dispatch 2026-10-13-03, twice the icons' offset). Three dp reads as an outline at body size and does not fill a letter's counter. */
 internal val OVERLAY_OUTLINE_WIDTH: Dp = 3.dp
+
+/** How far each of an icon's eight outline copies is offset: thin enough to keep the gaps in the strip's Outlined glyphs open (see above). Was `OVERLAY_OUTLINE_WIDTH / 2`, 1.5 dp. */
+internal val OVERLAY_ICON_OUTLINE_OFFSET: Dp = 0.75.dp
 
 /** Outlined text. [fill] is white unless the text carries meaning — an error passes the error colour. */
 @Composable
@@ -89,7 +106,7 @@ internal fun OverlayText(
     }
 }
 
-/** An outlined icon: eight outline-coloured copies offset by the outline width, then the filled one. */
+/** An outlined icon: eight outline-coloured copies offset by [OVERLAY_ICON_OUTLINE_OFFSET], then the filled one. */
 @Composable
 internal fun OverlayIcon(
     imageVector: ImageVector,
@@ -97,10 +114,11 @@ internal fun OverlayIcon(
     modifier: Modifier = Modifier,
     fill: Color = OverlayFill,
 ) {
-    val w = OVERLAY_OUTLINE_WIDTH / 2
+    // Whole pixels, at least one, the same in every direction.
+    val w = with(LocalDensity.current) { OVERLAY_ICON_OUTLINE_OFFSET.roundToPx() }.coerceAtLeast(1)
     Box(modifier) {
-        for ((dx, dy) in listOf(-w to -w, 0.dp to -w, w to -w, -w to 0.dp, w to 0.dp, -w to w, 0.dp to w, w to w)) {
-            Icon(imageVector, contentDescription = null, tint = OverlayOutline, modifier = Modifier.offset(dx, dy).clearAndSetSemantics { })
+        for ((dx, dy) in listOf(-w to -w, 0 to -w, w to -w, -w to 0, w to 0, -w to w, 0 to w, w to w)) {
+            Icon(imageVector, contentDescription = null, tint = OverlayOutline, modifier = Modifier.offset { IntOffset(dx, dy) }.clearAndSetSemantics { })
         }
         Icon(imageVector, contentDescription = contentDescription, tint = fill)
     }

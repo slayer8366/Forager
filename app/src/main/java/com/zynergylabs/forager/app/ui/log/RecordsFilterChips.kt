@@ -1,5 +1,9 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
@@ -67,10 +71,17 @@ internal fun RecordsFilterChipRow(
     modifier: Modifier = Modifier,
     /** The row's spacing and icon size: [RecordsChipRowMetrics.Default], or the short window's (J5, L5a). */
     metrics: RecordsChipRowMetrics = RecordsChipRowMetrics.Default,
+    /**
+     * Dispatch 2026-10-17-09, RECORD -1243: in a landscape window the row sits on the Journal's switch line, centred in the space
+     * between the switch and the search icon, so it takes its chips' width (up to that space, then scrolls) rather than the
+     * whole width; and the selected chip is scrolled into view when the row is shown ("scrollable with offline maps showing and
+     * highlighted"). Both off by default: portrait and the wide tree are as before.
+     */
+    onSwitchLine: Boolean = false,
 ) {
     Row(
         modifier = modifier
-            .fillMaxWidth()
+            .then(if (onSwitchLine) Modifier else Modifier.fillMaxWidth())
             .testTag(RECORDS_FILTER_CHIP_ROW_TAG)
             .horizontalScroll(rememberScrollState())
             .padding(horizontal = metrics.rowPadding, vertical = Spacing.xs),
@@ -84,13 +95,19 @@ internal fun RecordsFilterChipRow(
                 selected = filter == selected,
                 onClick = { onSelect(filter) },
                 iconSize = metrics.iconSize,
+                bringIntoViewWhenSelected = onSwitchLine,
             )
         }
     }
 }
 
 @Composable
-private fun RecordsFilterChip(filter: RecordsSubTab, count: Int?, selected: Boolean, onClick: () -> Unit, iconSize: Dp?) {
+private fun RecordsFilterChip(filter: RecordsSubTab, count: Int?, selected: Boolean, onClick: () -> Unit, iconSize: Dp?, bringIntoViewWhenSelected: Boolean = false) {
+    // RECORD -1243: on the switch line, the selected chip is brought into the row's view when it is shown or chosen.
+    val bringIntoView = remember { BringIntoViewRequester() }
+    if (bringIntoViewWhenSelected) {
+        LaunchedEffect(selected) { if (selected) bringIntoView.bringIntoView() }
+    }
     val type = filter.recordType()
     val colors = if (type != null) {
         val typeColors = RecordTypeStyle.colors(type)
@@ -114,7 +131,9 @@ private fun RecordsFilterChip(filter: RecordsSubTab, count: Int?, selected: Bool
         },
         leadingIcon = { Icon(filter.chipIcon(), contentDescription = null, modifier = if (iconSize != null) Modifier.size(iconSize) else Modifier) },
         colors = colors,
-        modifier = Modifier.testTag(recordsFilterChipTestTag(filter)),
+        modifier = Modifier
+            .then(if (bringIntoViewWhenSelected) Modifier.bringIntoViewRequester(bringIntoView) else Modifier)
+            .testTag(recordsFilterChipTestTag(filter)),
     )
 }
 
@@ -150,7 +169,7 @@ internal fun RecordsSubTab.recordType(): RecordType? = when (this) {
     RecordsSubTab.OFFLINE_MAPS -> RecordType.OFFLINE_MAPS
 }
 
-private fun RecordsSubTab.chipLabel(): String = when (this) {
+internal fun RecordsSubTab.chipLabel(): String = when (this) {
     RecordsSubTab.ALL -> "All"
     RecordsSubTab.FINDS -> "Finds"
     RecordsSubTab.RECORDED_TRACKS -> "Tracks"

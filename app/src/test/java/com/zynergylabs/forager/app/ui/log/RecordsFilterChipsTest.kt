@@ -32,7 +32,30 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.test.core.app.ApplicationProvider
+import android.os.Looper
+import com.zynergylabs.forager.app.domain.AddPhotoToGalleryUseCase
+import com.zynergylabs.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
+import com.zynergylabs.forager.app.domain.CommitDraftEntryUseCase
+import com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCase
+import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
+import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
+import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
+import com.zynergylabs.forager.app.domain.LocationProvider
+import com.zynergylabs.forager.app.domain.MushroomLogRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
+import com.zynergylabs.forager.app.domain.PhotoStore
+import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
+import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
+import com.zynergylabs.forager.app.domain.SaveMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.StartEditingLogEntryUseCase
+import com.zynergylabs.forager.app.domain.UpdatePhotoLocationUseCase
+import com.zynergylabs.forager.app.domain.model.GalleryPhoto
+import com.zynergylabs.forager.app.domain.model.LogPhoto
+import com.zynergylabs.forager.app.domain.model.PhotoSource
+import java.io.IOException
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
@@ -56,6 +79,12 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.onChildren
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import com.zynergylabs.forager.app.ui.availability.offlineRegionRowLineTag
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * Journal redesign J1, S3 (`prompts/preserved/2026-09-27-16.md`; plan J4): Records' four-tab
@@ -67,7 +96,7 @@ import org.robolectric.annotation.Config
  * only thing that can settle which `BackHandler` takes a press. Chip selection that stands for "a
  * finger chose this chip" is a coordinate touch at several points across the chip's own bounds
  * (CLAUDE.md, "A semantic `performClick` asserts wiring, not routing"); a semantic click is used only
- * where a test is getting somewhere, not testing the chip (opening Records, the "+" tile).
+ * where a test is getting somewhere, not testing the chip (opening Records, the "New find" button, the "+" tile until RECORD -751).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w360dp-h640dp-xhdpi")
@@ -114,7 +143,7 @@ class RecordsFilterChipsTest {
                 onOpenCameraForAlbum = {},
                 onOpenCameraForCartographyEntry = {},
                 mapSlot = CHIPS_STUB_MAP,
-                pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
                 basemap = Basemap.DEFAULT,
                 onOpenEntry = { id -> uiState = uiState.copy(editingEntry = uiState.entries.first { it.id == id }) },
                 onCloseEntry = { uiState = uiState.copy(editingEntry = null) },
@@ -200,8 +229,9 @@ class RecordsFilterChipsTest {
 
     // ── The row ──
 
+    /** RECORD -868: Records opens on Finds. Rewritten for it: this said "All selected", and asserted All selected and the other four not. */
     @Test
-    fun `the chip row shows All, Finds, Tracks, Waypoints and Offline maps in that order, with counts matching the data, All selected`() {
+    fun `the chip row shows All, Finds, Tracks, Waypoints and Offline maps in that order, with counts matching the data, Finds selected`() {
         setScreen()
 
         val expected = listOf(
@@ -214,8 +244,8 @@ class RecordsFilterChipsTest {
         for ((tag, label, count) in expected) {
             chip(tag).assert(hasText(label)).assert(hasText(count))
         }
-        chip(ALL_CHIP).assertIsSelected()
-        for ((tag, _, _) in expected.drop(1)) chip(tag).assertIsNotSelected()
+        chip(FINDS_CHIP).assertIsSelected()
+        for ((tag, _, _) in expected.filter { it.first != FINDS_CHIP }) chip(tag).assertIsNotSelected()
 
         val lefts = expected.map { (tag, _, _) -> chip(tag).getUnclippedBoundsInRoot().left.value }
         assertEquals("chips are laid out left to right in display order", lefts.sorted(), lefts)
@@ -261,23 +291,32 @@ class RecordsFilterChipsTest {
     fun `touching Finds shows the finds gallery`() {
         setScreen()
         touchChipAcrossItsBounds(FINDS_CHIP) {
-            composeRule.onNodeWithContentDescription("New log entry").assertExists()
-            composeRule.onNodeWithText("Find on ${CHIPS_FIND.foundOn}").assertExists()
+            composeRule.onNodeWithTag(FINDS_FAB_TAG).assertExists()
+            // The gallery's tile for the one find, and its day heading (data part D, RECORD -702).
+            composeRule.onNodeWithContentDescription(findBlankTitleLabel(CHIPS_FIND)).assertExists()
+            composeRule.onNodeWithTag(findsDayHeaderTag(CHIPS_FIND.foundOn)).assertExists()
         }
     }
 
     // ── Back ──
 
+    /**
+     * RECORD -871 (the owner: "Back to Finds, then out (Recommended)"). Rewritten for it: this was "Back from a
+     * single-type chip returns to All, and Back from All steps to Cartography", looping over Finds, Tracks, Waypoints
+     * and Offline maps and asserting All selected after each Back. Now it loops over All, Tracks, Waypoints and
+     * Offline maps and asserts Finds selected after each Back; the last Back, from Finds, steps to Entries as the one
+     * from All did.
+     */
     @Test
-    fun `Back from a single-type chip returns to All, and Back from All steps to Cartography`() {
+    fun `Back from any other chip returns to Finds, and Back from Finds steps to Cartography`() {
         setScreen()
-        for (tag in listOf(FINDS_CHIP, TRACKS_CHIP, WAYPOINTS_CHIP, OFFLINE_MAPS_CHIP)) {
+        for (tag in listOf(ALL_CHIP, TRACKS_CHIP, WAYPOINTS_CHIP, OFFLINE_MAPS_CHIP)) {
             touchChip(tag, Offset(0.5f, 0.5f))
             chip(tag).assertIsSelected()
 
             pressBack()
 
-            chip(ALL_CHIP).assertIsSelected()
+            chip(FINDS_CHIP).assertIsSelected()
             chip(tag).assertIsNotSelected()
             composeRule.onNodeWithText("Records").assertIsSelected()
         }
@@ -309,7 +348,7 @@ class RecordsFilterChipsTest {
     fun `leaving the Finds chip while editing is an incidental exit`() {
         setScreen()
         touchChip(FINDS_CHIP, Offset(0.5f, 0.5f))
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         assertEquals(0, incidentalExitCount)
 
@@ -330,9 +369,10 @@ class RecordsFilterChipsTest {
 
     // ── S4: the All logbook (journal redesign J1, continuation prompts/preserved/2026-09-27-17.md) ──
     //
-    // Owner's answers: finds first within their day (they carry a date and no time), then the timed
-    // records newest first; days newest first; each type's own row as its chip shows it, with a type
-    // badge; tapping a find selects the Finds chip and opens its report there; committed finds only.
+    // Owner's answers: each type's own row as its chip shows it, with a type badge; tapping a find
+    // selects the Finds chip and opens its report there; committed finds only. The day grouping those
+    // answers also set (finds first within a day, days newest first) became grouping by kind with
+    // RECORD -868.
     // Times are built at local hours in the JVM's default zone, the zone the screen groups by, so the
     // day a record falls on does not depend on where the suite runs.
 
@@ -361,34 +401,48 @@ class RecordsFilterChipsTest {
         OfflineRegionSummary(id = 7L, name = "Noon region", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = localMillis(d1, 12)),
     )
 
-    private fun setLogbookScreen() = setScreen(
-        initial = MushroomLogUiState(entries = listOf(logFind1, logFind2, logFind3), draftEntries = listOf(logDraft)),
-        waypoints = logWaypoints(),
-        tracks = logTracks(),
-        regions = logRegions(),
-    )
+    /** The logbook data, on All: Records opens on Finds since RECORD -868, so All is touched first. */
+    private fun setLogbookScreen() {
+        setScreen(
+            initial = MushroomLogUiState(entries = listOf(logFind1, logFind2, logFind3), draftEntries = listOf(logDraft)),
+            waypoints = logWaypoints(),
+            tracks = logTracks(),
+            regions = logRegions(),
+        )
+        touchChip(ALL_CHIP, Offset(0.5f, 0.5f))
+    }
 
     private fun rowTag(type: String, id: String) = "records-logbook-row-$type-$id"
     private fun badgeTag(type: String, id: String) = "records-badge-$type-$id"
-    private fun dayTag(date: LocalDate) = "records-logbook-day-$date"
+    private fun sectionTag(type: String) = "records-logbook-section-$type"
 
+    /**
+     * RECORD -868 (the owner: "In All, separate by category and not by time/day entered, with Finds at the top";
+     * "Finds, Tracks, Waypoints, Offline maps (Recommended)"). Rewritten for it: this was "All shows every committed
+     * record grouped by day, days newest first, finds first in their day, then timed records newest first"; its
+     * reading order ran by day under three day headers, and it asserted each day header's record count ("5 records",
+     * "1 record", "1 record"). The reading order now runs by kind under four section headers, each asserted whole with
+     * its count; the committed-finds-only and chip-count assertions are unchanged. The fixture's finds have no time,
+     * so F1 and F2 (same day) keep their input order, and F3 is an older day.
+     */
     @Test
-    fun `All shows every committed record grouped by day, days newest first, finds first in their day, then timed records newest first`() {
+    fun `All shows every committed record grouped by kind, Finds, Tracks, Waypoints, Offline maps, each under a header with its count, newest first`() {
         setLogbookScreen()
         chip(ALL_CHIP).assertIsSelected()
 
         // Reading order: top first, then left (two finds share a row, as in the Finds gallery grid).
         val expected = listOf(
-            dayTag(d1),
+            sectionTag("finds"),
             rowTag("finds", "F1"),
             rowTag("finds", "F2"),
-            rowTag("tracks", "T1"),
-            rowTag("offline-maps", "7"),
-            rowTag("waypoints", "W1"),
-            dayTag(d2),
-            rowTag("waypoints", "W2"),
-            dayTag(d3),
             rowTag("finds", "F3"),
+            sectionTag("tracks"),
+            rowTag("tracks", "T1"),
+            sectionTag("waypoints"),
+            rowTag("waypoints", "W1"),
+            rowTag("waypoints", "W2"),
+            sectionTag("offline-maps"),
+            rowTag("offline-maps", "7"),
         )
         val positions = expected.map { tag ->
             val b = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
@@ -397,10 +451,11 @@ class RecordsFilterChipsTest {
         val sorted = positions.sortedWith(compareBy({ it.second.first }, { it.second.second })).map { it.first }
         assertEquals("the logbook's reading order", expected, sorted)
 
-        // Day headers carry the day's record count.
-        composeRule.onNodeWithTag(dayTag(d1)).assert(hasText("5 records", substring = true))
-        composeRule.onNodeWithTag(dayTag(d2)).assert(hasText("1 record", substring = true))
-        composeRule.onNodeWithTag(dayTag(d3)).assert(hasText("1 record", substring = true))
+        // Section headers name the kind as its chip does and carry the section's count.
+        composeRule.onNodeWithTag(sectionTag("finds")).assert(hasText("Finds · 3"))
+        composeRule.onNodeWithTag(sectionTag("tracks")).assert(hasText("Tracks · 1"))
+        composeRule.onNodeWithTag(sectionTag("waypoints")).assert(hasText("Waypoints · 2"))
+        composeRule.onNodeWithTag(sectionTag("offline-maps")).assert(hasText("Offline maps · 1"))
         // Committed finds only: the draft is neither listed nor counted.
         composeRule.onNodeWithTag(rowTag("finds", "D1")).assertDoesNotExist()
         chip(ALL_CHIP).assert(hasText("7"))
@@ -415,11 +470,15 @@ class RecordsFilterChipsTest {
             composeRule.onNodeWithTag(badgeTag(type, id), useUnmergedTree = true).assertExists()
         }
         // The same rows the single-type chips show: find tiles, the track row's share action, the
-        // waypoint row's Directions and its swipe-to-delete row (J4: the trash icon is gone), the
+        // waypoint row with no Directions (dispatch 2026-10-29-09) and its swipe-to-delete row (J4: the trash icon is gone), the
         // region row and its swipe-to-delete row (J4: its "Delete" button is gone).
-        composeRule.onAllNodesWithText("Find on $d1", useUnmergedTree = true).assertCountEquals(2)
+        // Each find row is a find tile: an unnamed find with no time shows no title and says "Find, <date>" to a screen reader
+        // (data part D, RECORD -702 and -703; it read "Find on <d1>" before, counted twice for d1's two finds).
+        for (id in listOf("F1", "F2")) {
+            composeRule.onNode(hasContentDescription("Find, ${displayDate(d1)}") and hasAnyAncestor(hasTestTag(rowTag("finds", id))), useUnmergedTree = true).assertExists()
+        }
         composeRule.onNodeWithTag("share-track-T1").assertExists()
-        composeRule.onNodeWithContentDescription("Directions to Morning pin").assertExists()
+        composeRule.onNodeWithContentDescription("Directions to Morning pin").assertDoesNotExist() // Was assertExists (-1819).
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "W2")).assertExists()
         composeRule.onNodeWithText("Noon region").assertExists()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7")).assertExists()
@@ -449,30 +508,224 @@ class RecordsFilterChipsTest {
         assertEquals(listOf(7L), deletedRegionIds)
     }
 
+    /**
+     * RECORD -870 and -871: the region row is one plain line, "name · radius · size · downloaded …", read here part by
+     * part as the row draws it (the dots between parts are hidden from the semantics tree). The centre's coordinates,
+     * the tile count and the zoom-readiness paragraph it used to print are on the region's own page
+     * ([RecordDetailsSheetTest]'s region cases), not in the row. Checked in All and in the Offline maps chip, the
+     * row's two homes. Noon region: 5 km is 3 mi; 1000 bytes is "0.0 MB"; its time is after this screen's clock (0),
+     * which reads "just now".
+     */
     @Test
-    fun `touching a find in All selects the Finds chip and opens its report, and Back goes to the Finds gallery, then All`() {
+    fun `an offline region row is one plain line of name, radius, size and when, with no centre, tiles or zoom paragraph, in All and in its chip`() {
+        setLogbookScreen()
+        assertNoonRegionLine("All")
+
+        touchChip(OFFLINE_MAPS_CHIP, Offset(0.5f, 0.5f))
+        assertNoonRegionLine("the Offline maps chip")
+    }
+
+    private fun assertNoonRegionLine(where: String) {
+        val line = composeRule.onNodeWithTag(offlineRegionRowLineTag(7L), useUnmergedTree = true)
+        line.performScrollTo()
+        val parts = line.onChildren().fetchSemanticsNodes().mapNotNull { node ->
+            node.config.getOrNull(SemanticsProperties.Text)?.joinToString("") { it.text }
+        }
+        assertEquals("the row's line in $where", listOf("Noon region", "3 mi radius", "0.0 MB", "downloaded just now"), parts)
+        for (gone in listOf("Ready to zoom", "tiles", "45.5000")) {
+            assertEquals(
+                "no \"$gone\" in $where's row",
+                0,
+                composeRule.onAllNodes(
+                    hasText(gone, substring = true) and hasAnyAncestor(hasTestTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7"))),
+                    useUnmergedTree = true,
+                ).fetchSemanticsNodes().size,
+            )
+        }
+    }
+
+    /**
+     * RECORD -874 (the owner: "Find > All > Finds > out (Recommended)"). Rewritten for it a second time. Under -871
+     * this was "touching a find in All selects the Finds chip and opens its report, and Back goes to the Finds gallery,
+     * then out of Records": it asserted the Finds chip selected with the report open, the F2 tile gone, the Finds
+     * gallery after one Back and Entries after two. Now the report opens over Records with All still selected (the F2
+     * tile stays composed under it, so its "gone" assertion became "the find over the view is up"); the first Back
+     * shows All with the F2 tile, the second Finds, the third Entries.
+     */
+    @Test
+    fun `touching a find in All opens its report over All, and Back goes to All, then Finds, then out of Records`() {
         setLogbookScreen()
 
         for (point in TOUCH_SAMPLES) {
+            if (point != TOUCH_SAMPLES.first()) {
+                composeRule.onNodeWithText("Records").performClick()
+                composeRule.waitForIdle()
+                touchChip(ALL_CHIP, Offset(0.5f, 0.5f))
+            }
             chip(ALL_CHIP).assertIsSelected()
             composeRule.onNodeWithTag(rowTag("finds", "F2")).performScrollTo()
             composeRule.onNodeWithTag(rowTag("finds", "F2")).performTouchInput { click(Offset(width * point.x, height * point.y)) }
             composeRule.waitForIdle()
 
-            chip(FINDS_CHIP).assertIsSelected()
+            composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertExists()
             composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
-            composeRule.onNodeWithTag(rowTag("finds", "F2")).assertDoesNotExist()
+            chip(ALL_CHIP).assertIsSelected()
+
+            pressBack()
+            composeRule.onNodeWithTag(FIND_OVER_VIEW_TAG).assertDoesNotExist()
+            composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
+            chip(ALL_CHIP).assertIsSelected()
+            composeRule.onNodeWithTag(rowTag("finds", "F2")).assertIsDisplayed()
 
             pressBack()
             chip(FINDS_CHIP).assertIsSelected()
-            composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
-            composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+            composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
 
             pressBack()
-            chip(ALL_CHIP).assertIsSelected()
+            composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.CARTOGRAPHY)).assertIsSelected()
         }
     }
+
+    // ── Dispatch 2026-10-28-08 (RECORD -1780, -1781): each empty list says what the user can do, in the owner's words ──
+    //
+    // Each asserted as exact text through the real Records screen. A failed load keeps its own text.
+
+    private fun emptyScreen(initial: MushroomLogUiState = MushroomLogUiState()) =
+        setScreen(initial = initial, waypoints = emptyList(), tracks = emptyList(), regions = emptyList())
+
+    @Test
+    fun `an empty All says how records are made`() {
+        emptyScreen()
+        touchChip(ALL_CHIP, Offset(0.5f, 0.5f))
+        composeRule.onNodeWithText("No records yet. Record a track, drop a waypoint or download a map, and it shows here.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an empty Tracks says to tap the record button on the map`() {
+        emptyScreen()
+        touchChip(TRACKS_CHIP, Offset(0.5f, 0.5f))
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertIsDisplayed()
+    }
+
+    @Test
+    fun `an empty Offline maps says to pan the map and tap Download Maps`() {
+        emptyScreen()
+        touchChip(OFFLINE_MAPS_CHIP, Offset(0.5f, 0.5f))
+        composeRule.onNodeWithText("No maps downloaded yet. Pan the map to an area and tap Download Maps.").assertExists()
+    }
+
+    @Test
+    fun `an empty, loaded Finds Log says to use New find, and its Drafts says where an unsaved find waits`() {
+        emptyScreen()
+        chip(FINDS_CHIP).assertIsSelected()
+        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertIsDisplayed()
+        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Drafts").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertIsDisplayed()
+        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a failed Finds load keeps its own text on both tabs, and neither empty line shows`() {
+        emptyScreen(MushroomLogUiState(loadErrorMessage = "Log entries unavailable."))
+        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
+        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Drafts").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
+        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertDoesNotExist()
+    }
+
+    @Test
+    fun `a Finds Log still loading says nothing yet, while its drafts already show`() {
+        val draft = MushroomLogEntry.draft(id = "draft-1", location = null, date = LocalDate.of(2026, 9, 21))
+        emptyScreen(MushroomLogUiState(isLoadingEntries = true, draftEntries = listOf(draft)))
+        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
+        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertDoesNotExist()
+    }
+
+    /**
+     * Amendment 2 (RECORD -1784, Sorrel's N5; the owner: "Say it couldn't load (Recommended)"): when the drafts read fails,
+     * the Drafts tab shows the same failed-load text the Log tab shows, never "No drafts. …", which would tell a user whose
+     * draft is on disk that there is none. The state comes from the real [MushroomLogViewModel.loadEntries] over a store whose
+     * drafts read fails, not from a hand-set field, and is drawn by the real Records screen.
+     */
+    @Test
+    fun `a drafts read that fails says so on Drafts rather than No drafts, and Log still says what to do`() {
+        val store = DraftsReadFailsStore()
+        val log = draftsReadFailsViewModel(store)
+        Shadows.shadowOf(Looper.getMainLooper()).idle()
+        assertEquals("positive control: the entries read and the drafts read both ran", 2, store.reads)
+        assertEquals("positive control: the load has finished", false, log.uiState.value.isLoadingEntries)
+
+        emptyScreen(log.uiState.value)
+        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertIsDisplayed()
+        composeRule.onNodeWithText("Log entries unavailable.").assertDoesNotExist()
+
+        composeRule.onNodeWithText("Drafts").performClick()
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
+        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertDoesNotExist()
+    }
 }
+
+/**
+ * Sorrel's N5: a log store whose drafts read fails. [MushroomLogViewModel.loadEntries] reads the entries first and the drafts
+ * second, both through [MushroomLogRepository.getAll], so every second read fails; the test checks [reads] is 2, so this
+ * stands only while that order does. The entries read succeeds, empty.
+ */
+private class DraftsReadFailsStore : MushroomLogRepository {
+    var reads = 0
+
+    override suspend fun getAll(): Result<List<MushroomLogEntry>> =
+        if (++reads % 2 == 0) Result.failure(IOException("drafts read failed")) else Result.success(emptyList())
+    override suspend fun getForDay(foundOnKey: String): Result<List<MushroomLogEntry>> = Result.success(emptyList())
+    override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(emptyList())
+    override suspend fun save(entry: MushroomLogEntry): Result<Unit> = unsupported()
+    override suspend fun commitDraft(draftId: String, committed: MushroomLogEntry): Result<Unit> = unsupported()
+    override suspend fun delete(id: String): Result<Unit> = unsupported()
+    override suspend fun addPhotoToGallery(photo: LogPhoto): Result<Unit> = unsupported()
+    override suspend fun updatePhotoLocation(photoId: String, latitude: Double, longitude: Double): Result<Unit> = unsupported()
+    override suspend fun attachPhotoToEntry(entryId: String, photoId: String): Result<Unit> = unsupported()
+    override suspend fun detachPhotoFromEntry(entryId: String, photoId: String): Result<Unit> = unsupported()
+    override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> = unsupported()
+
+    private fun unsupported(): Result<Unit> = Result.failure(UnsupportedOperationException("not part of this test's path"))
+}
+
+private object DraftsReadFailsPhotoStore : PhotoStore {
+    override suspend fun persist(source: PhotoSource): Result<LogPhoto> = Result.failure(UnsupportedOperationException("not part of this test's path"))
+    override suspend fun delete(photo: LogPhoto): Result<Unit> = Result.success(Unit)
+}
+
+private object DraftsReadFailsNoLocation : LocationProvider {
+    override suspend fun getCurrentLocation(): LocationResult = LocationResult.LocationUnavailable
+}
+
+private fun draftsReadFailsViewModel(store: DraftsReadFailsStore) = MushroomLogViewModel(
+    getEntries = GetMushroomLogEntriesUseCase(store),
+    getDraftEntries = GetDraftEntriesUseCase(store),
+    createEntry = CreateMushroomLogEntryUseCase(store, today = { LocalDate.of(2026, 10, 28) }, idGenerator = { "find-new" }),
+    startEditingEntry = StartEditingLogEntryUseCase(store, idGenerator = { "draft-of-find" }),
+    saveEntry = SaveMushroomLogEntryUseCase(store),
+    commitDraftEntry = CommitDraftEntryUseCase(store),
+    deleteEntry = DeleteMushroomLogEntryUseCase(store),
+    addPhoto = AddPhotoToLogEntryUseCase(DraftsReadFailsPhotoStore, store),
+    addPhotoToGallery = AddPhotoToGalleryUseCase(DraftsReadFailsPhotoStore, store),
+    removePhoto = RemovePhotoFromLogEntryUseCase(store),
+    getGalleryPhotos = GetGalleryPhotosUseCase(store),
+    pullPhotoIntoEntry = PullPhotoIntoEntryUseCase(store),
+    deleteGalleryPhoto = DeleteGalleryPhotoUseCase(store, DraftsReadFailsPhotoStore),
+    locationProvider = DraftsReadFailsNoLocation,
+    updatePhotoLocation = UpdatePhotoLocationUseCase(store),
+    entryReferenceCounts = NoEntryReferenceCounts,
+)
 
 private const val ALL_CHIP = "records-chip-all"
 private const val FINDS_CHIP = "records-chip-finds"

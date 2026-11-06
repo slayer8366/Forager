@@ -1,12 +1,17 @@
 package com.zynergylabs.forager.app.photo
 
 import androidx.lifecycle.LifecycleOwner
+import com.zynergylabs.forager.app.domain.CameraCapabilities
+import com.zynergylabs.forager.app.domain.CameraFormat
+import com.zynergylabs.forager.app.domain.EncoderCapabilities
+import com.zynergylabs.forager.app.domain.raw.DngImage
 import java.io.File
 
 /**
  * What the in-app camera screen needs from a camera, and nothing else — the interface this project
  * owns, per CLAUDE.md's rule that an external integration is wrapped rather than depended on
- * directly. [CameraXCaptureSession] is the only implementation that touches `androidx.camera`.
+ * directly. [CameraXCaptureSession] is the only implementation that touches `androidx.camera`
+ * (with its capability reader, `CameraXCapabilityReader.kt`, since dispatch 2026-10-13-04).
  *
  * ## Why this exists rather than the screen calling CameraX
  *
@@ -82,6 +87,55 @@ internal interface CameraCaptureSession {
      * than reporting a mode the hardware cannot be in.
      */
     fun setFlashMode(mode: FlashMode)
+
+    /**
+     * What the bound camera can do for the RAW pipeline (dispatch 2026-10-13-04): RAW output,
+     * manual exposure, the exposure-compensation fallback, the sensor's RAW geometry and its
+     * physical cameras, each supported, unsupported or unknown with a reason. Read once at bind and
+     * logged; `null` before [open] has bound a camera and after [close], as [hasFlashUnit] is false
+     * then. Observable. **Nothing a user sees reads it yet**: later stages decide what to show.
+     */
+    val capabilities: CameraCapabilities?
+
+    /**
+     * Whether the phone can encode HEIF and PNG (and has an HEVC video encoder). Read once per
+     * process off the main thread, so it lands after [capabilities]; `null` until it has, and after
+     * [close]. Observable. Not read by anything a user sees yet.
+     */
+    val encoderCapabilities: EncoderCapabilities?
+
+    /**
+     * The format the bound camera takes a shot in (dispatch 2026-10-15-01): [CameraFormat.Jpg] until a RAW+JPEG bind has
+     * succeeded, and again after any RAW bind fails or the camera reports it cannot configure one. This, not the chip's
+     * stored choice, is what a shot uses, so the screen never takes a shot the camera is not set up for. Observable.
+     */
+    val outputFormat: CameraFormat
+
+    /**
+     * Asks for [format]. Before [open] it is remembered and the first bind uses it (Amendment 1, item 1: capabilities are
+     * read before the first bind, so a remembered RAW binds once). While open, the capture is rebound in this same session,
+     * never a new one (a new session froze the picture once, `InAppCameraHost.kt`). A RAW that cannot bind falls back to
+     * JPG, logged, and the camera keeps working: never a dead camera.
+     */
+    fun requestOutputFormat(format: CameraFormat)
+
+    /**
+     * Takes one RAW+JPEG shot: the JPG is written to [jpegDestination], as [capture] writes one, and the sensor data comes
+     * back in memory, mapped to the DNG writer's input ([RawShot.dng]) or with the reason it could not be
+     * ([RawShot.dngUnavailable]). A failure is a shot with no photo at all, as [capture]'s is. Only while [outputFormat] is
+     * [CameraFormat.Raw].
+     */
+    suspend fun captureRaw(jpegDestination: File): Result<RawShot>
+}
+
+/**
+ * One RAW+JPEG shot, its JPG already on disk. Exactly one of [dng] and [dngUnavailable] is set: the writer's input, or why
+ * the camera's metadata could not make one (a value the DNG needs was not reported; never guessed, CLAUDE.md).
+ */
+internal class RawShot(val dng: DngImage?, val dngUnavailable: String?) {
+    init {
+        require((dng == null) != (dngUnavailable == null)) { "a RawShot carries either the image or the reason it has none" }
+    }
 }
 
 /**

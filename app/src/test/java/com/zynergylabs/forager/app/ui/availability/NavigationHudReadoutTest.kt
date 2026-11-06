@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.HopBand
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.RouteHome
@@ -27,7 +28,7 @@ import org.junit.Test
 class NavigationHudReadoutTest {
 
     private val t = 1_700_000_000_000L
-    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = t)
+    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val north = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     private fun readout(
@@ -38,7 +39,10 @@ class NavigationHudReadoutTest {
         now: Long = t + 1_000L,
         showDecimalDegrees: Boolean = false,
         route: ReturnRoute? = null,
-    ) = navigationReadout(heading, liveFix, target, unit, now, showDecimalDegrees, route)
+        // Dispatch 2026-10-28-13: the strip's height, given here as the fix's own (a zero sea-level offset), since these
+        // tests are about the readout's words; the card reading the strip's height and not the fix's is tested below.
+        height: Double? = liveFix?.altitude,
+    ) = navigationReadout(heading, liveFix, target, unit, now, showDecimalDegrees, route, heightMeters = height)
 
     // ── Dispatch 2026-09-28-430, ruling E: the stuck-compass notice is the heading label ──────
 
@@ -71,15 +75,24 @@ class NavigationHudReadoutTest {
         // Below a quarter mile the unit is feet: 350 m is 1148.3 ft.
         assertEquals("1148 ft", readout(route = ReturnRoute.Ahead(east, 350.0)).distanceText)
         assertEquals("350 m", readout(route = ReturnRoute.Ahead(east, 350.0), unit = DistanceUnit.KILOMETERS).distanceText)
-        // The straight line to the start, with the accuracy-aware formatting it had in the large slot.
-        assertEquals("Straight line 0.7 mi", readout(route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
-        assertEquals("Straight line 1.1 km", readout(route = ReturnRoute.Ahead(east, 1_500.0), unit = DistanceUnit.KILOMETERS).statusText)
+        // RECORD -942 (the owner: "Remove the 0.7m straight since the ≈800ft ahead is saying the same thing"): on the route the
+        // status line has no straight-line note. Was: "0.7 mi straight" and "1.1 km straight".
+        assertEquals("", readout(route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
+        assertEquals("", readout(route = ReturnRoute.Ahead(east, 1_500.0), unit = DistanceUnit.KILOMETERS).statusText)
+        // With no route figure yet, the note stays: nothing else says how far the start is.
+        assertEquals("1.1 km straight", readout(route = ReturnRoute.Pending, unit = DistanceUnit.KILOMETERS).statusText)
     }
 
     @Test
     fun `the straight line yields to approaching, to a stale fix and to a lost fix, and is absent with no route given`() {
+        // Dispatch 2026-09-28-578 (Amendment 1, -579) changed this. Before: `close` (10 m) asserted
+        // "Approaching". 10 m has arrived (radius max(2 x 12.5, 15) = 25 m), and arrived the status line
+        // is empty, "Arrived" alone; the yielding claim moves to a target 50 m off, inside the 100 m
+        // approaching zone and not arrived.
         val close = north.copy(lat = 45.52009)
-        assertEquals("Approaching", readout(target = close, route = ReturnRoute.Ahead(east, 12.0)).statusText)
+        val fiftyMetres = north.copy(lat = 45.52045)
+        assertEquals("Approaching", readout(target = fiftyMetres, route = ReturnRoute.Ahead(east, 60.0)).statusText)
+        assertEquals("", readout(target = close, route = ReturnRoute.Ahead(east, 12.0)).statusText)
         assertEquals("Last fix 45 s ago", readout(now = t + 45_000L, route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
         assertEquals("No fix for 6 min", readout(now = t + 6L * 60L * 1_000L, route = ReturnRoute.Ahead(east, 1_500.0)).statusText)
         assertEquals("", readout(route = null).statusText)
@@ -96,7 +109,7 @@ class NavigationHudReadoutTest {
     fun `navigating to a waypoint with no route keeps the straight line in the large slot and aims at the waypoint`() {
         val r = readout(route = null)
         assertEquals("0.7 mi", r.distanceText)
-        assertEquals("Turn 315°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         assertEquals("", r.statusText)
         assertFalse(r.routeRetryOffered)
     }
@@ -105,9 +118,9 @@ class NavigationHudReadoutTest {
     fun `the needle aims at the route's lookahead, not at the start`() {
         // The start is due north (a 315° turn from 45°); the lookahead due east (a 45° turn).
         val r = readout(route = ReturnRoute.Ahead(east, 1_500.0))
-        assertEquals("Turn 45°", r.targetText)
+        assertEquals("right 45°", r.targetText)
         assertEquals(45f, r.targetArrowDegrees!!, 0.5f)
-        assertEquals("Turn 315°", readout(route = null).targetText)
+        assertEquals("left 45°", readout(route = null).targetText)
     }
 
     @Test
@@ -116,7 +129,7 @@ class NavigationHudReadoutTest {
         assertEquals("—", r.distanceText)
         assertNull(r.targetArrowDegrees)
         assertEquals("", r.targetText)
-        assertEquals("Straight line 0.7 mi", r.statusText)
+        assertEquals("0.7 mi straight", r.statusText)
         assertFalse(r.routeRetryOffered)
     }
 
@@ -126,7 +139,7 @@ class NavigationHudReadoutTest {
         assertEquals("Unable to calculate route", r.distanceText)
         assertNull(r.targetArrowDegrees)
         assertEquals("", r.targetText)
-        assertEquals("Straight line 0.7 mi", r.statusText)
+        assertEquals("0.7 mi straight", r.statusText)
         assertTrue(r.routeRetryOffered)
     }
 
@@ -182,7 +195,7 @@ class NavigationHudReadoutTest {
 
         assertEquals("45° NE", r.headingText)
         assertEquals(-45f, r.northArrowDegrees)
-        assertEquals("Turn 315°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
         assertEquals("0.7 mi", r.distanceText)
         assertFalse(r.distanceDeEmphasised)
@@ -195,7 +208,7 @@ class NavigationHudReadoutTest {
 
         val r = readout(target = west)
 
-        assertEquals("Turn 225°", r.targetText)
+        assertEquals("sharp left 135°", r.targetText)
         assertEquals(225f, r.targetArrowDegrees!!, 0.05f)
     }
 
@@ -205,13 +218,16 @@ class NavigationHudReadoutTest {
     }
 
     @Test
-    fun `approaching inside twice the reported accuracy - the needle is not drawn`() {
+    fun `inside twice the reported accuracy - arrived, the status line is empty and the needle is not drawn`() {
         // 0.00009° of latitude is 10.0 m; accuracy 12.5 m → threshold 25 m.
         val close = north.copy(lat = 45.52009)
 
         val r = readout(target = close)
 
-        assertEquals("Approaching", r.statusText)
+        // Dispatch 2026-09-28-578 (Amendment 1, -579) changed this. Before: the name began "approaching
+        // inside twice the reported accuracy" and the status line was asserted to read "Approaching".
+        // After: arrived, "Arrived" stands alone (the owner: "Drop "Approaching" when arrived").
+        assertEquals("", r.statusText)
         // Dispatch -502 changed this (Amendment 2). Before: the name ended "- never arrived, and the
         // needle is not drawn", and the large slot was asserted to read "within 41 ft" (inside the error
         // circle the distance is the accuracy, 12.5 m being 41.01 ft; FormatDistanceMetersTest still pins
@@ -230,11 +246,18 @@ class NavigationHudReadoutTest {
      * constant under test: with accuracy 8 m the threshold is 16 m. One degree of latitude on
      * `GeoDistance`'s own mean radius (6 371 008.8 m) is 2π·R/360 = 111 195.08 m, so 0.000140° is
      * 15.57 m and 0.000148° is 16.46 m — neither derived from `APPROACHING_ACCURACY_MULTIPLIER`.
-     * Fails with the needle gate removed (a needle at 15.57 m) and with a second threshold that
-     * drifts from the label's (a label at 15.57 m with the needle still drawn, or the reverse).
+     * Fails with the needle gate removed (a needle at 15.57 m).
+     *
+     * Dispatch 2026-09-28-578 (Amendment 1, -579) changed this test. Before: the name ended "and
+     * Approaching shows - just outside, the needle is present and it does not", and the doc said the
+     * label and the needle shared this one threshold. After: "Approaching" has its own zone, 100 m
+     * and not arrived (the owner: "Give Approaching its own zone", "100 m / 330 ft"), so 15.57 m, which
+     * has arrived (16 m), has an empty status line, and 16.46 m, which has not, reads "Approaching"
+     * with the needle still drawn. The needle keeps the twice-accuracy threshold; the label no longer
+     * reads it.
      */
     @Test
-    fun `just inside the threshold the needle is absent and Approaching shows - just outside, the needle is present and it does not`() {
+    fun `just inside the threshold the needle is absent - just outside, the needle is present and Approaching shows with it`() {
         val eightMetres = fix.copy(accuracyMeters = 8f)
         val inside = north.copy(lat = 45.52 + 0.000140)
         val outside = north.copy(lat = 45.52 + 0.000148)
@@ -246,7 +269,7 @@ class NavigationHudReadoutTest {
         // claim below is the point of this test and is unchanged.
         assertEquals(ARRIVED_TEXT, r1.distanceText)
         assertNull("no needle at 15.57 m with 8 m accuracy", r1.targetArrowDegrees)
-        assertEquals("Approaching", r1.statusText)
+        assertEquals("", r1.statusText)
         assertEquals("", r1.targetText)
 
         val r2 = readout(liveFix = eightMetres, target = outside)
@@ -255,8 +278,57 @@ class NavigationHudReadoutTest {
         assertEquals("≈ 50 ft", r2.distanceText)
         assertNotNull("a needle at 16.46 m with 8 m accuracy", r2.targetArrowDegrees)
         assertEquals(315f, r2.targetArrowDegrees!!, 1e-3f)
-        assertEquals("", r2.statusText)
-        assertEquals("Turn 315°", r2.targetText)
+        assertEquals("Approaching", r2.statusText)
+        assertEquals("left 45°", r2.targetText)
+    }
+
+    // ── Dispatch 2026-09-28-578, Amendment 1 (-579): "Approaching" has its own zone ─────────────
+    // The owner: "Give Approaching its own zone", then "100 m / 330 ft (Recommended)". Within 100 m and
+    // not arrived: the distance counting down, the needle still pointing, "Approaching" under it.
+    // Arrived: "Arrived" alone. Distances use GeoDistance's 111 195.08 m per degree of latitude.
+
+    @Test
+    fun `inside the approaching zone and not arrived - the distance counts down, the needle points, Approaching under it`() {
+        val fiftyMetres = north.copy(lat = 45.52045) // 50.04 m; arrival is max(2 x 12.5, 15) = 25 m
+
+        val r = readout(target = fiftyMetres, unit = DistanceUnit.KILOMETERS)
+
+        assertEquals("Approaching", r.statusText)
+        assertEquals("≈ 50 m", r.distanceText)
+        assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
+        assertEquals("left 45°", r.targetText)
+        assertFalse(r.distanceDeEmphasised)
+    }
+
+    @Test
+    fun `the approaching zone ends at 100 m - 99 m shows Approaching, 101 m does not`() {
+        val inside = north.copy(lat = 45.52 + 0.000891) // 99.07 m
+        val outside = north.copy(lat = 45.52 + 0.000909) // 101.08 m
+
+        assertEquals("Approaching", readout(target = inside).statusText)
+        assertEquals("", readout(target = outside).statusText)
+        // Under a route the zone is the same; past it the line is empty (RECORD -942: no straight-line note on the route). Was:
+        // the straight line past the zone.
+        assertEquals("Approaching", readout(target = inside, route = ReturnRoute.Ahead(east, 120.0)).statusText)
+        assertEquals("", readout(target = outside, route = ReturnRoute.Ahead(east, 120.0)).statusText)
+    }
+
+    /**
+     * Arrived with a route, outside twice the accuracy (12 m with 3.79 m accuracy, the S22's constant:
+     * arrived within 15 m, outside 7.58 m): before this dispatch the status line read "Straight line …"
+     * under "Arrived". After, "Arrived" alone, the owner's words.
+     */
+    @Test
+    fun `arrived with a route outside twice the accuracy - Arrived alone, no straight line under it`() {
+        val s22 = fix.copy(accuracyMeters = 3.79f)
+        val twelveMetres = north.copy(lat = 45.52 + 0.000108) // 12.01 m: arrived (15 m), outside 7.58 m
+
+        val r = readout(liveFix = s22, target = twelveMetres, route = ReturnRoute.Ahead(east, 14.0))
+
+        assertEquals(ARRIVED_TEXT, r.distanceText)
+        assertEquals("", r.statusText)
+        // The needle keeps today's twice-accuracy threshold: outside 7.58 m it is drawn.
+        assertNotNull(r.targetArrowDegrees)
     }
 
     @Test
@@ -268,11 +340,32 @@ class NavigationHudReadoutTest {
 
         assertNotNull(r.targetArrowDegrees)
         assertEquals("", r.statusText)
-        assertEquals("Turn 315°", r.targetText)
+        assertEquals("left 45°", r.targetText)
         // Dispatch -502 changed this (Amendment 2). Before: the large slot was asserted to read "33 ft" (no
         // accuracy, no rounding, no marker). After: arrival applies to any target, and with no accuracy its
         // radius is 15 m, so 10 m reads "Arrived". The needle, drawn with no basis for approaching, is unchanged.
         assertEquals(ARRIVED_TEXT, r.distanceText)
+    }
+
+    /**
+     * Dispatch 2026-09-28-578 (Amendment 1, -579): the test above asserts an empty status line at 10 m
+     * with no accuracy, and that is true for two reasons (no accuracy, no basis for the old
+     * "Approaching"; and arrived, "Arrived" alone), so it cannot tell them apart. This case can: 50 m
+     * with no accuracy has not arrived (radius 15 m) and is inside the 100 m zone, which is a fixed
+     * distance and needs no accuracy, so "Approaching" shows; the needle, which still needs an
+     * accuracy to withhold on, stays drawn.
+     */
+    @Test
+    fun `no reported accuracy, 50 m off - not arrived, inside the zone, so Approaching shows and the needle stays drawn`() {
+        val noAccuracy = fix.copy(accuracyMeters = null)
+        val fiftyMetres = north.copy(lat = 45.52045)
+
+        val r = readout(liveFix = noAccuracy, target = fiftyMetres)
+
+        assertEquals("Approaching", r.statusText)
+        assertEquals("164 ft", r.distanceText)
+        assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
+        assertEquals("left 45°", r.targetText)
     }
 
     @Test
@@ -285,16 +378,42 @@ class NavigationHudReadoutTest {
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
     }
 
+    /**
+     * Dispatch 2026-09-28-578 (Amendment 1, -579) changed this test. Before: named "stale and
+     * approaching - both facts on the status line, needle withheld", asserting "Approaching · last fix
+     * 45 s ago". 10 m with 12.5 m accuracy has arrived (25 m), and arrived, "Approaching" is dropped:
+     * the S22 combined check (-571) saw "Arrived" over "Approaching · last fix 2 min ago". Stale and in
+     * the zone without arriving is the next test.
+     */
     @Test
-    fun `stale and approaching - both facts on the status line, needle withheld`() {
+    fun `stale and arrived - only the fix's age on the status line, needle withheld`() {
         val close = north.copy(lat = 45.52009)
 
         val r = readout(target = close, now = t + 45_000L)
 
-        assertEquals("Approaching · last fix 45 s ago", r.statusText)
+        assertEquals(ARRIVED_TEXT, r.distanceText)
+        assertEquals("Last fix 45 s ago", r.statusText)
         assertNull(r.targetArrowDegrees)
         assertEquals("", r.targetText)
         assertTrue(r.distanceDeEmphasised)
+    }
+
+    /** Dispatch 2026-09-28-578 (Amendment 1, -579): stale, inside the 100 m zone and not arrived, both facts show, and the needle still points. */
+    @Test
+    fun `stale and approaching, not arrived - both facts on the status line, needle drawn`() {
+        val fiftyMetres = north.copy(lat = 45.52045)
+
+        val r = readout(target = fiftyMetres, now = t + 45_000L, unit = DistanceUnit.KILOMETERS)
+
+        assertEquals("Approaching · last fix 45 s ago", r.statusText)
+        // Dispatch 2026-09-28-685, Amendment 1 (RECORD -694): its short form, and which one a width gets.
+        assertEquals("Last fix 45 s ago", r.statusShortText)
+        assertEquals("Approaching · last fix 45 s ago", statusTextThatFits(r, maxWidthPx = 100) { it.length })
+        assertEquals("Last fix 45 s ago", statusTextThatFits(r, maxWidthPx = 30) { it.length })
+        assertEquals("≈ 50 m", r.distanceText)
+        assertTrue(r.distanceDeEmphasised)
+        assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
+        assertEquals("left 45°", r.targetText)
     }
 
     @Test
@@ -330,7 +449,9 @@ class NavigationHudReadoutTest {
         val r = readout(heading = TrueHeadingReading.NoSensor, target = close)
 
         assertEquals("", r.targetText)
-        assertEquals("Approaching", r.statusText)
+        // Dispatch 2026-09-28-578 (Amendment 1, -579) changed this. Before: "Approaching". 10 m has
+        // arrived (25 m), and arrived the status line is empty, "Arrived" alone.
+        assertEquals("", r.statusText)
     }
 
     // ── Compass-reliability dispatch: the fourth state, and its precedence ──────────────────
@@ -359,16 +480,27 @@ class NavigationHudReadoutTest {
         assertEquals("Compass unreliable", r.headingText)
     }
 
-    /** Unreliable compass with the approach threshold: both withhold the needle; the status still says Approaching (a fact about distance, not heading). */
+    /**
+     * Unreliable compass with the approach threshold: both withhold the needle; the status line is a
+     * fact about distance, not heading, so the compass does not change it. Dispatch 2026-09-28-578
+     * (Amendment 1, -579) changed this test. Before: named "… withholds the needle and keeps
+     * Approaching", asserting "Approaching" at 10 m. 10 m has arrived (25 m), so the status line is
+     * empty; the 50 m case, inside the zone and not arrived, keeps "Approaching" under an unreliable
+     * compass.
+     */
     @Test
-    fun `precedence - unreliable compass while approaching withholds the needle and keeps Approaching`() {
+    fun `precedence - unreliable compass while arrived withholds the needle, and inside the zone Approaching still shows`() {
         val close = north.copy(lat = 45.52009)
 
         val r = readout(heading = TrueHeadingReading.Unreliable, target = close)
 
         assertNull(r.targetArrowDegrees)
         assertEquals("", r.targetText)
-        assertEquals("Approaching", r.statusText)
+        assertEquals("", r.statusText)
+
+        val zone = readout(heading = TrueHeadingReading.Unreliable, target = north.copy(lat = 45.52045))
+        assertNull(zone.targetArrowDegrees)
+        assertEquals("Approaching", zone.statusText)
         // Dispatch -502 changed this (Amendment 2). Before: "within 41 ft". After: arrival applies to any
         // target, and 10 m is inside arrival's max(2 x 12.5, 15) = 25 m, so the large slot reads "Arrived".
         assertEquals(ARRIVED_TEXT, r.distanceText)
@@ -396,8 +528,9 @@ class NavigationHudReadoutTest {
         assertEquals("No origin waypoint for this track", r.statusText)
         assertEquals("—", r.distanceText)
         assertNull(r.targetArrowDegrees)
-        // A fix exists, so the second row still has something true to say.
-        assertEquals("50 m", r.elevationText)
+        // A fix exists, so the second row still has something true to say. In feet: this file's
+        // unit is miles, and the elevation follows Units (dispatch 2026-09-28-549; 50 / 0.3048 = 164.04).
+        assertEquals("164 ft", r.elevationText)
     }
 
     @Test
@@ -413,14 +546,73 @@ class NavigationHudReadoutTest {
     @Test
     fun `with a fix the second row carries the elevation and MGRS, decimal degrees on request`() {
         val r = readout()
-        assertEquals("50 m", r.elevationText)
+        // Dispatch 2026-09-28-549: miles here, so feet (50 / 0.3048 = 164.04); metres under metric, below.
+        assertEquals("164 ft", r.elevationText)
         // Pinned against MgrsConverterTest's own Portland point rather than this fix — same
         // converter, a value that test already fixes independently.
         val portland = fix.copy(lat = 45.5152, lng = -122.6784, altitude = null)
         val p = readout(liveFix = portland)
-        assertEquals("Elevation unavailable", p.elevationText)
+        assertEquals("Alt unavailable", p.elevationText)
         assertEquals("10T ER 25118 40235", p.coordinatesText)
-        assertEquals("Lat. 45.5152 Long. -122.6784", readout(liveFix = portland, showDecimalDegrees = true).coordinatesText)
+        // Dispatch 2026-09-28-549: under metric the elevation reads exactly as before.
+        assertEquals("50 m", readout(unit = DistanceUnit.KILOMETERS).elevationText)
+        assertEquals("Alt unavailable", readout(liveFix = portland, unit = DistanceUnit.KILOMETERS).elevationText)
+        assertEquals("45.5152, -122.6784", readout(liveFix = portland, showDecimalDegrees = true).coordinatesText)
+    }
+
+    /**
+     * Dispatch 2026-10-28-13 ("Yes, same as the strip (Recommended)"): the card's height is the strip's, given to it,
+     * never the fix's own raw height. The fix says 50 m; the strip's sea-level height is 71.6 m.
+     */
+    @Test
+    fun `the card reads the strip's height, not the fix's raw one`() {
+        assertEquals("72 m", readout(unit = DistanceUnit.KILOMETERS, height = 71.6).elevationText)
+        assertEquals("with no height to show the card says so, whatever the fix carries", "Alt unavailable", readout(unit = DistanceUnit.KILOMETERS, height = null).elevationText)
+    }
+
+    // ── Dispatch 2026-09-28-677 (data part B): words, kinds and labels ──────────────────────────
+
+    @Test
+    fun `the large figure says what it measures - straight with no route, by trail on the route, nothing for words or a dash`() {
+        assertEquals("straight", readout(route = null).distanceKindText)
+        assertEquals("by trail", readout(route = ReturnRoute.Ahead(east, 1_500.0)).distanceKindText)
+        assertNull("a dash before the first route", readout(route = ReturnRoute.Pending).distanceKindText)
+        assertNull("words, not a figure", readout(route = ReturnRoute.Unavailable(canRetry = true)).distanceKindText)
+        assertNull("a lost fix shows a dash", readout(now = t + 6L * 60L * 1_000L, route = null).distanceKindText)
+        // 10 m off, arrived (radius max(2 x 12.5, 15) = 25 m): "Arrived" alone.
+        val close = north.copy(lat = 45.52009)
+        assertEquals("Arrived", readout(target = close).distanceText)
+        assertNull(readout(target = close).distanceKindText)
+        // A stale fix still shows its figure, dimmed, so it still says what it is.
+        assertEquals("straight", readout(now = t + 45_000L, route = null).distanceKindText)
+    }
+
+    @Test
+    fun `a heading reading wears the label, a status does not`() {
+        assertTrue(readout().headingIsReading)
+        assertTrue("the dash while waiting is a reading too", readout(heading = TrueHeadingReading.NeedsFix).headingIsReading)
+        assertFalse(readout(heading = TrueHeadingReading.NoSensor).headingIsReading)
+        assertFalse(readout(heading = TrueHeadingReading.Unreliable).headingIsReading)
+        val calibrating = navigationReadout(TrueHeadingReading.Available(45f), fix, north, DistanceUnit.MILES, t + 1_000L, facing = NavigationFacing.CALIBRATING)
+        assertFalse("a facing notice names itself", calibrating.headingIsReading)
+    }
+
+    @Test
+    fun `the second row shows with a fix, and with none only when the heading has more than a dash to say`() {
+        assertTrue(readout().secondRowShown)
+        assertFalse("no fix and the dash: the status line says it once", readout(heading = TrueHeadingReading.NeedsFix, liveFix = null).secondRowShown)
+        assertTrue("no fix, no sensor: the row says Compass unavailable", readout(heading = TrueHeadingReading.NoSensor, liveFix = null).secondRowShown)
+        assertNull(readout(heading = TrueHeadingReading.NoSensor, liveFix = null).coordinatesText)
+    }
+
+    @Test
+    fun `the turn is in words from the needle's own angle`() {
+        // Facing 45°, the start due north: 315° clockwise, 45° to the left; the arrow's rotation is unchanged.
+        val r = readout(route = null)
+        assertEquals("left 45°", r.targetText)
+        assertEquals(315f, r.targetArrowDegrees!!, 0.5f)
+        // Facing 350°, the start due north: 10° clockwise, a slight right.
+        assertEquals("slight right 10°", readout(heading = TrueHeadingReading.Available(350f), route = null).targetText)
     }
 
     @Test

@@ -11,12 +11,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.robolectric.shadows.ShadowLog
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
  * A real round trip through Jetpack DataStore, the same shape and per-test file deletion as
- * [DataStoreCameraOrientationPreferenceRepositoryTest], plus the fake the camera's tests use, held
+ * [DataStorePhotoLocationPreferenceRepositoryTest] (the camera-orientation test it named was removed with that setting,
+ * dispatch 2026-10-13-03), plus the fake the camera's tests use, held
  * to the same round trip so the two cannot drift apart.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -53,14 +55,28 @@ class DataStoreCameraGridModeRepositoryTest {
         assertTrue("written to disk, not held in memory", dataStoreFile().exists())
     }
 
+    /**
+     * Rewritten for RECORD -660/-661 (the owner: "Fall back and log"): an unknown name used to be a failed
+     * read; it is now Off, the default, with one warning naming the name and the setting. Never set is
+     * Off with no warning.
+     */
     @Test
-    fun `a stored name this build does not know is a failed read, not a silent Off`() {
+    fun `a stored name this build does not know falls back to Off and is logged, not silent`() {
+        ShadowLog.clear()
         assertEquals(GridMode.Grid, gridModeFromStored("Grid").getOrThrow())
         assertEquals("never set is the default", GridMode.Off, gridModeFromStored(null).getOrThrow())
-        val unknown = gridModeFromStored("Crosshair")
-        assertTrue("an unknown name fails", unknown.isFailure)
-        assertTrue(unknown.exceptionOrNull()!!.message!!.contains("Crosshair"))
+        assertEquals("a known or absent name logs nothing", emptyList<String>(), settingsWarnings())
+
+        assertEquals("an unknown name is the default", GridMode.Off, gridModeFromStored("Crosshair").getOrThrow())
+
+        assertEquals(
+            listOf("Unknown stored camera grid mode 'Crosshair'; using Off, the default."),
+            settingsWarnings(),
+        )
     }
+
+    private fun settingsWarnings(): List<String> =
+        ShadowLog.getLogsForTag("SettingsDataStore").filter { it.type == android.util.Log.WARN }.map { it.msg }
 
     @Test
     fun `the fake round-trips the same way, and can be made to fail`() = runTest {

@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
 import androidx.compose.foundation.layout.Arrangement
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -83,18 +84,19 @@ internal fun PullPhotoPickerScreen(
             Button(onClick = photoAcquisition.launchGallery) { Text("Import") }
         }
 
-        if (photos.isEmpty()) {
+        // Motion Part 3, Amendment 2 (RECORD -682; scout F8): the empty message and the grid crossfade instead of swapping in one
+        // frame (motion/StateCrossfade.kt).
+        StateCrossfade(targetState = photos.isEmpty(), modifier = Modifier.weight(1f).fillMaxWidth()) { empty ->
+        if (empty) {
             Text(
                 "No photos in the Album yet. Use Camera or Import above to add one.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg),
             )
-            return@Column
-        }
-
+        } else {
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(Spacing.lg),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -113,6 +115,8 @@ internal fun PullPhotoPickerScreen(
                     }
                 }
             }
+        }
+        }
         }
     }
 }

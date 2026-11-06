@@ -11,9 +11,10 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 /**
- * [buildRecordsLogbook]'s grouping and order, headless — journal redesign J1, S4. The zone is fixed
- * and the times are chosen so a naive UTC grouping would put two records on the wrong day, so a
- * grouping that ignored the zone fails here rather than passing by coincidence.
+ * [buildRecordsLogbook]'s grouping and order, headless. Rewritten whole by RECORD -868 ("In All, separate by category
+ * and not by time/day entered, with Finds at the top"): the three cases here asserted the day grouping (days newest
+ * first, finds first in their day, grouping in a given zone, the same-millisecond tie across kinds), which the ruling
+ * removes. They now assert the kind grouping: sections in chip order, newest first inside, empty kinds left out.
  */
 class RecordsLogbookTest {
 
@@ -23,12 +24,13 @@ class RecordsLogbookTest {
     private val d1 = LocalDate.of(2026, 9, 26)
     private val d2 = LocalDate.of(2026, 9, 25)
 
-    private fun find(id: String, date: LocalDate) = MushroomLogEntry.draft(id = id, location = null, date = date).copy(isDraft = false)
+    private fun find(id: String, date: LocalDate, foundAt: Long? = null) =
+        MushroomLogEntry.draft(id = id, location = null, date = date).copy(isDraft = false, foundAtEpochMillis = foundAt)
     private fun waypoint(id: String, millis: Long) = Waypoint(id = id, lat = 0.0, lng = 0.0, altitude = null, name = id, note = "", createdAtEpochMillis = millis)
     private fun track(id: String, millis: Long) = Track(id = id, name = null, startedAtEpochMillis = millis, endedAtEpochMillis = null, points = emptyList())
     private fun region(id: Long, millis: Long) = OfflineRegionSummary(id = id, name = "r$id", region = Region(0.0, 0.0, 1), minZoom = 0.0, maxZoom = 1.0, tileCount = 1, sizeBytes = 1, createdAtEpochMillis = millis)
 
-    private fun ids(day: LogbookDay): List<String> = day.finds.map { it.id } + day.timed.map {
+    private fun ids(section: LogbookSection): List<String> = section.finds.map { it.id } + section.timed.map {
         when (it) {
             is TimedRecord.TrackRecord -> it.track.id
             is TimedRecord.WaypointRecord -> it.waypoint.id
@@ -37,31 +39,55 @@ class RecordsLogbookTest {
     }
 
     @Test
-    fun `days newest first, finds first in their day in input order, then timed records newest first, grouped in the given zone`() {
-        val days = buildRecordsLogbook(
-            finds = listOf(find("F2", d1), find("Fold", d2), find("F1", d1)),
-            // 20:00 and 21:00 local on d2 are 03:00/04:00 UTC on d1: a UTC grouping would move them.
-            tracks = listOf(track("T-late", at(d2, 21)), track("T1", at(d1, 15))),
-            waypoints = listOf(waypoint("W-eve", at(d2, 20)), waypoint("W1", at(d1, 9))),
-            offlineRegions = listOf(region(7, at(d1, 12))),
-            zone = zone,
+    fun `sections come in chip order, Finds, Tracks, Waypoints, Offline maps, each newest first, whatever the input order`() {
+        val sections = buildRecordsLogbook(
+            finds = listOf(find("F-old", d2), find("F-new", d1)),
+            tracks = listOf(track("T-old", at(d2, 21)), track("T-new", at(d1, 15))),
+            waypoints = listOf(waypoint("W-old", at(d2, 20)), waypoint("W-new", at(d1, 9))),
+            offlineRegions = listOf(region(1, at(d2, 8)), region(2, at(d1, 12))),
         )
 
-        assertEquals(listOf(d1, d2), days.map { it.date })
-        assertEquals(listOf("F2", "F1", "T1", "r7", "W1"), ids(days[0]))
-        assertEquals(listOf("Fold", "T-late", "W-eve"), ids(days[1]))
-        assertEquals(listOf(5, 3), days.map { it.recordCount })
+        assertEquals(listOf(RecordType.FINDS, RecordType.TRACKS, RecordType.WAYPOINTS, RecordType.OFFLINE_MAPS), sections.map { it.type })
+        assertEquals(listOf("F-new", "F-old"), ids(sections[0]))
+        assertEquals(listOf("T-new", "T-old"), ids(sections[1]))
+        assertEquals(listOf("W-new", "W-old"), ids(sections[2]))
+        assertEquals(listOf("r2", "r1"), ids(sections[3]))
+        assertEquals(listOf(2, 2, 2, 2), sections.map { it.recordCount })
     }
 
     @Test
-    fun `timed records on the same millisecond keep tracks, waypoints, regions order`() {
+    fun `finds on one day go by the time they were found, newest first, and a find with no time comes after those with one, in input order`() {
+        val section = buildRecordsLogbook(
+            finds = listOf(find("no-time-1", d1), find("morning", d1, at(d1, 9)), find("no-time-2", d1), find("afternoon", d1, at(d1, 15)), find("older-day", d2, at(d2, 18))),
+            tracks = emptyList(),
+            waypoints = emptyList(),
+            offlineRegions = emptyList(),
+        ).single()
+
+        assertEquals(listOf("afternoon", "morning", "no-time-1", "no-time-2", "older-day"), ids(section))
+    }
+
+    @Test
+    fun `a kind with no records is left out, header and all`() {
+        val sections = buildRecordsLogbook(
+            finds = emptyList(),
+            tracks = emptyList(),
+            waypoints = listOf(waypoint("W", at(d1, 10))),
+            offlineRegions = listOf(region(1, at(d1, 11))),
+        )
+
+        assertEquals(listOf(RecordType.WAYPOINTS, RecordType.OFFLINE_MAPS), sections.map { it.type })
+    }
+
+    @Test
+    fun `records on the same millisecond keep their input order`() {
         val t = at(d1, 10)
-        val days = buildRecordsLogbook(emptyList(), listOf(track("T", t)), listOf(waypoint("W", t)), listOf(region(1, t)), zone)
-        assertEquals(listOf("T", "W", "r1"), ids(days.single()))
+        val section = buildRecordsLogbook(emptyList(), emptyList(), listOf(waypoint("W1", t), waypoint("W2", t)), emptyList()).single()
+        assertEquals(listOf("W1", "W2"), ids(section))
     }
 
     @Test
     fun `nothing in, nothing out`() {
-        assertEquals(emptyList<LogbookDay>(), buildRecordsLogbook(emptyList(), emptyList(), emptyList(), emptyList(), zone))
+        assertEquals(emptyList<LogbookSection>(), buildRecordsLogbook(emptyList(), emptyList(), emptyList(), emptyList()))
     }
 }

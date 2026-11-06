@@ -149,3 +149,21 @@ internal fun reapplyIntendedOrientation(file: File, intendedRotationDegrees: Int
 private val SOF_MARKERS = (0xC0..0xCF).filter { it != 0xC4 && it != 0xC8 && it != 0xCC }.toSet()
 
 private const val TAG = "IntendedOrientation"
+
+/**
+ * The orientation a RAW shot's DNG is written with (dispatch 2026-10-15-01, Amendment 1, item 4: "the DNG's orientation
+ * comes from the same source as the JPG's final, reapplied orientation, so the two agree"). The DNG is always the
+ * sensor's unrotated frame, so the JPG's final tag carries over exactly when the JPG's pixels are that frame too:
+ * [OrientationReapplyOutcome.Rewritten] and [OrientationReapplyOutcome.Kept]. When the JPG's tag was left as the HAL wrote
+ * it ([OrientationReapplyOutcome.Declined], [OrientationReapplyOutcome.Failed]) the JPG's tag describes other pixels, and
+ * the DNG takes the shot's intended degrees instead; the caller logs that the two may then disagree, and the device check
+ * ("the DNG and JPG are the same way up") is what shows whether they do.
+ */
+internal fun rawOrientationFor(outcome: OrientationReapplyOutcome, intendedRotationDegrees: Int): Int = when (outcome) {
+    is OrientationReapplyOutcome.Rewritten -> outcome.toTag
+    is OrientationReapplyOutcome.Kept -> if (outcome.tag == ExifInterface.ORIENTATION_UNDEFINED) ExifInterface.ORIENTATION_NORMAL else outcome.tag
+    is OrientationReapplyOutcome.Declined, is OrientationReapplyOutcome.Failed -> {
+        Log.w(TAG, "The JPG kept the HAL's orientation tag ($outcome); the DNG takes the shot's $intendedRotationDegrees° and the two may not agree.")
+        exifOrientationTagFor(intendedRotationDegrees) ?: ExifInterface.ORIENTATION_NORMAL
+    }
+}

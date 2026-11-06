@@ -150,7 +150,7 @@ here.
   went into refining that comparison (which could not discriminate anyway:
   both tracks recompute to their stored values by construction). The cheap
   question closed it in one grep: `returnWalkingTime` has no production
-  caller, so the path had never run and could not have, and the check was
+  caller (true then; noted 2026-10-07: it now has one, in `SundownWatch`), so the path had never run and could not have, and the check was
   designed to detect something unreachable. The distinguishing feature of
   this instance is that no value could ever have carried the answer — the
   first three checked a value through a lossy step; this one checked a
@@ -216,7 +216,7 @@ here.
 ## Building
 
 - New capability is a new function, class, or path — not a conditional
-  threaded into existing working code.
+  threaded into existing working code. Keep files small and decoupled (new files under about 400 lines; split a file over about 800 before a feature goes into it; one coder per file at a time): `.claude/skills/modular-code/SKILL.md` (owner, 2026-10-20, RECORD -1490).
 - Don't build speculative correction or optimization logic without real
   data showing the case it's meant to handle.
 - Pin dependency versions (Gradle version catalog, exact versions) rather
@@ -236,17 +236,17 @@ here.
   across app restarts is a separate, per-case decision (DataStore, see the
   Room/DataStore pitfall below), not implied by this. First per-case "yes":
   the map's fullscreen mode persists across restarts (reasoning recorded on
-  `MapPreferencesRepository.getMapFullscreen`); the cluster's position, side
-  and minimised flag deliberately do not. Not an exception to this rule:
+  `MapPreferencesRepository.getMapFullscreen`); since 2026-10-08 the cluster's side and height do too (owner: "have the map icon bar persist between restarts so left handed users don't need to change it every time they open the app"), and its
+  minimised flag deliberately does not. Not an exception to this rule:
   leaving the Maps tab exits fullscreen. The bottom nav is off screen in
   fullscreen, so the tab cannot be left from there at all — the tab
   handler's explicit exit holds an invariant rather than resetting anything the user could still be relying on.
 - **Nothing fully obstructs the map view.** The owner, 2026-09-28, verbatim: "My idea is that nothing should fully obstruct the map view. All map chrome gets 80% opacity as a result." Every surface drawn over a map has its fill at `MAP_CHROME_OVER_MAP_ALPHA` (0.8, `ui/map/MapChrome.kt`): bars, strips, chips, clusters, rails, legends, bubbles, sheets, drawers and menus. Layered fills composite to that value; they do not each carry it (`MapChromeAlphaTest`). The content colour stays opaque, as on the Layers sheet (`MapLayersSheet.kt`). The same component shown where it covers no map stays solid (owner: "In the places that aren't covering a map, they can stay solid"). New map chrome starts at 80%, and an opaque surface over a map is a bug unless the owner has stated an exception for that case. Edge cases such as dialogs, text fields and drawers are ruled one by one and recorded in `docs/plans/journal-redesign.md`, under "Map chrome at 80%, nothing fully obstructs the map". This bullet is one line, in place of a blank line, so that line 253 does not move.
-- **Don't make me think.** The owner, 2026-09-30, verbatim: "One thing about mobile design: users hate to think. So the biggest principle to consider when designing, is to not make users think. 'Don't make me think.' was a common phrase said by my design professor 15 years ago in college." When pricing options for a control, a behaviour or a fix, count what each asks the end user to notice, decide or do, and weigh that above implementation cost: an automatic, sensible default beats a new setting, prompt or manual step. The worst case is a state the user could misread as broken (a mode that looks switched off, a silent failure), because it makes them think and costs trust. First application: topo night mode switches automatically to Street tiles below map zoom 9.5, with a crossfade, rather than turning light or making the user change basemap to zoom out (records -324, -328, -329; `BasemapStyles.kt`). This bullet is one line, and the bullet above it was rejoined by one line break with no text change, so that line 253 does not move.
+- **Don't make me think.** The owner, 2026-09-30, verbatim: "One thing about mobile design: users hate to think. So the biggest principle to consider when designing, is to not make users think. 'Don't make me think.' was a common phrase said by my design professor 15 years ago in college." When pricing options for a control, a behaviour or a fix, count what each asks the end user to notice, decide or do, and weigh that above implementation cost: an automatic, sensible default beats a new setting, prompt or manual step. The worst case is a state the user could misread as broken (a mode that looks switched off, a silent failure), because it makes them think and costs trust. First application: topo night mode switches automatically to Trail Map tiles below map zoom 9.5, with a crossfade, rather than turning light or making the user change basemap to zoom out (records -324, -328, -329; `BasemapStyles.kt`). This bullet is one line, and the bullet above it was rejoined by one line break with no text change, so that line 253 does not move.
+- **Changing info gets its own window.** The owner, 2026-11-06, verbatim: "Info that changes and shares a line with other text should get its own window so it doesn't shift all text on the same line." A value that changes while it is on screen (a heading, a distance, an altitude, a time, a grid reference) sits in a space of its own, sized for the widest thing it can hold, so a change never moves the text beside it. The window is never made by shrinking text (the owner, for the navigation card: "Keep the text size the same size"). First applications: the navigation card's fixed spaces (dispatch 2026-11-05-10, Amendment 1 G3; RECORD -2181) and the compass strip (RECORD -2184), with the rest of the app to follow a read-only sweep. This bullet is one line, and the Documentation bullet below was rejoined by one line break with no text change, so that line 253 does not move.
 ## Documentation
 
-- Record why a non-obvious decision was made and what alternative was
-  rejected — not just what was chosen.
+- Record why a non-obvious decision was made and what alternative was rejected — not just what was chosen.
 
 ## Known pitfalls
 
@@ -307,6 +307,7 @@ here.
   branch and the session defaults to a different one, that is a
   stop-and-ask, not something to resolve alone — say which two disagree and
   wait.
+- **Main changes only by a promotion from pre-main.** Every Play build comes from main. A promotion passes CI on pre-main, the UX auditor's report (a fresh session on a different model from the coder) against `docs/process/qa-philosophy.md`, and the owner's approval for public use. Work lands on pre-main, and experiments on dev (main plus experiments). See `docs/process/planner-profile.md`, "Branches and the road to main".
 - **Room for data that relates; DataStore for flat settings.** The deciding
   question is what the data will be queried for, not what it looks like
   today: if a value will be referenced by, joined to, or filtered against
@@ -483,3 +484,7 @@ here.
   contain the Functions. Recorded as unverified rather than dropped, because the
   pattern they describe is the one above.
 
+
+## The owner's word
+
+- **The owner's word stands until the owner changes it.** The owner, 2026-11-04, verbatim: "Write a rule that the owner's word must be taken seriously and cannot be override by anyone", then "And by anyone, I kean anyone except the owners themselves". A ruling, a colour, a word, a figure or a go given by the owner is carried out as given. No planner, coder, reviewer, auditor, test, tool or other session replaces, narrows, re-reads or "corrects" it. Only the owner can change their own ruling, and only by saying so. A finding that seems to conflict with a ruling is reported to the owner with the ruling quoted verbatim. Nobody acts on the finding instead of the ruling. Every dispatch, record and report carries the owner's own words in quotation marks. A planner's reading of them is labelled as the planner's and never stands in their place. When asking the owner again, the first option is what they already said, and no option that departs from it is marked Recommended. The instance that made this rule, and the plan that came out of it, are at `docs/audits/2026-11-04-owner-word-changed-mid-flight.md`.

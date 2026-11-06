@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.domain
 
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -32,6 +33,35 @@ class OffTrackJudgeTest {
         assertEquals("at the reading 15 s after the first one off", 15, verdicts.indexOfFirst { it.alert })
         assertFalse("not off before then", verdicts.take(15).any { it.isOffTrack })
         assertTrue("off from then on", verdicts.drop(15).all { it.isOffTrack })
+    }
+
+    /** Dispatch 2026-10-25-08 (RECORD -1631): a line 80 m east of the path, as a way home's trail part. */
+    private val trailEast = (0..6).map { i -> LatLng(45.0 + i * 0.0005, -122.0 + 80.0 / 78_620.0) }
+
+    @Test
+    fun `a reading near an also-on line is on course, however far from the path`() {
+        val judge = OffTrackJudge(path)
+        val verdicts = (0..30).map { s -> judge.next(at(45.0015, 80.0, T0 + s * 1_000L), alsoOn = listOf(trailEast)) }
+        assertEquals(0, verdicts.count { it.alert })
+        assertFalse(verdicts.any { it.isOffTrack })
+    }
+
+    @Test
+    fun `off is far from the path and from every also-on line, and an empty line counts as none`() {
+        val judge = OffTrackJudge(path)
+        // 60 m west: 60 m from the path, 140 m from the trail line; the empty line must not read as near.
+        val verdicts = (0..30).map { s -> judge.next(at(45.0015, -60.0, T0 + s * 1_000L), alsoOn = listOf(emptyList(), trailEast)) }
+        assertEquals(1, verdicts.count { it.alert })
+        assertEquals(15, verdicts.indexOfFirst { it.alert })
+    }
+
+    @Test
+    fun `an also-on line given mid-stray ends the stray without restarting it`() {
+        val judge = OffTrackJudge(path)
+        // 10 s off with no line, then the line arrives and the walker is on it: no alert at the 15 s mark.
+        val before = (0..10).map { s -> judge.next(at(45.0015, 80.0, T0 + s * 1_000L)) }
+        val after = (11..30).map { s -> judge.next(at(45.0015, 80.0, T0 + s * 1_000L), alsoOn = listOf(trailEast)) }
+        assertEquals(0, (before + after).count { it.alert })
     }
 
     @Test

@@ -127,6 +127,50 @@ import com.zynergylabs.forager.app.BuildConfig
  * against every branch on both remotes (none above 15, no `MIGRATION_15_*`) before being claimed,
  * and again at the final push.
  *
+ * [version] 18 adds `importedAtEpochMillis` and `importedWithoutTimes` to `tracks` via a real
+ * [MIGRATION_17_18] — plan T16, GPX import (the owner's answers in RECORD -636). A rebuild, like 12 to 13,
+ * because the legacy fixtures declare [TrackEntity] directly. Version 18 was checked against every branch
+ * on both remotes (none above 17, no `MIGRATION_17_*`) on 2026-10-07 before being claimed.
+ *
+ * [version] 19 adds nullable `speciesIconicTaxonName` to `cached_searches` via a real [MIGRATION_18_19] —
+ * dispatch 2026-09-28-695, amendment 1 (RECORD -696; the owner, "Save it with the search"): a species
+ * reopened from a recent search keeps its group, and so its weather guidance. Old rows stay null. A
+ * rebuild, like 17 to 18, because the legacy fixtures declare [CachedSearchEntity] directly. Version 19
+ * was checked by the planner against every open branch (back-by and small-fixes at 18) and against
+ * `origin/main` (at 18, `b71c1569`) on 2026-10-08 before being claimed; re-check at build time.
+ *
+ * [version] 20 adds nullable `foundAtEpochMillis` to `mushroom_log_entries` via a real [MIGRATION_19_20] — data part D,
+ * dispatch 2026-09-28-697 Amendment 4 (RECORD -703; the owner, "Option 1, but keep it blank instead of showing "Unnamed
+ * find""): when a find was found, written at creation and read by its title. Old rows stay null. A rebuild, like 18 to 19,
+ * because the legacy fixtures declare [MushroomLogEntryEntity] directly. Built on guidance-text's 18 to 19 (merged into
+ * search-order before it reached main, as the planner directed). Version 20 was checked against every branch on the remote
+ * (none above 19, no `MIGRATION_19_*`) on 2026-10-08 before being claimed; re-check at build time. `20.json`'s identity hash was
+ * computed by hand with Room 2.8.5's own rule (reproducing 18's and 19's exactly); the build's own export must match it.
+ *
+ * [version] 21 adds nullable `pressureHpa` to `track_points` via a real [MIGRATION_20_21] — the barometer (RECORD -864,
+ * -867): the raw hPa each point was made at, read by `domain.trackHeights` for Climb and the height chart. Old rows stay
+ * null and read smoothed GPS height. A rebuild, like 14 to 15, because the legacy fixtures declare [TrackPointEntity]
+ * directly. Version 21 was checked unclaimed on every remote branch on 2026-10-11 (`git log --remotes -S "version = 21,"`
+ * finds nothing); re-check before merge. `21.json`'s identity hash was computed by hand with Room 2.8.4's rule, read from
+ * the compiler jar with `javap` (`SchemaIdentityKey`, and the id keys of `Entity`, `Property`, `PrimaryKey` and `Index`),
+ * after the same script reproduced the hashes of 15.json, 18.json, 19.json and 20.json exactly. (The note above says
+ * 2.8.5; the version catalog pins Room at 2.8.4, and the rule is the jar's.)
+ *
+ * [version] 22 adds nullable `rawRelativePath` to `log_photos` via a real [MIGRATION_21_22] — RAW pipeline stage 2
+ * (dispatch 2026-10-15-01, Amendment 1 item 6): a RAW shot's DNG beside its JPG, read by export, backup, restore and
+ * delete. Old rows stay null: every photo before it is a JPG or an import. A rebuild, like 11 to 12, because the legacy
+ * fixtures declare [LogPhotoEntity] directly. Version 22 was checked unclaimed on every remote branch on 2026-10-15
+ * (`git log --remotes -S "version = 22,"` and `-S "Migration(21, 22)"` find nothing; the only mention of
+ * `MIGRATION_21_22` is the dispatch's own draft, `eb6b5ae4`, a records commit); re-check before merge. `22.json` was made
+ * from `21.json` with the one column added, and its identity hash computed by hand with the same Room 2.8.4 rule, by a
+ * script that first reproduced 19.json's, 20.json's and 21.json's hashes exactly.
+ *
+ * [version] 23 lets a planned trip carry a route and makes its date optional, via a real [MIGRATION_22_23] (its own file,
+ * `MigrationRouteTrips.kt`) — route plotting step 1 (dispatch 2026-10-30-02, RECORD -1826, -1827): `planned_trips` is
+ * rebuilt with `date` nullable, and `planned_trip_route_stops` and `planned_trip_route_legs` are added, read by
+ * `RoomPlannedTripRepository` through [PlannedTripRouteDao] and by backup and restore. Version 23 was checked unclaimed on
+ * every remote ref on 2026-10-30. `23.json` is Room's own export from a CI build of this change, not written by hand.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -164,12 +208,16 @@ import com.zynergylabs.forager.app.BuildConfig
         CartographyEntryFindRefEntity::class,
         CartographyEntryPhotoRefEntity::class,
         CartographyEntryTrackPathEntity::class,
+        PlannedTripRouteStopEntity::class,
+        PlannedTripRouteLegEntity::class,
     ],
-    version = 17,
+    version = 23,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
     abstract fun plannedTripDao(): PlannedTripDao
+
+    abstract fun plannedTripRouteDao(): PlannedTripRouteDao
 
     abstract fun cachedSearchDao(): CachedSearchDao
 
@@ -218,14 +266,19 @@ abstract class ForagerDatabase : RoomDatabase() {
         /** The file name of the app's database under `databases/` (the backup snapshots exactly this file). */
         const val DATABASE_NAME = "forager.db"
 
-        /** Every registered migration, in one place so the app's database and a restore's scratch copy cannot drift apart. */
-        private val ALL_MIGRATIONS = arrayOf(
+        /**
+         * Every registered migration, in one place so the app's database and a restore's scratch copy cannot drift apart.
+         * Internal, not private (dispatch 2026-09-28-658, F9), so the migration tests open their databases with this
+         * list rather than each restating it: a test then migrates through exactly what the app registers.
+         */
+        internal val ALL_MIGRATIONS = arrayOf(
             MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
-            MIGRATION_15_16, MIGRATION_16_17,
+            MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
+            MIGRATION_21_22, MIGRATION_22_23,
         )
 
         /** The schema version this build writes and can restore up to; the source of truth is the `@Database` annotation's `version`. */
-        const val SCHEMA_VERSION = 17
+        const val SCHEMA_VERSION = 23
     }
 }

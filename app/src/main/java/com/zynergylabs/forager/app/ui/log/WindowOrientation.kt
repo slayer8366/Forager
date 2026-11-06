@@ -10,9 +10,39 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.ui.platform.LocalContext
 
 /**
- * Sets the Activity's `requestedOrientation` for as long as this is in composition — forced
- * portrait with "Lock camera to portrait" on, **following the device through all four
- * orientations** with it off — and puts back what was there when it leaves.
+ * Sets the Activity's `requestedOrientation` for as long as this is in composition — **held
+ * portrait** — and puts back what was there when it leaves.
+ *
+ * ## Since RECORD -980 and -981: the window is held portrait, always
+ *
+ * The owner, testing the removal below: "the camera rotates completely", "I never asked the lock to
+ * be removed. I only wanted the keep in portrait feature removed. The camera is to remain as is",
+ * then "The camera is to never, ever, rotate like this. This is a cardinal sin". So the request is
+ * [CAMERA_WINDOW_ORIENTATION], `SCREEN_ORIENTATION_PORTRAIT`, with no setting. What the old lock
+ * also did and this does **not**: it pinned the session's device rotation to `ROTATION_0`, so the
+ * controls never turned and a sideways photo saved portrait. Now the controls turn in place by
+ * [rotateWithDevice] (sensor minus a display that stays at `ROTATION_0`), and each shot takes the
+ * sensor's rotation, so a photo taken sideways saves the right way up. That is the camera's shape
+ * before 2026-09-19 (a held window, turning controls), with `PORTRAIT` in place of `LOCKED`.
+ *
+ * The 2026-09-19 reason for letting the window turn, below, was the system status bar, which an app
+ * cannot move off the display's top edge. It no longer applies: the status bar is hidden while the
+ * camera is open (`HideStatusBarWhileCameraIsOpen`, `CameraWindowChrome.kt`). The navigation bar
+ * stays on the portrait window's bottom edge.
+ *
+ * **Large screens.** With `targetSdk` 37, Android 17 ignores orientation requests on displays whose
+ * smallest width is greater than 600 dp, so there the window still turns. The arrangement follows the
+ * window ([cameraArrangement]) and the glyphs cancel the turn, so the camera keeps working, but it
+ * would visibly rotate there. Since RECORD -985 it does not: `NaturalOrientationHold` lays the camera out in the device's
+ * natural frame and turns it back, in a full-screen window.
+ *
+ * Everything from here down is the history it replaces, left as written.
+ *
+ * ## Since dispatch 2026-10-13-03 there is no setting
+ *
+ * "Lock camera to portrait" asked for `SCREEN_ORIENTATION_PORTRAIT` instead; the owner had it
+ * removed (RECORD -968), so the request is always the setting-off value below, which was also the
+ * default. The removed branch and how to restore it are in `docs/archive/camera-portrait-lock.md`.
  *
  * ## Superseding note, 2026-09-19: the window follows the device; the lock is gone for setting-off
  *
@@ -41,9 +71,9 @@ import androidx.compose.ui.platform.LocalContext
  * cancels the turn; with the window following, the two terms agree in every steady hold and the
  * glyphs stay put because the window moved them.
  *
- * ## The value depends on the setting: `SENSOR` off, `PORTRAIT` on
+ * ## The value: `SCREEN_ORIENTATION_SENSOR`
  *
- * - **Setting off: `SCREEN_ORIENTATION_SENSOR`.** Portrait and both landscapes, and **never reverse
+ * - **`SCREEN_ORIENTATION_SENSOR`** (the setting-off value while there was a setting). Portrait and both landscapes, and **never reverse
  *   portrait**. The platform's rotation policy is what draws that line
  *   (`DisplayRotation.rotationForOrientation`, android16-release): for `SENSOR` it takes the
  *   sensor's rotation, except that a sensor reading of `ROTATION_180` is only honoured when the
@@ -70,12 +100,9 @@ import androidx.compose.ui.platform.LocalContext
  *   (`needSensorRunning`, same file). `USER` / `FULL_USER` would honour the lock, and were not
  *   taken: the requirement is that the bar travels with the phone, and under a user lock it would
  *   not.
- * - **Setting on: `SCREEN_ORIENTATION_PORTRAIT`**, unchanged since `e51b3ae`. The setting's whole
- *   point is a portrait camera: one flip at open from a landscape window, then nothing turns —
- *   not the window, not a glyph ([effectiveDeviceRotation] pins the sensor term, so the *photo* is
- *   tagged portrait too, whatever the hold). `PORTRAIT` rather than `SENSOR_PORTRAIT`/`USER_PORTRAIT`,
- *   which admit reverse portrait. With reverse portrait now excluded on both sides of the setting,
- *   what the setting still decides is the two landscapes **and** the capture tag.
+ * - *Was, until dispatch 2026-10-13-03:* **setting on, `SCREEN_ORIENTATION_PORTRAIT`**, from
+ *   `e51b3ae`: one flip at open from a landscape window, then nothing turned, and the photo was
+ *   tagged portrait too, through a gate on the session's sensor reading that is also gone.
  *
  * ## Capture and capture rotation are untouched
  *
@@ -104,22 +131,24 @@ import androidx.compose.ui.platform.LocalContext
  * are the device's and the emulator's.
  */
 @Composable
-internal fun RequestWindowOrientation(lockToPortrait: Boolean) {
+internal fun RequestWindowOrientation() {
     val activity = LocalContext.current.findActivity()
-    DisposableEffect(activity, lockToPortrait) {
+    DisposableEffect(activity) {
         if (activity == null) {
             Log.w(TAG, "No Activity behind this context; the camera's window orientation is not requested and is left to the platform.")
             return@DisposableEffect onDispose {}
         }
         val previous = activity.requestedOrientation
-        activity.requestedOrientation = windowOrientationFor(lockToPortrait)
+        activity.requestedOrientation = CAMERA_WINDOW_ORIENTATION
         onDispose { activity.requestedOrientation = previous }
     }
 }
 
-/** The `requestedOrientation` the camera holds: forced portrait when the setting is on, otherwise following the device through portrait and both landscapes but never reverse portrait. Pure, tested. */
-internal fun windowOrientationFor(lockToPortrait: Boolean): Int =
-    if (lockToPortrait) ActivityInfo.SCREEN_ORIENTATION_PORTRAIT else ActivityInfo.SCREEN_ORIENTATION_SENSOR
+/**
+ * The `requestedOrientation` the camera holds: portrait (RECORD -980, -981). `PORTRAIT` rather than `SENSOR_PORTRAIT` or
+ * `USER_PORTRAIT`, which admit reverse portrait (the old lock's reason, `e51b3ae`). Was `SCREEN_ORIENTATION_SENSOR`.
+ */
+internal const val CAMERA_WINDOW_ORIENTATION: Int = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
 
 /** The Activity behind a composition's context, or null — shared with `CameraWindowChrome`, which needs the same window. */
 internal tailrec fun Context.findActivity(): Activity? = when (this) {

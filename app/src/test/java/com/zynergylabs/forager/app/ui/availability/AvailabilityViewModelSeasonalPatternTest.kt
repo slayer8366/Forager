@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -71,7 +72,7 @@ import org.junit.Test
 class AvailabilityViewModelSeasonalPatternTest {
 
     private val dispatcher = StandardTestDispatcher()
-    private val region = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+    private val region = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
     @Before
     fun setUp() = Dispatchers.setMain(dispatcher)
@@ -208,6 +209,7 @@ class AvailabilityViewModelSeasonalPatternTest {
             unitSystemPreferenceRepository = StubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = StubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(StubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
     }
 
@@ -286,6 +288,9 @@ class AvailabilityViewModelSeasonalPatternTest {
         vm.onTaxonSearchResultSelected(
             TaxonSearchResult(taxonId = 999_002L, scientificName = "Some Other Species", commonName = null, rank = null, iconicTaxonName = "Fungi", photoUrl = null),
         )
+        // RECORD -725 (the owner: "no search yet") made a pick select the species without searching; RECORD -728: the
+        // search is run after the pick, and the new filter reaches the seasonal fetch through it.
+        vm.searchReferenceRegion()
         advanceUntilIdle()
 
         // The stale distribution from the previous filter must not linger on screen mid-refetch.
@@ -313,6 +318,8 @@ class AvailabilityViewModelSeasonalPatternTest {
         // tabs.
         val searchedTaxon = TaxonSearchResult(taxonId = 54743L, scientificName = "Some Searched Species", commonName = null, rank = null, iconicTaxonName = "Fungi", photoUrl = null)
         vm.onTaxonSearchResultSelected(searchedTaxon)
+        // RECORD -725 made a pick run no search; RECORD -728: the search is run after it, as a user now does.
+        vm.searchReferenceRegion()
         advanceUntilIdle()
         vm.onSeasonalTabSelected()
         advanceUntilIdle()

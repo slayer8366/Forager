@@ -31,4 +31,9 @@ data class TrackPoint(
     val timestampEpochMillis: Long,
     val speedMetersPerSecond: Float? = null,
     val speedAccuracyMetersPerSecond: Float? = null,
+    /**
+     * The barometer's pressure when this point was made, in hPa, raw (RECORD -864, -867); `null` when the phone has no
+     * barometer, no fresh reading was held, or the point is from before version 21. Read only by [com.zynergylabs.forager.app.domain.trackHeights].
+     */
+    val pressureHpa: Float? = null,
 )

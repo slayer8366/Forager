@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.photo
 import android.net.Uri
 import android.util.Log
 import com.zynergylabs.forager.app.domain.model.PhotoSource
+import java.io.File
 
 /**
  * A [PhotoSource] whose bytes came from this app's own camera just now — a
@@ -27,12 +28,25 @@ import com.zynergylabs.forager.app.domain.model.PhotoSource
  * [CameraCaptureFiles.Capture] rather than a bare `Uri` is what makes that possible without this
  * class having to reach back through a `ContentResolver` for a file it already knows.
  */
-data class CameraCapturePhotoSource(val capture: CameraCaptureFiles.Capture) : PhotoSource {
+data class CameraCapturePhotoSource(
+    val capture: CameraCaptureFiles.Capture,
+    /**
+     * A RAW shot's DNG, already written and checked by Forager's own writer, in `captures/` beside [capture] (dispatch
+     * 2026-10-15-01; Amendment 1, item 4: a nullable field on this type rather than a type of its own, so the scrub and
+     * the find-location patch, which both test for this type, stay right for a RAW shot). `null` for every JPG shot, and
+     * for a RAW shot whose DNG was not kept (RECORD -1003, low storage): then [capture] is the whole photo.
+     */
+    val rawFile: File? = null,
+) : PhotoSource {
 
     val uri: Uri get() = capture.uri
 
     override fun release() {
-        val file = capture.file
+        deleteScratch(capture.file)
+        rawFile?.let(::deleteScratch)
+    }
+
+    private fun deleteScratch(file: File) {
         // Already gone is fine — release is idempotent. Present and undeletable is not, and is
         // the one case that would silently recreate the leak this exists to close.
         if (file.exists() && !file.delete()) {

@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
+import android.util.Log
 import androidx.exifinterface.media.ExifInterface
 import com.zynergylabs.forager.app.data.repository.runCatchingCancellable
 import com.zynergylabs.forager.app.domain.PhotoStore
@@ -137,19 +138,45 @@ class FilePhotoStore(
         // source `uri`, not from `destination`, so the scrub above cannot affect an import.
         val exifData = if (source is GalleryImportPhotoSource) readExifData(uri) else ExifData(null, null, null)
 
+        // A RAW shot's DNG, beside its JPG (dispatch 2026-10-15-01). Its own step, after the JPG's: nothing above changes.
+        val rawRelativePath = (source as? CameraCapturePhotoSource)?.rawFile?.let { raw -> persistRawCompanion(raw, id, destination) }
+
         return LogPhoto(
             id = id,
             relativePath = "$PHOTOS_SUBDIR/$id.jpg",
             createdAtEpochMillis = exifData.capturedAtEpochMillis ?: now(),
             latitude = exifData.latitude,
             longitude = exifData.longitude,
+            rawRelativePath = rawRelativePath,
         )
+    }
+
+    /**
+     * Copies a RAW shot's DNG to `photos/<id>.dng` and returns its relative path. The DNG is already Forager's own file,
+     * written and checked in the shot step (`RawShotSaver`), so it is copied as it is: nothing here reads or changes its
+     * metadata. A copy that fails fails the whole persist and removes what this persist wrote, the JPG included, rather
+     * than keeping a photo the user took as RAW as a JPG without saying so; the shot step's own fallback is the one that
+     * keeps a JPG, and it says so (RECORD -1003).
+     */
+    private fun persistRawCompanion(raw: File, id: String, jpegDestination: File): String {
+        val target = File(photosDir, "$id.$RAW_EXTENSION")
+        try {
+            check(raw.isFile) { "the RAW shot's DNG '${raw.name}' is not there to persist" }
+            raw.inputStream().use { input -> target.outputStream().use { input.copyTo(it) } }
+        } catch (failure: Throwable) {
+            target.delete()
+            jpegDestination.delete()
+            throw failure
+        }
+        return "$PHOTOS_SUBDIR/${target.name}"
     }
 
     override suspend fun delete(photo: LogPhoto): Result<Unit> = runCatchingCancellable {
         // delete() returning false (already gone) is a no-op, not a failure — mirrors
         // PlannedTripRepository.delete's "no-op if nothing to remove" convention.
         File(context.filesDir, photo.relativePath).delete()
+        // A RAW shot is one photo of two files (RECORD -1004); delete removes everything the shot saved.
+        photo.rawRelativePath?.let { File(context.filesDir, it).delete() }
         Unit
     }
 
@@ -160,6 +187,10 @@ class FilePhotoStore(
      * any reason the read can't complete: below API 29, no `ACCESS_MEDIA_LOCATION` grant, a `uri`
      * [MediaStore.setRequireOriginal] doesn't recognize, or no EXIF tags present at all — a missing
      * coordinate or timestamp is the ordinary case, not a failure this store surfaces.
+     *
+     * An absent tag and a read that threw still give the same null result, but a throw is logged
+     * with its cause (dispatch 2026-09-28-658, J4), so a refused permission or an IO error is not
+     * mistaken in the log for a photo that simply had no location.
      */
     private fun readExifData(uri: Uri): ExifData {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return ExifData(null, null, null)
@@ -174,6 +205,8 @@ class FilePhotoStore(
                     capturedAtEpochMillis = exif.readCapturedAtEpochMillis(),
                 )
             }
+        }.onFailure { error ->
+            Log.w(TAG, "Couldn't read the imported photo's EXIF location and time; it is kept with none.", error)
         }.getOrNull() ?: ExifData(null, null, null)
     }
 
@@ -182,12 +215,16 @@ class FilePhotoStore(
         // A fresh SimpleDateFormat per call, deliberately not a shared instance — SimpleDateFormat
         // is not thread-safe, and persist() is a suspend function this store's single AppContainer
         // instance can be called concurrently from more than one coroutine.
-        return runCatching { SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).parse(raw)?.time }.getOrNull()
+        return runCatching { SimpleDateFormat("yyyy:MM:dd HH:mm:ss", Locale.US).parse(raw)?.time }
+            .onFailure { error -> Log.w(TAG, "The imported photo's EXIF time '$raw' did not parse; using the time of import.", error) }
+            .getOrNull()
     }
 
     private data class ExifData(val latitude: Double?, val longitude: Double?, val capturedAtEpochMillis: Long?)
 
     private companion object {
+        const val TAG = "FilePhotoStore"
         const val PHOTOS_SUBDIR = "photos"
+        const val RAW_EXTENSION = "dng"
     }
 }

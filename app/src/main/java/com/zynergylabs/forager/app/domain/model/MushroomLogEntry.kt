@@ -70,6 +70,13 @@ data class MushroomLogEntry(
      * values in the log for the entire time it's open for editing.
      */
     val draftOfEntryId: String? = null,
+    /**
+     * When this find was found, as epoch millis: written once, when the find is created on the day it is about
+     * ([com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase]), and carried unchanged through edits. `null` for a
+     * find created before this field existed (schema version 20, data part D, RECORD -703) and for one created for another day,
+     * whose time of day is not known. Read by the find's title (`ui/log/FindTitles.kt`'s `findTitle`): "Found 2:14 PM".
+     */
+    val foundAtEpochMillis: Long? = null,
 ) {
     companion object {
         /**

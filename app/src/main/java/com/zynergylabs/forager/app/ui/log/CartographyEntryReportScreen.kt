@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.GrowIn
 import android.Manifest
 import android.widget.Toast
 import androidx.activity.compose.BackHandler
@@ -27,15 +29,12 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AlertDialogDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +43,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -51,11 +51,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.layout
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
+import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
+import com.zynergylabs.forager.app.domain.entryReportOf
+import com.zynergylabs.forager.app.domain.model.DerivedTrip
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.entryMapFrame
 import com.zynergylabs.forager.app.domain.LocationResult
@@ -64,15 +67,14 @@ import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.model.Waypoint
-import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.HIDE_FROM_MAP_LABEL
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuBorder
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuShadowElevation
 import com.zynergylabs.forager.app.ui.map.MapBarIconButton
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.ENTRY_MAP_OVERLAYS
-import com.zynergylabs.forager.app.ui.map.MapLayersSheet
+import com.zynergylabs.forager.app.ui.map.MapTypePanel
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -87,14 +89,15 @@ import com.zynergylabs.forager.app.ui.map.tappedThingOf
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
-import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.util.UUID
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.adaptive.isShortWindow
-import androidx.compose.ui.unit.Constraints
+import com.zynergylabs.forager.app.ui.adaptive.isLandscapeWindow
+import com.zynergylabs.forager.app.ui.adaptive.isLargeScreenWindow
 import androidx.compose.ui.unit.Dp
 import kotlinx.coroutines.launch
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The Cartography Entries list's default view for a **committed** entry — Journal Stage 2c. Recounts
@@ -152,8 +155,8 @@ import kotlinx.coroutines.launch
  * [getMapData] is the one live-fetch seam this screen has — a plain suspend function, not the whole
  * [com.zynergylabs.forager.app.domain.GetCartographyEntryMapDataUseCase]/repository graph threaded through,
  * matching this codebase's own established "a plain suspend lambda, not the dependency it closes
- * over" shape (`MushroomLogViewModel.getPhotoEntryReferenceCount`,
- * `TrackRecordingViewModel.getWaypointReferenceCount`). Fired once per [entry], in a
+ * over" shape (`MushroomLogViewModel.getPhotoEntryReferenceCount` and
+ * `TrackRecordingViewModel.getWaypointReferenceCount` were two, until dispatch 2026-10-28-08 made those counts live). Fired once per [entry], in a
  * `LaunchedEffect` keyed on [CartographyEntry.id] — this screen's own render body still touches no
  * repository directly, only the resolved [CartographyEntryMapData] once it lands, so the Stage 2c
  * "no live fetches" rule still describes this composable's *render*, just not the composable's
@@ -257,6 +260,7 @@ internal fun CartographyEntryReportScreen(
     distanceUnit: DistanceUnit,
     mapSlot: MapSlot,
     night: Boolean,
+    modifier: Modifier = Modifier,
     /** The Maps tab's basemap as a mode, seeding [entryMapMode] when this screen opens; see this file's doc comment. */
     initialMapMode: MapMode = MapMode.DEFAULT,
     getMapData: suspend (CartographyEntry, List<GalleryPhoto>) -> CartographyEntryMapData,
@@ -266,16 +270,14 @@ internal fun CartographyEntryReportScreen(
     onEdit: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
-    modifier: Modifier = Modifier,
     /**
-     * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices this map shares with the Maps
-     * tab, and its Layers sheet's overlay switch. The sheet lists only what this map draws
-     * ([ENTRY_MAP_OVERLAYS]) and no colour field: this map passes no forecast feed (planner's ruling
-     * on Q5), so `SightingsMap` hides every colour field here whatever the stored choice. Its geometry
+     * Map layers L0b (owner's ruling 4): the layer choices this map shares with the Maps tab, switched in
+     * Tools > Map Layers since dispatch 2026-10-28-02 (this map has no switches of its own). This map
+     * passes no forecast feed (planner's ruling on Q5), so `SightingsMap` hides every colour field here
+     * whatever the stored choice. Its geometry
      * still comes only from [getMapData] (`GetCartographyEntryMapDataUseCase`).
      */
     layersState: MapLayersState = MapLayersState.DEFAULT,
-    onLayerVisibilityChanged: (String, Boolean) -> Unit = { _, _ -> },
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
     /**
@@ -292,6 +294,14 @@ internal fun CartographyEntryReportScreen(
      * caller that passes `null` (the default).
      */
     onSetShownOnMap: ((shown: Boolean) -> Unit)? = null,
+    /**
+     * Data part A (dispatch 2026-09-28-667): the entry's day as the editor loads it
+     * ([CartographyUiState.candidatesForEditingEntry], already loaded by the time a report opens), so
+     * the tiles, the height profile and the waypoint table can read the included tracks' and waypoints'
+     * live records. `null` (the default, and when the day did not load) leaves every figure that needs
+     * a live record saying so; see [entryReportOf].
+     */
+    candidates: DerivedTrip? = null,
 ) {
     var menuExpanded by remember(entry.id) { mutableStateOf(false) }
     var confirmingDelete by remember(entry.id) { mutableStateOf(false) }
@@ -306,9 +316,9 @@ internal fun CartographyEntryReportScreen(
     // AvailabilityScreen's own mapMode.
     var entryMapMode by remember(entry.id) { mutableStateOf(initialMapMode) }
     var isMapFullscreen by remember(entry.id) { mutableStateOf(false) }
-    var showLayersSheet by remember(entry.id) { mutableStateOf(false) }
+    var showMapTypePanel by remember(entry.id) { mutableStateOf(false) }
     // See MapOverlayContent.resetOrientationRequestId's own doc comment.
-    var resetOrientationRequestId by remember(entry.id) { mutableStateOf(0) }
+    var resetOrientationRequestId by remember(entry.id) { mutableIntStateOf(0) }
     // The one-shot camera pan a locate-me tap resolves to — see this file's own doc comment,
     // "Fullscreen," for why this is a plain LatLng?, never the main map's tracking token.
     var focusOverrideTarget by remember(entry.id) { mutableStateOf<LatLng?>(null) }
@@ -366,6 +376,10 @@ internal fun CartographyEntryReportScreen(
         coveringOfflineRegion = getCoveringOfflineRegion(entry, resolved.drawablePoints)
     }
 
+    val report = remember(entry, candidates) {
+        entryReportOf(entry, candidates?.tracks.orEmpty(), candidates?.waypoints.orEmpty(), ComputeTrackStatisticsUseCase())
+    }
+
     val isEntirelyEmpty = entry.text.isBlank() &&
         entry.tags.isEmpty() &&
         entry.photos.isEmpty() &&
@@ -376,7 +390,8 @@ internal fun CartographyEntryReportScreen(
 
     // L2: read once here, so the map's Modifier below is the only thing that changes with it.
     val shortWindow = isShortWindow()
-    val shortWindowMapCap = (LocalConfiguration.current.screenHeightDp * SHORT_WINDOW_MAP_HEIGHT_FRACTION).dp
+    // The window's own height, not Configuration.screenHeightDp (lint ConfigurationScreenWidthHeight; see currentWindowWidthClass).
+    val shortWindowMapCap = LocalWindowInfo.current.containerDpSize.height * SHORT_WINDOW_MAP_HEIGHT_FRACTION
 
     // Read here, above the header, rather than beside the map below (moved unchanged): whether the entry
     // has a map decides the fill of the header's menu and of the delete dialog, which cover it (map
@@ -385,7 +400,52 @@ internal fun CartographyEntryReportScreen(
     val mapRegion = resolvedMapData?.takeUnless { it.isEmpty }?.let { GeoDistance.boundingRegion(it.allPoints) }
     val entryMapShown = resolvedMapData != null && mapRegion != null
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    // Dispatch 2026-10-18-01, the owner (S22 check, group 1 item 2): "map is squished in landscape. reduce the size to a 4:3
+    // box, and have it on one side with the info on the other. I propose the map on the left with the info on the right." In a
+    // landscape window, with a map, the screen splits: the map on the left in a 4:3 box, the header and everything else on the
+    // right, scrolling on its own (EntryReportLayout). Portrait is as before. The three parts are the same composables in
+    // either arrangement, and EntryReportLayout only places them, so the one mapSlot call below never moves in the
+    // composition when the phone turns (this file's doc comment, "Fullscreen").
+    val landscapeSplit = isLandscapeWindow()
+    // Dispatch 2026-10-18-10 (RECORD -1337, the owner: "The tall map in tablet mode would look better as a 1:1 box with the info
+    // next to it. Journal entry page can be spread further apart in the same way"; -1340): on a large screen the map is a square, on
+    // the left beside the details in landscape, on top with the details under it in portrait. A phone keeps the 4:3 box.
+    val mapAspectRatio = if (isLargeScreenWindow()) 1f else 4f / 3f
+
+    @Composable
+    fun OfflineRow(horizontalPadding: Dp) {
+        val availableOfflineRegion = coveringOfflineRegion
+        // Amendment 2 (scout E3): the offline-map row, found a moment after the map, grows in the same way.
+        GrowIn(visible = availableOfflineRegion != null) {
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = horizontalPadding, vertical = Spacing.sm),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(OFFLINE_TOGGLE_LABEL, style = MaterialTheme.typography.bodyMedium)
+                    Text(
+                        OFFLINE_TOGGLE_CAPTION,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+                Switch(
+                    checked = useOfflineTiles,
+                    onCheckedChange = { useOfflineTiles = it },
+                    modifier = Modifier.testTag(OFFLINE_TOGGLE_TEST_TAG),
+                )
+            }
+        }
+    }
+
+    EntryReportLayout(
+        split = landscapeSplit && entryMapShown && !isMapFullscreen,
+        fullscreen = isMapFullscreen,
+        infoMinWidth = LANDSCAPE_ENTRY_INFO_MIN_WIDTH,
+        squareMap = mapAspectRatio == 1f,
+        modifier = modifier.fillMaxWidth().testTag(ENTRY_REPORT_TAG),
+        header = {
         // Hidden via composition (an if, not an opacity/size-zero modifier), same convention
         // CompactMapTab's own fullscreen mode uses for its surrounding chrome — an unmounted
         // composable can't be the thing silently holding onto stale menu/dialog state, and this
@@ -398,17 +458,17 @@ internal fun CartographyEntryReportScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    IconButton(onClick = onBack) {
+                    BouncingIconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Cartography")
                     }
-                    Text(entry.date.toString(), style = MaterialTheme.typography.titleMedium)
+                    Text(displayDate(entry.date), style = MaterialTheme.typography.titleMedium)
                 }
                 Box {
-                    IconButton(onClick = { menuExpanded = true }) {
+                    BouncingIconButton(onClick = { menuExpanded = true }) {
                         Icon(Icons.Filled.MoreVert, contentDescription = "Entry options")
                     }
                     // The menu's default container role, passed explicitly, and its content colour
-                    // pinned to the role's own (see `MapLayersSheet`), as J8's menus do.
+                    // pinned to the role's own (`contentColorFor` matches a colour-scheme role exactly), as J8's menus do.
                     // The menu drops from the header onto the entry's map, when it has one.
                     val entryMenuColor = mapChromeFill(navigationBarContainerColor(), entryMapShown)
                     val entryMenuContentColor = contentColorFor(navigationBarContainerColor())
@@ -416,6 +476,8 @@ internal fun CartographyEntryReportScreen(
                         expanded = menuExpanded,
                         onDismissRequest = { menuExpanded = false },
                         containerColor = entryMenuColor,
+                        shadowElevation = mapChromeMenuShadowElevation(entryMapShown), // Dispatch 2026-11-05-06: none over the map.
+                        border = mapChromeMenuBorder(entryMapShown),
                         modifier = Modifier
                             .testTag(ENTRY_OVERFLOW_MENU_TAG)
                             .mapChromeContainerColor(entryMenuColor),
@@ -450,6 +512,8 @@ internal fun CartographyEntryReportScreen(
             }
         }
 
+        },
+        map = {
         // The opening frame (owner, 2026-09-28, "Fit all kept records"): one request per screen
         // instance, framed on the kept records and never the kept regions (entryMapFrame). Its id is
         // this instance's own token, not the entry's id, so a request is new exactly when this screen
@@ -458,15 +522,24 @@ internal fun CartographyEntryReportScreen(
         val openingCameraRequest = remember(openingFrameToken, resolvedMapData) {
             resolvedMapData?.let(::entryMapFrame)?.let { MapCameraRequest(openingFrameToken, it) }
         }
+        // Motion Part 3, Amendment 2 (RECORD -682; scout E2): the map arrives a moment after the report opens; it now grows in
+        // like a list row, pushing the body down smoothly, instead of popping in. Same structure whether or not the map is
+        // fullscreen, so the one map call site below never moves (this file's doc comment, "Fullscreen"). It goes at once.
+        GrowIn(
+            visible = entryMapShown,
+            modifier = if (isMapFullscreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth(),
+            shrinkOut = false,
+        ) {
+        Column(modifier = if (isMapFullscreen) Modifier.fillMaxSize() else Modifier.fillMaxWidth()) {
         if (resolvedMapData != null && mapRegion != null) {
             Box(
                 modifier = if (isMapFullscreen) {
                     Modifier.fillMaxWidth().weight(1f)
-                } else if (shortWindow) {
+                } else if (shortWindow && !landscapeSplit) {
                     // L2 (dispatch 2026-09-28-47): see shortWindowEntryMapHeight.
                     Modifier.fillMaxWidth().shortWindowEntryMapHeight(shortWindowMapCap)
                 } else {
-                    Modifier.fillMaxWidth().aspectRatio(4f / 3f)
+                    Modifier.fillMaxWidth().aspectRatio(mapAspectRatio)
                 }.testTag(CARTOGRAPHY_MAP_TEST_TAG),
             ) {
                 // One call, textually, regardless of isMapFullscreen — see this file's own doc
@@ -535,10 +608,17 @@ internal fun CartographyEntryReportScreen(
                         snapshotWaypoints = entryMapWaypoints(entry, resolvedMapData.waypointMarkers),
                         // F3: a kept track gone from Records still has its saved line drawn; a tap on it names it from the entry.
                         snapshotTracks = entry.trackDecisions.filter { it.kept },
+                        // RECORD -867 ("Add it to the icon's details"): the waypoint table is gone, so a waypoint's
+                        // bubble on this map carries the distance walked from the start of its own track, the one
+                        // figure only the table had. The unit is the screen's own, the setting the table used.
+                        distanceUnit = distanceUnit,
+                        waypointDistancesFromStart = report.waypoints
+                            .mapNotNull { row -> row.distanceFromStartMeters?.let { row.id to it } }
+                            .toMap(),
                     ),
                     forecast = null,
                     onViewSightingOnINaturalist = { tapped = null },
-                    backEnabled = backEnabled && !showLayersSheet,
+                    backEnabled = backEnabled && !showMapTypePanel,
                 )
 
                 if (isMapFullscreen) {
@@ -548,7 +628,7 @@ internal fun CartographyEntryReportScreen(
                         onLocateMe = onLocateMe,
                         onResetOrientation = { resetOrientationRequestId++ },
                         mapMode = entryMapMode,
-                        onOpenLayers = { showLayersSheet = true },
+                        onOpenLayers = { showMapTypePanel = true },
                         onAdd = {}, // Unused — fifthRow below replaces this row entirely.
                         mapModePickerEnabled = !useOfflineTiles,
                         // A toggle, not a momentary action like the default add row this replaces —
@@ -567,58 +647,73 @@ internal fun CartographyEntryReportScreen(
                         },
                         modifier = Modifier.align(Alignment.CenterEnd).padding(Spacing.sm),
                     )
-                    if (showLayersSheet) {
-                        MapLayersSheet(
-                            mapMode = entryMapMode,
-                            onMapModeSelected = { entryMapMode = it },
-                            overlays = ENTRY_MAP_OVERLAYS,
-                            colourFields = emptyList(),
-                            state = layersState,
-                            onVisibilityChanged = onLayerVisibilityChanged,
-                            onOpacityChanged = { _, _ -> },
-                            onColourFieldMoved = { _, _ -> },
-                            onDismiss = { showLayersSheet = false },
-                        )
-                    }
+                    // Dispatch 2026-10-28-02: the map type panel, anchored to this bar's Layers row (row 4, at the bar's fixed
+                    // right side), as MapModePicker was here before the Layers sheet. The overlay switches are in Tools > Map Layers.
+                    MapTypePanel(
+                        visible = showMapTypePanel,
+                        mapMode = entryMapMode,
+                        onModeSelected = { entryMapMode = it },
+                        onDismiss = { showMapTypePanel = false },
+                        modifier = Modifier.fillMaxSize(),
+                        offlineTiles = useOfflineTiles,
+                    )
                 }
             }
 
-            if (!isMapFullscreen) {
-                val availableOfflineRegion = coveringOfflineRegion
-                if (availableOfflineRegion != null) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(OFFLINE_TOGGLE_LABEL, style = MaterialTheme.typography.bodyMedium)
-                            Text(
-                                OFFLINE_TOGGLE_CAPTION,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                        Switch(
-                            checked = useOfflineTiles,
-                            onCheckedChange = { useOfflineTiles = it },
-                            modifier = Modifier.testTag(OFFLINE_TOGGLE_TEST_TAG),
-                        )
-                    }
-                }
+            // Dispatch 2026-10-18-01: in a landscape window the offline switch is in the info column instead.
+            if (!isMapFullscreen && !landscapeSplit) {
+                OfflineRow(horizontalPadding = Spacing.lg)
             }
         }
+        }
+        }
 
+        },
+        body = {
         if (!isMapFullscreen) {
             Column(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .weight(1f)
+                    .fillMaxSize()
                     .verticalScroll(rememberScrollState())
-                    .padding(horizontal = Spacing.lg),
+                    .padding(horizontal = Spacing.lg)
+                    .testTag(ENTRY_REPORT_INFO_TAG),
                 verticalArrangement = Arrangement.spacedBy(Spacing.lg),
             ) {
-                if (isEntirelyEmpty) {
+                if (landscapeSplit && entryMapShown) {
+                    // Dispatch 2026-10-18-01 (the drawing the owner confirmed: "header · stats · switch / … / notes"): beside
+                    // the map, the stats first, then the offline switch, then the notes. The header is pinned above this
+                    // column, as in portrait, so Back never scrolls away. What each part is: the portrait branch below.
+                    EntrySummaryTiles(report = report, distanceUnit = distanceUnit)
+                    EntryHeightProfile(profile = report.heightProfile, distanceUnit = distanceUnit)
+                    OfflineRow(horizontalPadding = 0.dp)
+                    if (isEntirelyEmpty) {
+                        Text(EMPTY_ENTRY_MESSAGE, style = MaterialTheme.typography.bodyMedium)
+                    } else {
+                        if (entry.text.isNotBlank() || entry.tags.isNotEmpty() || entry.photos.isNotEmpty()) {
+                            HorizontalDivider()
+                        }
+                        entry.text.takeIf { it.isNotBlank() }?.let { text ->
+                            Text(text, style = MaterialTheme.typography.bodyMedium)
+                        }
+
+                        if (entry.tags.isNotEmpty()) {
+                            Text("Tags: ${entry.tags.joinToString(", ")}", style = MaterialTheme.typography.bodySmall)
+                        }
+
+                        if (entry.photos.isNotEmpty()) {
+                            val photosById = galleryPhotos.associateBy { it.photo.id }
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                entry.photos.forEach { attachment ->
+                                    KeptPhotoOrUnavailable(
+                                        attachment = attachment,
+                                        photo = photosById[attachment.photoId],
+                                        modifier = Modifier.size(KEPT_PHOTO_SIZE_DP.dp),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                } else if (isEntirelyEmpty) {
                     Text(EMPTY_ENTRY_MESSAGE, style = MaterialTheme.typography.bodyMedium)
                 } else {
                     entry.text.takeIf { it.isNotBlank() }?.let { text ->
@@ -646,38 +741,21 @@ internal fun CartographyEntryReportScreen(
                         HorizontalDivider()
                     }
 
-                    ReportItemsSection(
-                        title = "Finds",
-                        items = entry.findDecisions.filter { it.kept }.map { ReportItem(title = "Find on ${it.foundOn}", subtitle = it.ownIdentification) },
-                    )
-                    ReportItemsSection(
-                        title = "Tracks",
-                        items = entry.trackDecisions.filter { it.kept }.map {
-                            ReportItem(
-                                title = it.name ?: "Recorded track",
-                                // The report has no live track to hand; the snapshot's point count is what keeps an empty track from being a silent one (timestamp-filter dispatch, Item 3).
-                                subtitle = trackSubtitle(it.distanceMeters, it.durationMillis, distanceUnit) + trackExclusionSuffix(liveTrack = null, snapshotPointCount = it.pointCount),
-                            )
-                        },
-                    )
-                    ReportItemsSection(
-                        title = "Waypoints",
-                        items = entry.waypointDecisions.filter { it.kept }.map {
-                            ReportItem(title = it.name, subtitle = "${"%.4f".format(it.lat)}, ${"%.4f".format(it.lng)}")
-                        },
-                    )
-                    ReportItemsSection(
-                        title = "Offline Regions",
-                        items = entry.offlineRegionDecisions.filter { it.kept }.map {
-                            ReportItem(title = it.name, subtitle = formatDistanceKm(it.radiusKm, distanceUnit))
-                        },
-                    )
+                    // RECORD -867 (the owner: "Keep notes, tags, photos and the toggle"): under the map, the four
+                    // tiles and the writing above them. The track list, the finds list and the waypoint table went
+                    // (the owner, RECORD -864: "The raw data is an eyesore and is what records are for"); tapping a
+                    // record on the map still shows its details. The kept offline maps' list went too (RECORD -873, the
+                    // owner: "Remove it, like the other lists"); the Offline map toggle above stays. The height chart was hidden until barometer height
+                    // landed (RECORD -864, "Keep it, once height is fixed"); it is back (part 5), drawing trackHeights.
+                    EntrySummaryTiles(report = report, distanceUnit = distanceUnit)
+                    EntryHeightProfile(profile = report.heightProfile, distanceUnit = distanceUnit)
                 }
 
                 Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
             }
         }
-    }
+        },
+    )
 
     if (confirmingDelete) {
         val deleteDialogColor = mapChromeFill(navigationBarContainerColor(), entryMapShown)
@@ -686,7 +764,7 @@ internal fun CartographyEntryReportScreen(
             title = { Text("Delete this entry?") },
             text = {
                 Text(
-                    "This removes the entry and its kept selections. The finds, tracks, waypoints, and regions it kept stay in Records.",
+                    DELETE_ENTRY_DIALOG_TEXT,
                     modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
                 )
             },
@@ -700,108 +778,5 @@ internal fun CartographyEntryReportScreen(
     }
 }
 
-/** The report header's overflow menu, for tests. */
-internal const val ENTRY_OVERFLOW_MENU_TAG = "entry-overflow-menu"
-
-/** The entry delete dialog, for tests. */
-internal const val ENTRY_DELETE_DIALOG_TAG = "entry-delete-dialog"
-
-/**
- * Reported verbatim per the Stage 2d dispatch's own instruction ("write the wording yourself... and
- * report the exact string you used, so the owner can adjust it") — a `const val` so the exact text
- * is visible in code, not buried in a chained string-builder call. Deliberately not a copy of
- * [LogEntryReportScreen]'s own empty-state text: a find and a Cartography entry hold different
- * things (a find is an observation record with taxonomic fields; a Cartography entry is a day
- * assembled from that day's records), so this names what an entry actually holds rather than
- * echoing the find screen's wording.
- */
-private const val EMPTY_ENTRY_MESSAGE =
-    "This entry has nothing kept yet. An entry can hold the finds, tracks, waypoints, offline " +
-        "regions, and photos you choose to keep from a day's records, plus anything you write. " +
-        "Tap the three-dot menu, then Edit, to add something."
-
-/** Reported verbatim, same reasoning as [EMPTY_ENTRY_MESSAGE] — the toggle's own label, Journal Stage 2e-i. */
-private const val OFFLINE_TOGGLE_LABEL = "Offline map"
-
-/**
- * Reported verbatim, same reasoning as [EMPTY_ENTRY_MESSAGE]. States the tradeoff plainly rather than
- * dressing it up as a warning — the current offline style is a hosting-cost constraint the owner
- * intends to lift later, not a design choice, but it is today's reality and a user should not meet it
- * as a surprise the first time they flip this switch.
- */
-private const val OFFLINE_TOGGLE_CAPTION = "Offline maps show shapes only — no place names, road names, or icons."
-
-/**
- * The entry map's waypoint pins (M1): each resolved marker, named by the entry's own snapshot of that
- * waypoint (`CartographyEntry.waypointDecisions`), which is what the entry's text lists too. A marker
- * the entry has no decision for keeps the placeholder name it always had.
- */
-internal fun entryMapWaypoints(entry: CartographyEntry, markers: List<RecordPoint>): List<Waypoint> = markers.map { marker ->
-    Waypoint(
-        id = marker.recordId,
-        lat = marker.at.lat,
-        lng = marker.at.lng,
-        altitude = null,
-        name = entry.waypointDecisions.firstOrNull { it.waypointId == marker.recordId }?.name ?: "Waypoint",
-        note = "",
-        createdAtEpochMillis = 0L,
-    )
-}
-
-/** Lets tests distinguish "the map section rendered" from "nothing resolved, no map section at all" without depending on [mapSlot]'s own real content — see this file's own doc comment, "No map section at all while loading, or if nothing resolved." */
-/**
- * L2 (dispatch `prompts/preserved/2026-09-28-47.md`; the device evidence is
- * `docs/audits/2026-09-28-backlog-device-check-part-b-run-record.md`, item 7). **The rule:** in a
- * short window (under 480 dp tall, `isShortWindow`, whatever the orientation) the entry map's
- * preview is 4:3 by its width, as everywhere else, but never taller than this fraction of the
- * window's height: 40%, which is **153.6 dp** in the S22 Ultra's 384 dp landscape window.
- *
- * Why a cap was needed at all: in the 640 dp landscape column a 4:3 map is 480 dp tall, taller than
- * the whole window. `aspectRatio` measures it at 480 dp regardless, and Compose centres an oversized
- * child on its slot, so the map was drawn about 104 dp above its own slot, over the header row, and
- * the offline row and the text below got no height at all.
- *
- * Why 40%: what else must fit beside it in that window, measured headless at `w823dp-h384dp-land`:
- * the Journal's 48 dp short-window row and the report's 64 dp header row take 112 dp of the 384, so
- * a 154 dp map leaves about 118 dp for the offline-map row (about 64 dp on a device) and the start
- * of the scrolling text. Half the window (192 dp) would leave the text about 16 dp once the offline
- * row shows. Rejected: capping the width too, to keep 4:3 (205 x 154 dp), which wastes the column
- * for no gain, since a tap still opens the fullscreen map.
- */
-internal const val SHORT_WINDOW_MAP_HEIGHT_FRACTION = 0.4f
-
-/**
- * L2's map box: the full width it is given, and a height of 3/4 of that width, but no more than
- * [cap] and never more than the incoming constraints allow, so the box can never be measured taller
- * than its slot (the overflow `aspectRatio` produced). A layout modifier rather than `heightIn` on
- * `aspectRatio`, because `aspectRatio` falls back to its unconstrained size when nothing satisfies
- * the constraints, which is the overflow itself.
- */
-private fun Modifier.shortWindowEntryMapHeight(cap: Dp): Modifier = layout { measurable, constraints ->
-    val width = constraints.maxWidth
-    val height = minOf(width * 3 / 4, cap.roundToPx()).coerceIn(constraints.minHeight, constraints.maxHeight)
-    val placeable = measurable.measure(Constraints.fixed(width, height))
-    layout(width, height) { placeable.place(0, 0) }
-}
-
-internal const val CARTOGRAPHY_MAP_TEST_TAG = "cartography-entry-map"
-
 /** Lets tests select the offline-map [Switch] directly, rather than relying on an untagged toggleable-semantics query. */
 internal const val OFFLINE_TOGGLE_TEST_TAG = "cartography-entry-offline-toggle"
-
-private data class ReportItem(val title: String, val subtitle: String?)
-
-/** One category of kept items — omitted entirely when [items] is empty, never shown with a "nothing yet" placeholder. See this file's own doc comment for why. */
-@Composable
-private fun ReportItemsSection(title: String, items: List<ReportItem>) {
-    if (items.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Text(title, style = MaterialTheme.typography.titleSmall)
-        items.forEach { item ->
-            Column {
-                Text(item.title, style = MaterialTheme.typography.bodyMedium)
-                item.subtitle?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
-            }
-        }
-    }
-}

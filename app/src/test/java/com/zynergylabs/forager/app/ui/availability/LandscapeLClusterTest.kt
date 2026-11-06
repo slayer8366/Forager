@@ -144,7 +144,9 @@ class LandscapeLClusterTest {
 
     @Test fun `L1 at ROTATION_90 the cluster is an L, bar 240, gap 8, pill 48 thick, 296 in all`() = assertShape(Surface.ROTATION_90, clusterOnLeft = true)
 
-    @Test fun `L1 at ROTATION_270 the cluster is an inverse L, bar 240, gap 8, pill 48 thick, 296 in all`() = assertShape(Surface.ROTATION_270, clusterOnLeft = false)
+    // RECORD -956 (the owner: "One should look exactly line the other"): the L defaults to the screen's left at 270 too, so it is the same L as at 90.
+    // Was `the cluster is an inverse L`, `clusterOnLeft = false`.
+    @Test fun `L1 at ROTATION_270 the cluster is an L, as at ROTATION_90, bar 240, gap 8, pill 48 thick, 296 in all`() = assertShape(Surface.ROTATION_270, clusterOnLeft = true)
 
     // ── Real touches on the bar's end rows, now that there is no end padding ──
 
@@ -250,7 +252,8 @@ class LandscapeLClusterTest {
 
     @Test fun `L3 at ROTATION_90 a real long-press in the empty corner and in the gap reaches the map`() = assertCornerAndGapReachTheMap(Surface.ROTATION_90, clusterOnLeft = true)
 
-    @Test fun `L3 at ROTATION_270 a real long-press in the empty corner and in the gap reaches the map`() = assertCornerAndGapReachTheMap(Surface.ROTATION_270, clusterOnLeft = false)
+    // RECORD -956 (the owner: "One should look exactly line the other"). Was `clusterOnLeft = false`.
+    @Test fun `L3 at ROTATION_270 a real long-press in the empty corner and in the gap reaches the map`() = assertCornerAndGapReachTheMap(Surface.ROTATION_270, clusterOnLeft = true)
 
     // ── The L's measured box drives the clamps ──
 

@@ -332,7 +332,7 @@ No content is quoted. The sizes are from the dumps.
 - **Share,** from the track's sheet (05:12:37Z). The system share sheet opened:
   `com.android.intentresolver/.ChooserActivityLauncher`, titled "1 item", with a `.gpx` file (`61-share-sheet.png`). It was left
   with Back, and no target was touched. The sheet lists contacts and apps. Nothing was shared, to iNaturalist or anywhere.
-- **Directions,** from the "DEVICE CHECK waypoint" sheet (05:13:45Z). a mainstream maps app opened,
+- **Directions,** from the "DEVICE CHECK waypoint" sheet (05:13:45Z). The phone's maps app opened,
   `com.google.android.apps.maps/com.google.android.maps.MapsActivity`, on a place card for the waypoint (`66-directions-small.png`,
   by my reading). No route or navigation was started.
   - Leaving Maps took two Backs. The first closed its place card (`67-after-directions-back.xml`, still Maps). The second returned to
@@ -1176,7 +1176,7 @@ items they touch are **held**, not run, until the planner rules. Every other ite
   an installed maps app, and Share on the track sheet (`:243`, `shareTrackGpx`) opens the system share sheet; each
   target's package is read from `dumpsys activity activities`; each is left with Back without acting. Nothing is
   shared to iNaturalist or anywhere.
-- **Prediction:** Directions opens a mainstream maps app (`com.google.android.apps.maps`), unverified; Share opens the
+- **Prediction:** Directions opens the phone's mainstream maps app (`com.google.android.apps.maps`), unverified; Share opens the
   Android share sheet.
 
 ### Items 19, 26, 32 and 50: TalkBack, partial (from dumps)

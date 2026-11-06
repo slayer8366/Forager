@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.domain.model
 
 import java.util.Locale
+import kotlin.math.roundToInt
 
 /**
  * Which system of units this person reads — the one place that question is answered (return-
@@ -13,10 +14,12 @@ import java.util.Locale
  * [DistanceUnit] is **derived** from this ([distanceUnit]), never chosen separately; the two enums
  * are in bijection ([forDistanceUnit]), which is what lets every existing `DistanceUnit` reader and
  * the Settings control's existing callback keep their shape. Readers today: every distance display
- * (through [distanceUnit]) and rainfall ([formatRainfall]). **Not yet readers, reported and queued
- * in `docs/navigation/2026-09-07-return-estimate-prebuild-report.md` §4.4:** soil temperature (°C at
- * one site) and elevation (metres at three). They wait on this preference; they are not converted
- * here, per the ruling ("build the preference here, convert rainfall only, report the others").
+ * (through [distanceUnit]), rainfall ([formatRainfall]), and since dispatch 2026-09-28-549 elevation,
+ * the rise from the start and position accuracy ([formatWholeLength], [formatElevationChange]) and
+ * soil temperature ([formatSoilTemperature], and the guidance text's band). Those last were left
+ * waiting by the first ruling ("build the preference here, convert rainfall only, report the
+ * others"; `docs/navigation/2026-09-07-return-estimate-prebuild-report.md` §4.4); the owner chose
+ * "Yes, both" for elevation and soil temperature (RECORD -547) and added accuracy (RECORD -557).
  *
  * [IMPERIAL] is the default, as [DistanceUnit.MILES] was — the app's users are US foragers.
  */
@@ -60,4 +63,56 @@ fun formatRainfall(mm: Double, unitSystem: UnitSystem, metricDecimals: Int = 1):
             else -> String.format(Locale.US, "%.1f in", inches)
         }
     }
+}
+
+/** Metres per foot, exactly, by definition of the international foot. */
+private const val METERS_PER_FOOT = 0.3048
+
+/**
+ * A whole-number length a person reads — an elevation, or a position's accuracy — in the user's
+ * units (dispatch 2026-09-28-549, and its Amendment 1 for accuracy, RECORD -557). The value stays
+ * metres everywhere else (the fix's `altitude`, `positionalAccuracyMeters`); only the label converts,
+ * the rule [formatRainfall] follows.
+ *
+ * **Metric:** whole metres, " m", byte-identical to what the sites printed before this existed.
+ * **Imperial:** whole feet, metres ÷ 0.3048, rounded the same way (`roundToInt`), " ft". Whole feet,
+ * not tens of feet: the metric side shows whole metres, so this is like for like (the dispatch
+ * considered and did not adopt coarser rounding for GPS height error).
+ */
+fun formatWholeLength(meters: Double, unitSystem: UnitSystem): String = when (unitSystem) {
+    UnitSystem.METRIC -> "${wholeLength(meters, unitSystem)} m"
+    UnitSystem.IMPERIAL -> "${wholeLength(meters, unitSystem)} ft"
+}
+
+/**
+ * The number [formatWholeLength] prints, without its unit: whole metres, or whole feet (metres ÷ 0.3048), each `roundToInt`.
+ * For a figure printed beside one that already names the unit, as the route card's climb and descent do (dispatch
+ * 2026-10-30-08, Amendment 6: "Elevation: +240 ft (↑ 320 ↓ 80)").
+ */
+fun wholeLength(meters: Double, unitSystem: UnitSystem): Int = when (unitSystem) {
+    UnitSystem.METRIC -> meters.roundToInt()
+    UnitSystem.IMPERIAL -> (meters / METERS_PER_FOOT).roundToInt()
+}
+
+/**
+ * A signed elevation change ("+33 ft", "-12 ft") in the user's units — the rise from the start in
+ * the Return control's screen-reader sentence. The sign is taken from the metre value, as before,
+ * so a small fall rounding to zero still reads "0" rather than "-0".
+ */
+fun formatElevationChange(meters: Double, unitSystem: UnitSystem): String =
+    "${if (meters >= 0) "+" else ""}${formatWholeLength(meters, unitSystem)}"
+
+/** Degrees Fahrenheit for [celsius]: °F = °C × 9/5 + 32. */
+fun celsiusToFahrenheit(celsius: Double): Double = celsius * 9.0 / 5.0 + 32.0
+
+/**
+ * A soil temperature in the user's units, one decimal, no space before the degree sign
+ * ("11.3°C", "52.3°F"), as the site wrote °C before. Values stay °C everywhere else (Open-Meteo
+ * returns them; `FruitingPatternAssumptions` is in them). `Locale.US` for the decimal point in both
+ * systems (Amendment 1, RECORD -557): before this the metric figure took the phone's locale and
+ * printed "11,3°C" on a comma-language phone; that one case changes, by the owner's ruling.
+ */
+fun formatSoilTemperature(celsius: Double, unitSystem: UnitSystem): String = when (unitSystem) {
+    UnitSystem.METRIC -> String.format(Locale.US, "%.1f°C", celsius)
+    UnitSystem.IMPERIAL -> String.format(Locale.US, "%.1f°F", celsiusToFahrenheit(celsius))
 }

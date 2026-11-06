@@ -1,0 +1,382 @@
+{
+  "about": "The open-source software Forager ships, as Settings > Sources & credits > Open-source software shows it (dispatch 2026-10-13-05). Kept by hand; verifyCreditsCoverEveryDependency in app/build.gradle.kts fails the build when a module on releaseRuntimeClasspath is matched by no library here, when a library here matches no module, when a pinned version moves, and when a NOTICE file inside a shipped artifact is not reproduced here word for word. A module pattern is group:name, where the group may end in .* (that group and every group under it) and the name may be *.",
+  "licences": [
+    {
+      "id": "Apache-2.0",
+      "name": "Apache License 2.0",
+      "file": "licenses/apache-2.0.txt"
+    },
+    {
+      "id": "BSD-2-Clause",
+      "name": "BSD 2-Clause License",
+      "file": "licenses/bsd-2-clause.txt"
+    },
+    {
+      "id": "MIT",
+      "name": "MIT License",
+      "file": "licenses/mit.txt"
+    },
+    {
+      "id": "MPL-2.0",
+      "name": "Mozilla Public License 2.0",
+      "file": "licenses/mpl-2.0.txt"
+    },
+    {
+      "id": "OFL-1.1",
+      "name": "SIL Open Font License 1.1",
+      "file": "licenses/ofl-1.1.txt"
+    }
+  ],
+  "libraries": [
+    {
+      "name": "AndroidX: Jetpack, Compose, Material 3 and its icons, Room, CameraX, WorkManager, DataStore, Lifecycle and ExifInterface",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright The Android Open Source Project"
+      ],
+      "modules": [
+        "androidx.*:*"
+      ]
+    },
+    {
+      "name": "Kotlin standard library",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright JetBrains s.r.o. and Kotlin Programming Language contributors"
+      ],
+      "modules": [
+        "org.jetbrains.kotlin:*"
+      ]
+    },
+    {
+      "name": "kotlinx.coroutines and kotlinx.serialization",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright JetBrains s.r.o. and contributors"
+      ],
+      "modules": [
+        "org.jetbrains.kotlinx:*"
+      ]
+    },
+    {
+      "name": "JetBrains Java Annotations",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright JetBrains s.r.o."
+      ],
+      "modules": [
+        "org.jetbrains:annotations"
+      ]
+    },
+    {
+      "name": "Retrofit",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright 2013 Square, Inc."
+      ],
+      "modules": [
+        "com.squareup.retrofit2:*"
+      ]
+    },
+    {
+      "name": "OkHttp",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright 2019 Square, Inc."
+      ],
+      "modules": [
+        "com.squareup.okhttp3:*"
+      ]
+    },
+    {
+      "name": "Okio",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright 2013 Square, Inc."
+      ],
+      "modules": [
+        "com.squareup.okio:*"
+      ]
+    },
+    {
+      "name": "Kotlin Serialization Converter for Retrofit",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright 2018 Jake Wharton"
+      ],
+      "modules": [
+        "com.jakewharton.retrofit:*"
+      ]
+    },
+    {
+      "name": "Timber",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright 2013 Jake Wharton"
+      ],
+      "modules": [
+        "com.jakewharton.timber:*"
+      ]
+    },
+    {
+      "name": "Gson",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright 2008 Google Inc."
+      ],
+      "modules": [
+        "com.google.code.gson:*"
+      ]
+    },
+    {
+      "name": "Guava, with its ListenableFuture and failureaccess",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright The Guava Authors"
+      ],
+      "modules": [
+        "com.google.guava:*"
+      ]
+    },
+    {
+      "name": "JSpecify",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright The JSpecify Authors"
+      ],
+      "modules": [
+        "org.jspecify:jspecify"
+      ]
+    },
+    {
+      "name": "Dagger",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright The Dagger Authors"
+      ],
+      "modules": [
+        "com.google.dagger:*"
+      ]
+    },
+    {
+      "name": "AutoValue annotations",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright (C) 2012 Google, Inc."
+      ],
+      "modules": [
+        "com.google.auto.value:auto-value-annotations"
+      ]
+    },
+    {
+      "name": "Error Prone annotations",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright The Error Prone Authors"
+      ],
+      "modules": [
+        "com.google.errorprone:error_prone_annotations"
+      ]
+    },
+    {
+      "name": "J2ObjC annotations",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright 2012 Google Inc. All Rights Reserved."
+      ],
+      "modules": [
+        "com.google.j2objc:j2objc-annotations"
+      ]
+    },
+    {
+      "name": "JSR 305 annotations",
+      "licence": "Apache-2.0",
+      "credit": [
+        "com.google.code.findbugs:jsr305, under the Apache License 2.0 as its package states"
+      ],
+      "modules": [
+        "com.google.code.findbugs:jsr305"
+      ],
+      "note": "Its javax.annotation.concurrent annotations carry their own notice: \"Copyright (c) 2005 Brian Goetz. Released under the Creative Commons Attribution License (http://creativecommons.org/licenses/by/2.5). Official home: http://www.jcip.net\"."
+    },
+    {
+      "name": "Jakarta Dependency Injection",
+      "licence": "Apache-2.0",
+      "credit": [
+        "All content is the property of the respective authors or their employers (its NOTICE, below)."
+      ],
+      "modules": [
+        "jakarta.inject:jakarta.inject-api"
+      ],
+      "notices": [
+        {
+          "title": "NOTICE in jakarta.inject:jakarta.inject-api",
+          "file": "notices/jakarta-inject-api-NOTICE.md",
+          "module": "jakarta.inject:jakarta.inject-api",
+          "path": "META-INF/NOTICE.md"
+        }
+      ]
+    },
+    {
+      "name": "javax.inject (JSR-330)",
+      "licence": "Apache-2.0",
+      "credit": [
+        "Copyright (C) 2009 The JSR-330 Expert Group"
+      ],
+      "modules": [
+        "javax.inject:javax.inject"
+      ]
+    },
+    {
+      "name": "MapLibre Native, the map renderer (Android SDK 13.5.0)",
+      "licence": "BSD-2-Clause",
+      "credit": [
+        "Copyright (c) 2021 MapLibre contributors",
+        "Copyright (c) 2014-2020 Mapbox"
+      ],
+      "modules": [
+        "org.maplibre.gl:android-sdk"
+      ],
+      "versions": {
+        "org.maplibre.gl:android-sdk": "13.5.0"
+      },
+      "notices": [
+        {
+          "title": "MapLibre Native Android's licence and third-party notices (android-v13.5.0), including the native components built into it",
+          "file": "notices/maplibre-native-android-v13.5.0.txt"
+        }
+      ]
+    },
+    {
+      "name": "MapLibre Android Gestures 0.0.4",
+      "licence": "BSD-2-Clause",
+      "credit": [
+        "Copyright (c) 2018, Mapbox",
+        "Copyright (c) 2024, MapLibre contributors"
+      ],
+      "modules": [
+        "org.maplibre.gl:maplibre-android-gestures"
+      ],
+      "versions": {
+        "org.maplibre.gl:maplibre-android-gestures": "0.0.4"
+      },
+      "notices": [
+        {
+          "title": "MapLibre Android Gestures' licence and third-party notice (0.0.4)",
+          "file": "notices/maplibre-gestures-android-0.0.4.txt"
+        }
+      ]
+    },
+    {
+      "name": "MapLibre Java: GeoJSON and Turf",
+      "licence": "MIT",
+      "credit": [
+        "Copyright (c) 2018 Mapbox"
+      ],
+      "modules": [
+        "org.maplibre.gl:android-sdk-geojson",
+        "org.maplibre.gl:android-sdk-turf"
+      ],
+      "note": "Its published package names the Apache License 2.0, and the LICENSE file in its source repository (github.com/maplibre/maplibre-java) is the MIT License. Both texts are on this page."
+    },
+    {
+      "name": "NGA MGRS (mgrs-java)",
+      "licence": "MIT",
+      "credit": [
+        "Copyright (c) 2022 National Geospatial-Intelligence Agency"
+      ],
+      "modules": [
+        "mil.nga:mgrs"
+      ]
+    },
+    {
+      "name": "NGA Grid (grid-java)",
+      "licence": "MIT",
+      "credit": [
+        "Copyright (c) 2022 National Geospatial-Intelligence Agency"
+      ],
+      "modules": [
+        "mil.nga:grid"
+      ]
+    },
+    {
+      "name": "NGA Color (color-java)",
+      "licence": "MIT",
+      "credit": [
+        "Copyright (c) 2022 National Geospatial-Intelligence Agency"
+      ],
+      "modules": [
+        "mil.nga:color"
+      ]
+    },
+    {
+      "name": "NGA Simple Features (simple-features-java)",
+      "licence": "MIT",
+      "credit": [
+        "Copyright (c) 2015 Bit Systems"
+      ],
+      "modules": [
+        "mil.nga:sf"
+      ]
+    },
+    {
+      "name": "Checker Framework qualifiers",
+      "licence": "MIT",
+      "credit": [
+        "Copyright 2004-present by the Checker Framework developers"
+      ],
+      "modules": [
+        "org.checkerframework:checker-qual"
+      ]
+    },
+    {
+      "name": "BRouter, the trail router (v1.7.10)",
+      "licence": "MIT",
+      "credit": [
+        "Copyright (c) 2019 BRouter contributors"
+      ],
+      "note": "Built into the app from BRouter's source (github.com/abrensch/brouter), with its hiking-mountain profile."
+    },
+    {
+      "name": "53 of Forager Trail Map's 61 icons, from Mapzen's tangrams icon set",
+      "licence": "MIT",
+      "credit": [
+        "Copyright (c) 2017 Mapzen"
+      ],
+      "note": "Served with Forager Trail Map by Forager's own map server, as Protomaps publishes them (github.com/protomaps/basemaps-assets). The other 8 icons and patterns are Forager's own art."
+    },
+    {
+      "name": "The Public Suffix List, inside OkHttp",
+      "licence": "MPL-2.0",
+      "credit": [
+        "Compiled into OkHttp's publicsuffixes.gz from https://publicsuffix.org/list/public_suffix_list.dat"
+      ],
+      "modules": [
+        "com.squareup.okhttp3:okhttp"
+      ],
+      "notices": [
+        {
+          "title": "NOTICE in com.squareup.okhttp3:okhttp",
+          "file": "notices/okhttp-publicsuffix-NOTICE.txt",
+          "module": "com.squareup.okhttp3:okhttp",
+          "path": "okhttp3/internal/publicsuffix/NOTICE"
+        }
+      ]
+    },
+    {
+      "name": "Noto Sans, the app's typeface",
+      "licence": "OFL-1.1",
+      "credit": [
+        "Copyright 2022 The Noto Project Authors (https://github.com/notofonts/latin-greek-cyrillic)"
+      ]
+    },
+    {
+      "name": "Noto Sans, Forager Trail Map's labels",
+      "licence": "OFL-1.1",
+      "credit": [
+        "Copyright 2022 The Noto Project Authors (https://github.com/notofonts)"
+      ],
+      "note": "The map's labels are drawn from Noto Sans Regular, Medium and Italic glyphs, served by Forager's own map server with the licence beside them; the glyph files are Protomaps' (github.com/protomaps/basemaps-assets), made from the Noto fonts."
+    }
+  ]
+}

@@ -5,6 +5,7 @@ import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -51,7 +52,7 @@ class FindsGalleryScreenTest {
 
     @Test
     fun `an entry with a cover photo renders it`() {
-        val entryWithPhoto = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+        val entryWithPhoto = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1))
             .copy(photos = listOf(LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L)))
 
         composeRule.setContent {
@@ -66,13 +67,13 @@ class FindsGalleryScreenTest {
 
     @Test
     fun `an entry with no photos shows the placeholder icon, not a broken image`() {
-        val entryWithoutPhoto = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+        val entryWithoutPhoto = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1))
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(entryWithoutPhoto), isLoading = false, onOpenEntry = {}, onAddEntry = {})
         }
 
-        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
         composeRule.onAllNodesWithContentDescription("Log photo").assertCountEquals(0)
     }
 
@@ -83,23 +84,23 @@ class FindsGalleryScreenTest {
      */
     @Test
     fun `by default the Log tab shows only committed entries, with the add tile, and no draft is visible`() {
-        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
-        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 2))
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 2))
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
         }
 
-        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
-        composeRule.onNodeWithText("Find on 2026-08-02").assertDoesNotExist()
+        composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
+        composeRule.onNodeWithText("Aug 2, 2026").assertDoesNotExist()
         composeRule.onNodeWithText("Draft").assertDoesNotExist()
     }
 
     @Test
     fun `tapping the Drafts tab shows only drafts, hides the committed entry and the add tile`() {
-        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
-        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 2))
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val draft = MushroomLogEntry.draft(id = "draft-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 2))
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(committed), draftEntries = listOf(draft), isLoading = false, onOpenEntry = {}, onAddEntry = {})
@@ -107,23 +108,23 @@ class FindsGalleryScreenTest {
 
         composeRule.onNodeWithText("Drafts (1)").performClick()
 
-        composeRule.onNodeWithText("Find on 2026-08-02").assertIsDisplayed()
+        composeRule.onNodeWithText("Aug 2, 2026").assertIsDisplayed()
         composeRule.onNodeWithText("Draft").assertIsDisplayed()
-        composeRule.onNodeWithText("Find on 2026-08-01").assertDoesNotExist()
-        composeRule.onNodeWithContentDescription("New log entry").assertDoesNotExist()
+        composeRule.onNodeWithText("Aug 1, 2026").assertDoesNotExist()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertDoesNotExist()
     }
 
     /** [LogPanel]'s own usage — no "+" tile inside this list at all, matching the former `LogEntryListScreen`'s shape (the expanded window starts a find via the map's "Log a find" flow instead). */
     @Test
     fun `with onAddEntry null, no add tile is shown even on the Log tab`() {
-        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(committed), isLoading = false, onOpenEntry = {}, onAddEntry = null)
         }
 
-        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("New log entry").assertDoesNotExist()
+        composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertDoesNotExist()
     }
 
     @Test
@@ -137,13 +138,13 @@ class FindsGalleryScreenTest {
 
     @Test
     fun `a set loadErrorMessage does not hide entries already showing`() {
-        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val committed = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(committed), isLoading = false, onOpenEntry = {}, loadErrorMessage = "Log entries unavailable.")
         }
 
-        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
     }
 
     /** Stage 2b follow-up dispatch, point 3 — Album lives in [CartographyScreen] only now. */
@@ -159,17 +160,20 @@ class FindsGalleryScreenTest {
     /**
      * Owner ruling, 2026-09-13: the "Incomplete" badge is gone. This entry has every morphology
      * field unrecorded — exactly what used to earn the badge — and is committed, not a draft, so
-     * nothing else may take the badge's place: the date stands alone.
+     * nothing else may take the badge's place. Since data part D (RECORD -702) the tile shows the find's name or the time it
+     * was found, and the date is the heading above it; this find has neither name, saved time nor photo, so its tile has no title text and says "Find, Aug 1, 2026" to a screen
+     * reader (RECORD -703).
      */
     @Test
-    fun `a committed find with nothing recorded shows its date alone, no Incomplete badge`() {
+    fun `a committed find with nothing recorded shows its title alone under its date, no Incomplete badge`() {
         val bare = MushroomLogEntry.draft(id = "entry-1", location = null, date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
         composeRule.setContent {
             FindsGalleryScreen(entries = listOf(bare), isLoading = false, onOpenEntry = {}, onAddEntry = {})
         }
 
-        composeRule.onNodeWithText("Find on 2026-08-01").assertIsDisplayed()
+        composeRule.onNodeWithText("Aug 1, 2026").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Find, Aug 1, 2026").assertIsDisplayed()
         composeRule.onNodeWithText("Incomplete").assertDoesNotExist()
         composeRule.onNodeWithText("Draft").assertDoesNotExist()
     }

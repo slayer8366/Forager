@@ -60,7 +60,7 @@ class RoomSearchCacheRepositoryTest {
     fun `a saved forecast comes back with its entries, filter and fetch time intact`() = runTest {
         val saved = forecast(month = 8, filter = TaxonFilter.FUNGI)
 
-        repository.save(saved)
+        repository.save(saved, speciesIconicTaxonName = null)
         val cached = repository.getCached(REGION, 8, TaxonFilter.FUNGI)
 
         assertNotNull(cached)
@@ -84,7 +84,7 @@ class RoomSearchCacheRepositoryTest {
     fun `a specific-taxon search round-trips as a specific-taxon filter`() = runTest {
         val filter = TaxonFilter.SpecificTaxon(taxonId = 47347L, label = "Pleurotus ostreatus")
 
-        repository.save(forecast(month = 8, filter = filter))
+        repository.save(forecast(month = 8, filter = filter), speciesIconicTaxonName = null)
         val cached = repository.getCached(REGION, 8, filter)
 
         assertEquals(filter, cached!!.forecast.filter)
@@ -93,7 +93,7 @@ class RoomSearchCacheRepositoryTest {
     /** And an iconic category must keep the exclusion that makes Fungi mean "without lichens". */
     @Test
     fun `an iconic-category search round-trips with its excluded taxon`() = runTest {
-        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
 
         val cached = repository.getCached(REGION, 8, TaxonFilter.FUNGI)
 
@@ -107,7 +107,7 @@ class RoomSearchCacheRepositoryTest {
      */
     @Test
     fun `a search differing in region, month or filter is a miss, not a near match`() = runTest {
-        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
 
         assertNull(repository.getCached(REGION.copy(lat = REGION.lat + 0.001), 8, TaxonFilter.FUNGI))
         assertNull(repository.getCached(REGION.copy(lng = REGION.lng + 0.001), 8, TaxonFilter.FUNGI))
@@ -122,9 +122,9 @@ class RoomSearchCacheRepositoryTest {
 
     @Test
     fun `re-saving the same search replaces its row rather than adding a second`() = runTest {
-        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
         clock.now = 2_000L
-        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI, topCount = 99))
+        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI, topCount = 99), speciesIconicTaxonName = null)
 
         val recent = repository.getRecent()
         assertEquals(1, recent.size)
@@ -136,11 +136,11 @@ class RoomSearchCacheRepositoryTest {
     fun `the sixth distinct search evicts the least recently used one`() = runTest {
         (1..5).forEach { month ->
             clock.now = month * 1_000L
-            repository.save(forecast(month = month, filter = TaxonFilter.FUNGI))
+            repository.save(forecast(month = month, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
         }
 
         clock.now = 6_000L
-        repository.save(forecast(month = 6, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 6, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
 
         assertNull("The oldest search should have been evicted", repository.getCached(REGION, 1, TaxonFilter.FUNGI))
         (2..6).forEach { month ->
@@ -157,7 +157,7 @@ class RoomSearchCacheRepositoryTest {
     fun `reading a cached search moves it out of the eviction firing line`() = runTest {
         (1..5).forEach { month ->
             clock.now = month * 1_000L
-            repository.save(forecast(month = month, filter = TaxonFilter.FUNGI))
+            repository.save(forecast(month = month, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
         }
 
         // Month 1 is the oldest write, but it is read here — so month 2 becomes the least
@@ -166,7 +166,7 @@ class RoomSearchCacheRepositoryTest {
         assertNotNull(repository.getCached(REGION, 1, TaxonFilter.FUNGI))
 
         clock.now = 6_000L
-        repository.save(forecast(month = 6, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 6, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
 
         assertNotNull("The search that was just read should have survived", repository.getCached(REGION, 1, TaxonFilter.FUNGI))
         assertNull("The least recently used search should have been evicted", repository.getCached(REGION, 2, TaxonFilter.FUNGI))
@@ -175,7 +175,7 @@ class RoomSearchCacheRepositoryTest {
     /** Reading must not re-date the result: the age on screen is when it was fetched. */
     @Test
     fun `reading a cached search does not change the fetch time it reports`() = runTest {
-        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
 
         clock.now = 90_000L
         val cached = repository.getCached(REGION, 8, TaxonFilter.FUNGI)
@@ -187,11 +187,11 @@ class RoomSearchCacheRepositoryTest {
     @Test
     fun `getRecent lists searches most recently used first, with their region, month and filter`() = runTest {
         clock.now = 1_000L
-        repository.save(forecast(month = 3, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 3, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
         clock.now = 2_000L
-        repository.save(forecast(month = 4, filter = TaxonFilter.PLANTS))
+        repository.save(forecast(month = 4, filter = TaxonFilter.PLANTS), speciesIconicTaxonName = null)
         clock.now = 3_000L
-        repository.save(forecast(month = 5, filter = TaxonFilter.LICHENS))
+        repository.save(forecast(month = 5, filter = TaxonFilter.LICHENS), speciesIconicTaxonName = null)
 
         val recent = repository.getRecent()
 
@@ -204,12 +204,48 @@ class RoomSearchCacheRepositoryTest {
         assertTrue(recent.all { it.region == REGION })
     }
 
+    /**
+     * Dispatch 2026-09-28-695, amendment 1: a species search keeps its group through the store, in its own
+     * column, and comes back on the recent-search summary; filterIconicTaxonName stays null on that row, so
+     * the row still reads back as a species and not as a category.
+     */
+    @Test
+    fun `a species search keeps its group, in its own column, and getRecent hands it back`() = runTest {
+        val flyAgaric = TaxonFilter.SpecificTaxon(taxonId = 48715, label = "Fly Agaric")
+
+        repository.save(forecast(month = 10, filter = flyAgaric), speciesIconicTaxonName = "Fungi")
+
+        val row = database.cachedSearchDao().getAllOrderedByLastAccessed().single()
+        assertEquals("Fungi", row.speciesIconicTaxonName)
+        assertNull("the category discriminant is untouched", row.filterIconicTaxonName)
+        val recent = repository.getRecent().single()
+        assertEquals(flyAgaric, recent.filter)
+        assertEquals("Fungi", recent.speciesIconicTaxonName)
+    }
+
+    /** A category's group is its filter; a species group handed in with one is not stored, and Lichens stay null. */
+    @Test
+    fun `a category search stores no species group, and a species saved without one reads back null`() = runTest {
+        repository.save(forecast(month = 3, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = "Fungi")
+        clock.now = 2_000L
+        repository.save(forecast(month = 4, filter = TaxonFilter.LICHENS), speciesIconicTaxonName = null)
+
+        val recent = repository.getRecent()
+
+        assertEquals(listOf(TaxonFilter.LICHENS, TaxonFilter.FUNGI), recent.map { it.filter })
+        assertEquals(listOf<String?>(null, null), recent.map { it.speciesIconicTaxonName })
+        assertEquals(
+            listOf<String?>(null, null),
+            database.cachedSearchDao().getAllOrderedByLastAccessed().map { it.speciesIconicTaxonName },
+        )
+    }
+
     @Test
     fun `getRecent reorders when a cached search is read`() = runTest {
         clock.now = 1_000L
-        repository.save(forecast(month = 3, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 3, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
         clock.now = 2_000L
-        repository.save(forecast(month = 4, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 4, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
         assertEquals(listOf(4, 3), repository.getRecent().map { it.month })
 
         clock.now = 3_000L
@@ -243,7 +279,7 @@ class RoomSearchCacheRepositoryTest {
      */
     @Test
     fun `an unreadable cached row degrades to a miss instead of throwing`() = runTest {
-        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
         val stored = database.cachedSearchDao().getAllOrderedByLastAccessed().single()
         database.cachedSearchDao().upsert(stored.copy(entriesJson = "{not the payload we wrote}"))
 
@@ -258,7 +294,7 @@ class RoomSearchCacheRepositoryTest {
      */
     @Test
     fun `a row with no filter discriminant degrades to no recent searches instead of throwing`() = runTest {
-        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI))
+        repository.save(forecast(month = 8, filter = TaxonFilter.FUNGI), speciesIconicTaxonName = null)
         val stored = database.cachedSearchDao().getAllOrderedByLastAccessed().single()
         database.cachedSearchDao().upsert(
             stored.copy(filterIconicTaxonName = null, filterTaxonId = null, filterExcludedTaxonId = null),
@@ -269,7 +305,7 @@ class RoomSearchCacheRepositoryTest {
     }
 
     private companion object {
-        val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+        val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
         fun forecast(month: Int, filter: TaxonFilter, topCount: Int = 14) = AvailabilityForecast(
             region = REGION,

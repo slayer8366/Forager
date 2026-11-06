@@ -15,13 +15,13 @@ class ShownPositionTest {
     private val now = 1_700_000_000_000L
 
     /** A GPS fix [ageMillis] old, accepted by the live gate (5 m). */
-    private fun gps(ageMillis: Long) = LocationFix.Update(45.5, -122.6, 100.0, 5f, now - ageMillis)
+    private fun gps(ageMillis: Long) = LocationFix.Update(45.5, -122.6, 100.0, 5f, now - ageMillis, provider = FixProvider.GPS)
 
     /** A network reading [ageMillis] old (milliseconds off the whole second), refused by the gate (120 m). */
-    private fun network(ageMillis: Long) = LocationFix.Update(45.51, -122.61, null, 120f, now - ageMillis + 123)
+    private fun network(ageMillis: Long) = LocationFix.Update(45.51, -122.61, null, 120f, now - ageMillis + 123, provider = FixProvider.NETWORK)
 
     /** The platform's last known location, [ageMillis] old. */
-    private fun platform(ageMillis: Long) = LocationFix.Update(45.6, -122.7, null, 30f, now - ageMillis)
+    private fun platform(ageMillis: Long) = LocationFix.Update(45.6, -122.7, null, 30f, now - ageMillis, provider = FixProvider.GPS)
 
     @Test
     fun `nothing at all is None`() {

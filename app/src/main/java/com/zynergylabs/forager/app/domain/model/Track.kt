@@ -33,6 +33,16 @@ package com.zynergylabs.forager.app.domain.model
  * produced it, and it is what lets a surface say "N more not shown" or "no usable points" rather
  * than render a blank line in silence. `0` for a track built anywhere other than the repository
  * read (a fake, a fresh `create`), which is also the honest value there.
+ *
+ * [importedAtEpochMillis] — plan T16, GPX import (dispatch 2026-09-28-634, the owner's answers in -636):
+ * when this track was imported from a GPX file, or `null` for a walk this app recorded. What the
+ * "Imported" label in Records reads, and what keeps an imported track out of the Journal's derived
+ * trips ("Records and map only"). A column as of `MIGRATION_17_18`.
+ *
+ * [importedWithoutTimes] — the same dispatch, "Import, show "No times"": the file gave this track no
+ * times (or not for every point), so it is dated the import moment and its point times are only an
+ * ordering. The surfaces show "No times in file" where a duration or a time would be. Always `false`
+ * for a recorded walk. A column as of `MIGRATION_17_18`.
  */
 data class Track(
     val id: String,
@@ -42,4 +52,6 @@ data class Track(
     val points: List<TrackPoint>,
     val originWaypointId: String? = null,
     val excludedPointCount: Int = 0,
+    val importedAtEpochMillis: Long? = null,
+    val importedWithoutTimes: Boolean = false,
 )

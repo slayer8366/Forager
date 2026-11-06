@@ -167,6 +167,18 @@ object GeoDistance {
      * meaningful anyway (a small circle around 90°N touches every longitude), so this is an
      * explicit operating limit rather than the unbounded value the raw formula would compute.
      */
+    /**
+     * Metres per degree of latitude, and of longitude at [aboutLatDegrees]: the flat local
+     * (equirectangular) projection used where distances are tens or hundreds of metres and the
+     * flat error is far below a fix's own. The one copy (dispatch 2026-09-28-658, R6) of what
+     * `TrackSelfJoin`, `RouteHome` and `OffTrackJudge` each computed by hand, in the same
+     * expression, so each caller's results are unchanged to the bit.
+     */
+    internal fun metersPerDegree(aboutLatDegrees: Double): MetersPerDegree {
+        val metersPerDegreeLat = Math.PI * EARTH_MEAN_RADIUS_METERS / 180.0
+        return MetersPerDegree(lat = metersPerDegreeLat, lng = metersPerDegreeLat * cos(Math.toRadians(aboutLatDegrees)))
+    }
+
     private val MIN_COS_LAT = cos(Math.toRadians(89.9))
 
     private fun normalizeLongitudeDegrees(lngDegrees: Double): Double {
@@ -176,3 +188,6 @@ object GeoDistance {
         return normalized
     }
 }
+
+/** What [GeoDistance.metersPerDegree] gives: metres per degree of latitude, and of longitude at the latitude it was asked about. */
+internal data class MetersPerDegree(val lat: Double, val lng: Double)

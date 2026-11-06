@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
  * [onGridModeChanged] down to the camera, the way `InAppCameraViewModel`'s target goes down.
  *
  * **Its own ViewModel, not a field on `AvailabilityViewModel`** where "Lock camera to portrait"
- * lives. That one is a Settings value with a Settings screen; this is written only from inside the
+ * lived until dispatch 2026-10-13-03 removed it. That one was a Settings value with a Settings screen; this is written only from inside the
  * camera, and a class of its own is testable headless with three arguments where the other takes
  * some twenty. Not on `InAppCameraViewModel` either: that one has no dependencies by design, and
  * eleven headless tests build it bare.

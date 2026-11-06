@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map.layers
 
+import com.zynergylabs.forager.app.ui.map.withReferenceTrailsHiddenUnlessLoaded
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
@@ -119,7 +120,8 @@ class MapLayerStateTest {
     fun `the real registry adds no credit while no colour field has data`() {
         // Map layers L0b: the synthetic colour fields carry a credit, and they are hidden in the
         // state the map gets whenever the store has no data for them (always, in a release build).
-        val noForecastData = withUnavailableColourFieldsHidden(MapLayersState.DEFAULT, MAP_LAYER_REGISTRY, available = emptySet())
+        // Step 8b: and with the official-trails band hidden as the map hides it on a style without it (SightingsMap.kt).
+        val noForecastData = withReferenceTrailsHiddenUnlessLoaded(withUnavailableColourFieldsHidden(MapLayersState.DEFAULT, MAP_LAYER_REGISTRY, available = emptySet()), loaded = false)
         assertEquals(emptyList<String>(), activeLayerCredits(MAP_LAYER_REGISTRY, noForecastData))
     }
 

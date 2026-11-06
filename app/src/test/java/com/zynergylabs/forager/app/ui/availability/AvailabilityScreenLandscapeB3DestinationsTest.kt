@@ -13,6 +13,9 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -84,7 +87,7 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             rotationSeenByScreen = LocalView.current.display?.rotation
-            b3Screen(uiState = B3_LIST_STATE, mapSlot = B3_STUB_MAP)
+            B3ScreenUnderTest(uiState = B3_LIST_STATE, mapSlot = B3_STUB_MAP)
         }
         composeRule.waitForIdle()
         assertEquals("the screen must actually see the rotation this test is about", rotation, rotationSeenByScreen)
@@ -137,11 +140,13 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
     private fun journalTopTabs(): DpRect = taggedBounds(com.zynergylabs.forager.app.ui.log.SHORT_HEADER_TAG)
 
     /**
-     * Journal redesign J1 (S3): the Records filter chip row, which replaced the sub-tab row. The
-     * chips themselves size to their labels and scroll, so their outer edges no longer span the
-     * width Records was handed; the row fills that width (`fillMaxWidth`), so it is what is measured.
+     * Journal redesign J1 (S3): the Records filter chip row, which replaced the sub-tab row, filled the width Records was
+     * handed, so it was what was measured. Since RECORD -1243 (dispatch 2026-10-17-09) the chips sit on the switch's line in a
+     * landscape window, centred and sized to their chips, so they no longer span that width; the line itself does, as on
+     * Entries ([journalTopTabs]), so it is what is measured now. The requirement (Records capped at 640 and centred beside the
+     * rail) is unchanged. Was `taggedBounds(RECORDS_FILTER_CHIP_ROW_TAG)`.
      */
-    private fun recordsSubTabs(): DpRect = taggedBounds(com.zynergylabs.forager.app.ui.log.RECORDS_FILTER_CHIP_ROW_TAG)
+    private fun recordsSubTabs(): DpRect = taggedBounds(com.zynergylabs.forager.app.ui.log.SHORT_HEADER_TAG)
 
     // ── T1: List, Journal (its default top tab), Records ──
 
@@ -166,7 +171,8 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
         openTab("Journal")
         composeRule.onNodeWithText("Records").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
+        // Records opens on Finds since RECORD -868; this asserted All selected before.
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).assertIsSelected()
         assertCappedAndCentred("the Records filter chip row", recordsSubTabs())
     }
 
@@ -190,13 +196,36 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
     @Test fun `T2 at ROTATION_90 Seasonal is 640 wide and centred beside the rail`() = checkSeasonal(Surface.ROTATION_90)
     @Test fun `T2 at ROTATION_270 Seasonal is 640 wide and centred beside the rail`() = checkSeasonal(Surface.ROTATION_270)
 
-    // ── The search bar above the tab content: in the capped column too (coder's reading, see the completion report) ──
+    // ── The search bar above the tab content ──
+    //
+    // Was "in the capped column too (coder's reading, see the completion report)":
+    // `the search bar above the tab content is capped and centred with it`, asserting
+    // assertCappedAndCentred("the search bar", taggedBounds(SEARCH_ENTRY_BAR_TAG)) on List.
+    // Superseded by the owner's ruling, RECORD -1227 (dispatch 2026-10-17-09): "Move to Maps'
+    // spot". Its position was revised on the S22 (PR #252, build 1.0.3414: "have it centered"),
+    // then again (build 1.0.3416, RECORD -1238: "Yes, at the left (Recommended)", to leave room
+    // for a floating keyboard). So the bar is the Maps pill's size, outside the 640 dp cap, its
+    // start just clear of the navigation bar: with zero insets, the Maps pill's own bounds. The content below it stays
+    // capped (T1 and T2 above, unchanged). TabsMapChromeShapeTest checks this at both rotations,
+    // on List, Seasonal and Journal, and with a navigation bar inset; this keeps the check in the
+    // class that pins B3's cap, on its own screen and state.
+
+    private fun openFromRail(label: String) {
+        composeRule.onNode(hasText(label) and hasAnyAncestor(hasTestTag(COMPACT_NAVIGATION_RAIL_TAG)), useUnmergedTree = true).performClick()
+        composeRule.waitForIdle()
+    }
 
     @Test
-    fun `the search bar above the tab content is capped and centred with it`() {
+    fun `the search bar above the tab content is the Maps pill's size and place, outside the cap`() {
         setScreen(Surface.ROTATION_90)
+        openFromRail("Maps")
+        val mapsPill = taggedBounds(SEARCH_ENTRY_BAR_TAG)
         openTab("List")
-        assertCappedAndCentred("the search bar", taggedBounds(SEARCH_ENTRY_BAR_TAG))
+        val listBar = taggedBounds(SEARCH_ENTRY_BAR_TAG)
+        assertEquals("left, the Maps pill's", mapsPill.left.value, listBar.left.value, 0.5f)
+        assertEquals("top, the Maps pill's", mapsPill.top.value, listBar.top.value, 0.5f)
+        assertEquals("right, the Maps pill's", mapsPill.right.value, listBar.right.value, 0.5f)
+        assertEquals("bottom, the Maps pill's", mapsPill.bottom.value, listBar.bottom.value, 0.5f)
     }
 
     // ── T4: the rail stays tappable beside the capped content ──
@@ -238,7 +267,7 @@ class AvailabilityScreenLandscapeB3DestinationsTest {
     @Test
     @Config(qualifiers = "w411dp-h891dp")
     fun `T3 portrait List content fills the width, as today`() {
-        composeRule.setContent { b3Screen(uiState = B3_LIST_STATE, mapSlot = B3_STUB_MAP) }
+        composeRule.setContent { B3ScreenUnderTest(uiState = B3_LIST_STATE, mapSlot = B3_STUB_MAP) }
         composeRule.waitForIdle()
         assertTrue("portrait has no rail", composeRule.onAllNodesWithTag(COMPACT_NAVIGATION_RAIL_TAG).fetchSemanticsNodes().isEmpty())
         openTab("List")
@@ -259,7 +288,7 @@ private fun DpRect.centreX(): Float = ((left + right) / 2).value
 
 private val B3_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
-private val B3_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val B3_REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
 private val B3_LIST_STATE = AvailabilityUiState(
     region = B3_REGION,
@@ -298,33 +327,39 @@ private val B3_LIST_STATE = AvailabilityUiState(
 )
 
 @androidx.compose.runtime.Composable
-private fun b3Screen(uiState: AvailabilityUiState, mapSlot: MapSlot) {
+private fun B3ScreenUnderTest(uiState: AvailabilityUiState, mapSlot: MapSlot) {
     AvailabilityScreen(
         uiState = uiState,
-        onUseCurrentLocation = {},
-        onManualLatChanged = {},
-        onManualLngChanged = {},
-        onSearchManualCoordinates = {},
-        onRadiusChanged = {},
-        onMonthSelected = {},
-        onMapTabSelected = {},
-        onSeasonalTabSelected = {},
-        onTaxonSearchQueryChanged = {},
-        onTaxonSearchResultSelected = {},
-        onDismissTaxonSuggestions = {},
-        onReopenTaxonSuggestions = {},
-        onPlaceTripPin = { _, _, _ -> },
-        onDeletePlannedTrip = {},
-        onRecentSearchSelected = {},
-        onOfflineMapLatChanged = {},
-        onOfflineMapLngChanged = {},
-        onOfflineMapRadiusChanged = {},
-        onOfflineMapNameChanged = {},
-        onOfflineMapsOpened = {},
-        onDownloadOfflineMaps = {},
-        onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        searchInputs = AvailabilityScreenSearchInputs(
+            onUseCurrentLocation = {},
+            onManualLatChanged = {},
+            onManualLngChanged = {},
+            onSearchManualCoordinates = {},
+            onRadiusChanged = {},
+            onMonthSelected = {},
+            onMapTabSelected = {},
+            onSeasonalTabSelected = {},
+            onTaxonSearchQueryChanged = {},
+            onTaxonSearchResultSelected = {},
+            onDismissTaxonSuggestions = {},
+            onReopenTaxonSuggestions = {},
+            onPlaceTripPin = { _, _, _ -> },
+            onDeletePlannedTrip = {},
+            onRecentSearchSelected = {},
+        ),
+        offlineMaps = AvailabilityScreenOfflineMaps(
+            onOfflineMapLatChanged = {},
+            onOfflineMapLngChanged = {},
+            onOfflineMapRadiusChanged = {},
+            onOfflineMapNameChanged = {},
+            onOfflineMapsOpened = {},
+            onDownloadOfflineMaps = {},
+            onDeleteOfflineRegion = {},
+        ),
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = mapSlot,
     )
 }

@@ -103,6 +103,7 @@ class JournalShortWindowCardsTest {
     private val opened = mutableListOf<String>()
     private val deleteRequests = mutableListOf<String>()
     private var incidentalExits = 0
+    private var newFindsStarted = 0
 
     private fun setScreen(
         entries: List<CartographyEntry>,
@@ -122,11 +123,14 @@ class JournalShortWindowCardsTest {
                     onOpenCameraForAlbum = {},
                     onOpenCameraForCartographyEntry = {},
                     mapSlot = CARDS_STUB_MAP_J5,
-                    pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                    pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
                     basemap = Basemap.DEFAULT,
                     onOpenEntry = {},
                     onCloseEntry = {},
-                    onStartEntry = { location, date -> log = log.copy(editingEntry = MushroomLogEntry.draft(id = "new-find", location = location, date = date)) },
+                    onStartEntry = { location, date ->
+                        newFindsStarted++
+                        log = log.copy(editingEntry = MushroomLogEntry.draft(id = "new-find", location = location, date = date))
+                    },
                     onEntryChanged = {},
                     onStartEditingEntry = {},
                     onSaveEntry = {},
@@ -354,13 +358,84 @@ class JournalShortWindowCardsTest {
         composeRule.waitForIdle()
         node("records-chip-finds").performClick()
         composeRule.waitForIdle()
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        // RECORD -753: in a short window "New find" is the L1 row's, not a floating button.
+        composeRule.onNodeWithTag(SHORT_NEW_FIND_TAG).performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         assertEquals(0, incidentalExits)
         touchAt("journal-switch-entries", Offset(0.5f, 0.5f))
         assertEquals("leaving Records mid-edit by the L1 switch is one incidental exit", 1, incidentalExits)
         node("journal-switch-entries").assertIsSelected()
+    }
+
+    // ── RECORD -753 (dispatch 2026-09-28-755, item 2): "New find" in the L1 row, matching Entries ──
+
+    private fun openFinds() {
+        node("journal-switch-records").performClick()
+        composeRule.waitForIdle()
+        node("records-chip-finds").performClick()
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * The owner: "Yes, match Entries (Recommended)". On Finds in a short landscape window "New find" is an icon in the L1 row, at
+     * its end as "New entry" is on Entries, and there is no floating button. Real touches at five points across the icon's own
+     * bounds each start a new find and open its form; Back returns to the grid between.
+     */
+    @Test
+    fun `753 Finds puts New find in the L1 row, and real touches across it each start a new find`() {
+        setScreen(entries = emptyList(), finds = listOf(keptFindEntry("f1")))
+        openFinds()
+        assertFalse("no floating New find button in a short window", exists(FINDS_FAB_TAG))
+        val header = bounds(SHORT_HEADER_TAG)
+        val button = bounds(SHORT_NEW_FIND_TAG)
+        assertTrue("the button $button is in the L1 row $header", button.top >= header.top && button.bottom <= header.bottom)
+        assertTrue("at the row's end, as New entry is: $button in $header", header.right - button.right <= 24.dp)
+        node(SHORT_NEW_FIND_TAG).assert(androidx.compose.ui.test.hasContentDescription("New find"))
+        val points = listOf(Offset(0.5f, 0.5f), Offset(0.2f, 0.2f), Offset(0.8f, 0.2f), Offset(0.2f, 0.8f), Offset(0.8f, 0.8f))
+        points.forEachIndexed { i, p ->
+            touchAt(SHORT_NEW_FIND_TAG, p)
+            assertEquals("the touch at $p started new find ${i + 1}", i + 1, newFindsStarted)
+            composeRule.onNodeWithText("Photos").assertIsDisplayed()
+            assertFalse("no New find in the row while a find is open", exists(SHORT_NEW_FIND_TAG))
+            pressBack()
+            assertTrue("back on the grid, New find is in the row again", exists(SHORT_NEW_FIND_TAG))
+        }
+    }
+
+    /** As the floating button: Log only, not Drafts; and not on Records' other chips. */
+    @Test
+    fun `753 New find shows on Finds' Log tab only`() {
+        setScreen(entries = emptyList(), finds = listOf(keptFindEntry("f1")))
+        node("journal-switch-records").performClick()
+        composeRule.waitForIdle()
+        // RECORD -868 made Finds the default chip; this asserted "not on Records' default chip", which was All. Now All
+        // is touched first and the same absence is asserted there.
+        node("records-chip-all").performClick()
+        composeRule.waitForIdle()
+        assertFalse("not on the All chip", exists(SHORT_NEW_FIND_TAG))
+        node("records-chip-finds").performClick()
+        composeRule.waitForIdle()
+        assertTrue("positive control: on Finds' Log", exists(SHORT_NEW_FIND_TAG))
+        composeRule.onNodeWithText("Drafts").performClick()
+        composeRule.waitForIdle()
+        assertFalse("not on Drafts", exists(SHORT_NEW_FIND_TAG))
+        composeRule.onNodeWithText("Log").performClick()
+        composeRule.waitForIdle()
+        assertTrue("back on Log", exists(SHORT_NEW_FIND_TAG))
+    }
+
+    /** Portrait is unchanged: the floating "New find", no L1 row. */
+    @Test
+    @Config(qualifiers = "w411dp-h891dp")
+    fun `753 portrait keeps the floating New find button`() {
+        setScreen(entries = emptyList(), finds = listOf(keptFindEntry("f1")))
+        node("journal-switch-records").performClick()
+        composeRule.waitForIdle()
+        node("records-chip-finds").performClick()
+        composeRule.waitForIdle()
+        assertTrue("the floating button in portrait", exists(FINDS_FAB_TAG))
+        assertFalse("no L1 row button in portrait", exists(SHORT_NEW_FIND_TAG))
     }
 
     // ── L6: the album in 5 columns ──
@@ -463,3 +538,7 @@ private val J5_EMPTY_MAP_DATA = CartographyEntryMapData(
 )
 
 private val CARDS_STUB_MAP_J5: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
+
+/** A saved find for the RECORD -753 tests. */
+private fun keptFindEntry(id: String): MushroomLogEntry =
+    MushroomLogEntry.draft(id = id, location = com.zynergylabs.forager.app.domain.model.LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)

@@ -37,7 +37,7 @@
 ## 3. Open building blocks and their licences
 
 - **Fit "no proprietary software":** EJML (Apache 2.0) for matrices [S]; Mad Location Manager (MIT, car-tuned, a reference only) [S]; GNSS Compare's core (Apache 2.0, its `gogpsextracts` module LGPL 3.0) [C]; RTKLIB (BSD 2-clause, C, heavy) [C]; GPSTest (Apache 2.0) for checking the S22's satellites [C].
-- **Avoid copying:** an offline maps app's UI code (CC-BY-NC-ND, Play publication needs permission) [C]; GPL-only code unless Forager chooses a compatible code licence, which it has not (the owner: no code licence added).
+- **Avoid copying:** An offline maps app's UI code (CC-BY-NC-ND, Play publication needs permission) [C]; GPL-only code unless Forager chooses a compatible code licence, which it has not (the owner: no code licence added).
 
 ## The planner's recommendation
 

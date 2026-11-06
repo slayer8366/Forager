@@ -40,6 +40,9 @@ local.properties
 !.claude/settings.json
 !.claude/agents/
 !.claude/hooks/
+# Skills are prose the project keeps deliberately (owner, RECORD -1490): shared across machines and
+# read by every session, so a fresh checkout should have them. Only this one path is widened.
+!.claude/skills/
 # Claude-kit's config and lock (RECORD.md 2026-09-26-12) are shared config too: kit.json is the
 # adopter's settings for the vendored hooks, kit.lock the tag and hashes check_kit.py compares.
 !.claude/kit.json

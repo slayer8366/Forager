@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +43,8 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import com.zynergylabs.forager.app.ui.motion.MapPopUp
+import com.zynergylabs.forager.app.ui.motion.PopUpPivot
 
 /**
  * Every site in this app that places something on the map — the offline-region picker, log-entry
@@ -80,6 +83,7 @@ fun CentrePinLocationPicker(
     mapSlot: MapSlot,
     region: Region,
     basemap: Basemap,
+    modifier: Modifier = Modifier,
     /**
      * Night mode, passed through to the map the same way the main screen's does. Defaulted so the
      * journal's own pickers keep today's behaviour until their callers thread it — see this
@@ -107,7 +111,6 @@ fun CentrePinLocationPicker(
      * the map and letting the chrome add its own height is what actually makes the viewport 4:3.
      */
     mapAspectRatio: Float? = null,
-    modifier: Modifier = Modifier,
 ) {
     val state = rememberCentrePinState(region)
     // Fills its slot only when the map is the leftover (mapAspectRatio == null). With a ratio, the
@@ -218,7 +221,23 @@ internal fun CentrePinMap(state: CentrePinState, mapSlot: MapSlot, basemap: Base
 
 /** The "Pin at:" line and the OK/Cancel row under it. */
 @Composable
-internal fun CentrePinConfirmActions(state: CentrePinState, onConfirm: (LatLng) -> Unit, onCancel: () -> Unit) {
+internal fun CentrePinConfirmActions(
+    state: CentrePinState,
+    onConfirm: (LatLng) -> Unit,
+    onCancel: () -> Unit,
+    /**
+     * Dispatch 2026-10-17-09, RECORD -1253 (the owner: "C: OK, Cancel and Download on one line"): more buttons on OK and Cancel's
+     * line, after them (the offline-maps panel's Download, in landscape). `null` (every other caller): OK and Cancel share the
+     * line half and half, as before.
+     */
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+    /**
+     * Dispatch 2026-10-18-03, item 1 (Forager RECORD -1269; the owner: "Remove both OK and Cancel and just have the Download Maps
+     * option"): `false` drops OK and Cancel, leaving the "Pin at" line and [trailing] (the offline-maps screen, whose Download
+     * Maps reads the pin itself). `true`, the default, is every other picker's, unchanged.
+     */
+    showConfirmButtons: Boolean = true,
+) {
     CentrePinConfirmRow(
         // UI-defects dispatch, §2: this is the pin's current map position, live from
         // onCameraIdle above — it updates continuously as the map is panned, whether or not
@@ -230,6 +249,8 @@ internal fun CentrePinConfirmActions(state: CentrePinState, onConfirm: (LatLng) 
         selectedText = "Pin at: ${"%.4f".format(state.cameraCenter.lat)}, ${"%.4f".format(state.cameraCenter.lng)}",
         onConfirm = { onConfirm(state.cameraCenter) },
         onCancel = onCancel,
+        trailing = trailing,
+        showConfirmButtons = showConfirmButtons,
     )
 }
 
@@ -297,32 +318,100 @@ fun CentrePinLocationPickerOverlay(
      */
     night: Boolean = false,
 ) {
-    // The row's fill, at the map chrome's alpha: this overlay sits only inside a map's own Box, so it
-    // is always over a map. Its content colour is pinned to the fill's own role (`contentColorFor`
-    // matches a colour-scheme role exactly; see `MapLayersSheet`).
-    val rowColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
-    val rowContentColor = contentColorFor(navigationBarContainerColor())
+    // The row's fill and content colour: CentrePinConfirmSurface's comment (moved there with motion Part 2).
     Box(modifier = modifier.fillMaxSize()) {
         CentrePin(night = night, modifier = Modifier.align(Alignment.Center))
-        Surface(
+        CentrePinConfirmSurface(
+            onConfirm = onConfirm,
+            onCancel = onCancel,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .padding(bottom = bottomInset)
                 .padding(rowPadding)
-                .fillMaxWidth()
-                .testTag(CENTRE_PIN_CONFIRM_ROW_TAG)
-                .mapChromeContainerColor(rowColor),
-            color = rowColor,
-            contentColor = rowContentColor,
-            shadowElevation = 4.dp,
-        ) {
-            CentrePinConfirmRow(
-                selectedText = null,
-                onConfirm = onConfirm,
-                onCancel = onCancel,
-                modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
-            )
+                .fillMaxWidth(),
+        )
+    }
+}
+
+/**
+ * [CentrePinLocationPickerOverlay] coming and going over the Maps tab's map (motion Part 2, item 4, dispatch 2026-09-28-666;
+ * scout M9; the owner, RECORD -651: "Fade and grow", each from where it belongs): composed whether or not it shows, with
+ * [visible] deciding. The pin grows from its tip, which marks the map's centre, and the OK/Cancel row up from its bottom edge;
+ * each shrinks back as it leaves, and from that moment takes no touch (item 5, "Let taps through at once"). Laid out exactly as
+ * the overlay is, from the same pieces, so the pin marks the same point and the row takes the same touches; the other screens'
+ * pickers keep the overlay, which appears and goes at once as before.
+ */
+@Composable
+internal fun CentrePinLocationPickerPopUp(
+    visible: Boolean,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+    bottomInset: Dp = 0.dp,
+    rowPadding: PaddingValues = PaddingValues(0.dp),
+    night: Boolean = false,
+    /** The row's outlined sides (dispatch 2026-11-05-06, RECORD -2155): see [CENTRE_PIN_ROW_OUTLINE_SIDES]. */
+    rowOutlineSides: MapChromeOutlineSides = CENTRE_PIN_ROW_OUTLINE_SIDES,
+) {
+    Box(modifier = modifier.fillMaxSize()) {
+        MapPopUp(visible = visible, pivot = PopUpPivot.Centre, modifier = Modifier.fillMaxSize()) {
+            Box(modifier = Modifier.fillMaxSize()) {
+                CentrePin(night = night, modifier = Modifier.align(Alignment.Center))
+            }
         }
+        MapPopUp(
+            visible = visible,
+            pivot = PopUpPivot.BottomCentre,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = bottomInset)
+                .padding(rowPadding)
+                .fillMaxWidth(),
+        ) {
+            CentrePinConfirmSurface(onConfirm = onConfirm, onCancel = onCancel, modifier = Modifier.fillMaxWidth(), outlineSides = rowOutlineSides)
+        }
+    }
+}
+
+/**
+ * Dispatch 2026-11-05-06 (RECORD -2155, the owner: "Top and both sides (Recommended)", whose option read "As the bottom bar under it
+ * has had since your -989: 'give the side of the bottom navigation strip the outline too. All the way down'. Its bottom shares the
+ * bar's line"): the OK/Cancel row's outlined sides. Its top faces the map and both its sides carry the line, though they lie on the
+ * screen's edges. Its bottom carries none: it sits on the bottom bar, whose own top line is the one line between them, and in
+ * fullscreen on the system navigation bar. In the rail layout the side against the rail is the rail's line instead
+ * (`centrePinRowOutlineSides` in CompactMapPickers.kt).
+ */
+internal val CENTRE_PIN_ROW_OUTLINE_SIDES = MapChromeOutlineSides(left = true, top = true, right = true, bottom = false)
+
+/**
+ * The OK/Cancel row's surface, at the map chrome's alpha: this sits only inside a map's own Box, so it is always over a map.
+ * Its content colour is pinned to the fill's own role (`contentColorFor` matches a colour-scheme role exactly; see
+ * `mapChromeFill`'s doc, MapChrome.kt:103-109). [modifier] places it. No shadow, and the map-chrome hairline along [outlineSides]
+ * (dispatch 2026-11-05-06, RECORD -2154, -2155): its 4 dp shadow showed as a band inside its 0.8 fill's edges.
+ */
+@Composable
+private fun CentrePinConfirmSurface(
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier,
+    outlineSides: MapChromeOutlineSides = CENTRE_PIN_ROW_OUTLINE_SIDES,
+) {
+    val rowColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
+    val rowContentColor = contentColorFor(navigationBarContainerColor())
+    Surface(
+        modifier = modifier
+            .testTag(CENTRE_PIN_CONFIRM_ROW_TAG)
+            .mapChromeContainerColor(rowColor)
+            .mapChromeEdgesReported(mapChromeOutline(), 0.dp, 0.dp, 0.dp, 0.dp, outlineSides),
+        color = rowColor,
+        contentColor = rowContentColor,
+    ) {
+        CentrePinConfirmRow(
+            selectedText = null,
+            onConfirm = onConfirm,
+            onCancel = onCancel,
+            modifier = Modifier.mapChromeContentColor(LocalContentColor.current),
+        )
     }
 }
 
@@ -390,7 +479,14 @@ internal fun centrePinCasingVector(casing: Int): ImageVector {
 }
 
 @Composable
-private fun CentrePinConfirmRow(selectedText: String?, onConfirm: () -> Unit, onCancel: () -> Unit, modifier: Modifier = Modifier) {
+private fun CentrePinConfirmRow(
+    selectedText: String?,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+    showConfirmButtons: Boolean = true,
+) {
     Column(
         modifier = modifier.fillMaxWidth().padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -398,14 +494,33 @@ private fun CentrePinConfirmRow(selectedText: String?, onConfirm: () -> Unit, on
         if (selectedText != null) {
             Text(selectedText, style = MaterialTheme.typography.bodySmall)
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Button(onClick = onConfirm, modifier = Modifier.weight(1f)) { Text("OK") }
-            OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
+        // Dispatch 2026-10-18-03: with no OK and Cancel, only what the caller adds, and no row at all when it adds nothing.
+        if (!showConfirmButtons) {
+            if (trailing != null) Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically, content = trailing)
+            return@Column
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+            if (trailing == null) {
+                Button(onClick = onConfirm, modifier = Modifier.weight(1f)) { Text("OK") }
+                OutlinedButton(onClick = onCancel, modifier = Modifier.weight(1f)) { Text("Cancel") }
+            } else {
+                // RECORD -1253: three on one line in a half-width panel. OK and Cancel take their labels' width, with the
+                // compact padding (CENTRE_PIN_COMPACT_BUTTON_PADDING), and the trailing buttons the rest.
+                Button(onClick = onConfirm, contentPadding = CENTRE_PIN_COMPACT_BUTTON_PADDING) { Text("OK", maxLines = 1) }
+                OutlinedButton(onClick = onCancel, contentPadding = CENTRE_PIN_COMPACT_BUTTON_PADDING) { Text("Cancel", maxLines = 1) }
+                trailing()
+            }
         }
     }
 }
 
 private val CENTRE_PIN_SIZE = 40.dp
+
+/**
+ * RECORD -1253: the horizontal padding of buttons sharing OK and Cancel's line with more buttons: [Spacing.md] in place of
+ * Material's 24 dp, so three fit a half-width panel on one line. The vertical padding is Material's own (8 dp).
+ */
+internal val CENTRE_PIN_COMPACT_BUTTON_PADDING = PaddingValues(horizontal = Spacing.md, vertical = 8.dp)
 
 /** [CentrePinLocationPickerOverlay]'s own OK/Cancel surface — what tests measure its real placement by. */
 const val CENTRE_PIN_CONFIRM_ROW_TAG = "centre-pin-confirm-row"

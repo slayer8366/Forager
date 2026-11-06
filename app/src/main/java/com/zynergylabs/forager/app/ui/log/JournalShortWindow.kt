@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -7,12 +8,12 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AddAPhoto
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.PhotoCamera
 import androidx.compose.material.icons.filled.PhotoLibrary
@@ -22,9 +23,11 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import com.zynergylabs.forager.app.ui.motion.IconSwap
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -82,6 +85,13 @@ internal fun ShortWindowJournalHeader(
     onToggleSearch: () -> Unit,
     action: (@Composable () -> Unit)?,
     modifier: Modifier = Modifier,
+    /**
+     * Dispatch 2026-10-17-09, RECORD -1243 (the owner: "still have the chips be on the same line as the entries | records. But
+     * centered between the entries | records and search icon, scrollable with offline maps showing and highlighted"; "All of
+     * Records, landscape (Recommended)"): what sits between the switch and the search icon, centred in that space. Records'
+     * filter chips; `null` (Entries, and every caller before -1243) leaves the space empty, as before.
+     */
+    middle: (@Composable () -> Unit)? = null,
 ) {
     Row(
         modifier = modifier
@@ -93,13 +103,18 @@ internal fun ShortWindowJournalHeader(
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         JournalSwitch(selected = selectedTopTab, onSelect = onSelectTopTab)
-        Spacer(Modifier.weight(1f))
+        Box(modifier = Modifier.weight(1f).testTag(SHORT_HEADER_MIDDLE_TAG), contentAlignment = Alignment.Center) { middle?.invoke() }
         if (showSearch) {
-            IconButton(onClick = onToggleSearch, modifier = Modifier.testTag(SHORT_SEARCH_TAG)) {
-                if (searchRevealed) {
-                    Icon(Icons.Filled.SearchOff, contentDescription = "Hide search")
-                } else {
-                    Icon(Icons.Filled.Search, contentDescription = "Search")
+            // Motion Part 1 (dispatch 2026-09-28-652, item 5, scout J19): Search and Search-off crossfade with a slight grow. The
+            // label is on the button, because both icons are composed for the length of the swap.
+            BouncingIconButton(
+                onClick = onToggleSearch,
+                modifier = Modifier
+                    .testTag(SHORT_SEARCH_TAG)
+                    .semantics { contentDescription = if (searchRevealed) "Hide search" else "Search" },
+            ) {
+                IconSwap(targetState = searchRevealed) { revealed ->
+                    Icon(if (revealed) Icons.Filled.SearchOff else Icons.Filled.Search, contentDescription = null)
                 }
             }
         }
@@ -110,8 +125,20 @@ internal fun ShortWindowJournalHeader(
 /** L2: the timeline's "✎ New" as an icon button in the L1 row, doing what the floating button did. */
 @Composable
 internal fun ShortWindowNewEntryButton(onClick: () -> Unit) {
-    IconButton(onClick = onClick, modifier = Modifier.testTag(SHORT_NEW_TAG)) {
+    BouncingIconButton(onClick = onClick, modifier = Modifier.testTag(SHORT_NEW_TAG)) {
         Icon(Icons.Filled.Edit, contentDescription = "New entry")
+    }
+}
+
+/**
+ * RECORD -753 (the owner: "Yes, match Entries (Recommended)"): Finds' "New find" as an icon button in the L1 row, doing what its
+ * floating button does, the same way [ShortWindowNewEntryButton] does for "New entry". The leaf is the floating button's (the
+ * Finds chip's; RECORD -751).
+ */
+@Composable
+internal fun ShortWindowNewFindButton(onClick: () -> Unit) {
+    BouncingIconButton(onClick = onClick, modifier = Modifier.testTag(SHORT_NEW_FIND_TAG)) {
+        Icon(Icons.Filled.Eco, contentDescription = "New find")
     }
 }
 
@@ -126,7 +153,7 @@ internal fun ShortWindowNewEntryButton(onClick: () -> Unit) {
 internal fun ShortWindowAddPhotoButton(onTakePhoto: () -> Unit, onImport: () -> Unit) {
     var menuOpen by remember { mutableStateOf(false) }
     Box {
-        IconButton(onClick = { menuOpen = true }, modifier = Modifier.testTag(SHORT_PHOTO_TAG)) {
+        BouncingIconButton(onClick = { menuOpen = true }, modifier = Modifier.testTag(SHORT_PHOTO_TAG)) {
             Icon(Icons.Filled.AddAPhoto, contentDescription = "Add photo")
         }
         DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
@@ -207,6 +234,10 @@ internal val SHORT_HEADER_HEIGHT = 48.dp
 
 internal const val SHORT_HEADER_TAG = "journal-short-header"
 internal const val SHORT_SEARCH_TAG = "journal-short-search"
+
+/** RECORD -1243: the L1 row's space between the switch and the search icon, where Records' chips are centred. */
+internal const val SHORT_HEADER_MIDDLE_TAG = "journal-short-header-middle"
 internal const val SHORT_NEW_TAG = "journal-short-new"
+internal const val SHORT_NEW_FIND_TAG = "journal-short-new-find"
 internal const val SHORT_PHOTO_TAG = "journal-short-photo"
 internal const val SHORT_DRAFTS_CHIP_TAG = "entries-drafts-chip"

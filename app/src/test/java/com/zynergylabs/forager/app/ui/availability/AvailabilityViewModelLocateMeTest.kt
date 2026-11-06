@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -103,6 +104,7 @@ class AvailabilityViewModelLocateMeTest {
             unitSystemPreferenceRepository = LocateMeStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = LocateMeStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(LocateMeStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
     }
 
@@ -158,6 +160,42 @@ class AvailabilityViewModelLocateMeTest {
         advanceUntilIdle()
 
         assertNull("locateMe must not perform a search or set a region", vm.uiState.value.region)
+    }
+
+    /**
+     * RECORD -700: the search panel's Search is "Use current location" renamed and moved, so its failures are this path's. With no
+     * fix, the banner (through [searchNoticeMessage], what [SearchNotice] shows) is the owner's exact words, pointing at Set on map.
+     */
+    @Test
+    fun `useCurrentLocation with no fix shows the owner's Set on map message in the banner`() = runTest(dispatcher) {
+        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.LocationUnavailable))
+
+        vm.useCurrentLocation()
+        advanceUntilIdle()
+
+        assertEquals("Couldn't find your location. Tap Set on map to choose a place.", searchNoticeMessage(vm.uiState.value))
+        assertNull("no search ran", vm.uiState.value.region)
+    }
+
+    /** RECORD -700: denied permission on the search's current-location path shows the owner's exact words in the banner. */
+    @Test
+    fun `useCurrentLocation with permission denied shows the owner's Set on map message in the banner`() = runTest(dispatcher) {
+        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.PermissionDenied))
+
+        vm.useCurrentLocation()
+        advanceUntilIdle()
+
+        assertEquals("Location permission was denied. Tap Set on map to choose a place.", searchNoticeMessage(vm.uiState.value))
+    }
+
+    /** The OS dialog's denial (MainActivity's launcher calls [AvailabilityViewModel.onPermissionDenied]) shows the same words. */
+    @Test
+    fun `an OS-level denial on the search's current-location path shows the owner's Set on map message`() {
+        val vm = viewModel(LocateMeUnusedLocationProvider)
+
+        vm.onPermissionDenied()
+
+        assertEquals("Location permission was denied. Tap Set on map to choose a place.", searchNoticeMessage(vm.uiState.value))
     }
 
     @Test

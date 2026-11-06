@@ -60,6 +60,9 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import android.view.KeyEvent
+import androidx.compose.ui.test.assertTextEquals
+import org.robolectric.shadows.ShadowDialog
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.FIND_OVER_VIEW_TAG
@@ -175,7 +178,7 @@ internal val BUBBLE_DAY: LocalDate = LocalDate.of(2026, 9, 12)
 internal val BUBBLE_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.51, -122.61), date = BUBBLE_DAY)
     .copy(isDraft = false, ownIdentification = "Golden chanterelle")
 internal val BUBBLE_PHOTO = GalleryPhoto(LogPhoto("ph-1", "photos/ph-1.jpg", 1_700_000_000_000L, 45.53, -122.63), referencingEntryIds = listOf("find-1"))
-internal val BUBBLE_WAYPOINT = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
+internal val BUBBLE_WAYPOINT = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
 internal val BUBBLE_TRIP = PlannedTrip("trip-1", "Saddle loop", LatLng(45.56, -122.66), LocalDate.of(2026, 10, 3))
 internal val BUBBLE_TRACK = Track(
     id = "trk-1",
@@ -214,7 +217,7 @@ internal class OneCellStore : ForecastCellStore {
 
 /** Every kind at its own spot, clear of the chrome: the left half of the map, below the compass strip. */
 private fun glyphsAt(xDp: Dp, firstYDp: Dp): List<StubGlyph> = listOf(
-    StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", xDp, firstYDp, LatLng(45.326, -122.634)),
+    StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", xDp, firstYDp, LatLng(45.3736, -121.6959)),
     StubGlyph(MapLayerIds.FINDS, "find-1", xDp, firstYDp + 40.dp, LatLng(45.51, -122.61)),
     StubGlyph(MapLayerIds.PHOTOS, "ph-1", xDp, firstYDp + 80.dp, LatLng(45.53, -122.63)),
     StubGlyph(MapLayerIds.KEPT_TRACKS, "trk-1", xDp, firstYDp + 120.dp, LatLng(45.505, -122.6)),
@@ -288,7 +291,8 @@ class AvailabilityScreenMapBubblesTest {
     private val store = OneCellStore()
     private var log by mutableStateOf(MushroomLogUiState(entries = listOf(BUBBLE_FIND), galleryPhotos = listOf(BUBBLE_PHOTO)))
 
-    private fun setScreen() {
+    // Dispatch -616 changed this: `waypoints` added, the one bubble waypoint by default, as before.
+    private fun setScreen(waypoints: List<Waypoint> = listOf(BUBBLE_WAYPOINT)) {
         val viewModel = mapLayersViewModel(store = store, plannedTrips = listOf(BUBBLE_TRIP), offlineRegions = listOf(BUBBLE_REGION))
         composeRule.setContent {
             MapLayersTestScreen(
@@ -296,7 +300,7 @@ class AvailabilityScreenMapBubblesTest {
                 mapSlot = map.slot,
                 store = store,
                 logUiState = log,
-                waypoints = listOf(BUBBLE_WAYPOINT),
+                waypoints = waypoints,
                 tracks = listOf(BUBBLE_TRACK),
                 onOpenLogEntry = { id -> log = log.copy(editingEntry = log.entries.firstOrNull { it.id == id }) },
                 onCloseLogEntry = { log = log.copy(editingEntry = null) },
@@ -382,31 +386,35 @@ class AvailabilityScreenMapBubblesTest {
         composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).assertCountEqualsZero()
     }
 
+    // Dispatch 2026-10-29-09 (RECORD -1819): was `a waypoint's Directions hands the waypoint to a navigation app`; Navigate replaces it.
     @Test
-    fun `a waypoint's Directions hands the waypoint to a navigation app`() {
+    fun `a waypoint's bubble offers no Directions`() {
         setScreen()
-        composeRule.registerGeoHandler()
         tapGlyph("wp-1")
 
-        composeRule.touchCentreOf(MAP_BUBBLE_DIRECTIONS_TAG)
-
-        val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
-        assertEquals(Intent.ACTION_VIEW, started?.action)
-        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
+        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertDoesNotExist()
     }
 
+    // Dispatch 2026-11-05-05 (A1, A4; RECORD -2140, the owner: "Remove the directions from the bubble add Navigate, Plot Route
+    // Details. Remove the long/lat coordinates from the Trip icon"): was `a planned trip's bubble shows its row's lines and its
+    // Directions`, which asserted no Details and a touch on Directions starting "geo:0,0?q=45.56,-122.66(Saddle%20loop)". Now
+    // no coordinates line and no Directions, and Details opens the trip's card. This screen wires no navigation and no
+    // plotting, so Navigate and Plot route are TripBubbleActionsTest's.
     @Test
-    fun `a planned trip's bubble shows its row's lines and its Directions`() {
+    fun `a planned trip's bubble shows its name, date and MGRS, no coordinates and no Directions, and its Details opens its card`() {
         setScreen()
-        composeRule.registerGeoHandler()
         tapGlyph("trip-1")
 
         composeRule.onNodeWithText("Saddle loop", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Oct 3", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onAllNodesWithTag(MAP_BUBBLE_DETAILS_TAG).assertCountEqualsZero()
-        composeRule.touchCentreOf(MAP_BUBBLE_DIRECTIONS_TAG)
+        composeRule.onNodeWithText("Oct 3, 2026", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onAllNodesWithText("45.5600, -122.6600", useUnmergedTree = true).assertCountEqualsZero()
+        composeRule.onAllNodesWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertCountEqualsZero()
+        composeRule.touchCentreOf(MAP_BUBBLE_DETAILS_TAG)
 
-        assertEquals("geo:0,0?q=45.56,-122.66(Saddle%20loop)", Shadows.shadowOf(composeRule.activity).nextStartedActivity?.data.toString())
+        composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals("Saddle loop")
+        composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).assertCountEqualsZero()
     }
 
     @Test
@@ -417,6 +425,33 @@ class AvailabilityScreenMapBubblesTest {
         composeRule.touchCentreOf(MAP_BUBBLE_DETAILS_TAG)
         composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
         assertEquals("the sheet is the track's", 1, composeRule.onAllNodesWithText("Morning loop").fetchSemanticsNodes().size)
+    }
+
+    /**
+     * Dispatch -616 (plan T10), amended by -618: the track sheet opened from a bubble lists the waypoints
+     * dropped on the walk; a real touch on one opens its details, and a real Back on that sheet's own
+     * window returns to the walk's details, not to the map.
+     */
+    @Test
+    fun `from a track's Details, a waypoint dropped on the walk opens its own details, and Back returns to the walk's`() {
+        val dropped = Waypoint("wp-walk", 45.505, -122.60, null, "Bolete log", "", 1_700_001_000_000L, trackId = "trk-1")
+        setScreen(waypoints = listOf(BUBBLE_WAYPOINT, dropped))
+        tapGlyph("trk-1")
+        composeRule.touchCentreOf(MAP_BUBBLE_DETAILS_TAG)
+        composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals("Morning loop")
+
+        composeRule.onNodeWithTag("record-details-walk-waypoint-wp-walk").performScrollTo()
+        composeRule.touchCentreOf("record-details-walk-waypoint-wp-walk")
+        composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals("Bolete log")
+
+        val dialog = ShadowDialog.getLatestDialog()
+        composeRule.runOnUiThread {
+            dialog.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_DOWN, KeyEvent.KEYCODE_BACK))
+            dialog.dispatchKeyEvent(KeyEvent(KeyEvent.ACTION_UP, KeyEvent.KEYCODE_BACK))
+        }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals("Morning loop")
     }
 
     @Test
@@ -451,11 +486,11 @@ class AvailabilityScreenMapBubblesTest {
         tapGlyph("45.5,-122.6")
 
         composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Test forecast: chanterelles (synthetic data)", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Test Forecast: Chanterelles (Synthetic Data)", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag(MAP_BUBBLE_CHANCE_TAG, useUnmergedTree = true).assertTextIs("37%")
         composeRule.onNodeWithText("Uncertainty 21% to 58%", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("rain, last 14 days: 62 mm", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onNodeWithText("Week of 2026-09-28, weather to 2026-09-26", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Week of Sep 28, 2026, weather to Sep 26, 2026", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText(LEGEND_REFERENCE_CLASS, useUnmergedTree = true).assertExists()
         assertTrue("the cell was re-read from the store (${store.reads} after $readsBefore)", store.reads > readsBefore)
     }
@@ -620,7 +655,10 @@ class CartographyEntryMapBubblesTest {
             useUnmergedTree = true,
         ).assertIsDisplayed()
         composeRule.onAllNodesWithTag(MAP_BUBBLE_DETAILS_TAG).assertCountEqualsZero()
-        composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertExists()
+        // Dispatch 2026-10-29-09: Navigate cannot reach it, so it keeps Directions (the owner, RECORD -1819), which still hands it on.
+        composeRule.registerGeoHandler()
+        composeRule.touchCentreOf(MAP_BUBBLE_DIRECTIONS_TAG)
+        assertEquals("geo:0,0?q=45.4,-122.5(Old%20gate)", Shadows.shadowOf(composeRule.activity).nextStartedActivity?.data.toString())
     }
 
     // F3 (dispatch 2026-09-28-195, item 5): the bubble for a tapped track line, mirroring the waypoint case

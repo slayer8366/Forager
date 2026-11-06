@@ -8,7 +8,13 @@ import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
+import com.zynergylabs.forager.app.domain.KeptTail
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
+import com.zynergylabs.forager.app.domain.RecordingKeptTail
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.HopBand
@@ -25,6 +31,7 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.RingerMode
 import com.zynergylabs.forager.app.domain.StartTrackUseCase
+import com.zynergylabs.forager.app.domain.TrackEnds
 import com.zynergylabs.forager.app.domain.TrackRepository
 import com.zynergylabs.forager.app.domain.isNetworkProviderFix
 import com.zynergylabs.forager.app.domain.model.Track
@@ -38,10 +45,12 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.TestScope
@@ -133,12 +142,17 @@ class TrackRecordingViewModelTest {
         locationTracker: LocationTracker = NoOpLocationTracker(),
         offTrackAlertClock: CurrentTimeProvider = fixedTime,
         alertAudibility: AlertAudibility = FakeAlertAudibility(AUDIBLE),
-        getWaypointReferenceCount: suspend (String) -> Int = { 0 },
+        entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
         pendingDeleteCommitScope: CoroutineScope? = null,
         findRouteHome: (Track, LatLng, Waypoint?, HopBand) -> RouteHome = ::routeHome,
+        shouldPromptBackgroundRun: suspend () -> Boolean = { false },
+        is24HourClock: () -> Boolean = { false },
+        trackEnds: TrackEnds = TrackEnds(),
+        trackIdGenerator: () -> String = { "track-1" },
+        recordingKeptTail: StateFlow<KeptTail>? = null,
     ) = TrackRecordingViewModel(
         trackRepository = trackRepository,
-        startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = { "track-1" }),
+        startTrack = StartTrackUseCase(trackRepository, currentTime = fixedTime, idGenerator = trackIdGenerator),
         getWaypoints = GetWaypointsUseCase(waypointRepository),
         // A counter, not a fixed id: navigation HUD stage one creates an origin *and* an end
         // waypoint per recording, and a fixed id would make the second silently replace the first.
@@ -154,11 +168,85 @@ class TrackRecordingViewModelTest {
         returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), alertDelivery),
         alertAudibility = alertAudibility,
         currentTime = offTrackAlertClock,
-        getWaypointReferenceCount = getWaypointReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
         zone = ZoneOffset.UTC,
+        is24HourClock = is24HourClock,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
         findRouteHome = findRouteHome,
+        shouldPromptBackgroundRun = shouldPromptBackgroundRun,
+        trackEnds = trackEnds.latest,
+        recordingKeptTail = recordingKeptTail,
     ).also(createdViewModels::add)
+
+    /**
+     * Dispatch 2026-10-21-04, review finding 1. The service's report of a stored end resyncs this screen when the
+     * ended track is its recording, and the resync reads the row, which suspends. If the walker stops and records
+     * again during that read (a Stop from the shade, then Record before the old end was written), the old
+     * track's end must not clear the new recording. The read is held on a gate while that happens.
+     */
+    @Test
+    fun `an old track's end, read while a new recording starts, does not clear the new recording`() = runRecordingTest {
+        val inner = InMemoryTrackRepository()
+        val gated = GetByIdGatedTrackRepository(inner, gatedId = "track-1")
+        val trackEnds = TrackEnds()
+        val ids = ArrayDeque(listOf("track-1", "track-2"))
+        val vm = viewModel(gated, trackEnds = trackEnds, trackIdGenerator = { ids.removeFirst() })
+        vm.startRecording()
+        runCurrent()
+        assertEquals("precondition: recording track-1", "track-1", vm.uiState.value.activeTrack?.trackId)
+
+        // The service stores track-1's end and reports it; the resync's read of track-1 is held.
+        inner.end("track-1", 5_000L).getOrThrow()
+        trackEnds.report("track-1")
+        runCurrent()
+        assertEquals("precondition: the read is held, so nothing has cleared yet", "track-1", vm.uiState.value.activeTrack?.trackId)
+
+        // During the read: Stop, then Record again.
+        vm.stopRecording()
+        runCurrent()
+        vm.startRecording()
+        runCurrent()
+        assertEquals("precondition: the new recording runs", "track-2", vm.uiState.value.activeTrack?.trackId)
+
+        gated.release()
+        runCurrent()
+        assertEquals(
+            "the old track's end, read while the new recording started, must not clear the new recording",
+            "track-2",
+            vm.uiState.value.activeTrack?.trackId,
+        )
+    }
+
+    /**
+     * Dispatch 2026-10-21-02 (RECORD -1521): after Stop, Records showed "Tracks 0" until the Tracks chip was
+     * tapped or the app restarted, because nothing reloaded the list. The screen's Stop does not end the row;
+     * the service does, later, then reports it through [TrackEnds] (`TrackRecordingService.stopRecording`).
+     * The test plays the service's part in that order, store and then report, and asserts on the list itself.
+     */
+    @Test
+    fun `a track the service ends after Stop is in the track list with its end, without reopening Records`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val trackEnds = TrackEnds()
+        val vm = viewModel(trackRepository, trackEnds = trackEnds)
+        runCurrent()
+        assertTrue("nothing recorded yet", vm.uiState.value.tracks.isEmpty())
+
+        vm.startRecording()
+        runCurrent()
+        vm.stopRecording()
+        runCurrent()
+
+        // The service, on the stop intent: the end is stored first, and only then reported.
+        trackRepository.end("track-1", 5_000L).getOrThrow()
+        trackEnds.report("track-1")
+        runCurrent()
+
+        assertEquals(
+            "the finished track, with its end, is in the list the Tracks count and the All list read",
+            listOf("track-1" to 5_000L),
+            vm.uiState.value.tracks.map { it.id to it.endedAtEpochMillis },
+        )
+    }
 
     @Test
     fun `starting a recording creates a track and sets active state`() = runRecordingTest {
@@ -233,6 +321,8 @@ class TrackRecordingViewModelTest {
         vm.stopRecording()
 
         assertNull(vm.uiState.value.activeTrack)
+        // No point was ever polled here, so this cannot fail; the clear on Stop is tested by
+        // `the recording line is cleared by the screen's Stop` (dispatch 2026-10-24-05).
         assertTrue(vm.uiState.value.breadcrumbPoints.isEmpty())
 
         // If the poll job weren't actually cancelled, this would hang forever the same way an
@@ -259,6 +349,92 @@ class TrackRecordingViewModelTest {
     }
 
     /**
+     * Dispatch 2026-10-24-05 (RECORD -1602): the dotted recording line stayed on the map after Stop, until the
+     * next Record or the process ended, because `clearRecordingState` reset every recording field but
+     * [TrackRecordingUiState.breadcrumbPoints] (found on the S22, report 2026-10-24-04). The poll has read
+     * points first, so the list is not empty before Stop: the assertion in
+     * `stopping clears active state and the poll loop stops scheduling further work` runs before any point is
+     * read, and passes with or without the clear.
+     */
+    /**
+     * Dispatch 2026-10-26-05 (RECORD -1651, the owner: "(b) Reach the dot (Recommended)"): the line drawn while recording
+     * ([TrackRecordingUiState.recordingLine]) reaches the newest kept point each time one is kept, not the last written
+     * point at the next poll. The holder is fed as the service feeds it ([RecordingKeptTail.add], one call per kept
+     * point); the time is not advanced after the third point, so only the kept points' flow can carry it. The stored
+     * track ([TrackRecordingUiState.breadcrumbPoints]) is unchanged, and after Stop no line is drawn.
+     */
+    @Test
+    fun `the recording line reaches the newest kept point without waiting for the poll`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val kept = RecordingKeptTail()
+        val vm = viewModel(trackRepository, recordingKeptTail = kept.tail)
+        vm.startRecording()
+        runCurrent()
+        val written = listOf(point(lat = 45.0, t = 1_000L), point(lat = 45.001, t = 2_000L))
+        written.forEach { kept.add("track-1", it) }
+        trackRepository.appendPoints("track-1", written)
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals("precondition: the poll has read the two written points", listOf(45.0, 45.001), vm.uiState.value.breadcrumbPoints.map { it.lat })
+
+        kept.add("track-1", point(lat = 45.002, t = 3_000L))
+        runCurrent()
+
+        assertEquals(
+            "the line reaches the newest kept point, not yet written, before the next poll",
+            listOf(45.0, 45.001, 45.002),
+            vm.uiState.value.recordingLine.map { it.lat },
+        )
+        assertEquals("the stored track is as read", listOf(45.0, 45.001), vm.uiState.value.breadcrumbPoints.map { it.lat })
+
+        vm.stopRecording()
+        runCurrent()
+        assertEquals("no recording line after Stop", emptyList<TrackPoint>(), vm.uiState.value.recordingLine)
+    }
+
+    @Test
+    fun `the recording line is cleared by the screen's Stop`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val vm = viewModel(trackRepository)
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, t = 1_000L), point(lat = 45.001, t = 2_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals("the line is drawn while recording", listOf(45.0, 45.001), vm.uiState.value.breadcrumbPoints.map { it.lat })
+
+        vm.stopRecording()
+        runCurrent()
+
+        assertEquals("no recording line after Stop", emptyList<TrackPoint>(), vm.uiState.value.breadcrumbPoints)
+    }
+
+    /**
+     * The same, for Stop from the notification: the service ends the row and reports it through [TrackEnds],
+     * and this screen clears through the resync (`onTrackEnded`), never through [TrackRecordingViewModel.stopRecording].
+     * The test plays the service's part in its order, store and then report.
+     */
+    @Test
+    fun `the recording line is cleared by Stop from the notification`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val trackEnds = TrackEnds()
+        val vm = viewModel(trackRepository, trackEnds = trackEnds)
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, t = 1_000L), point(lat = 45.001, t = 2_000L)))
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertEquals("the line is drawn while recording", listOf(45.0, 45.001), vm.uiState.value.breadcrumbPoints.map { it.lat })
+
+        trackRepository.end("track-1", 5_000L).getOrThrow()
+        trackEnds.report("track-1")
+        runCurrent()
+
+        assertFalse("the screen took the notification's Stop", vm.uiState.value.isRecording)
+        assertEquals("no recording line after Stop from the notification", emptyList<TrackPoint>(), vm.uiState.value.breadcrumbPoints)
+    }
+
+    /**
      * Path-home join dispatch, through the real entry points: the poll computes
      * [TrackRecordingUiState.pathHome] only while returning, from the last gated fix, and it is
      * the *joined* distance — the PathHomeTest double-back (north three legs, back two) reads one
@@ -276,14 +452,14 @@ class TrackRecordingViewModelTest {
 
         vm.startRecording()
         runCurrent()
-        fixes.emit(LocationFix.Update(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 1_000L))
+        fixes.emit(LocationFix.Update(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 1_000L, provider = FixProvider.GPS))
         runCurrent()
         assertEquals(45.000, vm.uiState.value.originWaypoint!!.lat, 0.0)
         trackRepository.appendPoints(
             "track-1",
             listOf(45.000, 45.001, 45.002, 45.003, 45.002, 45.001).mapIndexed { i, lat -> point(lat = lat, t = 1_000L + i * 15_000L) },
         )
-        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 76_000L))
+        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 76_000L, provider = FixProvider.GPS))
         runCurrent()
         advanceTimeBy(POLL_INTERVAL_MILLIS)
         runCurrent()
@@ -301,7 +477,7 @@ class TrackRecordingViewModelTest {
 
         // The walker reaches the origin: the next poll reads zero — lower than before.
         trackRepository.appendPoints("track-1", listOf(point(lat = 45.000, t = 91_000L)))
-        fixes.emit(LocationFix.Update(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 91_000L))
+        fixes.emit(LocationFix.Update(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = 91_000L, provider = FixProvider.GPS))
         runCurrent()
         advanceTimeBy(POLL_INTERVAL_MILLIS)
         runCurrent()
@@ -355,7 +531,7 @@ class TrackRecordingViewModelTest {
         runCurrent()
         assertNull(vm.uiState.value.returnToStart)
 
-        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_000L))
+        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_000L, provider = FixProvider.GPS))
         runCurrent()
 
         assertEquals(180.0, vm.uiState.value.returnToStart?.bearingDegrees ?: -1.0, 0.01)
@@ -373,7 +549,7 @@ class TrackRecordingViewModelTest {
         trackRepository.appendPoints("track-1", listOf(point(lat = 45.0, lng = -122.0, t = 1_000L)))
         advanceTimeBy(POLL_INTERVAL_MILLIS)
         runCurrent()
-        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_000L))
+        fixes.emit(LocationFix.Update(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_000L, provider = FixProvider.GPS))
         runCurrent()
         assertEquals(180.0, vm.uiState.value.returnToStart?.bearingDegrees ?: -1.0, 0.01)
 
@@ -475,6 +651,84 @@ class TrackRecordingViewModelTest {
         assertNull(vm.uiState.value.waypointsErrorMessage)
     }
 
+    // ---- Dispatch -616 (plan T10): a waypoint dropped while recording belongs to that walk ----
+    //
+    // addWaypoint is what the map's '+' > Waypoint > name dialog calls (MainActivity's onDropWaypoint);
+    // the screen half of that path, up to onDropWaypoint, is AvailabilityScreenWaypointFlowTest's.
+
+    @Test
+    fun `a waypoint dropped while recording is linked to that recording and read back as one of its waypoints`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(waypointRepository = waypointRepository)
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        assertEquals("track-1", vm.uiState.value.activeTrack?.trackId)
+
+        vm.addWaypoint(lat = 45.0, lng = -122.0, name = "Chanterelle bank")
+        runCurrent()
+
+        val dropped = waypointRepository.getAll().getOrThrow().single()
+        assertEquals("Chanterelle bank", dropped.name)
+        assertEquals("track-1", dropped.trackId)
+        assertNull("a dropped waypoint is an ordinary one, not the walk's start or end", dropped.designation)
+        assertEquals(listOf(dropped), waypointRepository.getForTrack("track-1").getOrThrow())
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `a waypoint dropped with no recording running stays standalone`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(waypointRepository = waypointRepository)
+        advanceUntilIdle()
+
+        vm.addWaypoint(lat = 45.0, lng = -122.0, name = "Big oak")
+        advanceUntilIdle()
+
+        assertNull(waypointRepository.getAll().getOrThrow().single().trackId)
+    }
+
+    @Test
+    fun `a waypoint dropped after the recording stopped is not linked to the walk that ended`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(waypointRepository = waypointRepository)
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        vm.stopRecording()
+        runCurrent()
+
+        vm.addWaypoint(lat = 45.0, lng = -122.0, name = "On the drive home")
+        runCurrent()
+
+        assertNull(waypointRepository.getAll().getOrThrow().single { it.name == "On the drive home" }.trackId)
+        assertEquals(emptyList<Waypoint>(), waypointRepository.getForTrack("track-1").getOrThrow())
+    }
+
+    @Test
+    fun `deleting the walk keeps its dropped waypoint, as an ordinary waypoint with no link`() = runRecordingTest {
+        val trackRepository = InMemoryTrackRepository()
+        val waypointRepository = FakeWaypointRepository()
+        val vm = viewModel(trackRepository, waypointRepository)
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        vm.addWaypoint(lat = 45.0, lng = -122.0, name = "Chanterelle bank")
+        runCurrent()
+        vm.stopRecording()
+        runCurrent()
+        assertEquals("linked before the delete", listOf("Chanterelle bank"), waypointRepository.getForTrack("track-1").getOrThrow().map { it.name })
+        // Ending the row is the recording service's job (stopRecording's doc comment), done here by hand.
+        trackRepository.end("track-1", 2_000L)
+        vm.loadTracks().join()
+
+        vm.requestRemoveTrack("track-1")
+        vm.commitRemoveTrack("track-1")
+        runCurrent()
+
+        assertNull("the walk is gone", trackRepository.getById("track-1").getOrThrow())
+        val kept = waypointRepository.getAll().getOrThrow().single()
+        assertEquals("Chanterelle bank", kept.name)
+        assertNull("its link is cleared, not left pointing at a deleted walk", kept.trackId)
+    }
+
     @Test
     fun `removing a waypoint refreshes the list`() = runRecordingTest {
         val waypointRepository = FakeWaypointRepository()
@@ -499,7 +753,7 @@ class TrackRecordingViewModelTest {
     @Test
     fun `a requested waypoint delete is pending, hidden from visibleWaypoints, and deletes nothing`() = runRecordingTest {
         val repository = pendingDeleteWaypoints()
-        val vm = viewModel(waypointRepository = repository, getWaypointReferenceCount = { id -> if (id == "wp-creek") 2 else 0 })
+        val vm = viewModel(waypointRepository = repository, entryReferenceCounts = FakeEntryReferenceCountSource(waypoints = mapOf("wp-creek" to 2)))
         advanceUntilIdle()
 
         vm.requestRemoveWaypoint("wp-creek")
@@ -584,7 +838,7 @@ class TrackRecordingViewModelTest {
     }
 
     // ---- Navigation HUD stage one: the auto-created origin and end waypoints -------------------
-    // fixedTime is 1_000 ms after the epoch, so every default name reads "Jan 1, 12:00 AM" in UTC.
+    // fixedTime is 1_000 ms after the epoch, so every default name reads "Jan 1, 1970, 12:00 AM" in UTC (RECORD -703 added the year).
     // runCurrent(), never advanceUntilIdle(), while a recording is active: the breadcrumb poll is an
     // infinite delay loop, and advancing virtual time until idle never returns (found the hard way —
     // a 77-minute hung test worker). The origin/end saves have no delays, so runCurrent() runs them.
@@ -592,7 +846,7 @@ class TrackRecordingViewModelTest {
     // (see the class doc comment), one mechanism for the whole class.
 
     private fun fix(lat: Double, accuracy: Float?, t: Long, altitude: Double? = null) =
-        LocationFix.Update(lat = lat, lng = -122.0, altitude = altitude, accuracyMeters = accuracy, timestampEpochMillis = t)
+        LocationFix.Update(lat = lat, lng = -122.0, altitude = altitude, accuracyMeters = accuracy, timestampEpochMillis = t, provider = FixProvider.GPS)
 
     @Test
     fun `the origin is created from the first fix that passes the mode's accuracy gate, linked to the track and pointed at by it`() = runRecordingTest {
@@ -616,7 +870,7 @@ class TrackRecordingViewModelTest {
         assertEquals(120.0, origin.altitude)
         assertEquals(WaypointDesignation.ORIGIN, origin.designation)
         assertEquals("track-1", origin.trackId)
-        assertEquals("Start · Jan 1, 12:00 AM", origin.name)
+        assertEquals("Start · Jan 1, 1970, 12:00 AM", origin.name)
         assertEquals(listOf(origin), waypointRepository.getAll().getOrThrow())
         assertEquals("waypoint-1", trackRepository.getById("track-1").getOrThrow()?.originWaypointId)
         assertEquals(listOf(origin), vm.uiState.value.waypoints)
@@ -624,6 +878,21 @@ class TrackRecordingViewModelTest {
         fixes.emit(fix(lat = 45.002, accuracy = 10f, t = 4_000L))
         runCurrent()
         assertEquals("a second gated fix must not create a second origin", 1, waypointRepository.getAll().getOrThrow().size)
+        vm.stopRecording()
+    }
+
+    /** Data part D (RECORD -703): on a 24-hour phone the origin's default name is in 24-hour time. */
+    @Test
+    fun `on a 24-hour phone the origin's default name is in 24-hour time`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(InMemoryTrackRepository(), waypointRepository, locationTracker = FakeLocationTracker(fixes), is24HourClock = { true })
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L))
+        runCurrent()
+
+        assertEquals("Start · Jan 1, 1970, 00:00", requireNotNull(vm.uiState.value.originWaypoint).name)
         vm.stopRecording()
     }
 
@@ -670,7 +939,7 @@ class TrackRecordingViewModelTest {
         assertEquals(WaypointDesignation.END, end.designation)
         assertEquals("track-1", end.trackId)
         assertEquals(45.010, end.lat, 1e-9)
-        assertEquals("End · Jan 1, 12:00 AM", end.name)
+        assertEquals("End · Jan 1, 1970, 12:00 AM", end.name)
         assertNull(vm.uiState.value.originWaypoint)
     }
 
@@ -690,6 +959,114 @@ class TrackRecordingViewModelTest {
         assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
     }
 
+    // ── Dispatch 2026-09-28-527: the origin, the end and the route home take GPS only ──
+    //
+    // A 15 m fix clears every mode's ceiling, so before this dispatch a network one seeded the origin,
+    // became the end and was where the route home was searched from. RECORD -558: the origin waypoint and
+    // the route home take GPS only (the end waypoint by the dispatch's rule 2, which it also writes); the
+    // sundown countdown keeps reading any fix (TrackRecordingSundownTest).
+
+    private fun networkFix(lat: Double, t: Long) =
+        LocationFix.Update(lat = lat, lng = -122.0, altitude = null, accuracyMeters = 15f, timestampEpochMillis = t + 123, provider = FixProvider.NETWORK)
+
+    @Test
+    fun `a 15 m network fix never seeds the origin, and a 15 m GPS fix after it does`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(waypointRepository = waypointRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY) // gate: 30 m, which 15 m clears
+        runCurrent()
+
+        fixes.emit(networkFix(lat = 45.0, t = 2_000L))
+        runCurrent()
+        assertNull("no origin from a network fix", vm.uiState.value.originWaypoint)
+        assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
+
+        fixes.emit(fix(lat = 45.001, accuracy = 15f, t = 3_000L))
+        runCurrent()
+        assertEquals("the origin is the GPS fix", 45.001, requireNotNull(vm.uiState.value.originWaypoint).lat, 1e-9)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `a 15 m fix from an unknown provider never seeds the origin`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(waypointRepository = waypointRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+
+        fixes.emit(fix(lat = 45.0, accuracy = 15f, t = 2_000L).copy(provider = FixProvider.UNKNOWN))
+        runCurrent()
+
+        assertNull(vm.uiState.value.originWaypoint)
+        assertTrue(waypointRepository.getAll().getOrThrow().isEmpty())
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `stopping makes the end waypoint from the last GPS fix, not a later 15 m network fix`() = runRecordingTest {
+        val waypointRepository = FakeWaypointRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(waypointRepository = waypointRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        fixes.emit(fix(lat = 45.001, accuracy = 10f, t = 3_000L))
+        runCurrent()
+        fixes.emit(fix(lat = 45.010, accuracy = 10f, t = 4_000L))
+        runCurrent()
+        fixes.emit(networkFix(lat = 45.500, t = 5_000L))
+        runCurrent()
+        vm.stopRecording()
+        runCurrent()
+
+        val end = waypointRepository.getAll().getOrThrow().single { it.designation == WaypointDesignation.END }
+        assertEquals(45.010, end.lat, 1e-9)
+    }
+
+    /**
+     * Recorded north as in [recordThreePointsNorth], the walker's only fix a 15 m one from [provider]. Returns
+     * the route home once Return has been tapped.
+     */
+    private suspend fun kotlinx.coroutines.test.TestScope.routeHomeFrom(provider: FixProvider): RouteHome? {
+        val trackRepository = InMemoryTrackRepository()
+        val fixes = MutableSharedFlow<LocationFix>()
+        val vm = viewModel(trackRepository, locationTracker = FakeLocationTracker(fixes))
+        vm.startRecording()
+        runCurrent()
+        trackRepository.appendPoints("track-1", listOf(45.000, 45.001, 45.002).mapIndexed { i, lat -> point(lat = lat, t = 1_000L + i * 15_000L) })
+        advanceTimeBy(POLL_INTERVAL_MILLIS * 2)
+        runCurrent()
+        val t = 31_000L
+        fixes.emit(LocationFix.Update(lat = 45.002, lng = -122.0, altitude = null, accuracyMeters = 15f, timestampEpochMillis = if (provider == FixProvider.NETWORK) t + 123 else t, provider = provider))
+        runCurrent()
+        assertEquals("precondition: the poll has read the three points", 3, vm.uiState.value.breadcrumbPoints.size)
+
+        vm.startReturn()
+        runCurrent()
+        return vm.uiState.value.routeHome.also { vm.stopRecording() }
+    }
+
+    @Test
+    fun `the route home is never searched from a 15 m network fix`() = runRecordingTest {
+        assertNull(routeHomeFrom(FixProvider.NETWORK))
+    }
+
+    @Test
+    fun `the route home is never searched from a 15 m fix from an unknown provider`() = runRecordingTest {
+        assertNull(routeHomeFrom(FixProvider.UNKNOWN))
+    }
+
+    /**
+     * The control: the same fix from GPS is searched from, as today. Any result counts, since the GPS fix
+     * also seeds the origin where the walker stands: the claim is that a search ran, and without a gated
+     * fix [TrackRecordingViewModel] leaves the route home `null` without searching.
+     */
+    @Test
+    fun `the route home is searched from a 15 m GPS fix`() = runRecordingTest {
+        assertTrue(routeHomeFrom(FixProvider.GPS) != null)
+    }
+
     private fun point(lat: Double, lng: Double = -122.0, t: Long) =
         TrackPoint(lat = lat, lng = lng, altitude = null, accuracyMeters = null, timestampEpochMillis = t)
 
@@ -703,7 +1080,7 @@ class TrackRecordingViewModelTest {
     // ── Dispatch 2026-09-28-423: the route tick (plan task T6) ─────────────────────────────
 
     private fun gatedFix(lat: Double, lng: Double = -122.0, t: Long) =
-        LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t)
+        LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
 
     /**
      * Record; the first gated fix seeds the origin at 45.000; the service stores three points north,
@@ -859,6 +1236,51 @@ class TrackRecordingViewModelTest {
         vibrate.stopRecording()
     }
 
+    /**
+     * Dispatch 2026-09-28-626 (plan T14; Amendment 1, RECORD -627): the background prompt, through
+     * startRecording and the real [com.zynergylabs.forager.app.domain.OffTrackReminderCheck]. Blocked
+     * prompts with the owner's words, pinned as a literal; three recordings while blocked prompt once;
+     * allowed, then blocked again, prompts again.
+     */
+    @Test
+    fun `a phone blocking the reminder at record start prompts once per block`() = runRecordingTest {
+        var phone = com.zynergylabs.forager.app.domain.BackgroundRun.BLOCKED
+        val check = com.zynergylabs.forager.app.domain.OffTrackReminderCheck(
+            { phone },
+            com.zynergylabs.forager.app.domain.InMemoryOffTrackReminderPreferences(),
+        ) { _, _, _ -> }
+        val vm = viewModel(shouldPromptBackgroundRun = check::atRecordingStart)
+
+        fun record(): String? {
+            vm.startRecording()
+            runCurrent()
+            val prompt = vm.uiState.value.backgroundRunPrompt?.message
+            vm.stopRecording()
+            runCurrent()
+            return prompt
+        }
+
+        val words = "To make sure your off-track reminder can buzz, let Forager run in the background"
+        assertEquals(listOf(words, null, null), List(3) { record() })
+        phone = com.zynergylabs.forager.app.domain.BackgroundRun.ALLOWED
+        assertEquals(null, record())
+        phone = com.zynergylabs.forager.app.domain.BackgroundRun.BLOCKED
+        assertEquals("blocked again after being allowed prompts again", words, record())
+    }
+
+    @Test
+    fun `an allowed phone at record start shows no background prompt`() = runRecordingTest {
+        val check = com.zynergylabs.forager.app.domain.OffTrackReminderCheck(
+            { com.zynergylabs.forager.app.domain.BackgroundRun.ALLOWED },
+            com.zynergylabs.forager.app.domain.InMemoryOffTrackReminderPreferences(),
+        ) { _, _, _ -> }
+        val vm = viewModel(shouldPromptBackgroundRun = check::atRecordingStart)
+        vm.startRecording()
+        runCurrent()
+        assertNull(vm.uiState.value.backgroundRunPrompt)
+        vm.stopRecording()
+    }
+
     /** The same text on a later trip must re-show, so each recording's warning carries a new id (the Snackbar effect is keyed on it). */
     @Test
     fun `the trip-start warning gets a new id on each recording so an identical message re-shows`() = runRecordingTest {
@@ -991,6 +1413,26 @@ private class NoOpLocationTracker : LocationTracker {
 
 private class FakeLocationTracker(override val fixes: MutableSharedFlow<LocationFix>) : LocationTracker
 
+/**
+ * [InMemoryTrackRepository] with every [getById] of [gatedId] held until [release], so a test can change the
+ * screen's state while a read of that track is suspended. Everything else passes straight through.
+ */
+private class GetByIdGatedTrackRepository(
+    private val inner: InMemoryTrackRepository,
+    private val gatedId: String,
+) : TrackRepository by inner {
+    private val gate = CompletableDeferred<Unit>()
+
+    fun release() {
+        gate.complete(Unit)
+    }
+
+    override suspend fun getById(id: String): Result<Track?> {
+        if (id == gatedId) gate.await()
+        return inner.getById(id)
+    }
+}
+
 private class InMemoryTrackRepository : TrackRepository {
     private val tracks = mutableMapOf<String, Track>()
     val createdTrackIds = mutableListOf<String>()
@@ -1071,10 +1513,15 @@ private class FakeWaypointRepository : com.zynergylabs.forager.app.domain.Waypoi
     // stubs in this suite use for methods outside their test's path).
     override suspend fun getById(id: String): Result<Waypoint?> =
         Result.failure(UnsupportedOperationException("getById is not part of this test's path"))
+    // Dispatch -616 (walk-waypoints) changed these two from an explicit "unsupported": its tests read a
+    // dropped waypoint back by its walk and delete the walk. Both mirror WaypointDao's queries: the walk's
+    // waypoints oldest first, and every link to the walk nulled with the waypoints kept.
     override suspend fun getForTrack(trackId: String): Result<List<Waypoint>> =
-        Result.failure(UnsupportedOperationException("getForTrack is not part of this test's path"))
-    override suspend fun detachFromTrack(trackId: String): Result<Unit> =
-        Result.failure(UnsupportedOperationException("detachFromTrack is not part of this test's path"))
+        Result.success(waypoints.values.filter { it.trackId == trackId }.sortedBy { it.createdAtEpochMillis })
+    override suspend fun detachFromTrack(trackId: String): Result<Unit> {
+        waypoints.replaceAll { _, waypoint -> if (waypoint.trackId == trackId) waypoint.copy(trackId = null) else waypoint }
+        return Result.success(Unit)
+    }
     override suspend fun save(waypoint: Waypoint): Result<Unit> {
         waypoints[waypoint.id] = waypoint
         return Result.success(Unit)

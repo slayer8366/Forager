@@ -14,9 +14,11 @@ import okhttp3.Response
 import okhttp3.ResponseBody.Companion.toResponseBody
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.maplibre.android.MapLibre
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
@@ -56,29 +58,63 @@ class MapUserAgentTest {
 
     @Test
     fun `the client replaces the library's own User-Agent rather than adding a second`() {
-        val seen = sendThrough(mapHttpClient("Forager/test (Android 15; id; +c)"), libraryUserAgent = "MapLibre Android/13.5.0")
+        val seen = sendThrough(mapHttpClient("Forager/test (Android 15; id; +c)", passThrough), libraryUserAgent = "MapLibre Android/13.5.0")
 
         assertEquals(listOf("Forager/test (Android 15; id; +c)"), seen.headers("User-Agent"))
     }
 
     @Test
     fun `the client keeps MapLibre's own request limit per host`() {
-        assertEquals(20, mapHttpClient("x").dispatcher.maxRequestsPerHost)
+        assertEquals(20, mapHttpClient("x", passThrough).dispatcher.maxRequestsPerHost)
     }
 
+    /**
+     * The owner's "option i" (dispatch 2026-10-18-04, item 2; RECORD -1278, and -1283 for this test): the app's client goes
+     * into MapLibre only once MapLibre has initialised, so MapLibre is never left running on a client installed beside a
+     * failed start. Under Robolectric MapLibre's native library cannot load, so the start-up initialisation fails; this
+     * reads what the real `ForagerApplication.onCreate` that Robolectric booted left in MapLibre's client slot. It replaces
+     * "starting the application installs the client…", which pinned the old install-anyway behaviour (RECORD -1283).
+     */
     @Test
-    fun `starting the application installs the client MapLibre will use, carrying the app's User-Agent`() {
+    fun `application start where MapLibre fails to initialise installs no HTTP client`() {
         // Robolectric has already booted the manifest's ForagerApplication; its onCreate is what is under test.
         assertTrue(ApplicationProvider.getApplicationContext<android.content.Context>() is ForagerApplication)
 
-
-        val installed = Class.forName("org.maplibre.android.module.http.HttpRequestImpl")
-            .getDeclaredField("client").apply { isAccessible = true }.get(null) as? Call.Factory
-        assertNotNull("ForagerApplication.onCreate installed no HTTP client into MapLibre", installed)
-
-        val seen = sendThrough(installed as OkHttpClient, libraryUserAgent = "MapLibre Android/13.5.0")
-        assertEquals(listOf(AppUserAgent.forThisApp()), seen.headers("User-Agent"))
+        assertNull("ForagerApplication.onCreate installed an HTTP client although MapLibre failed to initialise", mapLibreClient())
     }
+
+    /**
+     * A successful install puts a client into MapLibre's client slot that sends the app's own User-Agent, replacing the
+     * library's. [installMapHttpClient] is what `MapLibreStorage`'s initialiser calls once MapLibre is ready; it is called
+     * directly here because MapLibre cannot initialise under Robolectric. The slot is static, so it is put back afterwards.
+     */
+    @Test
+    fun `a successful install carries the app's User-Agent into MapLibre`() {
+        val before = mapLibreClient()
+        val providerBefore = MapLibre.getModuleProvider()
+        try {
+            installMapHttpClient(ApplicationProvider.getApplicationContext())
+
+            val installed = mapLibreClient()
+            assertNotNull("installMapHttpClient put no HTTP client into MapLibre", installed)
+            // Amendment 3 of dispatch 2026-10-23-06: the slot holds the usage-tagging factory over the app's client, and
+            // MapLibre's module provider marks each request's usage for it.
+            assertTrue(MapLibre.getModuleProvider() is UsageMarkingModuleProvider)
+            val seen = sendThrough((installed as UsageTaggingCallFactory).client, libraryUserAgent = "MapLibre Android/13.5.0")
+            assertEquals(listOf(AppUserAgent.forThisApp()), seen.headers("User-Agent"))
+        } finally {
+            MapLibre.setModuleProvider(providerBefore)
+            mapLibreClientField().set(null, before)
+        }
+    }
+
+    /** No tile retry, so these tests see the User-Agent interceptor alone; the retry has its own tests. */
+    private val passThrough = Interceptor { chain -> chain.proceed(chain.request()) }
+
+    private fun mapLibreClientField() = Class.forName("org.maplibre.android.module.http.HttpRequestImpl")
+        .getDeclaredField("client").apply { isAccessible = true }
+
+    private fun mapLibreClient(): Call.Factory? = mapLibreClientField().get(null) as? Call.Factory
 
     /** Sends a request carrying [libraryUserAgent] through [client]; returns the request as the last interceptor saw it. */
     private fun sendThrough(client: OkHttpClient, libraryUserAgent: String): Request {

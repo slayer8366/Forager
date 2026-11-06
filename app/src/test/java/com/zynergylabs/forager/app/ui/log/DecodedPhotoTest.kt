@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
@@ -16,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.test.core.app.ApplicationProvider
 import java.io.File
 import java.util.Base64
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -116,36 +118,44 @@ class DecodedPhotoTest {
     }
 
     /**
-     * EXIF-orientation-display dispatch: the one decode every thumbnail site shares now turns the
-     * bitmap per its orientation tag. Observable here because `DecodedPhoto` with no size
-     * modifier lays its `Image` out at the bitmap's own size — after this composable's own
-     * [DECODE_SAMPLE_SIZE] — so a 40×20 JPEG tagged ROTATE_90 must render as a (20/4)×(40/4) node
-     * (Robolectric's density is 1, so px are dp) and the same JPEG untagged as (40/4)×(20/4).
-     * First written expecting 20×40 and failing with "Actual width is 5.0.dp": the sampling had
-     * been left out of the prediction, and 5 is exactly the turned, sampled width, so the failure
-     * confirmed the rotation rather than the expectation. Robolectric's legacy `BitmapFactory`
-     * reads a real JPEG's dimensions and honours `inSampleSize`.
+     * EXIF-orientation-display dispatch: the one decode every thumbnail site shares turns the bitmap
+     * per its orientation tag. Rewritten for dispatch 2026-09-28-658 (RECORD -660, item 6): the decode
+     * is now sized to the cell, so the composable's node is the cell's size and no longer shows the
+     * bitmap's. The bitmap is read from [decodeThumbnail], the decode `DecodedPhoto` runs, with exact
+     * sizes worked by hand, as strictly as the fixed-sample version did.
+     *
+     * The fixture is 40×20. For a 10 px cell the shorter edge, 20, halves once to 10 and not again
+     * (5 < 10): sample 2, a 20×10 bitmap, turned to 10×20 by ROTATE_90. For a 40 px cell the
+     * shorter edge cannot halve at all (10 < 40): sample 1, 40×20, turned to 20×40. Robolectric's
+     * legacy `BitmapFactory` reads a real JPEG's dimensions and honours `inSampleSize`.
      */
     @Test
-    fun `a rotate-90 tagged photo renders turned, an untagged one does not`() {
+    fun `a rotate-90 tagged photo decodes turned and sized to its cell, an untagged one unturned`() {
+        val context = ApplicationProvider.getApplicationContext<Application>()
+        val turned = File(context.filesDir, jpegFixture("turned.jpg", ExifInterface.ORIENTATION_ROTATE_90))
+        val plain = File(context.filesDir, jpegFixture("plain.jpg", null))
+
+        decodeThumbnail(turned, cellEdgePx = 10).let { assertEquals("turned, 10 px cell", 10 to 20, it.width to it.height) }
+        decodeThumbnail(plain, cellEdgePx = 10).let { assertEquals("plain, 10 px cell", 20 to 10, it.width to it.height) }
+        decodeThumbnail(turned, cellEdgePx = 40).let { assertEquals("turned, 40 px cell", 20 to 40, it.width to it.height) }
+        decodeThumbnail(plain, cellEdgePx = 40).let { assertEquals("plain, 40 px cell", 40 to 20, it.width to it.height) }
+    }
+
+    /** The composable decodes once it has a size, and shows the photo filling the cell it was given. */
+    @Test
+    fun `a sized thumbnail loads and keeps its cell's size`() {
         val turned = jpegFixture("turned.jpg", ExifInterface.ORIENTATION_ROTATE_90)
-        val plain = jpegFixture("plain.jpg", null)
 
         composeRule.setContent {
             Column {
-                DecodedPhoto(relativePath = turned, modifier = Modifier, contentDescription = "Turned photo")
-                DecodedPhoto(relativePath = plain, modifier = Modifier, contentDescription = "Plain photo")
+                DecodedPhoto(relativePath = turned, modifier = Modifier.size(10.dp), contentDescription = "Turned photo")
             }
         }
         composeRule.waitUntil(timeoutMillis = 5_000) {
-            composeRule.onAllNodesWithContentDescription("Turned photo").fetchSemanticsNodes().isNotEmpty() &&
-                composeRule.onAllNodesWithContentDescription("Plain photo").fetchSemanticsNodes().isNotEmpty()
+            composeRule.onAllNodesWithContentDescription("Turned photo").fetchSemanticsNodes().isNotEmpty()
         }
 
-        val sampledWidth = (40 / DECODE_SAMPLE_SIZE).dp
-        val sampledHeight = (20 / DECODE_SAMPLE_SIZE).dp
-        composeRule.onNodeWithContentDescription("Turned photo").assertWidthIsEqualTo(sampledHeight).assertHeightIsEqualTo(sampledWidth)
-        composeRule.onNodeWithContentDescription("Plain photo").assertWidthIsEqualTo(sampledWidth).assertHeightIsEqualTo(sampledHeight)
+        composeRule.onNodeWithContentDescription("Turned photo").assertWidthIsEqualTo(10.dp).assertHeightIsEqualTo(10.dp)
     }
 
     private fun jpegFixture(name: String, orientationTag: Int?): String {

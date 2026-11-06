@@ -23,6 +23,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -147,36 +148,45 @@ class AvailabilityScreenTripPlanningFlowTest {
             unitSystemPreferenceRepository = TripFlowStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = TripFlowStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(TripFlowStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = viewModel::useCurrentLocation,
-                onManualLatChanged = viewModel::onManualLatChanged,
-                onManualLngChanged = viewModel::onManualLngChanged,
-                onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                onRadiusChanged = viewModel::onRadiusChanged,
-                onMonthSelected = viewModel::onMonthSelected,
-                onMapTabSelected = viewModel::onMapTabSelected,
-                onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                onPlaceTripPin = viewModel::onPlaceTripPin,
-                onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
-                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
-                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
-                onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
-                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                onThemeModeChanged = viewModel::onThemeModeChanged,
-                onStartLogEntry = onStartLogEntry,
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = viewModel::useCurrentLocation,
+                    onManualLatChanged = viewModel::onManualLatChanged,
+                    onManualLngChanged = viewModel::onManualLngChanged,
+                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                    onRadiusChanged = viewModel::onRadiusChanged,
+                    onMonthSelected = viewModel::onMonthSelected,
+                    onMapTabSelected = viewModel::onMapTabSelected,
+                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = viewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
+                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = viewModel::onThemeModeChanged,
+                ),
+                findsLog = AvailabilityScreenFindsLog(
+                    onStartLogEntry = onStartLogEntry,
+                ),
                 mapSlot = TriggerableMapSlot,
             )
         }
@@ -194,12 +204,12 @@ class AvailabilityScreenTripPlanningFlowTest {
      * one call reach the real, live button again.
      */
     private fun searchAReferenceRegion() {
-        // The bar's tap opens "Advanced search" and "Enter coordinates manually" expanded (owner,
-        // continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
+        // Latitude and Longitude are the dropdown's first row, with no fold (dispatch
+        // 2026-09-28-697), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.3736")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 

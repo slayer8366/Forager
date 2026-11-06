@@ -39,8 +39,15 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.domain.GpxCodec
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenNavigation
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSearchInputs
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettings
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.io.File
@@ -49,7 +56,6 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -82,9 +88,10 @@ import org.robolectric.shadows.ShadowDialog
  * - **Back** is a real Back key sent to the sheet's own window (the sheet is a dialog with its own
  *   back dispatcher, which is what a Back press reaches while it shows). **The scrim** is touched
  *   at a point the sheet does not cover.
- * - **Navigate** (dispatch 2026-09-28-502, which changed this): the waypoint test pins its presence
- *   beside Directions', and Directions still starting its intent. Until -502 Navigate was not built and
- *   that test pinned its absence. What Navigate does is `AvailabilityScreenWaypointNavigateTest`'s.
+ * - **Navigate** (dispatch 2026-09-28-502, which changed this): the waypoint test pins its presence. Until
+ *   -502 Navigate was not built and that test pinned its absence. Dispatch 2026-10-29-09 (RECORD -1819)
+ *   removed Directions from the sheet and the rows, so they pin its absence. What Navigate does is
+ *   `AvailabilityScreenWaypointNavigateTest`'s.
  *
  * Tags are literals so these compile against the base they were written before.
  */
@@ -110,52 +117,68 @@ class RecordDetailsSheetTest {
     private val deletedWaypointIds = mutableListOf<String>()
 
     // Dispatch -502 changed this: onNavigateToWaypoint added, null by default, so every other test here sees the sheet as before.
-    private fun setScreen(waypointCounts: Map<String, Int> = DETAILS_COUNTS, onNavigateToWaypoint: ((String) -> Unit)? = null) {
+    // Dispatch -616 changed this: `waypoints` added, DETAILS_WAYPOINTS by default, so every other test here sees the same list as before.
+    private fun setScreen(
+        waypointCounts: Map<String, Int> = DETAILS_COUNTS,
+        onNavigateToWaypoint: ((String) -> Unit)? = null,
+        waypoints: List<Waypoint> = DETAILS_WAYPOINTS,
+    ) {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = AvailabilityUiState(offlineRegions = listOf(DETAILS_REGION)),
-                onUseCurrentLocation = {},
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = DETAILS_STUB_MAP,
-                waypoints = DETAILS_WAYPOINTS,
-                waypointEntryReferenceCounts = waypointCounts,
-                onDeleteWaypoint = { id -> deletedWaypointIds += id },
-                tracks = DETAILS_TRACKS,
+                records = AvailabilityScreenRecords(
+                    waypoints = waypoints,
+                    waypointEntryReferenceCounts = waypointCounts,
+                    onDeleteWaypoint = { id -> deletedWaypointIds += id },
+                    tracks = DETAILS_TRACKS,
+                ),
                 currentTime = CurrentTimeProvider { NOW },
-                onNavigateToWaypoint = onNavigateToWaypoint,
+                navigation = AvailabilityScreenNavigation(
+                    onNavigateToWaypoint = onNavigateToWaypoint,
+                ),
             )
         }
         composeRule.waitForIdle()
     }
 
-    /** Opens Records in the Journal tab. */
+    /** Opens Records in the Journal tab, on All: Records opens on Finds since RECORD -868, and the "in All" cases start from All. */
     private fun openRecords() {
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Records").performClick()
         composeRule.waitForIdle()
+        selectChip(RecordsSubTab.ALL)
     }
 
     private fun selectChip(filter: RecordsSubTab) {
@@ -207,21 +230,47 @@ class RecordDetailsSheetTest {
 
     private fun assertWaypointCreekContent() {
         field("mgrs").assertTextEquals("MGRS", CREEK_MGRS)
-        field("coordinates").assertTextEquals("Coordinates", "45.3260, -122.6340")
+        field("coordinates").assertTextEquals("Coordinates", "45.3736, -121.6959")
         field("created").assertTextEquals("Created", stamp(CREEK.createdAtEpochMillis))
         field("track").assertTextEquals("Track", stamp(TRACK_T1.startedAtEpochMillis))
         field("used-in").assertTextEquals("Used in", "2 journal entries")
-        // The sheet's content scrolls in a short window, so an action may start below its fold.
-        composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
+        // Dispatch 2026-10-29-09 (RECORD -1819): was "is displayed"; the sheet offers Navigate in Directions' place.
+        // Dispatch 2026-11-05-05 (A5, C1; RECORD -2152): still absent, unchanged. Every sheet this runs in is opened with no
+        // onNavigateToWaypoint, so it has no Navigate, and Directions is shown only beside Navigate.
+        composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist()
     }
 
+    private fun tile(label: String): SemanticsNodeInteraction = composeRule.onNodeWithTag("track-tile-$label")
+
+    /**
+     * Opens the track sheet's Details fold with a real touch on its header, unless it is already open: it is held above the
+     * sheet (dispatch -677), so once opened in a test it stays open for every later sheet in that test.
+     */
+    private fun openDetailsFold() {
+        if (exists("record-details-field-points")) return
+        touch(FOLD, Offset(0.5f, 0.5f))
+        assertTrue("a touch on the Details header opens the fold", exists("record-details-field-points"))
+    }
+
+    // Dispatch 2026-09-28-677 changed this: Distance and Duration were fields; they are tiles now, Duration as "Time" in data
+    // part A's words, with Climb, Descent and Moving speed beside them; Points is in the Details fold.
     private fun assertTrackT1Content() {
         field("started").assertTextEquals("Started", stamp(TRACK_T1.startedAtEpochMillis))
         field("ended").assertTextEquals("Ended", stamp(TRACK_T1.endedAtEpochMillis!!))
-        field("distance").assertTextEquals("Distance", "1.4 mi")
-        field("duration").assertTextEquals("Duration", "1h 10m")
-        field("points").assertTextEquals("Points", "3")
+        tile("Distance").assertTextEquals("Distance", "1.4 mi")
+        tile("Time").assertTextEquals("Time", "1 h 10 min")
+        // No point carries a height.
+        tile("Climb").assertTextEquals("Climb", "Not recorded")
+        tile("Descent").assertTextEquals("Descent", "Not recorded")
+        // Amendment 1 (RECORD -680): the moving speed. The first interval is 1111.95 m in 30 min (0.618 m/s, moving); the second
+        // 1111.95 m in 40 min (0.463 m/s) is under the 0.5 m/s floor and drops out. 30 min of moving time is past the 5 min bar:
+        // 0.618 m/s = 1.38 mph.
+        tile("Moving speed").assertTextEquals("Moving speed", "1.4 mph")
+        composeRule.onNodeWithTag("entry-height-profile-line").assertTextEquals("No height profile: the phone recorded too few heights on this walk.")
         composeRule.onNodeWithTag(NOTE).assertTextEquals("12 more not shown (network fixes)")
+        openDetailsFold()
+        field("points").performScrollTo().assertTextEquals("Points", "3")
+        field("heights").assertTextEquals("With height", "0 of 3 points")
         composeRule.onNodeWithTag(SHARE).performScrollTo().assertIsDisplayed()
     }
 
@@ -229,7 +278,9 @@ class RecordDetailsSheetTest {
         composeRule.onNodeWithTag("record-details-stale").assertTextEquals("Stale")
         field("radius").assertTextEquals("Radius", "9 mi")
         field("centre").assertTextEquals("Centre", "45.5000, -122.5000")
-        field("tiles").assertTextEquals("Tiles", "1234")
+        // T1 (dispatch 2026-10-26-21, RECORD -1703): the area's estimate from its centre and radius (15 km at 45.5, -122.5,
+        // zooms 10 to 15), the figure the tile budget counts it by, not MapLibre's stored count (1234 in the fixture).
+        field("tiles").assertTextEquals("Tiles", "1766")
         field("size").assertTextEquals("Size", "12.3 MB")
         field("downloaded").assertTextEquals("Downloaded", "${stamp(DETAILS_REGION.createdAtEpochMillis)} (70 days ago)")
         composeRule.onNodeWithTag(ZOOM).assertTextEquals(REGION_ZOOM_NOTE)
@@ -290,19 +341,23 @@ class RecordDetailsSheetTest {
         composeRule.onNodeWithTag(TITLE).assertTextEquals("Ridge loop")
         field("started").assertTextEquals("Started", stamp(TRACK_T2.startedAtEpochMillis))
         field("ended").assertTextEquals("Ended", "Still recording")
-        field("points").assertTextEquals("Points", "2")
+        openDetailsFold()
+        field("points").performScrollTo().assertTextEquals("Points", "2")
         assertTrue("no network note on an ordinary track", !exists(NOTE))
     }
 
     @Test
-    fun `a waypoint with no track and no count shows neither line, one with a missing track says Not loaded`() {
+    // Edited by dispatch 2026-10-28-08, Amendment 1 (RECORD -1781): "RecordDetailsContent.kt:75 reads a missing id as 0".
+    // The counts are live and hold only ids some committed entry keeps, so a missing id is a real zero now, not an
+    // uncounted one. Was: "a waypoint with no count given has no Used in line, rather than a made-up zero".
+    fun `a waypoint with no track and no count says no journal entries, one with a missing track says Not loaded`() {
         setScreen()
         openRecords()
         touch(waypointRow("W2"), Offset(0.4f, 0.5f))
         composeRule.onNodeWithTag(TITLE).assertTextEquals("Oak pin")
         field("coordinates").assertTextEquals("Coordinates", "45.4000, -122.7000")
         assertTrue("a waypoint dropped with no recording has no Track line", !exists("record-details-field-track"))
-        assertTrue("a waypoint with no count given has no Used in line, rather than a made-up zero", !exists("record-details-field-used-in"))
+        field("used-in").assertTextEquals("Used in", "no journal entries")
         pressBackOnSheet()
 
         touch(waypointRow("W3"), Offset(0.4f, 0.5f))
@@ -313,18 +368,15 @@ class RecordDetailsSheetTest {
 
     // ── The row's own buttons keep doing what they do ──
 
+    // Dispatch 2026-10-29-09 (RECORD -1819): was `the waypoint row's own Directions button starts directions and does not
+    // open the sheet`. The row has no Directions now; its Navigate is AvailabilityScreenWaypointNavigateTest's.
     @Test
-    fun `the waypoint row's own Directions button starts directions and does not open the sheet`() {
+    fun `the waypoint row has no Directions button`() {
         setScreen()
-        registerFakeMapsApp()
         openRecords()
         selectChip(RecordsSubTab.WAYPOINTS)
-        composeRule.onNodeWithContentDescription("Directions to Creek pin").performScrollTo().performTouchInput { click(center) }
-        composeRule.waitForIdle()
-
-        val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
-        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
-        assertTrue("a tap on the row's own Directions button does not open the sheet", !sheetShowing())
+        composeRule.onNodeWithText("Creek pin").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Directions to Creek pin").assertDoesNotExist()
     }
 
     @Suppress("DEPRECATION")
@@ -427,24 +479,35 @@ class RecordDetailsSheetTest {
     // ── Actions ──
 
     @Test
-    fun `the waypoint sheet offers Navigate beside Directions, and its Directions starts directions to that waypoint`() {
+    fun `the waypoint sheet offers Navigate, and Directions to its right, which starts directions to that waypoint`() {
         // Dispatch -502 changed this. Before: named "... and there is no Navigate", it asserted that no
         // node's text contained "Navigate" (the J5c stop rule: no in-app entry point navigated to a chosen
         // waypoint). After: the owner asked for Navigate beside Directions (-502, T9), so it asserts the
-        // sheet's Navigate is shown, labelled "Navigate"; Directions' assertions below are unchanged.
+        // sheet's Navigate is shown, labelled "Navigate". Dispatch 2026-10-29-09 (RECORD -1819) changed it
+        // again: named "... beside Directions, and its Directions starts directions to that waypoint", it
+        // asserted Directions shown and its geo intent; Directions is gone from the sheet, so it asserts that.
+        // Dispatch 2026-11-05-05 (A5; RECORD -2140, the owner: "In the Details card add the Directions button for external
+        // maps to the right of the in-app Navigate button and center the two buttons") changed it a third time: named "... offers
+        // Navigate and no Directions", it asserted Directions absent. Now Directions is shown, to Navigate's right, and a real
+        // touch on it starts the waypoint's geo intent. The centring is WaypointCardDirectionsTest's.
         setScreen(onNavigateToWaypoint = {})
         registerFakeMapsApp()
         openRecords()
         touch(waypointRow("W1"), Offset(0.3f, 0.5f))
-        composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(NAVIGATE).performScrollTo().assertIsDisplayed()
         assertEquals("Navigate", composeRule.onNodeWithTag(NAVIGATE).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
+        composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
+        assertEquals("Directions", composeRule.onNodeWithTag(DIRECTIONS).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
+        val navigate = composeRule.onNodeWithTag(NAVIGATE).fetchSemanticsNode().boundsInRoot
+        val directions = composeRule.onNodeWithTag(DIRECTIONS).fetchSemanticsNode().boundsInRoot
+        assertTrue("Directions to the right of Navigate: ${directions.left} vs ${navigate.right}", directions.left > navigate.right)
 
         composeRule.onNodeWithTag(DIRECTIONS).performTouchInput { click(Offset(width * 0.3f, height * 0.5f)) }
         composeRule.waitForIdle()
         val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
         assertEquals(Intent.ACTION_VIEW, started?.action)
-        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
+        assertEquals("geo:0,0?q=45.3736,-121.6959(Creek%20pin)", started?.data.toString())
+        assertTrue("the sheet stays open (A12)", sheetShowing())
     }
 
     @Suppress("DEPRECATION")
@@ -522,6 +585,106 @@ class RecordDetailsSheetTest {
         assertTrue("a scrim touch closed the sheet", !sheetShowing())
     }
 
+    // ── Dispatch -616 (plan T10), amended by -618: the waypoints dropped on a walk, in its sheet ──
+
+    /** Opens T1's details sheet from its row in All, with the walk fixtures. */
+    private fun openWalkT1() {
+        setScreen(waypoints = WALK_WAYPOINTS)
+        openRecords()
+        touch(logbookRowTag(RecordType.TRACKS, "T1"), Offset(0.4f, 0.5f))
+        composeRule.onNodeWithTag(TITLE).assertTextEquals(stamp(TRACK_T1.startedAtEpochMillis))
+    }
+
+    private fun top(tag: String): Float = composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot.top
+
+    @Test
+    fun `a walk's sheet lists the waypoints dropped on it under Waypoints on this track, oldest first, without its start and end`() {
+        openWalkT1()
+
+        composeRule.onNodeWithTag(WALK_HEADING).performScrollTo().assertTextEquals("Waypoints on this track")
+        composeRule.onNodeWithTag(walkWaypointRow("W4")).performScrollTo().assertTextEquals("Spring pin", stamp(SPRING.createdAtEpochMillis))
+        composeRule.onNodeWithTag(walkWaypointRow("W1")).performScrollTo().assertTextEquals("Creek pin", stamp(CREEK.createdAtEpochMillis))
+        assertTrue("oldest first: Spring pin above Creek pin", top(walkWaypointRow("W4")) < top(walkWaypointRow("W1")))
+        for (id in listOf("W-origin", "W-end", "W2", "W3")) {
+            assertTrue("no walk-waypoint row for $id (start, end, a standalone pin, another track's pin)", !exists(walkWaypointRow(id)))
+        }
+    }
+
+    @Test
+    fun `a walk with no dropped waypoints shows no waypoint section at all`() {
+        setScreen(waypoints = WALK_WAYPOINTS)
+        openRecords()
+        touch(logbookRowTag(RecordType.TRACKS, "T2"), Offset(0.4f, 0.5f))
+        composeRule.onNodeWithTag(TITLE).assertTextEquals("Ridge loop")
+        assertTrue("no heading for a walk with nothing dropped on it", !exists(WALK_HEADING))
+        assertTrue("and no rows", composeRule.onAllNodesWithText("Waypoints on this track").fetchSemanticsNodes().isEmpty())
+    }
+
+    @Test
+    fun `a real touch anywhere on a walk's waypoint row opens that waypoint's details, and Back returns to the walk's`() {
+        openWalkT1()
+        for (point in ROW_SAMPLES) {
+            touch(walkWaypointRow("W1"), point)
+            composeRule.onNodeWithTag(TITLE).assertTextEquals("Creek pin")
+            field("track").assertTextEquals("Track", stamp(TRACK_T1.startedAtEpochMillis))
+            // Was "is displayed" (dispatch 2026-10-29-09). Still absent under dispatch 2026-11-05-05 (C1; RECORD -2152): this sheet
+            // is opened with no onNavigateToWaypoint, and Directions is shown only beside Navigate.
+            composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist()
+
+            pressBackOnSheet()
+            assertTrue("Back from the waypoint (tap at $point) leaves a sheet showing", sheetShowing())
+            composeRule.onNodeWithTag(TITLE).assertTextEquals(stamp(TRACK_T1.startedAtEpochMillis))
+            composeRule.onNodeWithTag(WALK_HEADING).performScrollTo().assertIsDisplayed()
+        }
+        pressBackOnSheet()
+        assertTrue("Back from the walk closes the sheet", !sheetShowing())
+    }
+
+    @Test
+    fun `a waypoint opened from its walk offers Navigate, as one opened from its own row does`() {
+        setScreen(onNavigateToWaypoint = {}, waypoints = WALK_WAYPOINTS)
+        openRecords()
+        touch(logbookRowTag(RecordType.TRACKS, "T1"), Offset(0.4f, 0.5f))
+        touch(walkWaypointRow("W4"), Offset(0.5f, 0.5f))
+        composeRule.onNodeWithTag(TITLE).assertTextEquals("Spring pin")
+        composeRule.onNodeWithTag(NAVIGATE).performScrollTo().assertIsDisplayed()
+    }
+
+    @Config(qualifiers = SHORT_LANDSCAPE)
+    @Test
+    fun `short window - a walk's waypoint row opens its details from touches across it, and Back returns to the walk`() {
+        openWalkT1()
+        for (point in ROW_SAMPLES) {
+            touch(walkWaypointRow("W4"), point)
+            composeRule.onNodeWithTag(TITLE).assertTextEquals("Spring pin")
+            pressBackOnSheet()
+            composeRule.onNodeWithTag(TITLE).assertTextEquals(stamp(TRACK_T1.startedAtEpochMillis))
+        }
+    }
+
+    @Suppress("DEPRECATION")
+    @Test
+    fun `the walk sheet's Share writes the waypoints dropped on it into the GPX, with its start and end, and no others`() {
+        openWalkT1()
+        composeRule.onNodeWithTag(SHARE).performScrollTo().performTouchInput { click(center) }
+        val shared = awaitStartedActivity().getParcelableExtra<Intent>(Intent.EXTRA_INTENT)?.getParcelableExtra<Uri>(Intent.EXTRA_STREAM)
+        val file = File(File(composeRule.activity.cacheDir, "tracks"), shared!!.lastPathSegment!!)
+
+        val decoded = GpxCodec.decode(file.readText())
+
+        assertEquals(
+            setOf(
+                Triple("W-origin", "T1", WaypointDesignation.ORIGIN),
+                Triple("W4", "T1", null),
+                Triple("W1", "T1", null),
+                Triple("W-end", "T1", WaypointDesignation.END),
+            ),
+            decoded.waypoints.map { Triple(it.id, it.trackId, it.designation) }.toSet(),
+        )
+        assertEquals("one <wpt> each, no duplicates", 4, decoded.waypoints.size)
+        assertEquals("Creek pin", decoded.waypoints.single { it.id == "W1" }.name)
+    }
+
     // ── Helpers ──
 
     private fun shortSwipeLeft(tag: String, distanceDp: Float = 64f) {
@@ -544,6 +707,7 @@ class RecordDetailsSheetTest {
         return started!!
     }
 
+    /** Dispatch 2026-11-05-05: a maps app that takes `geo:` links, as this class had until dispatch 2026-10-29-09 removed it. */
     private fun registerFakeMapsApp() {
         val activity = composeRule.activity
         val componentName = ComponentName(activity, "com.example.fakemaps.MapsActivity")
@@ -556,7 +720,6 @@ class RecordDetailsSheetTest {
                 addDataScheme("geo")
             },
         )
-        assertNull("nothing started before the tap", Shadows.shadowOf(activity).nextStartedActivity)
     }
 
     private fun hasClickLabel(label: String): SemanticsMatcher =
@@ -573,6 +736,9 @@ private const val ZOOM = "record-details-zoom"
 private const val DIRECTIONS = "record-details-directions"
 private const val NAVIGATE = "record-details-navigate"
 private const val SHARE = "record-details-share"
+private const val WALK_HEADING = "record-details-walk-waypoints-heading"
+private const val FOLD = "record-details-fold"
+private fun walkWaypointRow(id: String) = "record-details-walk-waypoint-$id"
 
 /** Three touch points across a row: its start edge (the badge, in All), upper middle, lower right short of its buttons. */
 private val ROW_SAMPLES = listOf(Offset(0.05f, 0.5f), Offset(0.4f, 0.25f), Offset(0.7f, 0.8f))
@@ -618,7 +784,7 @@ private val TRACK_T2 = Track(
 private val DETAILS_TRACKS = listOf(TRACK_T1, TRACK_T2)
 
 private val CREEK = Waypoint(
-    id = "W1", lat = 45.3260, lng = -122.6340, altitude = null, name = "Creek pin", note = "",
+    id = "W1", lat = 45.3736, lng = -121.6959, altitude = null, name = "Creek pin", note = "",
     createdAtEpochMillis = NOW - 2 * DAY, trackId = "T1",
 )
 private val OAK = Waypoint(
@@ -630,6 +796,21 @@ private val RIDGE = Waypoint(
     createdAtEpochMillis = NOW - 4 * DAY, trackId = "T-not-in-the-list",
 )
 private val DETAILS_WAYPOINTS = listOf(OAK, CREEK, RIDGE)
+
+// Dispatch -616: T1's start and end markers, and a second waypoint dropped on it, older than Creek pin.
+private val T1_ORIGIN = Waypoint(
+    id = "W-origin", lat = 45.00, lng = -122.0, altitude = null, name = "Start pin", note = "",
+    createdAtEpochMillis = NOW - 3 * DAY + MINUTE, trackId = "T1", designation = WaypointDesignation.ORIGIN,
+)
+private val T1_END = Waypoint(
+    id = "W-end", lat = 45.02, lng = -122.0, altitude = null, name = "End pin", note = "",
+    createdAtEpochMillis = NOW - 3 * DAY + 75 * MINUTE, trackId = "T1", designation = WaypointDesignation.END,
+)
+private val SPRING = Waypoint(
+    id = "W4", lat = 45.012, lng = -121.999, altitude = null, name = "Spring pin", note = "",
+    createdAtEpochMillis = NOW - 3 * DAY + 20 * MINUTE, trackId = "T1",
+)
+private val WALK_WAYPOINTS = DETAILS_WAYPOINTS + listOf(T1_ORIGIN, T1_END, SPRING)
 
 /** Creek pin keeps 2 entries, Ridge pin 0; Oak pin has no count at all. */
 private val DETAILS_COUNTS = mapOf("W1" to 2, "W3" to 0)

@@ -43,10 +43,10 @@ class RoomSearchCacheRepository(
             null
         }
 
-    override suspend fun save(forecast: AvailabilityForecast) {
+    override suspend fun save(forecast: AvailabilityForecast, speciesIconicTaxonName: String?) {
         runCatchingCancellable {
             val now = currentTime.nowEpochMillis()
-            dao.upsertAndEvictBeyond(forecast.toEntity(now), MAX_CACHED_SEARCHES)
+            dao.upsertAndEvictBeyond(forecast.toEntity(now, speciesIconicTaxonName), MAX_CACHED_SEARCHES)
         }.onFailure { error ->
             Log.w(TAG, "Couldn't write the search cache; this result won't be available offline.", error)
         }
@@ -72,7 +72,7 @@ class RoomSearchCacheRepository(
     }
 }
 
-private fun AvailabilityForecast.toEntity(nowEpochMillis: Long): CachedSearchEntity {
+private fun AvailabilityForecast.toEntity(nowEpochMillis: Long, speciesIconicTaxonName: String?): CachedSearchEntity {
     // Exhaustive on TaxonFilter's two shapes, so a third one is a compile error here rather than a
     // row that stores a label and loses the query it stood for.
     val iconicTaxonName = when (val stored = filter) {
@@ -82,6 +82,11 @@ private fun AvailabilityForecast.toEntity(nowEpochMillis: Long): CachedSearchEnt
     val taxonId = when (val stored = filter) {
         is TaxonFilter.IconicCategory -> null
         is TaxonFilter.SpecificTaxon -> stored.taxonId
+    }
+    // Only a species row carries a species' group; a category's group is already filterIconicTaxonName.
+    val speciesGroup = when (filter) {
+        is TaxonFilter.IconicCategory -> null
+        is TaxonFilter.SpecificTaxon -> speciesIconicTaxonName
     }
     return CachedSearchEntity(
         key = cachedSearchKey(region, month, filter),
@@ -93,6 +98,7 @@ private fun AvailabilityForecast.toEntity(nowEpochMillis: Long): CachedSearchEnt
         filterIconicTaxonName = iconicTaxonName,
         filterTaxonId = taxonId,
         filterExcludedTaxonId = filter.excludedTaxonId,
+        speciesIconicTaxonName = speciesGroup,
         entriesJson = CachedSearchPayload.encode(entries),
         fetchedAtEpochMillis = nowEpochMillis,
         lastAccessedAtEpochMillis = nowEpochMillis,
@@ -114,6 +120,7 @@ private fun CachedSearchEntity.toSummary() = CachedSearchSummary(
     month = month,
     filter = toFilter(),
     cachedAtEpochMillis = fetchedAtEpochMillis,
+    speciesIconicTaxonName = speciesIconicTaxonName,
 )
 
 private fun CachedSearchEntity.toRegion() = Region(lat = lat, lng = lng, radiusKm = radiusKm)

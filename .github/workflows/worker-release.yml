@@ -1,0 +1,26 @@
+# The worker/* release guard (dispatch 2026-11-01-coder-11; the owner: "Yes, Worker folder only (Recommended)" and "may as
+# well get it modular"). Cloudflare Workers Builds deploys main's server/pmtiles-worker, so a Worker release is a worker/*
+# pull request to main that makes that folder equal pre-main's and changes nothing else. This fails one that doesn't.
+# The check is server/pmtiles-worker/tools/check-release.sh, tested by server/pmtiles-worker/test/check-release.test.mjs.
+name: Worker release guard
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  folder-only:
+    name: A worker/* release changes only server/pmtiles-worker, and it equals pre-main's
+    if: startsWith(github.head_ref, 'worker/')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Fetch main and pre-main
+        run: git fetch --no-tags origin main pre-main
+      - name: Check the release
+        run: bash server/pmtiles-worker/tools/check-release.sh origin/main "${{ github.event.pull_request.head.sha }}" origin/pre-main

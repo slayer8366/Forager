@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.availability
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
 import androidx.compose.material.icons.filled.Directions
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
@@ -28,7 +29,7 @@ class NavigationHudArrivedTest {
 
     /** A fix [metersNorth] metres north of the start, with the S22's constant 3.79 m accuracy. */
     private fun fixAt(metersNorth: Double, at: Long = t) =
-        LocationFix.Update(lat = start.lat + metersNorth / 111_195.08, lng = start.lng, altitude = null, accuracyMeters = 3.79f, timestampEpochMillis = at)
+        LocationFix.Update(lat = start.lat + metersNorth / 111_195.08, lng = start.lng, altitude = null, accuracyMeters = 3.79f, timestampEpochMillis = at, provider = FixProvider.GPS)
 
     private val route = ReturnRoute.Ahead(LatLng(start.lat, start.lng), 12.0)
 

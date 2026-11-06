@@ -6,8 +6,8 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.LocationOff
-import androidx.compose.material.icons.filled.LocationOn
+import androidx.compose.material.icons.outlined.LocationOff
+import androidx.compose.material.icons.outlined.LocationOn
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -72,7 +72,6 @@ class InAppCameraLocationChipTest {
             InAppCameraDialog(
                 session = FakeCameraCaptureSession(),
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                lockToPortrait = false,
                 onPhotoCaptured = {},
                 onDismiss = {},
                 gridMode = GridMode.Off,
@@ -132,8 +131,9 @@ class InAppCameraLocationChipTest {
 
     @Test
     fun `each state has its own glyph and label`() {
-        assertEquals(LocationGlyph(Icons.Filled.LocationOn, "Save location: On"), locationGlyph(true))
-        assertEquals(LocationGlyph(Icons.Filled.LocationOff, "Save location: Off"), locationGlyph(false))
+        // RECORD -970 (the owner, on the strip icons: "C both"): the thin-line (Outlined) style of the same symbols. Was Icons.Filled.*, same names.
+        assertEquals(LocationGlyph(Icons.Outlined.LocationOn, "Save location: On"), locationGlyph(true))
+        assertEquals(LocationGlyph(Icons.Outlined.LocationOff, "Save location: Off"), locationGlyph(false))
     }
 
     /**

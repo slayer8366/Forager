@@ -57,10 +57,32 @@ data class FruitingLagDistribution(
      * observations" instead of presenting [sightingsConsidered] as if it were exhaustive.
      */
     val totalResultsOnServer: Int,
+    /**
+     * The same lags in equal spans, for the chart (data part C, RECORD -668: the owner's "the chart
+     * gets axes, labels and equal spans"). [buckets] stays as it was, for the counts listed under the
+     * chart, because its second bucket *is* the rule of thumb being tested and is 15 days wide.
+     */
+    val histogram: FruitingLagHistogram,
 ) {
     /** The histogram's actual sample size: bucketed sightings, i.e. [sightingsConsidered] minus [observationsExcludedForMissingDate]. */
     val sampleSize: Int get() = buckets.sumOf { it.count }
 
     /** The bucket count for sightings with no qualifying preceding soaking event in the fetched window. */
     val observationsWithNoPrecedingEvent: Int get() = buckets.firstOrNull { it.lagDaysRange == null }?.count ?: 0
+}
+
+/** One equal span of the lag histogram: sightings [firstDay]..[lastDay] days after the nearest preceding soaking event. */
+data class LagSpan(val firstDay: Int, val lastDay: Int, val count: Int)
+
+/**
+ * The fruiting lags in equal spans of [spanDays] days from day 0, so every bar of the chart covers the
+ * same stretch of time and a taller bar means more sightings per day, not a wider bucket.
+ *
+ * [beyondCount] is the sightings past the last span. They are counted, never dropped, and kept out of
+ * the bars because an open-ended "N+ days" bar would not be an equal span. Sightings with no preceding
+ * soaking event are not lags at all and are counted on [FruitingLagDistribution] instead.
+ */
+data class FruitingLagHistogram(val spanDays: Int, val spans: List<LagSpan>, val beyondCount: Int) {
+    /** The day the chart's x-axis ends on: one past the last span's last day. */
+    val axisEndDay: Int get() = spans.lastOrNull()?.let { it.lastDay + 1 } ?: 0
 }

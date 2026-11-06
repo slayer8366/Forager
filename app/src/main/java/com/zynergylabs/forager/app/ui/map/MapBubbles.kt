@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.ForecastBlock
 import com.zynergylabs.forager.app.domain.ForecastCell
@@ -11,6 +12,9 @@ import com.zynergylabs.forager.app.domain.HighlightedRecord
 import com.zynergylabs.forager.app.domain.HighlightedRecordKind
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.GroundHeight
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.formatWholeLength
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
@@ -22,29 +26,32 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackDecision
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
-import com.zynergylabs.forager.app.ui.availability.TRIP_WINDOW_DATE_FORMAT
-import com.zynergylabs.forager.app.ui.availability.decimalDegreesLabel
 import com.zynergylabs.forager.app.ui.availability.offlineRegionSizeLabel
 import com.zynergylabs.forager.app.ui.availability.rectEdgeIntersection
 import com.zynergylabs.forager.app.ui.log.formatTrackDuration
+import com.zynergylabs.forager.app.ui.log.trackDurationLabel
 import com.zynergylabs.forager.app.ui.log.journalEntryCountLabel
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_REFERENCE_CLASS
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.legendDatesLine
-import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
 import com.zynergylabs.forager.app.ui.track.trackTitle
 import java.time.LocalDate
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import com.zynergylabs.forager.app.ui.format.displayDate
+import com.zynergylabs.forager.app.ui.format.displayDateTime
+import com.zynergylabs.forager.app.ui.log.findTitle
+import com.zynergylabs.forager.app.ui.log.findBlankTitleLabel
 
 /**
  * M1, tap a map glyph for a bubble (`prompts/preserved/2026-09-28-29.md`, continuation
@@ -93,10 +100,20 @@ sealed interface MapBubbleTarget {
 
     /** A record or a cell, by the layer it was tapped on and its feature id; [at] is the tapped map position. */
     data class FeatureTarget(val kind: MapBubbleKind, val layerId: String, val featureId: String, val at: LatLng) : MapBubbleTarget
+
+    /**
+     * Step 8c (dispatch 2026-10-26-16): an official-trails band, tapped on [layerId] at [at]. It names no app record, so
+     * it carries what its bubble reads ([record], from the feature itself); like a line, its bubble keeps the tap point.
+     */
+    data class ReferenceTrailTarget(val layerId: String, val record: ReferenceTrailRecord, val at: LatLng) : MapBubbleTarget
 }
 
 /** The [TappedMapThing] a feature tap makes, or `null` for a layer no bubble is built for. */
 fun tappedThingOf(tap: MapFeatureTap): TappedMapThing? {
+    // Step 8c: a band's tap carries its record; its empty feature id is never looked up.
+    tap.referenceTrail?.let { record ->
+        return TappedMapThing(MapBubbleTarget.ReferenceTrailTarget(tap.layerId, record, tap.at), tap.screenPoint, tap.bearingDeg)
+    }
     val kind = mapBubbleKindOf(tap.layerId) ?: return null
     return TappedMapThing(MapBubbleTarget.FeatureTarget(kind, tap.layerId, tap.featureId, tap.at), tap.screenPoint, tap.bearingDeg)
 }
@@ -155,6 +172,12 @@ data class MapRecordSources(
      * action (there is no record to open) and no date (the snapshot never held one).
      */
     val snapshotTracks: List<TrackDecision> = emptyList(),
+    /**
+     * An entry map's waypoints' distance walked from the start of their own track, in metres, by waypoint id
+     * (RECORD -867, the owner: "Add it to the icon's details"; the entry report's waypoint table, which had it,
+     * is gone). A waypoint not in it gets no such line; every other map passes none.
+     */
+    val waypointDistancesFromStart: Map<String, Double> = emptyMap(),
     val waypointEntryReferenceCounts: Map<String, Int> = emptyMap(),
     val tracks: List<Track> = emptyList(),
     val plannedTrips: List<PlannedTrip> = emptyList(),
@@ -167,7 +190,7 @@ data class MapRecordSources(
     val openFindLabel: String = OPEN_IN_JOURNAL_LABEL,
     /**
      * J8: for each record highlighted on this map, the shown entries that keep it
-     * (`JournalEntryHighlights.keptIn`), while the "Journal entries" switch shows the highlights;
+     * (`JournalEntryHighlights.keptIn`), while the "Journal Entries" switch shows the highlights;
      * empty on a map with no highlights (the entry map) and while the switch is off. A bubble names
      * these entries and opens one through [onOpenEntry].
      */
@@ -176,10 +199,21 @@ data class MapRecordSources(
     val onOpenEntry: ((String) -> Unit)? = null,
     /**
      * Dispatch 2026-09-28-502: a waypoint's "Navigate", in its bubble and its details sheet, given where it
-     * was tapped. Only the Maps tab passes one (the owner: "only Maps, the sheet and Records"); `null`, an
-     * entry map's, offers Directions only.
+     * was tapped. The Maps tab passes one, and since RECORD -890 a journal entry's map does too; `null`
+     * (tests only) offers none. In a bubble, Directions is offered only where Navigate cannot reach (RECORD -1819); on the
+     * card it sits beside Navigate (dispatch 2026-11-05-05, A5; RECORD -2140).
      */
     val onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
+    /**
+     * Route plotting (dispatch 2026-10-30-08, step 3; the planner's ruling on Q11: carried here, so the scaffold is unchanged):
+     * a waypoint bubble's "Plot route", and what the Maps tab's taps, card and Back read. Only the Maps tab passes one.
+     */
+    val routePlotting: RoutePlottingControls? = null,
+    /**
+     * Dispatch 2026-11-05-05 (Amendment 1, A8): a trip's "Navigate", in its bubble and its card, given where it was tapped (an
+     * origin of kind TRIP). Only the Maps tab passes one, the one map with trips; `null` offers none.
+     */
+    val onNavigateToTrip: ((WaypointNavigationOrigin) -> Unit)? = null,
 )
 
 /** The Maps tab's find action (owner's M1 ruling 2). */
@@ -190,8 +224,18 @@ const val OPEN_FIND_LABEL = "Open find"
 
 /** What one bubble says, per kind (B3): each starts from what that record's row, sheet or card already shows, kept short. */
 sealed interface MapBubbleContent {
-    /** A find: its identification or "Find on <date>", the date when the title is the identification, and its cover photo. */
-    data class Find(val findId: String, val title: String, val date: String?, val coverPhotoPath: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
+    /** A find: its title by the tile's rule (or none), its date line, and its cover photo (data part D, RECORD -703). */
+    data class Find(
+        val findId: String,
+        /** The tile's title ([findTitle]): the given name, "Found 2:14 PM", or `null` for none (RECORD -703, "Match the tile"). */
+        val title: String?,
+        /** "Find on Oct 7, 2026", always: the bubble has no day heading above it, as the tile has. */
+        val date: String?,
+        val coverPhotoPath: String?,
+        val keptIn: List<JournalEntryOnMap> = emptyList(),
+        /** What a screen reader says for a blank [title], the tile's own label ([findBlankTitleLabel]); `null` when titled. */
+        val blankTitleLabel: String? = null,
+    ) : MapBubbleContent
 
     /**
      * A photo: the photo, its date, and what it is attached to; [attachedTo] is `null` when the bubble's
@@ -199,14 +243,31 @@ sealed interface MapBubbleContent {
      */
     data class Photo(val photo: LogPhoto, val date: String, val attachedTo: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
-    /** A waypoint: its name and MGRS; Directions, and details while its record exists ([hasDetails]). */
-    data class WaypointContent(val waypoint: Waypoint, val mgrs: String?, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
+    /** A waypoint: its name and MGRS; Navigate and details while its record exists ([hasDetails]), Directions otherwise (RECORD -1819). */
+    data class WaypointContent(
+        val waypoint: Waypoint,
+        val mgrs: String?,
+        val hasDetails: Boolean = true,
+        val keptIn: List<JournalEntryOnMap> = emptyList(),
+        /** "0.3 mi walked from the start" on an entry map (RECORD -867); `null` everywhere else and when it is not known. */
+        val fromStart: String? = null,
+        /**
+         * "Elevation 1352 ft", the ground's height at the waypoint's spot (dispatch 2026-11-03-07; [waypointElevationLine]).
+         * `null` until the height is read ([MapBubbleLayer]), and when there is none, which draws no line (A2).
+         */
+        val elevation: String? = null,
+    ) : MapBubbleContent
 
     /** A track: its title, date, distance and duration; details. */
     data class TrackContent(val trackId: String, val title: String, val date: String?, val distance: String, val duration: String, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
-    /** A planned trip: what its Trip Planner row shows; Directions. */
-    data class Trip(val trip: PlannedTrip, val date: String, val mgrs: String?, val coordinates: String) : MapBubbleContent
+    /**
+     * A planned trip (dispatch 2026-11-05-05, A1; RECORD -2140, the owner: "Remove the long/lat coordinates from the Trip icon,
+     * and keep the military style"): its name, [date] (null for an undated trip, schema 23, which shows no date line), its
+     * MGRS line, and [elevation] as a waypoint's bubble has it, `null` until read and where none is known; then Navigate,
+     * Plot route and Details.
+     */
+    data class Trip(val trip: PlannedTrip, val date: String?, val mgrs: String?, val elevation: String? = null) : MapBubbleContent
 
     /** An offline region: its name, radius, size, and whether it is stale; details. */
     data class Region(val regionId: Long, val name: String, val radius: String, val size: String, val stale: Boolean, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
@@ -224,49 +285,64 @@ sealed interface MapBubbleContent {
         val dates: String,
         val referenceClass: String,
     ) : MapBubbleContent
+
+    /**
+     * An official-trails band (step 8c; RECORD -1680, -1681): [title] says whose trail it is, "Forest Service trail 017 ·
+     * Three Blaze" or "BLM trail · Badlands Rock", and [note] that routes follow the trail map, not this layer. No action:
+     * the record is the agency's, with nothing in the app to open.
+     */
+    data class ReferenceTrail(val title: String, val note: String) : MapBubbleContent
 }
+
+/** [record]'s bubble: its two lines, as [ReferenceTrailRecord] writes them. */
+fun referenceTrailBubble(record: ReferenceTrailRecord): MapBubbleContent.ReferenceTrail =
+    MapBubbleContent.ReferenceTrail(title = record.firstLine, note = record.secondLine)
 
 /**
  * What [target]'s bubble says, looked up by its feature id in [sources]; `null` when the record is
  * not there any more (a delete landed, a list reloaded), which the host treats as nothing to show.
  * Not for cells, which are looked up in the store ([lookUpForecastCell]).
  */
-fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecordSources): MapBubbleContent? {
+fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecordSources, is24HourClock: Boolean): MapBubbleContent? {
     val id = target.featureId
     // J8: the shown entries keeping this record, when it is highlighted; empty otherwise.
     fun keptIn(kind: HighlightedRecordKind) = sources.journalEntriesKeeping[HighlightedRecord(kind, id)].orEmpty()
     return when (target.kind) {
         MapBubbleKind.FIND -> sources.finds.firstOrNull { it.id == id }?.let { find ->
-            val identification = find.ownIdentification?.takeIf { it.isNotBlank() }
+            // RECORD -703, "Match the tile": the tile's title rule, blank included; the date line is always there.
+            val title = findTitle(find, is24HourClock)
             MapBubbleContent.Find(
                 findId = find.id,
-                title = identification ?: findDateLabel(find),
-                date = if (identification != null) findDateLabel(find) else null,
+                title = title,
+                date = findDateLabel(find),
                 coverPhotoPath = find.photos.firstOrNull()?.relativePath,
                 keptIn = keptIn(HighlightedRecordKind.FIND),
+                blankTitleLabel = if (title == null) findBlankTitleLabel(find) else null,
             )
         }
         MapBubbleKind.PHOTO -> sources.galleryPhotos.firstOrNull { it.photo.id == id }?.let { gallery ->
             val keepingEntries = keptIn(HighlightedRecordKind.PHOTO)
             MapBubbleContent.Photo(
                 photo = gallery.photo,
-                date = gallery.photo.createdAtEpochMillis?.let(::formatRecordTimestamp) ?: PHOTO_DATE_UNKNOWN,
+                date = gallery.photo.createdAtEpochMillis?.let { displayDateTime(it, is24HourClock) } ?: PHOTO_DATE_UNKNOWN,
                 attachedTo = photoAttachmentLine(gallery, sources, keepingEntriesShown = keepingEntries.isNotEmpty()),
                 keptIn = keepingEntries,
             )
         }
-        MapBubbleKind.WAYPOINT -> sources.waypoints.firstOrNull { it.id == id }
-            ?.let { waypoint -> MapBubbleContent.WaypointContent(waypoint, mgrsOf(LatLng(waypoint.lat, waypoint.lng)), keptIn = keptIn(HighlightedRecordKind.WAYPOINT)) }
-            ?: sources.snapshotWaypoints.firstOrNull { it.id == id }
-                ?.let { kept -> MapBubbleContent.WaypointContent(kept, mgrsOf(LatLng(kept.lat, kept.lng)), hasDetails = false) }
+        MapBubbleKind.WAYPOINT -> {
+            val fromStart = sources.waypointDistancesFromStart[id]?.let { waypointFromStartLine(it, sources.distanceUnit) }
+            sources.waypoints.firstOrNull { it.id == id }
+                ?.let { waypoint -> MapBubbleContent.WaypointContent(waypoint, mgrsOf(LatLng(waypoint.lat, waypoint.lng)), keptIn = keptIn(HighlightedRecordKind.WAYPOINT), fromStart = fromStart) }
+                ?: sources.snapshotWaypoints.firstOrNull { it.id == id }
+                    ?.let { kept -> MapBubbleContent.WaypointContent(kept, mgrsOf(LatLng(kept.lat, kept.lng)), hasDetails = false, fromStart = fromStart) }
+        }
         MapBubbleKind.PLANNED_TRIP -> sources.plannedTrips.firstOrNull { it.id == id }?.let { trip ->
-            // The Trip Planner row's lines (AvailabilityTripsWaypointsUi's PlannedTripRow): name,
-            // date, MGRS when there is one, decimal degrees.
+            // The Trip Planner row's lines (AvailabilityTripsWaypointsUi's PlannedTripRow) but its decimal degrees, which
+            // dispatch 2026-11-05-05 (A1) took off: name, date, MGRS when there is one. The elevation joins in the layer.
             MapBubbleContent.Trip(
                 trip = trip,
-                date = TRIP_WINDOW_DATE_FORMAT.format(trip.date),
+                date = trip.date?.let(::displayDate),
                 mgrs = mgrsOf(trip.location),
-                coordinates = decimalDegreesLabel(trip.location.lat, trip.location.lng),
             )
         }
         MapBubbleKind.TRACK -> (sources.tracks.firstOrNull { it.id == id }?.let { track ->
@@ -274,10 +350,11 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
             val stats = ComputeTrackStatisticsUseCase()(track.points)
             MapBubbleContent.TrackContent(
                 trackId = track.id,
-                title = trackTitle(track),
-                date = formatRecordTimestamp(track.startedAtEpochMillis),
+                title = trackTitle(track, is24HourClock),
+                date = displayDateTime(track.startedAtEpochMillis, is24HourClock),
                 distance = formatDistanceMeters(stats.distanceMeters, sources.distanceUnit),
-                duration = formatTrackDuration(stats.durationMillis),
+                // Plan T16: "No times in file" for an imported track whose file had none.
+                duration = trackDurationLabel(track, stats.durationMillis),
                 keptIn = keptIn(HighlightedRecordKind.TRACK),
             )
         } ?: sources.snapshotTracks.firstOrNull { it.trackId == id }?.let { kept ->
@@ -305,8 +382,22 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
     }
 }
 
+/** A waypoint's distance from the start as its entry-map bubble writes it (RECORD -867): "0.3 mi walked from the start". */
+internal fun waypointFromStartLine(meters: Double, distanceUnit: DistanceUnit): String =
+    "${formatDistanceMeters(meters, distanceUnit)} walked from the start"
+
+/**
+ * The waypoint bubble's elevation line (dispatch 2026-11-03-07; the owner: "Example: Elevation 372 ft.", then "Elevation
+ * 1352 ft (Recommended)"): the word, a space, and the height in the Units setting as a whole number with no thousands
+ * separator ([formatWholeLength], as the strip's "Alt 1352 ft"). `null` for a height not known, which draws no line (A2).
+ */
+internal fun waypointElevationLine(height: GroundHeight, distanceUnit: DistanceUnit): String? = when (height) {
+    is GroundHeight.Known -> "Elevation ${formatWholeLength(height.metres, UnitSystem.forDistanceUnit(distanceUnit))}"
+    is GroundHeight.Unknown -> null
+}
+
 /** A find's date as its gallery tile captions it ("Find on <date>", `FindsGalleryScreen`). */
-private fun findDateLabel(find: MushroomLogEntry): String = "Find on ${find.foundOn}"
+private fun findDateLabel(find: MushroomLogEntry): String = "Find on ${displayDate(find.foundOn)}"
 
 /** No line rather than a wrong one, as the rows do (`MgrsCoordinate`'s doc comment). */
 private fun mgrsOf(location: LatLng): String? = (MgrsConverter.convert(location) as? MgrsCoordinate.Grid)?.value
@@ -317,7 +408,7 @@ private fun mgrsOf(location: LatLng): String? = (MgrsConverter.convert(location)
  * find does not count, as the find badge does not) and how many journal entries keep it.
  *
  * While the bubble shows J8's keeping-entry lines ([keepingEntriesShown]), the line leaves out its
- * "Kept in" part, so "Kept in" is said once, by J8's lines (dispatch `2026-09-28-70`; the owner:
+ * "In N journal entries" part (it said "Kept in" until the owner's RECORD -671), so it is said once, by J8's lines (dispatch `2026-09-28-70`; the owner:
  * "Option B"). The two counts differ: this one is every entry keeping the photo, J8's only the entries
  * shown on the map. With nothing else left the line is left out (`null`), so a photo a shown entry
  * keeps is never called "Not in a find or a journal entry".
@@ -325,15 +416,18 @@ private fun mgrsOf(location: LatLng): String? = (MgrsConverter.convert(location)
 private fun photoAttachmentLine(gallery: GalleryPhoto, sources: MapRecordSources, keepingEntriesShown: Boolean): String? {
     val finds = gallery.referencingEntryIds.mapNotNull { id -> sources.finds.firstOrNull { it.id == id } }
     val entries = sources.photoEntryReferenceCounts[gallery.photo.id] ?: 0
+    // The owner, RECORD -673 ("'Chanterelle · 2 journal entries' (Recommended)"): a line naming both a
+    // find and journal entries says "In" for neither; a line naming only one keeps its "In".
     val parts = buildList {
         when (finds.size) {
             0 -> Unit
-            1 -> add("In ${finds.single().ownIdentification?.takeIf { it.isNotBlank() } ?: findDateLabel(finds.single())}")
-            else -> add("In ${finds.size} finds")
+            1 -> add(finds.single().ownIdentification?.takeIf { it.isNotBlank() } ?: findDateLabel(finds.single()))
+            else -> add("${finds.size} finds")
         }
-        if (entries > 0 && !keepingEntriesShown) add("Kept in ${journalEntryCountLabel(entries)}")
+        if (entries > 0 && !keepingEntriesShown) add(journalEntryCountLabel(entries))
     }
     return when {
+        parts.size == 1 -> "In ${parts.single()}"
         parts.isNotEmpty() -> parts.joinToString(" · ")
         keepingEntriesShown -> null
         else -> PHOTO_NOT_ATTACHED

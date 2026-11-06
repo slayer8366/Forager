@@ -44,15 +44,17 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `offline off loads the basemap's own raster style as JSON, night applied`() {
+        // ownTrail = false: the raster path, which Trail Map's own style would otherwise take over for Trail Map and for
+        // Topographical at night (D3 of #359, carried over by dispatch 2026-10-22-01); those sources are
+        // OwnTrailStyleSourceTest's. rasterDrawn: Trail Map's raster stand-in is OpenStreetMap's (the -1513 fallback).
         Basemap.entries.forEach { basemap ->
-            val day = mapStyleSourceFor(basemap, night = false, useOfflineTiles = false)
-            val night = mapStyleSourceFor(basemap, night = true, useOfflineTiles = false)
+            val day = mapStyleSourceFor(basemap, night = false, useOfflineTiles = false, ownTrail = false)
+            val night = mapStyleSourceFor(basemap, night = true, useOfflineTiles = false, ownTrail = false)
 
             assertTrue("$basemap day must be a JSON style", day is MapStyleSource.Json)
-            assertTrue("$basemap must name its own tile template", (day as MapStyleSource.Json).json.contains(basemap.tileUrlTemplate))
-            assertEquals(
-                "$basemap night must still be the basemap's JSON style, with the V1 night paint unless it is Satellite",
-                basemap != Basemap.USGS_IMAGERY_ONLY,
+            assertTrue("$basemap must name its own tile template", (day as MapStyleSource.Json).json.contains(basemap.rasterDrawn().tileUrlTemplate))
+            assertTrue(
+                "$basemap night must still be the basemap's JSON style, with the V1 night paint",
                 (night as MapStyleSource.Json).json.contains("raster-hue-rotate"),
             )
             assertFalse("day must not carry the night paint", day.json.contains("raster-hue-rotate"))
@@ -69,8 +71,6 @@ class OfflineStyleSwapTest {
     @Test
     fun `the credit over a basemap is that basemap's own`() {
         assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)", mapAttributionFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false))
-        assertEquals("© OpenStreetMap contributors", mapAttributionFor(Basemap.OSM_STANDARD, useOfflineTiles = false))
-        assertEquals("USGS The National Map, orthoimagery — public domain", mapAttributionFor(Basemap.USGS_IMAGERY_ONLY, useOfflineTiles = false))
     }
 
     @Test
@@ -84,7 +84,7 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `nothing applied yet is a reload, and an identical request is not`() {
-        val style = AppliedMapStyle(Basemap.OSM_STANDARD, palette, useOfflineTiles = false, night = false)
+        val style = AppliedMapStyle(Basemap.OPEN_TOPO_MAP, palette, useOfflineTiles = false, night = false)
 
         assertTrue(needsStyleReload(applied = null, requested = style))
         assertFalse(needsStyleReload(applied = style, requested = style))
@@ -93,26 +93,28 @@ class OfflineStyleSwapTest {
     @Test
     fun `a basemap change is still a reload, with the offline flag unchanged`() {
         val topo = AppliedMapStyle(Basemap.OPEN_TOPO_MAP, palette, useOfflineTiles = false, night = false)
-        val osm = topo.copy(basemap = Basemap.OSM_STANDARD)
+        val trail = topo.copy(basemap = Basemap.FORAGER_TRAIL)
 
-        assertTrue(needsStyleReload(applied = topo, requested = osm))
+        assertTrue(needsStyleReload(applied = topo, requested = trail))
     }
 
     /**
-     * What the style effect builds for one set of inputs: effective night, not the raw toggle, for the
-     * basemap; the raw toggle for the marker palette (colour build C2: markers follow Night Maps on
-     * every basemap, Satellite included). Before C2 this helper fixed the palette at DAY.
+     * What the style effect builds for one set of inputs: the Night Maps toggle, for the basemap and for
+     * the marker palette alike. Before C2 this helper fixed the palette at DAY; before dispatch
+     * 2026-09-28-708 the basemap's night was `effectiveNight`, which differed from the toggle only over
+     * Satellite and went with it. Written out here rather than calling production code, so the
+     * "once loaded" test below compares against an expectation, not against itself.
      */
     private fun applied(basemap: Basemap, nightMode: Boolean, useOfflineTiles: Boolean = false) = AppliedMapStyle(
         basemap = basemap,
         palette = MapPalette.forMode(nightMode),
         useOfflineTiles = useOfflineTiles,
-        night = effectiveNight(basemap, nightMode = nightMode, useOfflineTiles = useOfflineTiles),
+        night = nightMode,
     )
 
     @Test
     fun `turning Night Maps on or off is a reload on Topographical and Street`() {
-        for (basemap in listOf(Basemap.OPEN_TOPO_MAP, Basemap.OSM_STANDARD)) {
+        for (basemap in Basemap.entries.filter { it.isRaster }) {
             val day = applied(basemap, nightMode = false)
             val night = applied(basemap, nightMode = true)
 
@@ -121,27 +123,8 @@ class OfflineStyleSwapTest {
         }
     }
 
-    /**
-     * Changed on purpose in colour build C2. Before C2 this asserted that a toggle over Satellite was
-     * *not* a reload, since Satellite's style does not change at night and the markers were day-only.
-     * The owner decided that on Satellite only the markers switch, so the palette now changes with the
-     * toggle and the overlay layers, which bake their colours in, have to be rebuilt: a reload. The
-     * basemap itself still stays day: effective night is false both ways.
-     */
     @Test
-    fun `turning Night Maps on or off over Satellite reloads for the markers, and the basemap stays day`() {
-        val day = requestedMapStyle(Basemap.USGS_IMAGERY_ONLY, useOfflineTiles = false, nightMode = false, nightModeLoaded = true)!!
-        val night = requestedMapStyle(Basemap.USGS_IMAGERY_ONLY, useOfflineTiles = false, nightMode = true, nightModeLoaded = true)!!
-
-        assertTrue(needsStyleReload(applied = day, requested = night))
-        assertTrue(needsStyleReload(applied = night, requested = day))
-        assertFalse("Satellite's basemap stays day", night.night)
-        assertEquals(MapPalette.DAY, day.palette)
-        assertEquals(MapPalette.NIGHT, night.palette)
-    }
-
-    @Test
-    fun `the marker palette follows Night Maps on every basemap, Satellite included, online and offline`() {
+    fun `the marker palette follows Night Maps on every basemap, online and offline`() {
         Basemap.entries.forEach { basemap ->
             listOf(false, true).forEach { offline ->
                 listOf(false, true).forEach { nightMode ->
@@ -167,16 +150,19 @@ class OfflineStyleSwapTest {
         }
     }
 
+    /**
+     * Replaces "effective night is the toggle, except Satellite's own raster style, which stays day"
+     * (dispatch 2026-09-28-708): with Satellite gone the basemap's night is the toggle everywhere, so
+     * this asserts that through [requestedMapStyle], the function the style effect calls.
+     */
     @Test
-    fun `effective night is the toggle, except Satellite's own raster style, which stays day`() {
+    fun `the requested basemap night is the Night Maps toggle on every basemap, online and offline`() {
         Basemap.entries.forEach { basemap ->
-            assertFalse("$basemap night off", effectiveNight(basemap, nightMode = false, useOfflineTiles = false))
-            assertFalse("$basemap night off, offline", effectiveNight(basemap, nightMode = false, useOfflineTiles = true))
-            assertTrue("$basemap night on, offline: offline night applies", effectiveNight(basemap, nightMode = true, useOfflineTiles = true))
+            listOf(false, true).forEach { offline ->
+                assertEquals("$basemap offline=$offline night on", true, requestedMapStyle(basemap, offline, nightMode = true, nightModeLoaded = true)?.night)
+                assertEquals("$basemap offline=$offline night off", false, requestedMapStyle(basemap, offline, nightMode = false, nightModeLoaded = true)?.night)
+            }
         }
-        assertTrue(effectiveNight(Basemap.OPEN_TOPO_MAP, nightMode = true, useOfflineTiles = false))
-        assertTrue(effectiveNight(Basemap.OSM_STANDARD, nightMode = true, useOfflineTiles = false))
-        assertFalse(effectiveNight(Basemap.USGS_IMAGERY_ONLY, nightMode = true, useOfflineTiles = false))
     }
 
     /**
@@ -201,7 +187,7 @@ class OfflineStyleSwapTest {
     }
 
     @Test
-    fun `once loaded, the requested style carries effective night`() {
+    fun `once loaded, the requested style carries the Night Maps toggle`() {
         Basemap.entries.forEach { basemap ->
             listOf(false, true).forEach { nightMode ->
                 listOf(false, true).forEach { offline ->

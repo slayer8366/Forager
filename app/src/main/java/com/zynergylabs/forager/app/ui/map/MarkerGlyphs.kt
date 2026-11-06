@@ -5,6 +5,7 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.RectF
+import androidx.core.graphics.createBitmap
 import com.zynergylabs.forager.app.ui.map.fanout.FanOffset
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import kotlin.math.ceil
@@ -210,7 +211,7 @@ internal fun drawGlyph(glyph: MarkerGlyph, density: Float, fill: Int, casing: In
     val pad = CASING_WIDTH_DP + GLYPH_MARGIN_DP
     val halfWidthPx = ceil((max(glyph.anchorXDp, glyph.widthDp - glyph.anchorXDp) + pad) * density).toInt()
     val halfHeightPx = ceil((max(glyph.anchorYDp, glyph.heightDp - glyph.anchorYDp) + pad) * density).toInt()
-    val bitmap = Bitmap.createBitmap(2 * halfWidthPx, 2 * halfHeightPx, Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(2 * halfWidthPx, 2 * halfHeightPx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     canvas.translate(halfWidthPx - glyph.anchorXDp * density, halfHeightPx - glyph.anchorYDp * density)
     canvas.scale(density, density)
@@ -257,7 +258,7 @@ internal fun drawGlyphHalo(glyph: MarkerGlyph, density: Float, halo: Int): Glyph
     val pad = reach + GLYPH_MARGIN_DP
     val halfWidthPx = ceil((max(glyph.anchorXDp, glyph.widthDp - glyph.anchorXDp) + pad) * density).toInt()
     val halfHeightPx = ceil((max(glyph.anchorYDp, glyph.heightDp - glyph.anchorYDp) + pad) * density).toInt()
-    val bitmap = Bitmap.createBitmap(2 * halfWidthPx, 2 * halfHeightPx, Bitmap.Config.ARGB_8888)
+    val bitmap = createBitmap(2 * halfWidthPx, 2 * halfHeightPx, Bitmap.Config.ARGB_8888)
     val canvas = Canvas(bitmap)
     canvas.translate(halfWidthPx - glyph.anchorXDp * density, halfHeightPx - glyph.anchorYDp * density)
     canvas.scale(density, density)

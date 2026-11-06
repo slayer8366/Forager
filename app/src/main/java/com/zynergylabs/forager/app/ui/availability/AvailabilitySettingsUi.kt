@@ -18,9 +18,19 @@ package com.zynergylabs.forager.app.ui.availability
 // J6 (2026-09-29): PhotoGalleryEntryRow and PhotoGalleryHeader, two of the rows moved here, were removed
 // with the standalone Photo Gallery panel (the owner's ruling 2, 2026-09-28: "the old Photo Gallery panel
 // is removed. Only the album remains, as on the phone"), and the list above records the move as it was.
+//
+// Dispatch 2026-09-28-707: PhotoLocationSection and CameraPortraitLockSection, two more of the moved names, were removed when
+// the two camera settings moved into the camera's gear panel (ui/log/CameraSettingsPanel.kt); the list above is still history.
+// Dispatch 2026-10-13-03: LOCK_CAMERA_SETTING_LABEL, LOCK_CAMERA_SETTING_EXPLANATION, PHOTO_LOCATION_SETTING_LABEL and
+// PHOTO_LOCATION_SETTING_EXPLANATION were removed with the gear panel's two rows, and ExplainedSettingsCheckbox, which drew
+// only those rows, with them (docs/archive/camera-portrait-lock.md).
 
+import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
+import com.zynergylabs.forager.app.ui.motion.PageSlide
+import com.zynergylabs.forager.app.ui.motion.PageSlideStyle
+import androidx.compose.ui.graphics.Color
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,25 +39,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PhotoLibrary
+import androidx.compose.material.icons.filled.Map
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Button
-import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import kotlinx.coroutines.flow.first
-import androidx.compose.ui.layout.positionInParent
-import androidx.compose.ui.layout.onGloballyPositioned
-import androidx.compose.runtime.snapshotFlow
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -55,24 +57,16 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.BuildConfig
-import com.zynergylabs.forager.app.crash.CrashFileStore
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
-import com.zynergylabs.forager.app.domain.model.UnitSystem
-import com.zynergylabs.forager.app.ui.crash.CrashLogPanel
-import com.zynergylabs.forager.app.ui.crash.CrashLogsEntryRow
-import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsEntryRow
-import com.zynergylabs.forager.app.ui.diagnostics.DiagnosticsPanel
-import com.zynergylabs.forager.app.ui.log.JournalTab
-import com.zynergylabs.forager.app.ui.map.MapMode
-import com.zynergylabs.forager.app.ui.map.MapModePicker
 import com.zynergylabs.forager.app.ui.backup.BackupControls
-import com.zynergylabs.forager.app.ui.backup.BackupSection
+import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -128,7 +122,7 @@ internal fun DrawerHeader(onClose: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clickable(role = Role.Button, onClick = onClose)
+            .clickableWithShapedPress(role = Role.Button, onClick = onClose)
             .semantics { contentDescription = "Close search options" },
     ) {}
 }
@@ -149,7 +143,7 @@ internal fun SettingsEntryRow(onClick: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickableWithShapedPress(role = Role.Button, onClick = onClick)
             .navigationBarsPadding()
             .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -161,324 +155,33 @@ internal fun SettingsEntryRow(onClick: () -> Unit) {
 }
 
 /**
- * Settings' body, reached by tapping the Settings entry at the bottom of [CompactToolsDrawerContent]
- * (the compact "Tools" drawer, map/navigation redesign dispatch B) — [SettingsContent] hosted as a
- * `showSettings`-gated state within that drawer instead of a drawer panel of its own. Reuses
- * [SettingsContent]/[BuildIdentityFooter] unmodified — only the navigation host around them changed,
- * from a drawer panel switch to a nested-state one. No header for the main Settings state, unlike
- * the drawer panel's [SettingsHeader]: there is nothing to go "back" to here via an in-content
- * affordance — [CompactToolsDrawerContent]'s own `BackHandler` unwinds `showSettings` back to the
- * rest of the Tools drawer, the same most-recently-composed-callback-wins pattern [JournalTab]'s
- * nested states use.
- *
- * **Was** [CompactTab.SETTINGS]'s body — a standalone sixth bottom-nav destination — before dispatch
- * B collapsed the bottom nav to five destinations and folded Settings one level deeper, behind Tools.
- *
- * Journal restructure Stage 1 moved Offline Maps and Recorded Tracks out of Settings entirely, into
- * the Journal's Records tab — see [com.zynergylabs.forager.app.ui.log.RecordsTab]. This tab's own `showOfflineMaps`/
- * `showTracks` submenu state is gone with them; only [showCrashLogs] remains.
+ * The Tools drawer's "Offline maps" row (RECORD -868, the owner: "Add a quick button to the Tools drawer for Offline
+ * Maps. Tapping it brings you to the Offline Maps page"; "Records, on the Offline maps chip (Recommended)"). Fixed
+ * above [SettingsEntryRow], in the same shape (the planner's call, RECORD -871): a divider, then a labelled row with
+ * the Offline maps chip's map icon. Unlike Settings it leaves the drawer: the drawer closes and Journal > Records
+ * opens on the Offline maps chip, and Back reopens Tools and then returns to where the user was
+ * (`AvailabilityScreen`'s Tools return step, RECORD -871).
  */
 @Composable
-private fun CompactSettingsTab(
-    distanceUnit: DistanceUnit,
-    onDistanceUnitSelected: (DistanceUnit) -> Unit,
-    /** Night mode for the map, and Settings' own checkbox value. */
-    isNightMode: Boolean,
-    onNightModeMapsChanged: (Boolean) -> Unit,
-    /** Settings' "Automatically Save Location to Photos" checkbox value — see [AvailabilityUiState.autoSaveLocationToPhotos]. */
-    autoSaveLocationToPhotos: Boolean,
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
-    lockCameraToPortrait: Boolean,
-    onLockCameraToPortraitChanged: (Boolean) -> Unit,
-    /** Settings' Light/Dark/System Default theme choice — see [AvailabilityUiState.themeMode]'s own doc comment. */
-    themeMode: AppThemeMode,
-    onThemeModeChanged: (AppThemeMode) -> Unit,
-    crashFileStore: CrashFileStore,
-    backup: BackupControls,
-    showBackupRequest: Int = 0,
-    modifier: Modifier = Modifier,
-) {
-    var showCrashLogs by remember { mutableStateOf(false) }
-    // Debug builds only — the row that sets this composes nothing in release. Same drill-in shape
-    // as showCrashLogs, one flag per submenu rather than an enum, matching what was here.
-    var showDiagnostics by remember { mutableStateOf(false) }
-
-    // Unwinds this tab's own nested submenu before AvailabilityScreen's top-level "switch away
-    // from a non-Maps tab" handler ever sees it — same reasoning as JournalTab's own BackHandler.
-    BackHandler(enabled = showCrashLogs) {
-        showCrashLogs = false
-    }
-    BackHandler(enabled = showDiagnostics) {
-        showDiagnostics = false
-    }
-
-    Column(modifier = modifier.fillMaxSize()) {
-        when {
-            showCrashLogs -> {
-                CrashLogPanel(
-                    modifier = Modifier.weight(1f),
-                    files = crashFileStore.list(),
-                    onBack = { showCrashLogs = false },
-                )
-            }
-
-            showDiagnostics -> {
-                DiagnosticsPanel(
-                    modifier = Modifier.weight(1f),
-                    onBack = { showDiagnostics = false },
-                )
-            }
-
-            else -> {
-                SettingsContent(
-                    modifier = Modifier.weight(1f),
-                    distanceUnit = distanceUnit,
-                    onDistanceUnitSelected = onDistanceUnitSelected,
-                    nightModeMaps = isNightMode,
-                    onNightModeMapsChanged = onNightModeMapsChanged,
-                    autoSaveLocationToPhotos = autoSaveLocationToPhotos,
-                    onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-                    lockCameraToPortrait = lockCameraToPortrait,
-                    onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
-                    themeMode = themeMode,
-                    onThemeModeChanged = onThemeModeChanged,
-                    onOpenCrashLogs = { showCrashLogs = true },
-                    onOpenDiagnostics = { showDiagnostics = true },
-                    backup = backup,
-                    showBackupRequest = showBackupRequest,
-                )
-                BuildIdentityFooter()
-            }
-        }
-    }
-}
-
-/**
- * The Settings panel's body: [DistanceUnitSection], theme, night maps, and Crash Logs.
- *
- * **No longer has a "Choose Maps Service" section.** That section picked between OpenStreetMap and
- * USGS as the tile provider for the map's topo/regular modes — superseded outright once [MapMode]
- * pinned Street/Topographical to OpenStreetMap and added Satellite (USGS) as a third, always-on
- * option reachable only from the map's own [MapModePicker]. See [MapMode]'s own doc comment for the
- * full account of what this removed and why.
- *
- * **No longer has Offline Maps or Recorded Tracks entries.** Journal restructure Stage 1 moved
- * both into the Journal's own Records tab ([RecordsTab] in `ui/log/`) — see that composable's own
- * doc comment. `CrashLogs` stays here since it isn't a Records concept.
- *
- * Scrolls for the same reason [SearchControls] does — a drawer sheet is a fixed-height container,
- * so a tall stack of controls needs its own scroll rather than relying on the sheet to grow.
- */
-@Composable
-internal fun SettingsContent(
-    modifier: Modifier = Modifier,
-    distanceUnit: DistanceUnit,
-    onDistanceUnitSelected: (DistanceUnit) -> Unit,
-    themeMode: AppThemeMode,
-    onThemeModeChanged: (AppThemeMode) -> Unit,
-    nightModeMaps: Boolean,
-    onNightModeMapsChanged: (Boolean) -> Unit,
-    autoSaveLocationToPhotos: Boolean,
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
-    lockCameraToPortrait: Boolean,
-    onLockCameraToPortraitChanged: (Boolean) -> Unit,
-    onOpenCrashLogs: () -> Unit,
-    /** Debug builds only: the row this opens composes nothing in release — see [DiagnosticsEntryRow]'s two source-set versions. */
-    onOpenDiagnostics: () -> Unit,
-    /** The Backup section's state and callbacks (journal backup and restore, dispatch 2026-09-28-127). */
-    backup: BackupControls = BackupControls(),
-    /** Counts up when a backup notification is tapped: scroll the Backup section into view. */
-    showBackupRequest: Int = 0,
-) {
-    // Scrolls to the Backup section when a notification's tap asks (dispatch 2026-09-28-153): its top is measured as it is
-    // laid out, and the scroll waits for that measurement, so a section that is not yet laid out (the drawer still opening)
-    // is not scrolled to a position it does not have yet.
-    val scrollState = rememberScrollState()
-    var backupTop by remember { mutableIntStateOf(-1) }
-    LaunchedEffect(showBackupRequest) {
-        if (showBackupRequest > 0) {
-            val top = snapshotFlow { backupTop }.first { it >= 0 }
-            scrollState.animateScrollTo(top)
-        }
-    }
-    Column(
-        modifier = modifier
-            .verticalScroll(scrollState)
-            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        DistanceUnitSection(distanceUnit = distanceUnit, onDistanceUnitSelected = onDistanceUnitSelected)
-        HorizontalDivider()
-        ThemeModeSection(themeMode = themeMode, onThemeModeSelected = onThemeModeChanged)
-        NightModeMapsSection(checked = nightModeMaps, onCheckedChange = onNightModeMapsChanged)
-        HorizontalDivider()
-        PhotoLocationSection(checked = autoSaveLocationToPhotos, onCheckedChange = onAutoSaveLocationToPhotosChanged)
-        CameraPortraitLockSection(checked = lockCameraToPortrait, onCheckedChange = onLockCameraToPortraitChanged)
-        HorizontalDivider()
-        BackupSection(controls = backup, modifier = Modifier.onGloballyPositioned { backupTop = it.positionInParent().y.toInt() })
-        HorizontalDivider()
-        CrashLogsEntryRow(onClick = onOpenCrashLogs)
-        DiagnosticsEntryRow(onClick = onOpenDiagnostics)
-    }
-}
-
-/**
- * The app's own theme — a direct, persistent preference ([AvailabilityUiState.themeMode]), a
- * three-way choice rather than a single on/off checkbox now that [AppThemeMode.SYSTEM_DEFAULT]
- * exists alongside the two explicit choices this setting started as
- * ([AppThemeMode.LIGHT]/[AppThemeMode.DARK]) — only [AppThemeMode.SYSTEM_DEFAULT] is derived from
- * the device's own theme ([androidx.compose.foundation.isSystemInDarkTheme], resolved in
- * `MainActivity`); [AppThemeMode.LIGHT]/[AppThemeMode.DARK] stay direct choices independent of it.
- * Same radio-group shape as [DistanceUnitSection] above, for the same reason: more than two mutually
- * exclusive choices reads as a choice, not a toggle. [NightModeMapsSection] sits directly beneath
- * this one: that checkbox controls only the map's own basemap styling, independent of this app-wide
- * choice — see [AvailabilityUiState.nightModeMaps]'s own doc comment, and
- * [com.zynergylabs.forager.app.domain.AppThemePreferenceRepository]'s own doc comment for why that independence
- * held even once this setting grew a third option.
- */
-@Composable
-private fun ThemeModeSection(themeMode: AppThemeMode, onThemeModeSelected: (AppThemeMode) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text("Night Mode", style = MaterialTheme.typography.titleMedium)
-        AppThemeMode.entries.forEach { mode ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.RadioButton) { onThemeModeSelected(mode) },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                RadioButton(selected = mode == themeMode, onClick = { onThemeModeSelected(mode) })
-                Text(mode.label, style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-    }
-}
-
-/**
- * Whether the map renders in night mode — a direct, persistent preference
- * ([AvailabilityUiState.nightModeMaps]), not derived from time of day. Replaces the map's earlier
- * civil-twilight-automatic/long-press-hold control per the project owner's own request to move
- * this to a plain Settings checkbox instead. Sits directly beneath [ThemeModeSection] — see that
- * composable's own doc comment.
- */
-@Composable
-private fun NightModeMapsSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+internal fun OfflineMapsEntryRow(onClick: () -> Unit) {
+    HorizontalDivider()
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
-        verticalAlignment = Alignment.CenterVertically,
+            .testTag(TOOLS_OFFLINE_MAPS_ROW_TAG)
+            .clickableWithShapedPress(role = Role.Button, onClick = onClick)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.md),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-        Text("Night Maps", style = MaterialTheme.typography.bodyLarge)
+        Icon(Icons.Filled.Map, contentDescription = null)
+        // "Offline Maps", matching Map Layers' switch above it (dispatch 2026-10-28-02 Amendment 2, RECORD -1766: "Match: Offline Maps").
+        Text("Offline Maps", style = MaterialTheme.typography.titleSmall)
     }
 }
 
-/**
- * Whether the app captures the device's current position for a photo and its find (owner request,
- * 2026-09-14) — see [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] for what
- * the one flag actually gates, which is wider than the label says, and for why it defaults to on.
- *
- * Carries explanatory text, unlike every other control in this panel. That is not decoration: the
- * other settings announce their effect the moment they are flipped (the map recolours, units
- * change), while this one changes what is *written to a record the user cannot see from here*, and
- * whose point is what happens to a photo after it leaves the app. The wording is the owner's own,
- * kept verbatim.
- */
-@Composable
-private fun PhotoLocationSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-            Text(PHOTO_LOCATION_SETTING_LABEL, style = MaterialTheme.typography.bodyLarge)
-        }
-        Text(
-            PHOTO_LOCATION_SETTING_EXPLANATION,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-/**
- * Settings' "Lock camera to portrait" (owner request, 2026-09-15). Same shape as
- * [PhotoLocationSection] above. The supporting line is there because the consequence is not
- * obvious from the label: a sideways photo is saved portrait. What it gates, and why it is one
- * gate, is on [com.zynergylabs.forager.app.domain.CameraOrientationPreferenceRepository].
- */
-@Composable
-private fun CameraPortraitLockSection(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(role = Role.Checkbox) { onCheckedChange(!checked) },
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Checkbox(checked = checked, onCheckedChange = onCheckedChange)
-            Text(LOCK_CAMERA_SETTING_LABEL, style = MaterialTheme.typography.bodyLarge)
-        }
-        Text(
-            LOCK_CAMERA_SETTING_EXPLANATION,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-internal const val LOCK_CAMERA_SETTING_LABEL = "Lock camera to portrait"
-
-internal const val LOCK_CAMERA_SETTING_EXPLANATION =
-    "Keeps the camera and its controls still when you turn the phone. Photos are always saved in " +
-        "portrait, even when you hold the phone sideways."
-
-/** Exposed at file scope so [com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettingsPanelTest] asserts the exact strings this panel draws, not a copy that can drift from them. */
-internal const val PHOTO_LOCATION_SETTING_LABEL = "Automatically Save Location to Photos"
-
-internal const val PHOTO_LOCATION_SETTING_EXPLANATION =
-    "When saving photos, metadata is stripped of the location data. Enabling this option captures " +
-        "your current position, and saves it to the Journal entry instead. This allows you to share " +
-        "your photos outside the app without the location being revealed."
-
-/**
- * Metric or imperial for everything this app displays with a unit — distances (search radius,
- * offline-download radius, recent-search cards, the HUD) and, since the return-estimate dispatch,
- * rainfall; see [UnitSystem]'s own doc comment for why this is a system rather than the distance
- * unit it used to be, and which displays still wait on it. A display preference only, never a
- * change to what's actually searched or downloaded ([DistanceUnit]'s own doc comment).
- *
- * Still parameterised by [DistanceUnit] and still calling `onDistanceUnitSelected`: the two enums
- * are in bijection, so the existing callback carries the chosen system exactly, and this file's
- * plumbing keeps its shape while its split is held — see `AvailabilityViewModel.onDistanceUnitSelected`.
- */
-@Composable
-private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelected: (DistanceUnit) -> Unit) {
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text("Units", style = MaterialTheme.typography.titleMedium)
-        UnitSystem.entries.forEach { system ->
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(role = Role.RadioButton) { onDistanceUnitSelected(system.distanceUnit) },
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                RadioButton(selected = system.distanceUnit == distanceUnit, onClick = { onDistanceUnitSelected(system.distanceUnit) })
-                Text(system.label, style = MaterialTheme.typography.bodyLarge)
-            }
-        }
-    }
-}
-
+/** The Tools drawer's "Offline maps" row, for tests. */
+internal const val TOOLS_OFFLINE_MAPS_ROW_TAG = "tools-offline-maps-row"
 /**
  * The compact "Tools" drawer's entire content. Named for what it actually holds, not what it used
  * to: the composable itself and this file's own doc comments called it the "search drawer" through
@@ -490,13 +193,17 @@ private fun DistanceUnitSection(distanceUnit: DistanceUnit, onDistanceUnitSelect
  * ambitious planner" — species search is gone from here for good, and the name should say so. Two
  * things live here now, none of them search:
  *
- * 1. **[SearchControls]** — Trip Planner only. Waypoints moved
- *    out (Journal restructure Stage 1) into the Journal's own Records tab.
+ * 1. **[SearchControls]** — Trip Planner, then Map Layers (dispatch 2026-10-28-02). Waypoints moved
+ *    out (Journal restructure Stage 1) into the Journal's own Records tab. The **Sundown** section
+ *    that sat under it from dispatch 2026-09-28-707 is gone (dispatch 2026-10-27-14 Amendment 1,
+ *    RECORD -1751; the owner: "remove the Sundown and Dark Under Trees portion from the tools menu
+ *    since it's redundant"): its rows are in the map's ⋮ quick settings ([MapQuickSettings]).
+ * 1a. **Offline maps** ([OfflineMapsEntryRow], RECORD -868), a fixed row above Settings: the one
+ *    entry here that leaves the drawer, a shortcut to Journal > Records on the Offline maps chip.
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
  *    call: this drawer *is* the Tools destination now, so Settings (which had its own bottom-nav
  *    tab before that dispatch) lives here instead, reached one tap deeper via its own entry row —
- *    the same "drill in, own back step" shape [CompactSettingsTab] already uses for its own
- *    CrashLogs submenu.
+ *    the "drill in, own back step" shape.
  *
  * [DrawerHeader] stays the one visible way to close this drawer, same as before. **No sticky Log
  * row** — that stayed on the bottom nav (Journal) — but Settings is sticky here again.
@@ -510,19 +217,31 @@ internal fun CompactToolsDrawerContent(
     onDeletePlannedTrip: (String) -> Unit,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
-    autoSaveLocationToPhotos: Boolean,
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
-    lockCameraToPortrait: Boolean,
-    onLockCameraToPortraitChanged: (Boolean) -> Unit,
+    crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
+    waypointNames: WaypointNamesControls = WaypointNamesControls(),
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
-    crashFileStore: CrashFileStore,
     backup: BackupControls = BackupControls(),
     /** Counts up when a backup notification is tapped: open Settings, at the Backup section. */
     openSettingsRequest: Int = 0,
+    /** Counts up when the settings-reset snackbar's "Settings" is tapped (RECORD -661): open Settings, at the top. */
+    openSettingsOnlyRequest: Int = 0,
+    /**
+     * RECORD -868: the "Offline maps" row's tap, which opens Journal > Records on the Offline maps chip. `null` (the
+     * default) draws no row, for a caller with nowhere to send it.
+     */
+    onOpenOfflineMaps: (() -> Unit)? = null,
+    /** Dispatch 2026-10-28-02: Tools > Map Layers, under Trip Planner ([SearchControls]). */
+    mapLayers: MapLayersControls = MapLayersControls(),
+    mapLayersOpen: Boolean = false,
+    onMapLayersOpenChange: (Boolean) -> Unit = {},
+    /** Amendment 3 (RECORD -1770): Trip Planner's fold, held above the drawer as Map Layers' is. */
+    tripPlannerOpen: Boolean = false,
+    onTripPlannerOpenChange: (Boolean) -> Unit = {},
+    /** Dispatch 2026-10-30-08: a Trip Planner route row's tap. */
+    onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null,
 ) {
-    // Own drill-in step, same shape as CompactSettingsTab's own CrashLogs submenu — see this
-    // composable's own doc comment, item 2. Composed inside this drawer sheet (which the
+    // Own drill-in step — see this composable's own doc comment, item 2. Composed inside this drawer sheet (which the
     // ModalNavigationDrawer keeps mounted even while visually closed, same as CollapsibleSection's
     // own expand state), so its own BackHandler below takes priority over the top-level
     // isDrawerOpen one — the same "most-recently-composed enabled callback wins" precedence
@@ -531,37 +250,55 @@ internal fun CompactToolsDrawerContent(
     LaunchedEffect(openSettingsRequest) {
         if (openSettingsRequest > 0) showSettings = true
     }
+    LaunchedEffect(openSettingsOnlyRequest) {
+        if (openSettingsOnlyRequest > 0) showSettings = true
+    }
     BackHandler(enabled = showSettings) {
         showSettings = false
     }
 
-    if (showSettings) {
+    // Motion Part 3, Amendment 2 (RECORD -682; the owner: "Push slide from the left (Recommended)"; scout T1): Settings slides in
+    // from the drawer's left edge while the Tools list slides out to the right, side by side; Back reverses it. The pages draw no
+    // fill: the drawer's own is the one 80% layer over the map (MapChromeAlphaTest's rule).
+    PageSlide(
+        targetState = showSettings,
+        depthOf = { if (it) 1 else 0 },
+        modifier = Modifier.fillMaxSize(),
+        pageColor = Color.Transparent,
+        style = PageSlideStyle.PUSH_FROM_LEFT,
+    ) { settingsShown ->
+    if (settingsShown) {
         CompactSettingsTab(
             distanceUnit = distanceUnit,
             onDistanceUnitSelected = onDistanceUnitSelected,
             isNightMode = isNightMode,
             onNightModeMapsChanged = onNightModeMapsChanged,
-            autoSaveLocationToPhotos = autoSaveLocationToPhotos,
-            onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
-            lockCameraToPortrait = lockCameraToPortrait,
-            onLockCameraToPortraitChanged = onLockCameraToPortraitChanged,
+            crowdedIcons = crowdedIcons,
+            waypointNames = waypointNames,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
-            crashFileStore = crashFileStore,
             backup = backup,
             showBackupRequest = openSettingsRequest,
+            showSettingsOnlyRequest = openSettingsOnlyRequest,
             modifier = Modifier.fillMaxSize(),
         )
-        return
-    }
-
+    } else {
     Column(modifier = Modifier.fillMaxSize()) {
         DrawerHeader(onClose = onClose)
         SearchControls(
             modifier = Modifier.weight(1f),
             uiState = uiState,
             onDeletePlannedTrip = onDeletePlannedTrip,
+            mapLayers = mapLayers,
+            mapLayersOpen = mapLayersOpen,
+            onMapLayersOpenChange = onMapLayersOpenChange,
+            tripPlannerOpen = tripPlannerOpen,
+            onTripPlannerOpenChange = onTripPlannerOpenChange,
+            onOpenPlannedRoute = onOpenPlannedRoute,
         )
+        onOpenOfflineMaps?.let { open -> OfflineMapsEntryRow(onClick = open) }
         SettingsEntryRow(onClick = { showSettings = true })
+    }
+    }
     }
 }

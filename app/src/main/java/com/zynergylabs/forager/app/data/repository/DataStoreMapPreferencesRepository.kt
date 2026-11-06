@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.data.repository
 
+import com.zynergylabs.forager.app.domain.SettingsResetListener
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
@@ -8,9 +9,14 @@ import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
+import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
+import com.zynergylabs.forager.app.domain.CrowdedIconsMode
+import com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository
+import com.zynergylabs.forager.app.domain.WaypointNamesPreferenceRepository
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacementRepository
 import com.zynergylabs.forager.app.domain.MapLayerPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.model.Region
@@ -40,12 +46,13 @@ import kotlinx.coroutines.flow.first
 class DataStoreMapPreferencesRepository(
     context: Context,
     scope: CoroutineScope = CoroutineScope(Dispatchers.IO + SupervisorJob()),
-) : MapPreferencesRepository, MapLayerPreferencesRepository {
+    /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
+    settingsReset: SettingsResetListener = SettingsResetListener.None,
+) : MapPreferencesRepository, MapLayerPreferencesRepository, BasemapPreferenceRepository,
+    MapIconClusterPlacementRepository, CrowdedIconsPreferenceRepository, WaypointNamesPreferenceRepository {
 
-    private val dataStore = PreferenceDataStoreFactory.create(
-        scope = scope,
-        produceFile = { context.applicationContext.preferencesDataStoreFile(DATA_STORE_NAME) },
-    )
+    // The stored map choice moves to the codes of dispatch 2026-11-03-05 once, before the file's first read (B1).
+    private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset, scope, migrations = listOf(BasemapKeyTrailStreetMigration()))
 
     override suspend fun getLastPickedRegion(): Result<Region?> = runCatchingCancellable {
         val prefs = dataStore.data.first()
@@ -133,6 +140,75 @@ class DataStoreMapPreferencesRepository(
         dataStore.edit { prefs -> prefs[KEY_LAYER_ORDER] = layerIds.joinToString(LAYER_ORDER_SEPARATOR) }
     }
 
+    /**
+     * Dispatch 2026-09-28-708: the Maps tab's basemap, one string under [KEY_BASEMAP] in this same file
+     * and [dataStore], for the same one-instance reason as the layer choices above. Stored as given and
+     * read back as stored; `AvailabilityViewModel` resolves it against `MapMode` and replaces a key
+     * that names no mode.
+     */
+    override suspend fun getBasemapKey(): Result<String?> = runCatchingCancellable {
+        dataStore.data.first()[KEY_BASEMAP]
+    }
+
+    override suspend fun setBasemapKey(key: String): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_BASEMAP] = key }
+    }
+
+    /** Settings > Map > "Crowded icons" (dispatch 2026-10-27-14), under `map.crowded_icons`; a value naming no mode is reported and read as `null`. */
+    override suspend fun getCrowdedIconsMode(unknown: (String) -> Unit): Result<CrowdedIconsMode?> = runCatchingCancellable {
+        val stored = dataStore.data.first()[KEY_CROWDED_ICONS] ?: return@runCatchingCancellable null
+        CrowdedIconsMode.fromStored(stored) ?: run {
+            unknown(stored)
+            null
+        }
+    }
+
+    override suspend fun setCrowdedIconsMode(mode: CrowdedIconsMode): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_CROWDED_ICONS] = mode.stored }
+    }
+
+    /** Settings > Map > "Waypoint names" (dispatch 2026-11-02-04), under `map.waypoint_names`; `null` when nothing is stored. */
+    override suspend fun getWaypointNamesShown(): Result<Boolean?> = runCatchingCancellable {
+        dataStore.data.first()[KEY_WAYPOINT_NAMES]
+    }
+
+    override suspend fun setWaypointNamesShown(shown: Boolean): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs -> prefs[KEY_WAYPOINT_NAMES] = shown }
+    }
+
+    /**
+     * RECORD -711: the icon cluster's side and height, four keys under `map.icon_cluster` in this same file
+     * and [dataStore]. `null` when none of the four is stored; a key missing beside others (which no write
+     * here produces, since all four are written together) reads as [MapIconClusterPlacement.DEFAULT]'s value.
+     */
+    override suspend fun getMapIconClusterPlacement(): Result<MapIconClusterPlacement?> = runCatchingCancellable {
+        val prefs = dataStore.data.first()
+        val portraitOnLeft = prefs[KEY_CLUSTER_PORTRAIT_LEFT]
+        val portraitOffsetDp = prefs[KEY_CLUSTER_PORTRAIT_OFFSET_DP]
+        val landscapeOnPortSide = prefs[KEY_CLUSTER_LANDSCAPE_PORT_SIDE]
+        val landscapeOffsetDp = prefs[KEY_CLUSTER_LANDSCAPE_OFFSET_DP]
+        if (portraitOnLeft == null && portraitOffsetDp == null && landscapeOnPortSide == null && landscapeOffsetDp == null) {
+            null
+        } else {
+            val default = MapIconClusterPlacement.DEFAULT
+            MapIconClusterPlacement(
+                portraitOnLeft = portraitOnLeft ?: default.portraitOnLeft,
+                portraitOffsetDp = portraitOffsetDp ?: default.portraitOffsetDp,
+                landscapeOnPortSide = landscapeOnPortSide ?: default.landscapeOnPortSide,
+                landscapeOffsetDp = landscapeOffsetDp ?: default.landscapeOffsetDp,
+            )
+        }
+    }
+
+    override suspend fun setMapIconClusterPlacement(placement: MapIconClusterPlacement): Result<Unit> = runCatchingCancellable {
+        dataStore.edit { prefs ->
+            prefs[KEY_CLUSTER_PORTRAIT_LEFT] = placement.portraitOnLeft
+            prefs[KEY_CLUSTER_PORTRAIT_OFFSET_DP] = placement.portraitOffsetDp
+            prefs[KEY_CLUSTER_LANDSCAPE_PORT_SIDE] = placement.landscapeOnPortSide
+            prefs[KEY_CLUSTER_LANDSCAPE_OFFSET_DP] = placement.landscapeOffsetDp
+        }
+    }
+
     private companion object {
         const val DATA_STORE_NAME = "map_preferences"
         val KEY_LAST_PICKED_LAT = doublePreferencesKey("offline_map.last_picked_lat")
@@ -141,6 +217,13 @@ class DataStoreMapPreferencesRepository(
         val KEY_STALE_THRESHOLD_DAYS = intPreferencesKey("offline_map.stale_threshold_days")
         val KEY_NIGHT_MODE_MAPS = booleanPreferencesKey("night_mode.maps")
         val KEY_MAP_FULLSCREEN = booleanPreferencesKey("map.fullscreen")
+        val KEY_BASEMAP = BASEMAP_PREFERENCE_KEY
+        val KEY_CROWDED_ICONS = stringPreferencesKey("map.crowded_icons")
+        val KEY_WAYPOINT_NAMES = booleanPreferencesKey("map.waypoint_names")
+        val KEY_CLUSTER_PORTRAIT_LEFT = booleanPreferencesKey("map.icon_cluster.portrait_left")
+        val KEY_CLUSTER_PORTRAIT_OFFSET_DP = floatPreferencesKey("map.icon_cluster.portrait_offset_dp")
+        val KEY_CLUSTER_LANDSCAPE_PORT_SIDE = booleanPreferencesKey("map.icon_cluster.landscape_port_side")
+        val KEY_CLUSTER_LANDSCAPE_OFFSET_DP = floatPreferencesKey("map.icon_cluster.landscape_offset_dp")
 
         // Map layers L0b, B3: per-layer keys are built from the registry id at use.
         const val LAYER_KEY_PREFIX = "map.layer."

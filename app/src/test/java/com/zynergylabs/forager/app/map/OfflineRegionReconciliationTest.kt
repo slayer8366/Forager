@@ -38,7 +38,7 @@ class OfflineRegionReconciliationTest {
         val tilesDeleted = mutableListOf<Long>()
         val warnings = mutableListOf<String>()
         val shown = runBlocking {
-            reconcileOfflineRegions(live, dao, inFlight, { tilesDeleted += it }, { warnings += it })
+            reconcileOfflineRegions(live, dao, inFlight, { tilesDeleted += it }, { warnings += it }, FakeRegionRouteFolders())
         }
         return Run(shown.map { it.id }, dao, tilesDeleted, warnings)
     }
@@ -141,11 +141,62 @@ class OfflineRegionReconciliationTest {
         assertEquals("Ridge", result.dao.rows.getValue(11L).name)
     }
 
+    /**
+     * Dispatch 2026-09-28-658 (M1): a complete region with no Room row and metadata that can't be
+     * read is left out of the list, its tiles kept, and that is logged with its id and the reason.
+     * Before, this branch dropped the region with no log line at all.
+     */
+    @Test
+    fun `a complete region with no Room row and unreadable metadata is kept, not shown, and logged with why`() {
+        val result = run(rows = emptyList(), live = listOf(complete(12, metadata = "junk".toByteArray())))
+
+        assertEquals(emptyList<Long>(), result.shown)
+        assertEquals(emptyList<Long>(), result.tilesDeleted)
+        assertEquals(
+            "one warning, naming the region and the missing key: ${result.warnings}",
+            1,
+            result.warnings.count { "12" in it && "kept, not shown" in it && "no region.name" in it },
+        )
+    }
+
+    @Test
+    fun `a complete region with no Room row and no metadata is kept, not shown, and logged`() {
+        val result = run(rows = emptyList(), live = listOf(complete(13, metadata = null)))
+
+        assertEquals(emptyList<Long>(), result.shown)
+        assertEquals(emptyList<Long>(), result.tilesDeleted)
+        assertEquals(1, result.warnings.count { "13" in it && "no metadata" in it && "kept, not shown" in it })
+    }
+
     @Test
     fun `a null list from MapLibre is a failed read, not an empty one`() {
         assertThrows(IOException::class.java) { regionListOrFailure<Long>(null) }
         assertEquals(emptyList<Long>(), regionListOrFailure(emptyList<Long>()))
         assertEquals(listOf(1L), regionListOrFailure(listOf(1L)))
+    }
+
+    /**
+     * Dispatch 2026-10-18-05 Part 2: the style URL MapLibre's own region definition records reaches the listed summary
+     * unchanged, for a region with a Room row and for one rebuilt from its metadata. It decides the older-style notice.
+     */
+    @Test
+    fun `each listed region carries the style URL it was downloaded against`() {
+        val dao = FakeDao(listOf(row(1)))
+        val shown = runBlocking {
+            reconcileOfflineRegions(
+                live = listOf(
+                    LiveRegion(1, true, finishedMetadata(), 10, 100, styleUrl = OFFLINE_STYLE_URL),
+                    LiveRegion(2, true, finishedMetadata(), 10, 100, styleUrl = TRAIL_STYLE_URL),
+                    LiveRegion(3, true, finishedMetadata(), 10, 100, styleUrl = null),
+                ),
+                dao = dao,
+                inFlightIds = emptySet(),
+                deleteRegion = {},
+                warn = {},
+                routes = FakeRegionRouteFolders(),
+            )
+        }
+        assertEquals(mapOf(1L to OFFLINE_STYLE_URL, 2L to TRAIL_STYLE_URL, 3L to null), shown.associate { it.id to it.styleUrl })
     }
 
     private fun row(id: Long) = OfflineRegionEntity(id, "Row $id", 1.0, 2.0, 5, 6.0, 12.0, 1_000L)

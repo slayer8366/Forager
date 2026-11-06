@@ -133,3 +133,55 @@ fallback log line itself has **not been seen**. All that is known is that the fa
   timeout or any non-200/204 answer, so it does not tell those causes apart. `wrangler tail` would.
 - How the 4 s timeout behaves on a slow Pi, as opposed to a down one. Check 4 is the down case: the
   tunnel's 5xx came back quickly, well inside the limit.
+
+## Check 5, the fallback log line (2026-10-05)
+
+The owner asked for the `wrangler tail` check and approved stopping the tunnel again. Access came
+from an **account-owned API token** the owner created, scoped to **Specified Workers:
+`forager-pmtiles`** with **Metadata Read-only**, and expiring 2026-10-06 23:59 UTC. Cloudflare's docs
+list that role as the minimum for `wrangler tail`. The token was kept in a file only `bwann83` can
+read and passed to `wrangler` through the environment. It does not appear in any output or record.
+
+**Two false starts, recorded because they look alike and are not.**
+
+- At 07:19Z, creating the tail returned **401**. `wrangler` then ran its own diagnostics, and those
+  printed `Invalid access token [code: 9109]` against `/accounts`. That second error is only the
+  diagnostics failing, because a Worker-scoped token cannot list accounts. The real error was the
+  401.
+- Cloudflare's account-token verify endpoint reported the token `active` both before and after.
+- At 07:27Z the same request returned **200**, with no change on the Pi. The owner's screenshot of
+  the policy came between the two attempts, so the policy most likely was not saved or had not
+  propagated at 07:19. This is **inferred, not confirmed**.
+
+**Results.** Every request carried a one-off query string, so none could be answered from the edge
+cache. The log stream captured exactly 4 events, one per request sent, and every event had outcome
+`ok` and no exceptions.
+
+| Request | Response | Logged by the Worker |
+|---|---|---|
+| z15 tile `15/6826/12436` | 200, `r2` | nothing |
+| `forager-tunnel` stopped at 07:28:05Z, then a z5 tile | 200, `r2`, 1.48 s | `pi-origin: HTTP 530, serving from R2` |
+| Tunnel started at 07:28:12Z, first z5 poll | 200, `r2` | `pi-origin: HTTP 530, serving from R2` |
+| Second z5 poll, at 07:28:18Z | 200, **`pi`** | nothing |
+
+### What this settles
+
+- **The fallback log line exists and reads as designed.** It carries no coordinates. A tunnel that
+  is down reaches the Worker as **HTTP 530**, which is Cloudflare's own status for an origin it
+  cannot reach, and the fallback answered well inside the 4 s limit.
+- **Above z14 the Pi answers 404.** Check 3 could not show this, because it saw only `r2`. For the
+  archive name `us`, the code falls back without a log line on exactly one path: a 404. A timeout,
+  a network error and every other status all log. The z15 request logged nothing, so the Pi
+  answered 404. That is read from the code's branches plus the empty log, not from the Pi's own
+  response.
+- **The tunnel needs about 6 to 8 s to rejoin.** The first poll after the restart still met a 530,
+  and it fell back cleanly.
+
+### Still not observed
+
+How the 4 s timeout behaves when the Pi is up but slow, as opposed to down.
+
+### Clean-up
+
+`~/.config/forager/tail-token` is still on the Pi, waiting on the owner's word. The token expires on
+its own on 2026-10-06 and can be deleted sooner in the dashboard.

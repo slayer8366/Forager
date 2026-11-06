@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.ShownPosition
 import org.junit.Assert.assertEquals
@@ -64,8 +65,8 @@ class PositionLookOptionsTest {
 
     @Test
     fun `the look follows the one rule the label, the strip and the HUD read`() {
-        val gps = LocationFix.Update(45.5, -122.6, null, 5f, 1_000L)
-        val reading = LocationFix.Update(45.51, -122.61, null, 120f, 2_123L)
+        val gps = LocationFix.Update(45.5, -122.6, null, 5f, 1_000L, provider = FixProvider.GPS)
+        val reading = LocationFix.Update(45.51, -122.61, null, 120f, 2_123L, provider = FixProvider.NETWORK)
         assertEquals(PositionLook.PRECISE, positionLookOf(ShownPosition.Precise(gps), gps))
         assertEquals(PositionLook.APPROXIMATE, positionLookOf(ShownPosition.Approximate(reading), gps))
         assertEquals(PositionLook.LAST_KNOWN, positionLookOf(ShownPosition.LastKnown(reading), gps))

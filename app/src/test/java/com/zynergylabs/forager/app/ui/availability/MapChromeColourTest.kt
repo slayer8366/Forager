@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import org.junit.Assert.assertNotEquals
+import com.zynergylabs.forager.app.ui.theme.LightColors
+import com.zynergylabs.forager.app.ui.theme.DarkColors
 import androidx.activity.ComponentActivity
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.geometry.Offset
@@ -127,10 +130,18 @@ abstract class MapChromeColourCompactTests(
         composeRule.assertToken(navigationTag, roles.token, 1f)
     }
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -945, the owner: "Lighter pill + shadow (Recommended)"; RECORD -951 for the roles): the pill
+     * over the map is a shade lighter than the chrome token, the surface ramp's lightest end in each theme, still at 0.8. Was "the
+     * search bar is the token at 0_8": `assertToken(SEARCH_ENTRY_BAR_TAG, roles.token, MAP_CHROME_OVER_MAP_ALPHA)`.
+     */
+    private val pillRole get() = if (dark) DarkColors.surfaceContainerHighest else LightColors.surfaceContainerLowest
+
     @Test
-    fun `the search bar is the token at 0_8`() {
+    fun `the search pill is a shade lighter than the token, at 0_8`() {
         setScreen()
-        composeRule.assertToken(SEARCH_ENTRY_BAR_TAG, roles.token, MAP_CHROME_OVER_MAP_ALPHA)
+        composeRule.assertToken(SEARCH_ENTRY_BAR_TAG, pillRole, MAP_CHROME_OVER_MAP_ALPHA)
+        assertNotEquals("positive control: the pill's role is not the token", roles.token.copy(alpha = 1f), pillRole)
     }
 
     @Test
@@ -140,10 +151,15 @@ abstract class MapChromeColourCompactTests(
         composeRule.assertToken(SEARCH_DROPDOWN_TAG, roles.token, MAP_CHROME_OVER_MAP_ALPHA)
     }
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -946, -951): in landscape the strip and the pill are the top bar, both in the pill's lighter
+     * shade; in portrait the strip is the card tucked under the pill, the token. Was "the compass strip is the token at 0_8" in
+     * both orientations.
+     */
     @Test
-    fun `the compass strip is the token at 0_8`() {
+    fun `the compass strip is the token at 0_8 in portrait, and the pill's lighter shade at 0_8 in landscape`() {
         setScreen()
-        composeRule.assertToken("compass-elevation-strip", roles.token, MAP_CHROME_OVER_MAP_ALPHA)
+        composeRule.assertToken("compass-elevation-strip", if (landscape) pillRole else roles.token, MAP_CHROME_OVER_MAP_ALPHA)
     }
 
     @Test

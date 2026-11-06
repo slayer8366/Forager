@@ -39,4 +39,6 @@ data class TrackPointEntity(
     val timestampEpochMillis: Long,
     val speedMetersPerSecond: Float?,
     val speedAccuracyMetersPerSecond: Float?,
+    /** Nullable `REAL`, added by [MIGRATION_20_21] (RECORD -867): the barometer's raw hPa. `NULL` on every older row. */
+    val pressureHpa: Float? = null,
 )

@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.log
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,17 +15,19 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Eco
 import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedCard
 import androidx.compose.material3.SecondaryTabRow
 import androidx.compose.material3.Tab
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -37,7 +38,21 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.ListRowShape
+import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.motion.PageSlide
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import androidx.compose.ui.unit.IntOffset
+import com.zynergylabs.forager.app.ui.format.displayDate
+import com.zynergylabs.forager.app.ui.format.is24HourClock
+import androidx.compose.foundation.lazy.grid.GridItemSpan
+import androidx.compose.ui.platform.testTag
+import java.time.LocalDate
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 
 /**
  * Records' Finds submenu — **one implementation, responsive layout**, restoring the same "one
@@ -71,15 +86,20 @@ internal fun FindsGalleryScreen(
     onOpenDraftEntry: (String) -> Unit = onOpenEntry,
     /**
      * Set when the last load failed — never hides [entries] that are already showing, only shown
-     * above the grid (the "+" tile, if present, stays first regardless) when there is nothing to
+     * above the grid when there is nothing to
      * show because the read failed, per docs/error-presentation-spec.md.
      */
     loadErrorMessage: String? = null,
     /**
-     * `null` (the default) omits the "+" tile entirely — [LogPanel] passes no lambda here, matching
-     * [LogEntryListScreen]'s own former shape: the expanded window starts a new find via the map's
-     * "Log a find" flow, not a tile inside this list. [JournalTab] passes one, matching the former
-     * [LogGalleryScreen]'s always-present tile.
+     * Set when the last load read the finds but not the drafts. The Drafts tab shows it as Log shows [loadErrorMessage],
+     * rather than "No drafts. …", which would tell a user whose draft is on disk that there is none (Amendment 2 of dispatch
+     * 2026-10-28-08, RECORD -1784, Sorrel's N5; the owner: "Say it couldn't load (Recommended)").
+     */
+    draftsLoadErrorMessage: String? = null,
+    /**
+     * `null` (the default) omits the "New find" button entirely (RECORD -751; until then the grid's first "+" tile) —
+     * [LogPanel] passes no lambda here, matching [LogEntryListScreen]'s own former shape: the expanded window starts a new
+     * find via the map's "Log a find" flow, not a control inside this list. [JournalTab] passes one.
      */
     onAddEntry: (() -> Unit)? = null,
     /** Grid column count — 2 for compact, more for expanded/tablet; see this composable's own doc comment. */
@@ -92,17 +112,34 @@ internal fun FindsGalleryScreen(
     onDeleteEntry: ((String) -> Unit)? = null,
     /** J4b L1: the menu's Edit, opening the find in its edit form. Only read when [onDeleteEntry] is set. */
     onEditEntry: ((String) -> Unit)? = null,
+    /**
+     * RECORD -753 (the owner: "Yes, match Entries (Recommended)"): set in a short landscape window, where "New find" sits in the
+     * Journal's L1 row as "New entry" does on Entries, so this screen draws no floating button and its grid needs no clearance for
+     * one. It is written with whether the button belongs on screen now (Log is the tab showing, the grid is not loading, and
+     * [onAddEntry] is set), and set back to false when this screen leaves. `null` (the default) is the floating button, as before.
+     */
+    newFindInHeader: MutableState<Boolean>? = null,
 ) {
     var selectedTab by remember { mutableStateOf(FindsGalleryTab.LOG) }
-
-    if (isLoading && entries.isEmpty() && draftEntries.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
+    val galleryLoading = isLoading && entries.isEmpty() && draftEntries.isEmpty()
+    if (newFindInHeader != null) {
+        val belongs = onAddEntry != null && !galleryLoading && selectedTab == FindsGalleryTab.LOG
+        SideEffect { if (newFindInHeader.value != belongs) newFindInHeader.value = belongs }
+        DisposableEffect(newFindInHeader) { onDispose { newFindInHeader.value = false } }
     }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    // Motion Part 3, Amendment 2 (RECORD -682; scout F5): the spinner and the gallery crossfade instead of swapping in one frame
+    // (motion/StateCrossfade.kt).
+    StateCrossfade(
+        targetState = galleryLoading,
+        modifier = modifier.fillMaxSize(),
+    ) { loading ->
+    if (loading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+    } else {
+    Column(modifier = Modifier.fillMaxSize()) {
         SecondaryTabRow(selectedTabIndex = selectedTab.ordinal) {
             Tab(selected = selectedTab == FindsGalleryTab.LOG, onClick = { selectedTab = FindsGalleryTab.LOG }, text = { Text("Log") })
             Tab(
@@ -112,71 +149,132 @@ internal fun FindsGalleryScreen(
             )
         }
 
-        val visibleEntries = if (selectedTab == FindsGalleryTab.DRAFTS) draftEntries else entries
-        if (visibleEntries.isEmpty() && loadErrorMessage != null) {
+        val glide = MotionTokens.listRowSpec<IntOffset>()
+        // Motion Part 3, Amendment 1 (RECORD -681, "Same rule everywhere"; scout F4): Drafts opens over Log, sliding in from the
+        // right, and Log slides it back out. The tab row above stays still. Each tab's grid is its own page, drawn from its own
+        // tab, with its own rows.
+        // RECORD -751: the "New find" button replaces the "+" tile. It belongs to Log, as the tile did, and sits over the grid
+        // at its bottom end, as "New entry" sits over the Entries timeline; Log's grid gets that timeline's bottom clearance.
+        // RECORD -753: not in a short landscape window, where the L1 row carries it (newFindInHeader).
+        val showNewFind = onAddEntry != null && newFindInHeader == null
+        Box(modifier = Modifier.weight(1f).fillMaxWidth()) {
+        PageSlide(
+            targetState = selectedTab,
+            depthOf = { it.ordinal },
+            modifier = Modifier.fillMaxSize(),
+        ) { shownTab ->
+        Column(modifier = Modifier.fillMaxSize()) {
+        val visibleEntries = if (shownTab == FindsGalleryTab.DRAFTS) draftEntries else entries
+        // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"): a deleted find's tile fades and shrinks, the grid
+        // closes up after it with a glide, and Undo brings it back the way it went (motion/ListMotion.kt).
+        val rows = rememberListRows(visibleEntries, key = { it.id })
+        val shownLoadError = if (shownTab == FindsGalleryTab.DRAFTS) draftsLoadErrorMessage ?: loadErrorMessage else loadErrorMessage
+        if (visibleEntries.isEmpty() && shownLoadError != null) {
             Text(
-                loadErrorMessage,
+                shownLoadError,
+                style = MaterialTheme.typography.bodyMedium,
+                modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+            )
+        }
+        // Dispatch 2026-10-28-08 (RECORD -1780), the owner's words: an empty, loaded tab says what to do. A failed load
+        // keeps its own text above instead. Until then an empty tab drew a blank grid (RECORD -751 took away the "+" tile
+        // that had been Log's cue; docs/audits/2026-10-28-records-follow-ups-look.md, section 2).
+        if (visibleEntries.isEmpty() && shownLoadError == null && !isLoading) {
+            Text(
+                if (shownTab == FindsGalleryTab.DRAFTS) "No drafts. A find you leave before saving waits here." else "No finds yet. Use New find to log one.",
                 style = MaterialTheme.typography.bodyMedium,
                 modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
             )
         }
         LazyVerticalGrid(
             columns = GridCells.Fixed(columns),
-            modifier = Modifier.weight(1f),
-            contentPadding = PaddingValues(Spacing.lg),
+            modifier = Modifier.weight(1f).testTag(FINDS_GRID_TAG),
+            contentPadding = PaddingValues(
+                start = Spacing.lg,
+                top = Spacing.lg,
+                end = Spacing.lg,
+                bottom = if (showNewFind && shownTab == FindsGalleryTab.LOG) FAB_CLEARANCE else Spacing.lg,
+            ),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         ) {
-            // The "+" tile only makes sense against the committed log — a new entry starts as a
-            // draft either way (see MushroomLogViewModel.onStartNewEntry), but tapping "+" while
-            // looking at Drafts would read as "add a draft," which isn't a distinct action from
-            // "add an entry."
-            if (selectedTab == FindsGalleryTab.LOG && onAddEntry != null) item { AddEntryTile(onClick = onAddEntry) }
-            if (selectedTab == FindsGalleryTab.DRAFTS) {
-                items(visibleEntries, key = { it.id }) { entry ->
-                    FindTileWithOptions(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true, onEdit = onEditEntry, onDelete = onDeleteEntry)
+            // Data part D (the owner, RECORD -656: "group the entries by date and then keep the name they gave on the tile
+            // instead of the date"; dispatched by -702): the tiles sit under one heading per day, newest day first, as the
+            // Records logbook orders its days. A heading spans the grid's width. A leaving tile stays under its own day.
+            for ((day, dayRows) in groupByDayNewestFirst(rows) { it.item.foundOn }) {
+                item(key = findsDayHeaderKey(shownTab, day), span = { GridItemSpan(maxLineSpan) }) {
+                    FindsDayHeader(day, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null))
                 }
-            } else {
-                items(visibleEntries, key = { it.id }) { entry ->
-                    FindTileWithOptions(entry = entry, onClick = { onOpenEntry(entry.id) }, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                if (shownTab == FindsGalleryTab.DRAFTS) {
+                    items(dayRows, key = { it.key }) { row ->
+                        ListRowMotion(row, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null), ListRowShape.TILE) { entry ->
+                            FindTileWithOptions(entry = entry, onClick = { onOpenDraftEntry(entry.id) }, isDraft = true, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                        }
+                    }
+                } else {
+                    items(dayRows, key = { it.key }) { row ->
+                        ListRowMotion(row, Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null), ListRowShape.TILE) { entry ->
+                            FindTileWithOptions(entry = entry, onClick = { onOpenEntry(entry.id) }, onEdit = onEditEntry, onDelete = onDeleteEntry)
+                        }
+                    }
                 }
             }
         }
+        }
+        }
+        // The button only makes sense against the committed log, as the "+" tile it replaces did: a new find starts as a
+        // draft either way (see MushroomLogViewModel.onStartNewEntry), but "New find" shown over Drafts would read as "add a
+        // draft", which is not a distinct action from "add a find". Its leaf is the Finds chip's (RecordsSubTab.chipIcon;
+        // the owner: "The Finds leaf (Recommended)").
+        if (showNewFind && selectedTab == FindsGalleryTab.LOG) {
+            JournalNewItemButton(
+                text = "New find",
+                icon = Icons.Filled.Eco,
+                onClick = onAddEntry,
+                modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.lg).testTag(FINDS_FAB_TAG),
+            )
+        }
+        }
+    }
+    }
     }
 }
+
+/** Finds' "New find" floating button (RECORD -751), for tests. */
+internal const val FINDS_FAB_TAG = "finds-fab"
+
+/** A day heading's key in the grid: a string, so it never collides with a tile's key (a find's id). */
+private fun findsDayHeaderKey(tab: FindsGalleryTab, day: LocalDate): String = "finds-day-${tab.name}-$day"
+
+/**
+ * [items] grouped by [day], newest day first, each day's items in their given order: the Finds grid's headings (data part D,
+ * RECORD -702), ordered as the Records logbook ordered its days until RECORD -868 grouped it by kind.
+ */
+internal fun <T> groupByDayNewestFirst(items: List<T>, day: (T) -> LocalDate): List<Pair<LocalDate, List<T>>> =
+    items.groupBy(day).toList().sortedByDescending { it.first }
+
+/** A day heading in the Finds grid, "Oct 7, 2026". Takes no touch. */
+@Composable
+private fun FindsDayHeader(day: LocalDate, modifier: Modifier = Modifier) {
+    Text(
+        displayDate(day),
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = modifier.padding(top = Spacing.sm).testTag(findsDayHeaderTag(day)),
+    )
+}
+
+/**
+ * The Finds grid, for tests (RECORD -717): the grid is lazy, so a tile below the window is not composed, and a test scrolls the
+ * grid to a tile ([androidx.compose.ui.test.performScrollToNode]) before touching or counting it.
+ */
+internal const val FINDS_GRID_TAG = "finds-grid"
+
+/** A Finds grid day heading, for tests. */
+internal fun findsDayHeaderTag(day: LocalDate): String = "finds-day-header-$day"
 
 /** Which of [FindsGalleryScreen]'s two tabs is selected — ordinal order matches display order. */
 private enum class FindsGalleryTab { LOG, DRAFTS }
-
-/**
- * The gallery's "start a new entry" tile — a blank journal-entry outline with a centered `+`, per
- * the project owner's own description of it, so it reads as "add" the same way an empty photo slot
- * does in a picker grid, rather than as one more entry among the real ones.
- */
-@Composable
-private fun AddEntryTile(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    OutlinedCard(
-        onClick = onClick,
-        modifier = modifier
-            .fillMaxWidth()
-            .aspectRatio(GALLERY_TILE_ASPECT_RATIO),
-        shape = RoundedCornerShape(Spacing.sm),
-        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.outline),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            Icon(
-                Icons.Filled.Add,
-                contentDescription = "New log entry",
-                tint = MaterialTheme.colorScheme.outline,
-                modifier = Modifier.size(ADD_TILE_ICON_SIZE_DP.dp),
-            )
-        }
-    }
-}
 
 /**
  * One logged find in the gallery grid — a cover photo when one exists, otherwise a placeholder
@@ -200,7 +298,7 @@ internal fun FindTile(entry: MushroomLogEntry, onClick: () -> Unit, modifier: Mo
  * [FindTile] with a long-press menu (J4b L1): the same tile, whose card takes the tap and the
  * long-press on one node ([tileClickable]), inside a [LongPressOptionsBox] offering Edit and Delete.
  * With no [onDelete] it is [FindTile] exactly, so a caller that gives no delete (`LogPanel`) is
- * unchanged. The long-click reads "Options for Find on <date>", the tile's own text.
+ * unchanged. The long-click reads "Options for <the tile's title>" ([findTitle]), or for its screen-reader label when blank.
  */
 @Composable
 internal fun FindTileWithOptions(
@@ -216,7 +314,7 @@ internal fun FindTileWithOptions(
         return
     }
     LongPressOptionsBox(
-        longClickLabel = "Options for ${findTileLabel(entry)}",
+        longClickLabel = "Options for ${findTitle(entry, is24HourClock()) ?: findBlankTitleLabel(entry)}",
         onEdit = onEdit?.let { edit -> { edit(entry.id) } },
         onDelete = { onDelete(entry.id) },
         modifier = modifier,
@@ -235,9 +333,6 @@ internal fun FindTileWithOptions(
     }
 }
 
-/** A find tile's caption, "Find on <date>". */
-private fun findTileLabel(entry: MushroomLogEntry): String = "Find on ${entry.foundOn}"
-
 /** What a find tile draws inside its card: the cover photo or placeholder, then the caption. */
 @Composable
 private fun FindTileBody(entry: MushroomLogEntry, isDraft: Boolean) {
@@ -245,7 +340,7 @@ private fun FindTileBody(entry: MushroomLogEntry, isDraft: Boolean) {
         Column(modifier = Modifier.fillMaxSize()) {
             // weight(1f), not aspectRatio(1f): a fixed square ate a disproportionate share of the
             // card's own fixed-aspect-ratio height, squeezing the caption below it -- on a draft
-            // tile specifically, two lines ("Find on <date>" plus the "Draft" badge) rather than
+            // tile specifically, two lines (the title plus the "Draft" badge) rather than
             // one, so it clipped there first (Card clips its content to its own shape). weight(1f)
             // measures the caption Column at its real content height first and gives the image
             // whatever's left, so the caption is never squeezed regardless of tile width, font
@@ -271,11 +366,16 @@ private fun FindTileBody(entry: MushroomLogEntry, isDraft: Boolean) {
                 }
             }
             Column(modifier = Modifier.padding(Spacing.sm)) {
+                // Data part D (RECORD -702, -703): the find's name, or the time it was found, or nothing ([findTitle]). A blank
+                // title keeps its line, so tiles in a row stay the same height, and says "Find, <date>" to a screen reader.
+                val title = findTitle(entry, is24HourClock())
+                val blankLabel = findBlankTitleLabel(entry)
                 Text(
-                    findTileLabel(entry),
+                    title ?: "",
                     style = MaterialTheme.typography.labelLarge,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = if (title == null) Modifier.semantics { contentDescription = blankLabel } else Modifier,
                 )
                 // Owner ruling, 2026-09-13: no "Incomplete" badge any more. It read from the seven
                 // morphology fields, which the edit form no longer offers, so it described fields

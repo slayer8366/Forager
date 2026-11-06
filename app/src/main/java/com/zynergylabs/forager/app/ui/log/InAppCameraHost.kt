@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.platform.LocalContext
+import com.zynergylabs.forager.app.domain.CameraFormat
 import com.zynergylabs.forager.app.domain.GridMode
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
@@ -35,11 +36,12 @@ enum class InAppCameraTarget {
  */
 typealias InAppCameraSlot = @Composable (
     cameraCaptureFiles: CameraCaptureFiles,
-    /** Settings' "Lock camera to portrait", handed to the session at creation — see `effectiveDeviceRotation`. */
-    lockToPortrait: Boolean,
     /** The persisted grid mode and the way to change it — see `CameraGridModeViewModel`. */
     gridMode: GridMode,
     onGridModeChanged: (GridMode) -> Unit,
+    /** The format chip's remembered choice and the way to change it — see `CameraFormatViewModel` (dispatch 2026-10-15-01). */
+    cameraFormat: CameraFormat,
+    onCameraFormatChanged: (CameraFormat) -> Unit,
     /** Settings' "Automatically Save Location to Photos" and its handler — see `AvailabilityViewModel.onAutoSaveLocationToPhotosChanged`. */
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
@@ -53,25 +55,30 @@ typealias InAppCameraSlot = @Composable (
  * viewfinder it draws into. Moved here from `PhotoAcquisitionLaunchers` on 2026-09-15 when the
  * dialog was hoisted; unchanged otherwise.
  */
-internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
+internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, gridMode, onGridModeChanged, cameraFormat, onCameraFormatChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
     val context = LocalContext.current.applicationContext
     // One provider per open camera; it registers a sensor listener only while the level is shown.
     val levelProvider = remember { AndroidLevelProvider(context) }
-    // Keyed on the setting so a session never carries a stale value; in practice it cannot change
-    // while the camera is open, since the dialog covers Settings.
-    val session = remember(lockToPortrait) { CameraXCaptureSession(context, lockToPortrait) }
+    // One session for the camera's whole stay on screen. Until dispatch 2026-10-13-03 this was keyed on "Lock camera to
+    // portrait", and toggling that from the gear panel with the camera open built a second session here; the dialog closed
+    // the first and opened the second, but the viewfinder (CameraXCaptureSession.Viewfinder) is not keyed on its session and
+    // stayed attached to the closed one, so the picture froze (the owner: "It didn't switch over at all"). The option and
+    // the key went together; anything that brings back a value that can change while the camera is open must either key the
+    // viewfinder on its session or apply the value without a new session (docs/archive/camera-portrait-lock.md).
+    val session = remember { CameraXCaptureSession(context) }
     InAppCameraDialog(
         session = session,
         cameraCaptureFiles = cameraCaptureFiles,
-        lockToPortrait = lockToPortrait,
         onPhotoCaptured = onPhotoCaptured,
         onDismiss = onDismiss,
         gridMode = gridMode,
         onGridModeChanged = onGridModeChanged,
+        cameraFormat = cameraFormat,
+        onCameraFormatChanged = onCameraFormatChanged,
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
         onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
         levelProvider = levelProvider,
-        viewfinder = { modifier -> session.Viewfinder(modifier) },
+        viewfinder = { modifier -> session.Viewfinder(modifier, held = LocalNaturalOrientationHold.current) },
     )
 }
 
@@ -101,11 +108,12 @@ internal val CameraXInAppCamera: InAppCameraSlot = { cameraCaptureFiles, lockToP
 internal fun InAppCameraHost(
     target: InAppCameraTarget?,
     cameraCaptureFiles: CameraCaptureFiles,
-    /** Settings' "Lock camera to portrait", from `AvailabilityUiState`; passed straight to the slot. */
-    lockToPortrait: Boolean,
     /** The persisted grid mode, from `CameraGridModeViewModel`; passed straight to the slot. */
     gridMode: GridMode,
     onGridModeChanged: (GridMode) -> Unit,
+    /** The persisted format choice, from `CameraFormatViewModel`; passed straight to the slot. */
+    cameraFormat: CameraFormat = CameraFormat.Jpg,
+    onCameraFormatChanged: (CameraFormat) -> Unit = {},
     /** Settings' "Automatically Save Location to Photos", from `AvailabilityUiState`, and Settings' own handler; passed straight to the slot. */
     autoSaveLocationToPhotos: Boolean,
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
@@ -121,5 +129,5 @@ internal fun InAppCameraHost(
         InAppCameraTarget.ALBUM -> onAlbumPhoto
         InAppCameraTarget.CARTOGRAPHY_ENTRY -> onCartographyEntryPhoto
     }
-    camera(cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss)
+    camera(cameraCaptureFiles, gridMode, onGridModeChanged, cameraFormat, onCameraFormatChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss)
 }

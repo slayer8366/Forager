@@ -1,8 +1,39 @@
 package com.zynergylabs.forager.app
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
+import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
+import com.zynergylabs.forager.app.ui.availability.onAutoSaveLocationToPhotosChanged
+import com.zynergylabs.forager.app.ui.availability.onBatterySaverChanged
+import com.zynergylabs.forager.app.ui.availability.onCrowdedIconsModeChanged
+import com.zynergylabs.forager.app.ui.availability.onWaypointNamesChanged
+import com.zynergylabs.forager.app.ui.availability.onDarknessMarginChanged
+import com.zynergylabs.forager.app.ui.availability.onDistanceUnitSelected
+import com.zynergylabs.forager.app.ui.availability.onDownloadAgain
+import com.zynergylabs.forager.app.ui.availability.onDownloadOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.onMapFullscreenChanged
+import com.zynergylabs.forager.app.ui.availability.onNavigateToTrip
+import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
+import com.zynergylabs.forager.app.ui.availability.onNightModeMapsChanged
+import com.zynergylabs.forager.app.ui.availability.onOffTrackReminderChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapLatChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapLngChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapNameChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapRadiusChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapsOpened
+import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
+import com.zynergylabs.forager.app.ui.availability.onSundownAlertsEnabledChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineAreaSettled
+import com.zynergylabs.forager.app.ui.availability.onOfflineMapsSignalReturned
+import com.zynergylabs.forager.app.ui.availability.onThemeModeChanged
+import com.zynergylabs.forager.app.ui.availability.onTryAgainRoutes
+import com.zynergylabs.forager.app.ui.availability.onDownloadMapsForTrip
+import com.zynergylabs.forager.app.ui.availability.onLeftTripOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.TripDownloadMapsActions
+import com.zynergylabs.forager.app.ui.availability.requestDeleteOfflineRegion
+import com.zynergylabs.forager.app.ui.availability.undoDeleteOfflineRegion
 import android.Manifest
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
 import android.util.Log
@@ -23,23 +54,43 @@ import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.DefaultLifecycleObserver
 import androidx.lifecycle.LifecycleOwner
+import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
-import kotlinx.coroutines.joinAll
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.zynergylabs.forager.app.domain.model.withLiveHeight
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.service.TrackRecordingService
 import com.zynergylabs.forager.app.ui.availability.AvailabilityScreen
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenBackupAndImport
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenCamera
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenEntryReportData
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenFindsLog
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenJournalEntries
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenMapControls
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenNavigation
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecording
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenRecords
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSearchInputs
+import com.zynergylabs.forager.app.ui.availability.AvailabilityScreenSettings
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel
 import com.zynergylabs.forager.app.ui.availability.returnRouteOf
 import com.zynergylabs.forager.app.data.backup.EXTRA_OPEN_BACKUP_SECTION
+import com.zynergylabs.forager.app.domain.GpxImportOutcome
+import com.zynergylabs.forager.app.importgpx.ContentUriGpxFileSource
+import com.zynergylabs.forager.app.importgpx.GpxImportViewModel
+import com.zynergylabs.forager.app.importgpx.clearGpxImportOutcome
+import com.zynergylabs.forager.app.importgpx.gpxImportOutcomeFrom
 import com.zynergylabs.forager.app.data.backup.opensBackupSection
+import com.zynergylabs.forager.app.location.hasLocationPermission
 import com.zynergylabs.forager.app.ui.backup.BackupRestoreOverlay
 import com.zynergylabs.forager.app.ui.backup.BackupViewModel
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
 import com.zynergylabs.forager.app.ui.log.CameraAbsenceWatcher
+import com.zynergylabs.forager.app.ui.log.CameraFormatViewModel
 import com.zynergylabs.forager.app.ui.log.CameraGridModeViewModel
 import com.zynergylabs.forager.app.ui.log.InAppCameraViewModel
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel
@@ -49,13 +100,17 @@ import com.zynergylabs.forager.app.ui.log.galleryPhotoDeleteNotice
 import com.zynergylabs.forager.app.ui.log.offlineRegionDeleteNotice
 import com.zynergylabs.forager.app.ui.log.trackDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
-import com.zynergylabs.forager.app.ui.theme.ForagerTheme
+import com.zynergylabs.forager.app.ui.availability.OfflineRouteActions
+import com.zynergylabs.forager.app.ui.map.ForagerThemeWithNoSignal
+import com.zynergylabs.forager.app.ui.map.noSignalState
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
-import com.zynergylabs.forager.app.ui.track.TrackRecordingReturnLeg
 
 class MainActivity : ComponentActivity() {
 
     private val container: AppContainer get() = (application as ForagerApplication).container
+
+    /** No signal for the maps (dispatch 2026-10-22-01, NoSignalTrailMap.kt), for this Activity's life. */
+    private val noSignal by lazy { noSignalState(applicationContext, lifecycleScope) }
 
     /**
      * The real [ErrorLog] production wires in — see that interface's own doc comment for why
@@ -66,40 +121,7 @@ class MainActivity : ComponentActivity() {
     private val viewModel: AvailabilityViewModel by viewModels {
         viewModelFactory {
             initializer {
-                AvailabilityViewModel(
-                    container.locationProvider,
-                    container.locationTracker,
-                    container.getAvailabilityUseCase,
-                    container.getRecentSearchesUseCase,
-                    container.getSightingsUseCase,
-                    container.searchTaxaUseCase,
-                    container.getConditionsUseCase,
-                    container.getTripWindowsUseCase,
-                    container.getPlannedTripsUseCase,
-                    container.savePlannedTripUseCase,
-                    container.deletePlannedTripUseCase,
-                    container.getSeasonalPatternUseCase,
-                    container.offlineMapRepository,
-                    androidErrorLog,
-                    container.mapPreferencesRepository,
-                    container.unitSystemPreferenceRepository,
-                    container.appThemePreferenceRepository,
-                    container.getTodaysForecastUseCase,
-                    getOfflineRegionReferenceCount = { id -> offlineRegionEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forOfflineRegion, androidErrorLog) },
-                    getAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::getAutoSaveLocationToPhotos,
-                    setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
-                    getLockCameraToPortrait = container.cameraOrientationPreferenceRepository::getLockCameraToPortrait,
-                    setLockCameraToPortrait = container.cameraOrientationPreferenceRepository::setLockCameraToPortrait,
-                    getMapRecords = { container.getMapRecordsUseCase() },
-                    mapLayerPreferencesRepository = container.mapLayerPreferencesRepository,
-                    forecastCellStore = container.forecastCellStore,
-                    // Dispatch 2026-09-28-502: the waypoint navigation kept across the process, and the return it pauses
-                    // and picks back up. The leg holds the recording ViewModel itself, not this Activity, so a recreated
-                    // Activity leaves nothing behind in it.
-                    waypointNavigationRepository = container.waypointNavigationRepository,
-                    returnLeg = TrackRecordingReturnLeg(trackRecordingViewModel),
-                    lastKnownLocation = container.lastKnownLocation,
-                )
+                createAvailabilityViewModel(container, androidErrorLog, trackRecording = { trackRecordingViewModel }, noSignal = { noSignal.value })
             }
         }
     }
@@ -111,11 +133,6 @@ class MainActivity : ComponentActivity() {
                     container,
                     viewModel,
                     androidErrorLog,
-                    // A capture that lands with no find open is saved to the album and recorded where the
-                    // device check can read it — see MushroomLogViewModel.rescueCaptureWithNoEditingEntry.
-                    recordCaptureWithoutEditingEntry = { photoId, error ->
-                        (application as? ForagerApplication)?.diagnostics?.recordCaptureWithoutEditingEntry(photoId, error)
-                    },
                 )
             }
         }
@@ -124,54 +141,22 @@ class MainActivity : ComponentActivity() {
     private val cartographyViewModel: CartographyViewModel by viewModels {
         viewModelFactory {
             initializer {
-                CartographyViewModel(
-                    container.getCartographyEntriesUseCase,
-                    container.getCartographyDraftEntriesUseCase,
-                    container.createCartographyEntryUseCase,
-                    container.saveCartographyEntryUseCase,
-                    container.getCartographyEntryUseCase,
-                    container.commitCartographyEntryUseCase,
-                    container.deleteCartographyEntryUseCase,
-                    container.getDerivedTripUseCase,
-                    container.getTripReportOfflineRegionsUseCase,
-                    container.computeTrackStatisticsUseCase,
-                    container.setCartographyEntryShownOnMapUseCase,
-                )
+                createCartographyViewModel(container)
             }
         }
     }
 
-    /**
-     * Settings' Backup section (journal backup and restore, dispatches 2026-09-28-127 and -137). After a restore that
-     * worked, everything that reads the journal once and holds it is told to read again, and the restore's loading
-     * page waits for all of them: there is no Flow anywhere in `data/local`, so nothing else refreshes. The list, with
-     * where each read is: the entries and drafts (`CartographyViewModel.reloadAfterRestore`), the finds and drafts
-     * (`MushroomLogViewModel.reloadAfterRestore`; both also close an open entry or find whose record the restore removed,
-     * dispatch 2026-09-28-182 item 5) and the gallery photos with their reference counts (`MushroomLogViewModel.loadGalleryPhotos`), the tracks
-     * and the waypoints with their reference counts (`TrackRecordingViewModel.loadTracks`, `loadWaypoints`), and the
-     * planned trips, the offline regions with their reference counts, and the Maps tab's records
-     * (`AvailabilityViewModel.reloadAfterRestore`).
-     */
+    /** Settings' Backup section: built by [createBackupViewModel], whose doc comment lists what a restore reloads. */
     private val backupViewModel: BackupViewModel by viewModels {
         viewModelFactory {
             initializer {
-                BackupViewModel(
-                    backup = container.journalBackup,
-                    preferences = container.backupSchedulePreferences,
-                    scheduler = container.backupScheduler,
-                    files = container.backupFiles,
-                    errorLog = androidErrorLog,
-                    isRecording = { trackRecordingViewModel.uiState.value.isRecording },
-                    reloadAfterRestore = {
-                        listOf(
-                            cartographyViewModel.reloadAfterRestore(),
-                            mushroomLogViewModel.reloadAfterRestore(),
-                            mushroomLogViewModel.loadGalleryPhotos(),
-                            trackRecordingViewModel.loadTracks(),
-                            trackRecordingViewModel.loadWaypoints(),
-                        ).joinAll()
-                        viewModel.reloadAfterRestore()
-                    },
+                createBackupViewModel(
+                    container,
+                    androidErrorLog,
+                    trackRecording = { trackRecordingViewModel },
+                    cartography = { cartographyViewModel },
+                    mushroomLog = { mushroomLogViewModel },
+                    availability = { viewModel },
                 )
             }
         }
@@ -193,29 +178,52 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /** The camera's format chip, persisted in DataStore (dispatch 2026-10-15-01, RECORD -1005); read once, written by the format menu. */
+    private val cameraFormatViewModel: CameraFormatViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                CameraFormatViewModel(
+                    getCameraFormat = container.cameraFormatRepository::getCameraFormat,
+                    setCameraFormat = container.cameraFormatRepository::setCameraFormat,
+                    errorLog = androidErrorLog,
+                )
+            }
+        }
+    }
+
+    /**
+     * Route plotting on the Maps tab (dispatch 2026-10-30-08, step 3): Activity-scoped, so a route being plotted survives a tab
+     * change (CLAUDE.md, UX defaults). A save reloads the Trip Planner's list through the screen's own loader.
+     */
+    private val routePlottingViewModel: RoutePlottingViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                RoutePlottingViewModel(
+                    routeLeg = container.plotRoute::leg,
+                    saveRoute = { route, name, date -> container.savePlottedRoute(route, name, date) },
+                    onSaved = { viewModel.plannedTrips.loadPlannedTrips() },
+                    errorLog = androidErrorLog,
+                )
+            }
+        }
+    }
+
     private val trackRecordingViewModel: TrackRecordingViewModel by viewModels {
         viewModelFactory {
             initializer {
-                TrackRecordingViewModel(
-                    container.trackRepository,
-                    container.startTrackUseCase,
-                    container.getWaypointsUseCase,
-                    container.createWaypointUseCase,
-                    container.deleteWaypointUseCase,
-                    container.computeReturnToStartUseCase,
-                    container.locationTracker,
-                    container.getTracksUseCase,
-                    container.returnWatch,
-                    container.alertAudibility,
-                    androidErrorLog,
-                    getWaypointReferenceCount = { id -> waypointEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forWaypoint, androidErrorLog) },
-                    getTrackReferenceCount = { id -> trackEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forTrack, androidErrorLog) },
-                    deleteTrack = container.deleteTrackUseCase,
-                    getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
-                    alreadyRecordingMessage = getString(R.string.track_recording_already_recording),
-                    abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
-                )
+                createTrackRecordingViewModel(container, androidErrorLog, context = this@MainActivity)
             }
+        }
+    }
+
+    /**
+     * Plan T16, GPX import: the in-app "Import GPX" saves through this, and an Open with or Share import
+     * that GpxImportActivity already saved is shown through it. Apart from [trackRecordingViewModel] on
+     * purpose: an import touches no recording state.
+     */
+    private val gpxImportViewModel: GpxImportViewModel by viewModels {
+        viewModelFactory {
+            initializer { GpxImportViewModel(importGpx = { source -> container.importGpxUseCase(source) }) }
         }
     }
 
@@ -260,26 +268,16 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    /**
-     * Same check, same two permissions, as
-     * [com.zynergylabs.forager.app.location.AndroidLocationProvider.hasLocationPermission] — not shared code
-     * across an Activity/domain-layer boundary that owns neither Context nor Manifest, matching
-     * that class's own doc comment on why (see also [TrackRecordingService]'s own copy, and
-     * `com.zynergylabs.forager.app.ui.map.SightingsMap.kt`'s).
-     *
-     * Two call sites below both gate on this rather than trusting a single check: this one, right
-     * before [TrackRecordingViewModel.startRecording] is called at all (the confirmed crash's
-     * fix — recording never begins without permission, so [TrackRecordingUiState.activeTrack]
-     * never gets set), and a second inside the `LaunchedEffect` that actually issues
-     * `startForegroundService` (defence against permission being revoked in the narrow window
-     * between the two — that path also rolls the ViewModel's state back if it fires, so
-     * `isRecording` can never report true for a service that didn't actually start).
-     */
-    private fun hasLocationPermission(): Boolean {
-        val fine = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarse = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION)
-        return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
-    }
+    // Location permission is checked through the shared [hasLocationPermission] (dispatch
+    // 2026-09-28-658, R5: this file had its own copy). Two call sites below both gate on it rather
+    // than trusting a single check: `onToggleRecording`, right before
+    // [TrackRecordingViewModel.startRecording] is called at all (the confirmed crash's fix:
+    // recording never begins without permission, so [TrackRecordingUiState.activeTrack] never gets
+    // set), and a second inside the `LaunchedEffect` that actually issues
+    // `startForegroundService` (defence against permission being revoked in the narrow window
+    // between the two; that path also rolls the ViewModel's state back if it fires, so
+    // `isRecording` can never report true for a service that didn't actually start). The helper's
+    // own doc comment gives the crash.
 
     /**
      * Counts up each time a backup notification's tap reaches the app (dispatch 2026-09-28-153): the screen opens Tools, then
@@ -295,15 +293,29 @@ class MainActivity : ComponentActivity() {
         }
     }
 
+    /**
+     * Plan T16: GpxImportActivity opens this Activity with the outcome of an Open with or Share import on
+     * the Intent (`mainActivityIntentAfterImport`). Read from the launching intent and every later one, as
+     * [noteBackupIntent] is, and removed once read so a recreation does not show it again.
+     */
+    private fun noteGpxImportIntent(intent: Intent?) {
+        gpxImportOutcomeFrom(intent)?.let { outcome ->
+            gpxImportViewModel.onImportedElsewhere(outcome)
+            clearGpxImportOutcome(intent)
+        }
+    }
+
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
         noteBackupIntent(intent)
+        noteGpxImportIntent(intent)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) noteBackupIntent(intent)
+        if (savedInstanceState == null) noteGpxImportIntent(intent)
         // The off-track alert's channel is created by AndroidAlertDelivery when AppContainer
         // builds it (alert-delivery dispatch) — nothing alert-related lives in this Activity now.
         // Release the live-fix OS subscription whenever this Activity is not started, and
@@ -358,7 +370,10 @@ class MainActivity : ComponentActivity() {
             // AvailabilityUiState.themeMode (Settings' Light/Dark/System Default choice), so
             // ForagerTheme needs the resolved boolean below rather than the other way around.
             val uiState by viewModel.uiState.collectAsState()
+            val routePlottingState by routePlottingViewModel.uiState.collectAsState()
             val backupUiState by backupViewModel.uiState.collectAsState()
+            // RECORD -660/-661: a corrupt settings file was reset; the screen shows the one-time snackbar.
+            val settingsResetPending by container.settingsResetNotice.pending.collectAsState()
             // AppThemeMode.SYSTEM_DEFAULT is the one choice this app doesn't store as an explicit
             // light/dark value — it means "follow the device" — and isSystemInDarkTheme() is a
             // @Composable-only signal (backed by LocalConfiguration), so this resolution has to
@@ -397,10 +412,11 @@ class MainActivity : ComponentActivity() {
                 }
                 enableEdgeToEdge(statusBarStyle = statusBarStyle, navigationBarStyle = statusBarStyle)
             }
-            ForagerTheme(darkTheme = effectiveDarkTheme) {
+            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal, offlineRegions = uiState.offlineRegions, seaLevelConverter = container.seaLevelConverter, groundHeightSource = container.groundHeightSource) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
                 val cameraGridMode by cameraGridModeViewModel.mode.collectAsState()
+                val cameraFormat by cameraFormatViewModel.format.collectAsState()
 
                 // Four minutes away with the camera open closes it — see CameraAbsence.kt for the
                 // number, the clock and why this is a threshold rather than close-on-background.
@@ -414,6 +430,15 @@ class MainActivity : ComponentActivity() {
                 }
                 val trackUiState by trackRecordingViewModel.uiState.collectAsState()
                 val cartographyUiState by cartographyViewModel.uiState.collectAsState()
+                val gpxImportNotice by gpxImportViewModel.notice.collectAsState()
+                // Plan T16: Records reads its tracks and waypoints from TrackRecordingViewModel's lists, which
+                // load on open; an import refreshes both so the new track is there to open. Reads only.
+                LaunchedEffect(gpxImportNotice?.seq) {
+                    if (gpxImportNotice?.outcome is GpxImportOutcome.Imported) {
+                        trackRecordingViewModel.loadTracks()
+                        trackRecordingViewModel.loadWaypoints()
+                    }
+                }
 
                 // Starts/stops the actual foreground service as a side effect of
                 // TrackRecordingViewModel's own state, mirroring the locateMeStatus LaunchedEffect
@@ -429,11 +454,11 @@ class MainActivity : ComponentActivity() {
                         // Re-checked here, not just in onToggleRecording below: this is the exact
                         // call that would otherwise reproduce the confirmed FGS-location-type
                         // crash, and it runs asynchronously after that first check — see
-                        // hasLocationPermission()'s own doc comment on why both exist. Rolling
+                        // the location-permission comment in this class on why both exist. Rolling
                         // back through the ViewModel (rather than only skipping the service start)
                         // is what keeps isRecording from reporting true for a service that never
                         // actually started.
-                        if (hasLocationPermission()) {
+                        if (hasLocationPermission(this@MainActivity)) {
                             hasStartedRecordingOnce = true
                             intent.action = TrackRecordingService.ACTION_START
                             intent.putExtra(TrackRecordingService.EXTRA_TRACK_ID, active.trackId)
@@ -458,231 +483,286 @@ class MainActivity : ComponentActivity() {
 
                 AvailabilityScreen(
                     uiState = uiState,
-                    onUseCurrentLocation = {
-                        pendingLocationAction = PendingLocationAction.USE_CURRENT_LOCATION
-                        requestLocationPermission.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                            ),
-                        )
-                    },
-                    onLocateMe = {
-                        pendingLocationAction = PendingLocationAction.LOCATE_ME
-                        requestLocationPermission.launch(
-                            arrayOf(
-                                Manifest.permission.ACCESS_FINE_LOCATION,
-                                Manifest.permission.ACCESS_COARSE_LOCATION,
-                            ),
-                        )
-                    },
-                    onManualLatChanged = viewModel::onManualLatChanged,
-                    onManualLngChanged = viewModel::onManualLngChanged,
-                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                    onRadiusChanged = viewModel::onRadiusChanged,
-                    onMonthSelected = viewModel::onMonthSelected,
-                    onMapTabSelected = viewModel::onMapTabSelected,
-                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                    onPlaceTripPin = viewModel::onPlaceTripPin,
-                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                    currentTime = container.currentTimeProvider,
-                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
-                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
-                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
-                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
-                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
-                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                    // Journal redesign J4: a region row's swipe asks for a pending delete; the
-                    // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
-                    onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
-                    onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
-                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                    onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
-                    onLockCameraToPortraitChanged = viewModel::onLockCameraToPortraitChanged,
-                    backup = backupViewModel.controls(backupUiState),
-                    returnToMapRequest = backupUiState.returnToMapRequest,
-                    openBackupRequest = openBackupRequest,
-                    onDownloadAgain = viewModel::onDownloadAgain,
-                    onThemeModeChanged = viewModel::onThemeModeChanged,
-                    onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
-                    onMapShown = viewModel::onMapShown,
-                    onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
-                    onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
-                    onColourFieldMoved = viewModel::onColourFieldMoved,
-                    forecastCellStore = container.forecastCellStore,
-                    // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
-                    // out of the lists the screen gets.
-                    logUiState = logUiState.hidingPendingDelete(),
-                    cameraCaptureFiles = container.cameraCaptureFiles,
-                    inAppCameraTarget = inAppCameraTarget,
-                    onOpenCamera = inAppCameraViewModel::open,
-                    onCloseCamera = inAppCameraViewModel::close,
-                    cameraGridMode = cameraGridMode,
-                    onCameraGridModeChanged = cameraGridModeViewModel::onGridModeChanged,
-                    onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
-                    onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
-                    onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
-                    onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
-                    onStartEditingLogEntry = mushroomLogViewModel::onStartEditingEntry,
-                    onOpenLogEntryForEditing = mushroomLogViewModel::onOpenEntryForEditing,
-                    onSaveLogEntry = mushroomLogViewModel::onSaveEntry,
-                    onCancelLogEntryEditing = mushroomLogViewModel::onCancelEditing,
-                    onLeaveLogEntryEditingIncidentally = mushroomLogViewModel::onLeaveEditingIncidentally,
-                    onDiscardLogDraft = mushroomLogViewModel::onDeleteEntry,
-                    onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
-                    onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
-                    onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
-                    // J4: the find report's (and edit form's) Delete asks for a pending delete; the
-                    // "Saved to Drafts" snackbar's Discard (onDiscardLogDraft above) stays immediate.
-                    onDeleteLogEntry = mushroomLogViewModel::requestDeleteEntry,
-                    onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
-                    onAddGalleryPhoto = mushroomLogViewModel::onAddGalleryPhoto,
-                    onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
-                    // J4b L2: a pending entry delete is left out of the lists, as J4 does for finds.
-                    cartographyUiState = cartographyUiState.hidingPendingDelete(),
-                    onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
-                    onStartCartographyEntry = cartographyViewModel::onStartEntry,
-                    onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
-                    onCartographyTextChanged = cartographyViewModel::onTextChanged,
-                    onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
-                    onSetFindDecision = cartographyViewModel::onSetFindDecision,
-                    onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
-                    onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
-                    onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
-                    onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
-                    // Entry-photo-acquisition dispatch, Item 2: composed here, the one place both
-                    // ViewModels are already visible, rather than giving CartographyViewModel its
-                    // own copy of AddPhotoToGalleryUseCase — see MushroomLogViewModel.onAddGalleryPhoto's
-                    // own doc comment on `onPersisted` for why that would leave
-                    // MushroomLogUiState.galleryPhotos stale. Persist (and, for a camera capture,
-                    // the GPS patch) is entirely MushroomLogViewModel's own existing, unmodified
-                    // pipeline; only the id comes back here, to attach it to whichever entry
-                    // CartographyViewModel currently has open.
-                    onAcquirePhotoForCartographyEntry = { source ->
-                        mushroomLogViewModel.onAddGalleryPhoto(source) { id -> cartographyViewModel.onToggleKeptPhoto(id) }
-                    },
-                    onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
-                    onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
-                    onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
-                    onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
-                    // Intent 2026-09-28-68: a failed entry save's Toast, hosted by the Journal, clears
-                    // the message once shown (continuation 2026-09-28-76).
-                    onCartographySaveErrorDismissed = cartographyViewModel::onSaveErrorDismissed,
-                    onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
-                    onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
-                    // J8-3: the entry report's Show or Hide on map and the Maps-tab chip's Hide and Hide
-                    // all, and the Toast of a failed one (continuation 2026-09-28-65).
-                    onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
-                    onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
-                    onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
-                    getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
-                    // F3: the Journal cards' saved track paths. A failed read is logged, and that entry's card draws no thumbnail for its deleted track.
-                    getSavedTrackPaths = { entryId ->
-                        container.keptTrackPathRepository.getForEntry(entryId).getOrElse { error ->
-                            androidErrorLog.w("KeptTrackPath", "Couldn't read entry $entryId's saved track paths; its card draws no thumbnail for a deleted track.", error)
-                            emptyMap()
-                        }
-                    },
-                    getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
-                    getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
-                    isRecording = trackUiState.isRecording,
-                    onToggleRecording = {
-                        if (trackUiState.isRecording) {
-                            trackRecordingViewModel.stopRecording()
-                        } else if (!hasLocationPermission()) {
-                            // Confirmed crash's primary fix: never even ask the ViewModel to start
-                            // (never creates the Track row, never sets activeTrack) when the
-                            // foreground service could not possibly start without crashing — see
-                            // hasLocationPermission()'s own doc comment.
-                            trackRecordingViewModel.onStartRecordingPermissionDenied(
-                                getString(R.string.track_recording_needs_location),
+                    searchInputs = AvailabilityScreenSearchInputs(
+                        onUseCurrentLocation = {
+                            pendingLocationAction = PendingLocationAction.USE_CURRENT_LOCATION
+                            requestLocationPermission.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                ),
                             )
-                        } else {
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        },
+                        onManualLatChanged = viewModel::onManualLatChanged,
+                        onManualLngChanged = viewModel::onManualLngChanged,
+                        onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                        onRadiusChanged = viewModel::onRadiusChanged,
+                        onMonthSelected = viewModel::onMonthSelected,
+                        onMapTabSelected = viewModel::onMapTabSelected,
+                        onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                        onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                        onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                        onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                        onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                        onPlaceTripPin = viewModel::onPlaceTripPin,
+                        onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                        onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                        onClearSearch = viewModel::clearSearch,
+                    ),
+                    currentTime = container.currentTimeProvider,
+                    backupAndImport = AvailabilityScreenBackupAndImport(
+                        backup = backupViewModel.controls(backupUiState),
+                        returnToMapRequest = backupUiState.returnToMapRequest,
+                        openBackupRequest = openBackupRequest,
+                        gpxImportNotice = gpxImportNotice,
+                        onGpxImportNoticeShown = gpxImportViewModel::onNoticeShown,
+                        onGpxFilePicked = { uri -> gpxImportViewModel.importFile(ContentUriGpxFileSource(contentResolver, uri, androidErrorLog)) },
+                    ),
+                    offlineMaps = AvailabilityScreenOfflineMaps(
+                        onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                        onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                        onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                        onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                        onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
+                        onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                        // Journal redesign J4: a region row's swipe asks for a pending delete; the
+                        // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
+                        onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
+                        onDownloadAgain = viewModel::onDownloadAgain,
+                        routeActions = OfflineRouteActions(onTryAgain = viewModel::onTryAgainRoutes, onSignalReturned = viewModel::onOfflineMapsSignalReturned, onAreaSettled = viewModel::onOfflineAreaSettled),
+                        // Dispatch 2026-11-05-08: a Trip Planner trip's Download Maps.
+                        tripDownloadMaps = TripDownloadMapsActions(onOpen = viewModel::onDownloadMapsForTrip, onLeft = viewModel::onLeftTripOfflineMaps),
+                    ),
+                    settings = AvailabilityScreenSettings(
+                        onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
+                        onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                        onCrowdedIconsModeChanged = viewModel::onCrowdedIconsModeChanged,
+                        onWaypointNamesChanged = viewModel::onWaypointNamesChanged,
+                        onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
+                        onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
+                        onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
+                        onOffTrackReminderChanged = viewModel::onOffTrackReminderChanged,
+                        onBatterySaverChanged = viewModel::onBatterySaverChanged,
+                        settingsResetNoticePending = settingsResetPending,
+                        onSettingsResetNoticeShown = container.settingsResetNotice::shown,
+                        onThemeModeChanged = viewModel::onThemeModeChanged,
+                    ),
+                    mapControls = AvailabilityScreenMapControls(
+                        onLocateMe = {
+                            pendingLocationAction = PendingLocationAction.LOCATE_ME
+                            requestLocationPermission.launch(
+                                arrayOf(
+                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                ),
+                            )
+                        },
+                        onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
+                        onMapShown = viewModel::onMapShown,
+                        onMapsTabShownChanged = viewModel::onMapsTabShownChanged,
+                        onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
+                        onMapModeSelected = viewModel::onMapModeSelected,
+                        onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
+                        onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
+                        onColourFieldMoved = viewModel::onColourFieldMoved,
+                        forecastCellStore = container.forecastCellStore,
+                        routePlotting = RoutePlottingControls(routePlottingState, routePlottingViewModel),
+                    ),
+                    cameraCaptureFiles = container.cameraCaptureFiles,
+                    cameraInputs = AvailabilityScreenCamera(
+                        inAppCameraTarget = inAppCameraTarget,
+                        onOpenCamera = inAppCameraViewModel::open,
+                        onCloseCamera = inAppCameraViewModel::close,
+                        cameraGridMode = cameraGridMode,
+                        onCameraGridModeChanged = cameraGridModeViewModel::onGridModeChanged,
+                        cameraFormat = cameraFormat,
+                        onCameraFormatChanged = cameraFormatViewModel::onCameraFormatChanged,
+                    ),
+                    journalEntries = AvailabilityScreenJournalEntries(
+                        // J4b L2: a pending entry delete is left out of the lists, as J4 does for finds.
+                        cartographyUiState = cartographyUiState.hidingPendingDelete(),
+                        onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
+                        onStartCartographyEntry = cartographyViewModel::onStartEntry,
+                        onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
+                        onCartographyTextChanged = cartographyViewModel::onTextChanged,
+                        onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
+                        onSetFindDecision = cartographyViewModel::onSetFindDecision,
+                        onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
+                        onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
+                        onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
+                        onSetEntryGroupIncluded = cartographyViewModel::onSetEntryGroupIncluded,
+                        onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
+                        // Entry-photo-acquisition dispatch, Item 2: composed here, the one place both
+                        // ViewModels are already visible, rather than giving CartographyViewModel its
+                        // own copy of AddPhotoToGalleryUseCase — see MushroomLogViewModel.onAddGalleryPhoto's
+                        // own doc comment on `onPersisted` for why that would leave
+                        // MushroomLogUiState.galleryPhotos stale. Persist (and, for a camera capture,
+                        // the GPS patch) is entirely MushroomLogViewModel's own existing, unmodified
+                        // pipeline; only the id comes back here, to attach it to whichever entry
+                        // CartographyViewModel currently has open.
+                        onAcquirePhotoForCartographyEntry = { source ->
+                            mushroomLogViewModel.onAddGalleryPhoto(source) { id -> cartographyViewModel.onToggleKeptPhoto(id) }
+                        },
+                        onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
+                        onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
+                        onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
+                        onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
+                        // Intent 2026-09-28-68: a failed entry save's Toast, hosted by the Journal, clears
+                        // the message once shown (continuation 2026-09-28-76).
+                        onCartographySaveErrorDismissed = cartographyViewModel::onSaveErrorDismissed,
+                        onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                        onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
+                        // J8-3: the entry report's Show or Hide on map and the Maps-tab chip's Hide and Hide
+                        // all, and the Toast of a failed one (continuation 2026-09-28-65).
+                        onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
+                        onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
+                    ),
+                    findsLog = AvailabilityScreenFindsLog(
+                        // Journal redesign J4: a find whose delete is pending (Undo snackbar up) is left
+                        // out of the lists the screen gets.
+                        logUiState = logUiState.hidingPendingDelete(),
+                        onStartLogEntry = mushroomLogViewModel::onStartNewEntry,
+                        onOpenLogEntry = mushroomLogViewModel::onOpenEntry,
+                        onCloseLogEntry = mushroomLogViewModel::onCloseEntry,
+                        onLogEntryChanged = mushroomLogViewModel::onEntryEdited,
+                        onStartEditingLogEntry = mushroomLogViewModel::onStartEditingEntry,
+                        onOpenLogEntryForEditing = mushroomLogViewModel::onOpenEntryForEditing,
+                        onSaveLogEntry = mushroomLogViewModel::onSaveEntry,
+                        onCancelLogEntryEditing = mushroomLogViewModel::onCancelEditing,
+                        onLeaveLogEntryEditingIncidentally = mushroomLogViewModel::onLeaveEditingIncidentally,
+                        onDiscardLogDraft = mushroomLogViewModel::onDeleteEntry,
+                        onAddLogPhoto = mushroomLogViewModel::onAddPhoto,
+                        onRemoveLogPhoto = mushroomLogViewModel::onRemovePhoto,
+                        onPullLogPhoto = mushroomLogViewModel::onPullPhoto,
+                        // J4: the find report's (and edit form's) Delete asks for a pending delete; the
+                        // "Saved to Drafts" snackbar's Discard (onDiscardLogDraft above) stays immediate.
+                        onDeleteLogEntry = mushroomLogViewModel::requestDeleteEntry,
+                        onDeleteGalleryPhoto = mushroomLogViewModel::onDeleteGalleryPhoto,
+                        onAddGalleryPhoto = mushroomLogViewModel::onAddGalleryPhoto,
+                        onSaveLogErrorDismissed = mushroomLogViewModel::onSaveErrorDismissed,
+                        onRequestDeleteGalleryPhoto = mushroomLogViewModel::requestDeleteGalleryPhoto,
+                    ),
+                    entryReportData = AvailabilityScreenEntryReportData(
+                        getCartographyEntryMapData = { entry, photos -> container.getCartographyEntryMapDataUseCase(entry, photos) },
+                        // F3: the Journal cards' saved track paths. A failed read is logged, and that entry's card draws no thumbnail for its deleted track.
+                        getSavedTrackPaths = { entryId ->
+                            container.keptTrackPathRepository.getForEntry(entryId).getOrElse { error ->
+                                androidErrorLog.w("KeptTrackPath", "Couldn't read entry $entryId's saved track paths; its card draws no thumbnail for a deleted track.", error)
+                                emptyMap()
                             }
-                            // Field-test dispatch item 3: BALANCED's 15s/15m gate produced tracks
-                            // too sparse to evaluate against a widely used backcountry map app's own recording. Testers already
-                            // run a widely used backcountry map app concurrently, so the extra GPS draw is a cost already
-                            // committed either way — see startRecording()'s own default-parameter
-                            // doc comment for why this is an explicit override here rather than a
-                            // changed default: a future non-tester-build caller should still get
-                            // BALANCED unless it deliberately asks otherwise.
-                            trackRecordingViewModel.startRecording(TrackRecordingMode.HIGH_ACCURACY)
-                        }
-                    },
-                    startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
-                    tripStartWarning = trackUiState.tripStartWarning,
-                    networkFixesNotice = trackUiState.networkFixesNotice,
-                    breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
-                    // Journal redesign J4: the visible list leaves out a waypoint whose delete is
-                    // pending (Undo snackbar up), everywhere this screen shows waypoints, the map
-                    // included; a row's swipe asks for that pending delete.
-                    waypoints = trackUiState.visibleWaypoints,
-                    waypointsErrorMessage = trackUiState.waypointsErrorMessage,
-                    waypointEntryReferenceCounts = trackUiState.waypointEntryReferenceCounts,
-                    onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
-                    onDeleteWaypoint = trackRecordingViewModel::requestRemoveWaypoint,
-                    returnToStart = trackUiState.returnToStart,
-                    isReturning = trackUiState.isReturning,
-                    isOffTrack = trackUiState.isOffTrack,
-                    onToggleReturning = {
-                        if (trackUiState.isReturning) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
-                    },
+                        },
+                        getCartographyEntryOfflineRegion = { entry, points -> container.getCartographyEntryOfflineRegionUseCase(entry, points) },
+                        getCartographyEntryCurrentLocation = { container.locationProvider.getCurrentLocation() },
+                    ),
+                    recording = AvailabilityScreenRecording(
+                        isRecording = trackUiState.isRecording,
+                        onToggleRecording = {
+                            if (trackUiState.isRecording) {
+                                trackRecordingViewModel.stopRecording()
+                            } else if (!hasLocationPermission(this@MainActivity)) {
+                                // Confirmed crash's primary fix: never even ask the ViewModel to start
+                                // (never creates the Track row, never sets activeTrack) when the
+                                // foreground service could not possibly start without crashing — see
+                                // the location-permission comment in this class.
+                                trackRecordingViewModel.onStartRecordingPermissionDenied(
+                                    getString(R.string.track_recording_needs_location),
+                                )
+                            } else {
+                                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                    requestNotificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                }
+                                // Field-test dispatch item 3: BALANCED's 15s/15m gate produced tracks
+                                // too sparse to evaluate against a reference map app's own recording. Testers already
+                                // run that app concurrently, so the extra GPS draw is a cost already
+                                // committed either way — see startRecording()'s own default-parameter
+                                // doc comment for why this is an explicit override here rather than a
+                                // changed default: a future non-tester-build caller should still get
+                                // BALANCED unless it deliberately asks otherwise.
+                                trackRecordingViewModel.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+                            }
+                        },
+                        startRecordingErrorMessage = trackUiState.startRecordingErrorMessage,
+                        tripStartWarning = trackUiState.tripStartWarning,
+                        backgroundRunPrompt = trackUiState.backgroundRunPrompt,
+                        networkFixesNotice = trackUiState.networkFixesNotice,
+                        // Dispatch 2026-10-26-05 (RECORD -1651): the stored track and the kept points not yet written, so the
+                        // line reaches the walker's dot.
+                        breadcrumbPoints = trackUiState.recordingLine.map { LatLng(it.lat, it.lng) },
+                        recordingSundownLine = trackUiState.sundownLine,
+                        recordingBackBy = trackUiState.backBy,
+                        onBackByChoice = trackRecordingViewModel::setBackBy,
+                        onClearBackBy = trackRecordingViewModel::clearBackBy,
+                    ),
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
-                    navigationTarget = trackUiState.originWaypoint,
-                    returnRoute = returnRouteOf(trackUiState.routeHome),
-                    routeLine = trackUiState.routeLine,
-                    onRetryRoute = trackRecordingViewModel::retryRoute,
-                    // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
-                    onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
-                    onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
-                    waypointsLoaded = trackUiState.waypointsLoaded,
-                    crashFileStore = container.crashFileStore,
-                    // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
-                    // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
-                    // pending delete, and never for a track that is still recording.
-                    tracks = trackUiState.visibleTracks,
-                    onDeleteTrack = trackRecordingViewModel::requestRemoveTrack,
-                    tracksErrorMessage = trackUiState.tracksErrorMessage,
-                    onTracksOpened = trackRecordingViewModel::loadTracks,
-                    getFullRecord = trackRecordingViewModel::getFullRecord,
-                    pendingDeleteNotices = listOfNotNull(
-                        waypointDeleteNotice(
-                            trackUiState.pendingWaypointDelete,
-                            onUndo = trackRecordingViewModel::undoRemoveWaypoint,
-                            onCommit = trackRecordingViewModel::commitRemoveWaypoint,
-                        ),
-                        trackDeleteNotice(
-                            trackUiState.pendingTrackDelete,
-                            onUndo = trackRecordingViewModel::undoRemoveTrack,
-                            onCommit = trackRecordingViewModel::commitRemoveTrack,
-                        ),
-                        offlineRegionDeleteNotice(
-                            uiState.pendingOfflineRegionDelete,
-                            onUndo = viewModel::undoDeleteOfflineRegion,
-                            onCommit = viewModel::commitDeleteOfflineRegion,
-                        ),
-                        findDeleteNotice(
-                            logUiState.pendingDelete,
-                            onUndo = mushroomLogViewModel::undoDeleteEntry,
-                            onCommit = mushroomLogViewModel::commitDeleteEntry,
-                        ),
-                        cartographyEntryDeleteNotice(
-                            cartographyUiState.pendingDelete,
-                            onUndo = cartographyViewModel::undoDeleteEntry,
-                            onCommit = cartographyViewModel::commitDeleteEntry,
-                        ),
-                        galleryPhotoDeleteNotice(
-                            logUiState.pendingPhotoDelete,
-                            onUndo = mushroomLogViewModel::undoDeleteGalleryPhoto,
-                            onCommit = mushroomLogViewModel::commitDeleteGalleryPhoto,
+                    navigation = AvailabilityScreenNavigation(
+                        // Dispatch 2026-10-28-13: the height difference from the strip's live height, not the raw fixes'.
+                        returnToStart = trackUiState.returnToStart?.withLiveHeight(uiState.shownHeight),
+                        isReturning = trackUiState.isReturning,
+                        isArrivalHeld = trackUiState.isArrivalHeld,
+                        isOffTrack = trackUiState.isOffTrack,
+                        onToggleReturning = {
+                            // RECORD -845: while "Arrived" is held the control is the display's exit, and closes it.
+                            if (trackUiState.isReturning || trackUiState.isArrivalHeld) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
+                        },
+                        navigationTarget = trackUiState.originWaypoint,
+                        returnRoute = returnRouteOf(trackUiState.routeHome, trackUiState.wayHomeNote, trackUiState.wayHomeOffTrail),
+                        routeLine = trackUiState.routeLineShown,
+                        onRetryRoute = trackRecordingViewModel::retryRoute,
+                        // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
+                        onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
+                        onNavigateToTrip = viewModel::onNavigateToTrip,
+                        onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
+                    ),
+                    records = AvailabilityScreenRecords(
+                        // Journal redesign J4: the visible list leaves out a waypoint whose delete is
+                        // pending (Undo snackbar up), everywhere this screen shows waypoints, the map
+                        // included; a row's swipe asks for that pending delete.
+                        waypoints = trackUiState.visibleWaypoints,
+                        waypointsErrorMessage = trackUiState.waypointsErrorMessage,
+                        waypointEntryReferenceCounts = trackUiState.waypointEntryReferenceCounts,
+                        onDropWaypoint = { location, name -> trackRecordingViewModel.addWaypoint(location.lat, location.lng, name) },
+                        onDeleteWaypoint = trackRecordingViewModel::requestRemoveWaypoint,
+                        waypointsLoaded = trackUiState.waypointsLoaded,
+                        // Part 2 follow-ups F1 item 5: the visible list leaves out a track whose delete is pending
+                        // (Undo snackbar up), as the waypoints' does; a swipe or the details' Delete asks for that
+                        // pending delete, and never for a track that is still recording.
+                        tracks = trackUiState.visibleTracks,
+                        onDeleteTrack = trackRecordingViewModel::requestRemoveTrack,
+                        tracksErrorMessage = trackUiState.tracksErrorMessage,
+                        onTracksOpened = trackRecordingViewModel::loadTracks,
+                        getFullRecord = trackRecordingViewModel::getFullRecord,
+                        pendingDeleteNotices = listOfNotNull(
+                            waypointDeleteNotice(
+                                trackUiState.pendingWaypointDelete,
+                                onUndo = trackRecordingViewModel::undoRemoveWaypoint,
+                                onCommit = trackRecordingViewModel::commitRemoveWaypoint,
+                            ),
+                            trackDeleteNotice(
+                                trackUiState.pendingTrackDelete,
+                                onUndo = trackRecordingViewModel::undoRemoveTrack,
+                                onCommit = trackRecordingViewModel::commitRemoveTrack,
+                            ),
+                            offlineRegionDeleteNotice(
+                                uiState.pendingOfflineRegionDelete,
+                                onUndo = viewModel::undoDeleteOfflineRegion,
+                                onCommit = viewModel::commitDeleteOfflineRegion,
+                            ),
+                            findDeleteNotice(
+                                logUiState.pendingDelete,
+                                onUndo = mushroomLogViewModel::undoDeleteEntry,
+                                onCommit = mushroomLogViewModel::commitDeleteEntry,
+                            ),
+                            cartographyEntryDeleteNotice(
+                                cartographyUiState.pendingDelete,
+                                onUndo = cartographyViewModel::undoDeleteEntry,
+                                onCommit = cartographyViewModel::commitDeleteEntry,
+                            ),
+                            galleryPhotoDeleteNotice(
+                                logUiState.pendingPhotoDelete,
+                                onUndo = mushroomLogViewModel::undoDeleteGalleryPhoto,
+                                onCommit = mushroomLogViewModel::commitDeleteGalleryPhoto,
+                            ),
                         ),
                     ),
                 )
@@ -691,69 +771,4 @@ class MainActivity : ComponentActivity() {
             }
         }
     }
-}
-
-/**
- * How many journal (Cartography) entries keep photo [photoId], for the album's entry badge and the
- * photo delete dialog (`MushroomLogViewModel.loadGalleryPhotos`).
- *
- * A failed count still shows as 0, as it always has, but the fallback is now logged when it fires
- * (journal redesign J3, C6; CLAUDE.md, "no default fallback that isn't logged when it fires"),
- * through the same [ErrorLog] seam and `getOrElse { log; fallback }` shape the photo-location
- * preference read uses in `MainActivity`'s ViewModel factory. Shown as 0, a failed read means no
- * entry badge and no "appears in N journal entries" warning in the delete dialog; the log is what
- * tells that apart from a real 0.
- */
-internal suspend fun photoEntryReferenceCountOrZero(
-    photoId: String,
-    countEntriesReferencingPhoto: suspend (String) -> Result<Int>,
-    errorLog: ErrorLog,
-): Int = countEntriesReferencingPhoto(photoId).getOrElse { error ->
-    errorLog.w("PhotoReferenceCount", "Couldn't count journal entries keeping photo $photoId; showing 0.", error)
-    0
-}
-
-/**
- * How many journal entries keep waypoint [waypointId], for the Records Undo snackbar's warning
- * (`TrackRecordingViewModel.loadWaypoints`, read by `requestRemoveWaypoint`). A failed count still
- * shows as 0, as it always has, but the fallback is now logged when it fires (journal redesign J4,
- * D6; owner ruling "Fix in J4 (Recommended)"), the same way [photoEntryReferenceCountOrZero] was fixed
- * in J3. Shown as 0, a failed read means the snackbar says only "Waypoint deleted" for a waypoint
- * entries do use; the log is what tells that apart from a real 0.
- */
-internal suspend fun waypointEntryReferenceCountOrZero(
-    waypointId: String,
-    countEntriesReferencingWaypoint: suspend (String) -> Result<Int>,
-    errorLog: ErrorLog,
-): Int = countEntriesReferencingWaypoint(waypointId).getOrElse { error ->
-    errorLog.w("WaypointReferenceCount", "Couldn't count journal entries keeping waypoint $waypointId; showing 0.", error)
-    0
-}
-
-/**
- * How many journal entries keep track [trackId], for the Records Undo snackbar's warning
- * (`TrackRecordingViewModel.loadTracks`, read by `requestRemoveTrack`). Logged when the 0 fallback
- * fires, as [waypointEntryReferenceCountOrZero] (Part 2 follow-ups F1 item 5).
- */
-internal suspend fun trackEntryReferenceCountOrZero(
-    trackId: String,
-    countEntriesReferencingTrack: suspend (String) -> Result<Int>,
-    errorLog: ErrorLog,
-): Int = countEntriesReferencingTrack(trackId).getOrElse { error ->
-    errorLog.w("TrackReferenceCount", "Couldn't count journal entries keeping track $trackId; showing 0.", error)
-    0
-}
-
-/**
- * How many journal entries keep offline region [offlineRegionId], for the Records Undo snackbar's
- * warning (`AvailabilityViewModel.loadOfflineRegions`, read by `requestDeleteOfflineRegion`). Logged
- * when the 0 fallback fires, as [waypointEntryReferenceCountOrZero] (J4, D6).
- */
-internal suspend fun offlineRegionEntryReferenceCountOrZero(
-    offlineRegionId: Long,
-    countEntriesReferencingOfflineRegion: suspend (Long) -> Result<Int>,
-    errorLog: ErrorLog,
-): Int = countEntriesReferencingOfflineRegion(offlineRegionId).getOrElse { error ->
-    errorLog.w("OfflineRegionReferenceCount", "Couldn't count journal entries keeping offline region $offlineRegionId; showing 0.", error)
-    0
 }

@@ -209,3 +209,31 @@ was silenced or weakened; each is named in the commit that changed it.
 **Unverified, and a device item:** whether CameraX honours an `ImageCapture` flash mode while
 the torch is lit. It does not arise in this build, since Torch's capture flash is
 `FLASH_MODE_OFF`, but whether Torch plus a capture fires the flash is on the device list.
+
+## Added 2026-10-13, dispatch 2026-10-13-03: B1 reversed at the owner's word
+
+**B1 is reversed.** The portrait lock is no longer a setting. The owner (RECORD -968): "Tapping the lock to portrait mode
+from the settings freezes the camera. I'm wondering the use of that feature. Seems pretty useless to be honest," then "Go
+ahead and remove it. But keep the code used in a document in case people want it back." The camera always follows the
+phone, which was B1's default. The departure B1's row records still stands: the four reference apps lock the layout,
+and this camera follows the phone. What went is only the choice to lock it. B1 above is left as written, as the record of what was decided on 2026-09-21. The removed code,
+the freeze's cause, and how to restore it are in `docs/archive/camera-portrait-lock.md`. The stored value is never read
+again, and a restored option must use a new key.
+
+**B3 in passing, not reversed.** The gear panel's "Automatically Save Location to Photos" row was also removed (RECORD
+-972; the owner: "Remove save location from the settings, empty it out completely"). Settings had not shown that row
+since dispatch 2026-09-28-707, so the strip's Location chip is now the only place the value is shown or set. B3's "one
+state" still holds. What it mirrored is now only the stored value, with no second control.
+
+## Added 2026-10-13, RECORD -980 to -982: correction to the note above
+
+The note above says the camera "always follows the phone". That was this dispatch's misreading, and the owner corrected it.
+They wanted the *setting* removed, not the held screen: "The camera is to remain as is", and "The camera is to never, ever,
+rotate like this. This is a cardinal sin". So:
+- **B1 is withdrawn as a setting.** There is no portrait-lock option.
+- **The camera keeps a fixed screen with turning icons.** The window is held portrait (`SCREEN_ORIENTATION_PORTRAIT`). The
+  controls turn in place by the phone's sensor. Each photo takes the sensor's rotation and saves upright.
+
+This matches B1's row as written: the reference apps lock the layout, and this camera now does too. What departs is
+what B1's setting pinned when on: no turning, and sideways photos saved portrait. Neither is kept. On displays 600 dp or
+wider, Android 17 ignores the request for this app's `targetSdk` 37; holding the layout there is pending the planner.

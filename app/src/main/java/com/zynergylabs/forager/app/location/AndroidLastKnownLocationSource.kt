@@ -1,13 +1,10 @@
 package com.zynergylabs.forager.app.location
 
-import android.Manifest
 import android.annotation.SuppressLint
 import android.content.Context
-import android.content.pm.PackageManager
 import android.location.Location
 import android.location.LocationManager
 import android.util.Log
-import androidx.core.content.ContextCompat
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
 
@@ -24,9 +21,9 @@ class AndroidLastKnownLocationSource(
     private val context: Context,
 ) : LastKnownLocationSource {
 
-    @SuppressLint("MissingPermission") // hasLocationPermission() below is the real (runtime) check.
+    @SuppressLint("MissingPermission") // hasLocationPermission(context) is the real (runtime) check.
     override fun lastKnown(): LocationFix.Update? {
-        if (!hasLocationPermission()) return null
+        if (!hasLocationPermission(context)) return null
         val locationManager = context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
         return PROVIDERS.mapNotNull { lastKnownFrom(locationManager, it) }
             .maxByOrNull { it.time }
@@ -46,12 +43,6 @@ class AndroidLastKnownLocationSource(
         null
     }
 
-    private fun hasLocationPermission(): Boolean {
-        val fine = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
-        val coarse = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION)
-        return fine == PackageManager.PERMISSION_GRANTED || coarse == PackageManager.PERMISSION_GRANTED
-    }
-
     // Field for field as AndroidLocationTracker maps a live fix, under the same has*() rule: "not
     // reported" travels as null, never as a zero.
     private fun Location.toFix() = LocationFix.Update(
@@ -60,6 +51,9 @@ class AndroidLastKnownLocationSource(
         altitude = if (hasAltitude()) altitude else null,
         accuracyMeters = if (hasAccuracy()) accuracy else null,
         timestampEpochMillis = time,
+        // Display only, never acted on (dispatch -510); its provider is carried all the same, by the
+        // tracker's own rule, so a fix never travels without one (dispatch -527).
+        provider = AndroidLocationTracker.fixProviderOf(provider),
         speedMetersPerSecond = if (hasSpeed()) speed else null,
         speedAccuracyMetersPerSecond = if (hasSpeedAccuracy()) speedAccuracyMetersPerSecond else null,
     )

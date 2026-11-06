@@ -158,7 +158,6 @@ class InAppCameraDialogTest {
         InAppCameraDialog(
             session = session,
             cameraCaptureFiles = CameraCaptureFiles(context),
-            lockToPortrait = false,
             onPhotoCaptured = { captured += it },
             onDismiss = { dismissals += 1 },
             gridMode = gridMode,
@@ -453,17 +452,18 @@ class InAppCameraDialogTest {
     }
 
     /**
-     * **All four chips fit** (decision B8, Closed decision A): in portrait the strip is a row along
-     * the top, and Flash, Timer, Grid and Location each sit inside its bounds, in that order, none
-     * overlapping the next. Robolectric reports zero window insets (CLAUDE.md), so this says the
-     * row holds four chips; it says nothing about the punch-hole cut-out, which is a device item.
+     * **All five chips fit** (decision B8, Closed decision A; the gear since dispatch 2026-09-28-707):
+     * in portrait the strip is a row along the top, and Flash, Timer, Grid, Location and the gear each
+     * sit inside its bounds, in that order, none overlapping the next. Robolectric reports zero window
+     * insets (CLAUDE.md), so this says the row holds five chips; it says nothing about the punch-hole
+     * cut-out, which is a device item.
      */
     @Test
-    fun `in portrait all four chips sit inside the strip, Flash, Timer, Grid, Location, none overlapping`() {
+    fun `in portrait all five chips sit inside the strip, Flash, Timer, Grid, Location, gear, none overlapping`() {
         composeRule.setContent { Subject(FakeCameraCaptureSession()) }
         composeRule.waitForIdle()
         val strip = bounds(CAMERA_STRIP_TAG)
-        val tags = listOf(CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG)
+        val tags = listOf(CAMERA_FLASH_CHIP_TAG, CAMERA_TIMER_CHIP_TAG, CAMERA_GRID_CHIP_TAG, CAMERA_LOCATION_CHIP_TAG, CAMERA_SETTINGS_CHIP_TAG)
         val chips = tags.map { bounds(it) }
 
         tags.zip(chips).forEach { (tag, chip) ->
@@ -666,6 +666,9 @@ class InAppCameraDialogTest {
         val frame = bounds(IN_APP_CAMERA_TAG)
         assertEquals("precondition: portrait arrangement, shutter at the bottom", (frame.bottom - Spacing.lg).value, bounds(CAMERA_SHUTTER_TAG).bottom.value, 0.51f)
 
+        // RECORD -985: a full-screen window turned under the camera is now held in the natural frame
+        // (InAppCameraLargeScreenHoldTest); following the window is what a split-screen or freeform window does. Setup only.
+        Shadows.shadowOf(composeRule.activity).setInMultiWindowMode(true)
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
         assertEquals("the harness must report the pinned rotation", Surface.ROTATION_90, ShadowDisplay.getDefaultDisplay().rotation)
         orientation = Configuration.ORIENTATION_LANDSCAPE

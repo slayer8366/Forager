@@ -160,7 +160,7 @@ internal fun SidewaysCollapsedEntryRow(
         ) {
             EntryDay(entry.date, large = false)
             if (stats.isEmpty()) {
-                Text("Nothing kept", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Nothing included", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                     stats.forEach { EntryStat(it) }

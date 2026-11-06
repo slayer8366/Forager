@@ -18,6 +18,7 @@ import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PhotoStore
@@ -109,6 +110,7 @@ class MapRecordsDeletedNotDrawnTest {
             // As MainActivity wires them (MushroomLogViewModelFactory.kt).
             onFindDeleted = { id -> availability.onFindDeleted(id) },
             onPhotoDeleted = { id -> availability.onPhotoDeleted(id) },
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val logState by log.uiState.collectAsState()

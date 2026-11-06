@@ -1,8 +1,15 @@
 package com.zynergylabs.forager.app.ui.track
 
+import com.zynergylabs.forager.app.domain.SeaLevelConverter
+import com.zynergylabs.forager.app.domain.gpxHeightsAboveSeaLevel
+import com.zynergylabs.forager.app.ui.format.LocalSeaLevelConverter
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import android.widget.Toast
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -15,7 +22,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -41,22 +47,20 @@ import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import com.zynergylabs.forager.app.ui.log.opensRecordDetails
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.io.File
-import java.time.Instant
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import com.zynergylabs.forager.app.ui.format.displayDateTime
+import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
- * The Journal Records tab's "get a track out of the app" surface — mirrors
- * [com.zynergylabs.forager.app.ui.crash.CrashLogPanel]'s list-then-share shape exactly, the closest existing
- * precedent in this app for "list files this app owns, tap one to hand it to another app."
+ * The Journal Records tab's "get a track out of the app" surface: list files this app owns, tap one
+ * to hand it to another app.
  *
  * Field-test dispatch item 1: `GpxCodec` was fully implemented and tested but called from nowhere.
  * There is no dedicated track list/detail screen anywhere yet, and the dispatch is explicit not to
- * design one for this — the crash-log pattern is the most convenient real surface that already
- * does "list this app's own records, tap to share one."
+ * design one for this — a list-then-share panel is the most convenient surface for "list this
+ * app's own records, tap to share one."
  *
  * `internal`, no header: Journal restructure Stage 1 moved this into `RecordsTab` (`ui/log/`) as a
  * flat sub-tab, not a drill-in submenu — see that composable's own doc comment. A header with its
@@ -66,6 +70,7 @@ import kotlinx.coroutines.withContext
 @Composable
 internal fun TrackExportList(
     tracks: List<Track>,
+    modifier: Modifier = Modifier,
     /** All saved waypoints — filtered per track (by [Waypoint.trackId]) at the row that needs it. Defaults empty so a caller not exercising export (most existing screen tests) is unaffected. */
     waypoints: List<Waypoint> = emptyList(),
     /**
@@ -74,7 +79,6 @@ internal fun TrackExportList(
      * an empty record, same reasoning as [waypoints]; `MainActivity` wires the real one.
      */
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>> = { Result.success(emptyList()) },
-    modifier: Modifier = Modifier,
     /**
      * Journal redesign J5c: a tap on a row opens that track's details sheet (`RecordDetailsSheet`),
      * given the track's id. `null`, the default, leaves the rows without a tap, as before.
@@ -92,9 +96,13 @@ internal fun TrackExportList(
 ) {
     // One open row at a time, and a touch elsewhere on the list closes it (J4b L6).
     val swipeGroup = rememberSwipeRevealGroup()
-    if (tracks.isEmpty()) {
+    // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"; motion/ListMotion.kt): a deleted track's row fades and
+    // shrinks while the rows below close up, and Undo brings it back the way it went. The last one leaves before the empty text.
+    val rows = rememberListRows(tracks, key = { it.id })
+    if (rows.isEmpty()) {
         Text(
-            "No recorded tracks yet.",
+            // Dispatch 2026-10-28-08, Amendment 1 (RECORD -1781), the owner's words; was "No recorded tracks yet.".
+            "No recorded tracks yet. Tap the record button on the map to record one.",
             style = MaterialTheme.typography.bodyMedium,
             modifier = modifier.fillMaxWidth().padding(Spacing.lg),
         )
@@ -111,8 +119,8 @@ internal fun TrackExportList(
         if (errorMessage != null) {
             Text(errorMessage, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
         }
-        tracks.forEach { track ->
-            key(track.id) {
+        rows.forEach { listRow ->
+            key(listRow.key) { ListRowMotion(listRow) { track ->
                 val row: @Composable () -> Unit = {
                     TrackExportRow(
                         track = track,
@@ -132,7 +140,7 @@ internal fun TrackExportList(
                 } else {
                     row()
                 }
-            }
+            } }
         }
     }
 }
@@ -151,11 +159,13 @@ internal fun TrackExportRow(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val seaLevelConverter = LocalSeaLevelConverter.current
+    val is24Hour = is24HourClock()
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .testTag(trackExportRowTag(track.id))
-            .then(if (onClick != null) Modifier.opensRecordDetails(trackTitle(track), onClick) else Modifier)
+            .then(if (onClick != null) Modifier.opensRecordDetails(trackTitle(track, is24Hour), onClick) else Modifier)
             .heightIn(min = 48.dp)
             .padding(vertical = Spacing.xs),
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -175,19 +185,22 @@ internal fun TrackExportRow(
                 modifier = Modifier.size(TRACK_ROW_THUMBNAIL_SIZE).testTag("track-thumbnail-${track.id}"),
             )
             Column {
-                Text(formatTrackTimestamp(track), style = MaterialTheme.typography.bodyLarge)
-                Text(trackSubtitle(track), style = MaterialTheme.typography.bodySmall)
+                // Plan T16: the track's name where it has one (an imported track always does), its start
+                // time otherwise, as the details sheet's title already reads (trackTitle). A recorded walk has
+                // no name, so its row reads as before.
+                Text(trackTitle(track, is24Hour), style = MaterialTheme.typography.bodyLarge)
+                Text(trackSubtitle(track, is24Hour), style = MaterialTheme.typography.bodySmall)
             }
         }
         // testTag, not contentDescription alone, is what a test (and this dispatch's own testing
         // note) needs to find this by: a contentDescription proves TalkBack can reach it, not that
         // a sighted tester can find it visually — see this dispatch's item 2 for the bug that shape
         // of assertion hid for an entire release.
-        IconButton(
-            onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord) } },
+        BouncingIconButton(
+            onClick = { scope.launch { shareTrackGpx(context, track, waypoints, getFullRecord, seaLevelConverter) } },
             modifier = Modifier.testTag("share-track-${track.id}"),
         ) {
-            Icon(Icons.Filled.Share, contentDescription = "Share track recorded ${formatTrackTimestamp(track)}")
+            Icon(Icons.Filled.Share, contentDescription = "Share track recorded ${displayDateTime(track.startedAtEpochMillis, is24Hour)}")
         }
     }
 }
@@ -197,7 +210,7 @@ internal fun TrackExportRow(
  * fixes (timestamp-filter dispatch, Item 3) — what it left out, so a short or empty track is never a
  * silent one. The ordinary track, including one the rule quietly cleaned, reads exactly as before.
  */
-internal fun trackSubtitle(track: Track): String {
+internal fun trackSubtitle(track: Track, is24HourClock: Boolean): String {
     val pointCount = track.points.size
     val pointsText = if (pointCount == 1) "1 point" else "$pointCount points"
     val note = networkFixExclusionNote(track)
@@ -206,32 +219,35 @@ internal fun trackSubtitle(track: Track): String {
         note != null -> "$pointsText · $note"
         else -> pointsText
     }
+    // Plan T16: an imported track says so first ("Imported" label, the owner's answer in -636), then the
+    // date it carries, since its title is its name rather than its time.
+    if (track.importedAtEpochMillis != null) return "$IMPORTED_LABEL · ${displayDateTime(track.startedAtEpochMillis, is24HourClock)} · $body"
     return if (track.endedAtEpochMillis == null) "$body · recording" else body
 }
 
-private fun formatTrackTimestamp(track: Track): String = formatRecordTimestamp(track.startedAtEpochMillis)
+/** Plan T16: the label an imported track wears in Records' rows and its details. */
+internal const val IMPORTED_LABEL = "Imported"
 
-/**
- * A record's moment in this list's own format, "Sep 20, 2026, 6:42 PM" ([DISPLAY_FORMAT], the same
- * pattern `CrashLogPanel` uses), in the device's zone. Widened for journal redesign J5c, whose
- * details sheet prints a waypoint's creation time, a track's start and end and a region's download
- * time with it: the one existing date-and-time formatter in the Records rows.
- */
-internal fun formatRecordTimestamp(epochMillis: Long): String =
-    DISPLAY_FORMAT.format(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()))
+/** Plan T16, "Import, show "No times"" (-636): what stands where a duration or a time would be for a track whose file had none. */
+internal const val NO_TIMES_IN_FILE = "No times in file"
+
 
 /** Whether Delete may be offered for this track: never while it is still recording (its end time is null). Part 2 follow-ups F1 item 5. */
 internal val Track.canBeDeleted: Boolean get() = endedAtEpochMillis != null
 
-/** A track's name, or its start time when it has none: what the row shows as its title (J5c's sheet title too). */
-internal fun trackTitle(track: Track): String = track.name ?: formatTrackTimestamp(track)
+/**
+ * A track's name, or its start time when it has none: what the row shows as its title (J5c's sheet title too). The start time
+ * reads "Oct 7, 2026, 2:14 PM", or "Oct 7, 2026, 14:14" on a phone set to 24-hour time (data part D, RECORD -702: the row and
+ * the sheet agreed only on a 12-hour phone until then, data part B's report item 8).
+ */
+internal fun trackTitle(track: Track, is24HourClock: Boolean): String =
+    track.name ?: displayDateTime(track.startedAtEpochMillis, is24HourClock)
 
 /** The Tracks chip's row for [trackId] (J5c: the details tap is tested at several points across it). */
 internal fun trackExportRowTag(trackId: String): String = "track-row-$trackId"
 
 private val TRACK_ROW_THUMBNAIL_SIZE = 40.dp
 
-private val DISPLAY_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a")
 
 /**
  * Writes [track] to a GPX file (disk I/O off the composing thread) and hands it to the share
@@ -249,28 +265,47 @@ internal suspend fun shareTrackGpx(
     track: Track,
     allWaypoints: List<Waypoint>,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
-) = exportAndShareTrack(context, track, allWaypoints.filter { it.trackId == track.id }, getFullRecord)
+    /** Dispatch 2026-10-28-13: the file's `<ele>` above sea level ([gpxHeightsAboveSeaLevel]); the caller's [LocalSeaLevelConverter]. */
+    seaLevelConverter: SeaLevelConverter,
+) = exportAndShareTrack(context, track, allWaypoints.filter { it.trackId == track.id }, getFullRecord, seaLevelConverter)
 
 private suspend fun exportAndShareTrack(
     context: Context,
     track: Track,
     waypoints: List<Waypoint>,
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
+    seaLevelConverter: SeaLevelConverter,
 ) {
-    val fullRecord = getFullRecord(track.id)
+    val fullRecordRead = getFullRecord(track.id)
         .onFailure { error -> Log.w("TrackExportPanel", "Couldn't load track ${track.id}'s full record; exporting without it.", error) }
-        .getOrDefault(emptyList())
+    val fullRecord = fullRecordRead.getOrDefault(emptyList())
     val file = withContext(Dispatchers.IO) {
-        TrackGpxExporter.forContext(context).write(track, fullRecord = fullRecord, waypoints = waypoints)
+        val (shownTrack, shownWaypoints) = gpxHeightsAboveSeaLevel(track, waypoints, seaLevelConverter)
+        TrackGpxExporter.forContext(context).write(shownTrack, fullRecord = fullRecord, waypoints = shownWaypoints)
+    }
+    // Dispatch 2026-09-28-658 (R9): an export without the full record is partial, and the person
+    // sharing it is told so before the share sheet opens, not left to believe it is complete.
+    // On the main thread explicitly: under the compose test harness this coroutine resumed from the
+    // IO hop on a thread with no Looper, and a Toast needs one (seen in TrackExportPartialTest).
+    if (fullRecordRead.isFailure) {
+        withContext(Dispatchers.Main) { Toast.makeText(context, PARTIAL_GPX_EXPORT_MESSAGE, Toast.LENGTH_LONG).show() }
     }
     context.startActivity(Intent.createChooser(shareGpxIntent(context, file), "Share track"))
 }
 
 /**
+ * Shown before the share sheet when the track's full GPS record could not be read, so the file holds
+ * the track as the app shows it but not the raw record (dispatch 2026-09-28-658, R9). The owner's wording
+ * (RECORD -660, Amendment 1 to -658).
+ */
+internal const val PARTIAL_GPX_EXPORT_MESSAGE =
+    "Couldn't add the full GPS record. This file has the track only. Share again to retry."
+
+/**
  * Builds the `ACTION_SEND` intent for [file] — split out from [exportAndShareTrack] so the intent's
  * own shape (mime type, URI, flags) is testable without actually driving a share sheet, the same
  * split `com.zynergylabs.forager.app.ui.availability.directionsIntent`/`launchDirections` uses. Uses the same
- * `${applicationId}.fileprovider` authority the crash-log share action does — see
+ * `${applicationId}.fileprovider` authority as the app's other shares — see
  * `res/xml/file_paths.xml`'s `tracks` cache-path entry for why a different path, not a different
  * authority, is what's new here.
  */

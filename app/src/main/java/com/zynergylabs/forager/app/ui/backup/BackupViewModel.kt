@@ -238,6 +238,10 @@ class BackupViewModel(
             }
             val written = try {
                 sink.use { backup.backUp(it, policy) }
+            } catch (e: CancellationException) {
+                // Dispatch 2026-09-28-658 (D1): a cancel (the screen's scope ending) is not a failed
+                // write. It is not logged as one, the file is not removed as one, and nothing is shown.
+                throw e
             } catch (e: Exception) {
                 Result.failure(e)
             }
@@ -382,6 +386,10 @@ class BackupViewModel(
         scope.launch {
             val restored = try {
                 files.openForRead(uri).use { source -> backup.restore(source, mode) }
+            } catch (e: CancellationException) {
+                // Dispatch 2026-09-28-658 (D1): a cancel is not "Couldn't restore that backup.", as
+                // the reload below already treats it.
+                throw e
             } catch (e: Exception) {
                 Result.failure(e)
             }

@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.adaptive.ProvideConfigurationAndWindow
 import android.app.Application
 import android.content.ComponentName
 import android.view.Surface
@@ -10,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsOn
@@ -28,6 +30,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onChildren
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
@@ -38,6 +41,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.FindDecision
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
+import com.zynergylabs.forager.app.ui.log.CARTOGRAPHY_MAP_TEST_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -94,12 +98,17 @@ class AvailabilityScreenJournalShortWindowTest {
     private val openedEntries = mutableListOf<String>()
     private val cameraTargets = mutableListOf<com.zynergylabs.forager.app.ui.log.InAppCameraTarget>()
 
-    private fun setScreen(rotation: Int, entries: List<CartographyEntry> = MANY_ENTRIES, drafts: List<CartographyEntry> = emptyList()) {
+    private fun setScreen(
+        rotation: Int,
+        entries: List<CartographyEntry> = MANY_ENTRIES,
+        drafts: List<CartographyEntry> = emptyList(),
+        entryMapData: com.zynergylabs.forager.app.domain.CartographyEntryMapData? = null,
+    ) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             rotationSeenByScreen = LocalView.current.display?.rotation
             var cartography by androidx.compose.runtime.remember { mutableStateOf(CartographyUiState(entries = entries, draftEntries = drafts)) }
-            shortWindowScreen(
+            ShortWindowScreenUnderTest(
                 cartography = cartography,
                 onStart = { date -> startedEntries += date },
                 onOpen = { id ->
@@ -108,6 +117,7 @@ class AvailabilityScreenJournalShortWindowTest {
                 },
                 onClose = { cartography = cartography.copy(editingEntry = null) },
                 onOpenCamera = { target -> cameraTargets += target },
+                entryMapData = entryMapData,
             )
         }
         composeRule.waitForIdle()
@@ -208,6 +218,240 @@ class AvailabilityScreenJournalShortWindowTest {
         node(SWITCH).assertIsDisplayed()
     }
 
+    // ── RECORD -1244: the revealed header slides down, and up when it hides ──
+
+    /**
+     * The owner (RECORD -1244): "And have the search bar slide up and down when revealing/hiding". On the test clock: a frame part
+     * way through each transition shows the pill partly above its place and the row below it part way down, so it is animated, not
+     * a jump; the end states are the pill at its place (the left, as on List and Seasonal) and then no pill.
+     */
+    @Test
+    fun `RECORD -1244 the revealed header slides down into place, and slides up when hidden`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        val rowHidden = bounds(SHORT_HEADER).top
+        composeRule.mainClock.autoAdvance = false
+        node(SEARCH_ICON).performTouchInput { click(center) }
+        repeat(4) { composeRule.mainClock.advanceTimeByFrame() }
+        val midPill = bounds(SEARCH_ENTRY_BAR_TAG)
+        val midRow = bounds(SHORT_HEADER).top
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
+        val rowShown = bounds(SHORT_HEADER).top
+        assertTrue("revealed, the row below sits under the pill ($rowShown, pill bottom ${pill.bottom})", rowShown >= pill.bottom - 0.5.dp && rowShown > rowHidden)
+        assertTrue("part way in, the pill $midPill is above its place ${pill.top}", midPill.top < pill.top - 0.5.dp)
+        assertTrue("part way in, the row ($midRow) is between its two places ($rowHidden, $rowShown)", midRow > rowHidden + 0.5.dp && midRow < rowShown - 0.5.dp)
+        assertEquals("the pill takes the left place, as on the other tabs (no insets: the window's left)", 0f, pill.left.value, 0.5f)
+
+        composeRule.mainClock.autoAdvance = false
+        node(SEARCH_ICON).performTouchInput { click(center) }
+        repeat(4) { composeRule.mainClock.advanceTimeByFrame() }
+        val outPill = bounds(SEARCH_ENTRY_BAR_TAG)
+        val outRow = bounds(SHORT_HEADER).top
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        assertTrue("part way out, the pill $outPill is above its place ${pill.top}", outPill.top < pill.top - 0.5.dp)
+        assertTrue("part way out, the row ($outRow) is between its two places", outRow > rowHidden + 0.5.dp && outRow < rowShown - 0.5.dp)
+        assertTrue("hidden at the end", !exists(SEARCH_ENTRY_BAR_TAG))
+        assertEquals("the row is back at the top", rowHidden.value, bounds(SHORT_HEADER).top.value, 0.5f)
+    }
+
+    // ── RECORD -1327 to -1330: an open Journal entry hides the search bar on the Journal only ──
+
+    private fun assertPillOnScreen(where: String) {
+        assertTrue("$where: the search pill is composed", exists(SEARCH_ENTRY_BAR_TAG))
+        node(SEARCH_ENTRY_BAR_TAG).assertIsDisplayed()
+        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
+        assertTrue("$where: the search pill has a size ($pill)", pill.right - pill.left > 40.dp && pill.bottom - pill.top > 20.dp)
+        // F1's focus race (LeavingTheJournalFixesTest, RECORD -692): the bar coming back must not take focus and open its dropdown.
+        assertTrue("$where: the bar's dropdown has not opened by itself", !exists(SEARCH_DROPDOWN_TAG))
+    }
+
+    private fun goTo(tab: String) {
+        composeRule.onNodeWithText(tab).performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        composeRule.onNodeWithText(tab).assertIsSelected()
+    }
+
+    private fun openFirstEntry() {
+        composeRule.onNodeWithTag(cardTag(MANY_ENTRIES[0].id)).performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertEquals("positive control: the entry opened", listOf(MANY_ENTRIES[0].id), openedEntries)
+    }
+
+    @Test
+    fun `RECORD -1330 from the start, List and Seasonal show the search pill in landscape`() {
+        setScreen(Surface.ROTATION_90)
+        goTo("List")
+        assertPillOnScreen("List")
+        goTo("Seasonal")
+        assertPillOnScreen("Seasonal")
+    }
+
+    @Test
+    fun `RECORD -1330 after the Journal with the pill hidden, List and Seasonal show the search pill`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        assertTrue("positive control: hidden on the Journal", !exists(SEARCH_ENTRY_BAR_TAG))
+        goTo("List")
+        assertPillOnScreen("List after the Journal")
+        goTo("Seasonal")
+        assertPillOnScreen("Seasonal after the Journal")
+    }
+
+    /** The owner's S26 path (RECORD -1330): an entry open on the Journal, then List, then Seasonal. Failed on every build until -1330. */
+    @Test
+    fun `RECORD -1330 with a Journal entry left open, List and Seasonal show the search pill`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        openFirstEntry()
+        goTo("List")
+        assertPillOnScreen("List with a Journal entry open")
+        goTo("Seasonal")
+        assertPillOnScreen("Seasonal with a Journal entry open")
+    }
+
+    /** -692 kept: back on the Journal with the entry still open, the bar and the search icon stay hidden there. */
+    @Test
+    fun `RECORD -1330 back on the Journal with the entry still open, the bar and the search icon stay hidden`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        openFirstEntry()
+        assertTrue("on the open entry: no bar", !exists(SEARCH_ENTRY_BAR_TAG))
+        goTo("List")
+        assertPillOnScreen("List with a Journal entry open")
+        goTo("Journal")
+        assertTrue("back on the open entry: no bar", !exists(SEARCH_ENTRY_BAR_TAG))
+        assertTrue("back on the open entry: no search icon", !exists(SEARCH_ICON))
+    }
+
+    // ── RECORD -1330 to -1333: the switch line slides down with the pill; a map under it does not move ──
+
+    private fun near(a: DpRect, b: DpRect) = listOf(a.left - b.left, a.top - b.top, a.right - b.right, a.bottom - b.bottom).all { kotlin.math.abs(it.value) <= 0.5f }
+
+    private fun checkOfflineMapsReveal(rotation: Int) {
+        setScreen(rotation)
+        openJournal()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        node(CHIP_OFFLINE).performClick()
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertTrue("hidden to begin with", !exists(SEARCH_ENTRY_BAR_TAG))
+        val lineHidden = bounds(SHORT_HEADER)
+        val map = bounds(SHORT_STUB_MAP_TAG)
+        assertEquals("search hidden: the switch line is at the top, with no strip above it", 0f, lineHidden.top.value, 0.5f)
+
+        composeRule.mainClock.autoAdvance = false
+        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+        val inFrames = (1..6).map { composeRule.mainClock.advanceTimeByFrame(); bounds(SHORT_HEADER) to bounds(SHORT_STUB_MAP_TAG) }
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
+        val lineShown = bounds(SHORT_HEADER)
+        println("MEASURED -1333 rotation=$rotation: line hidden $lineHidden, shown $lineShown, pill $pill, map $map, frames ${inFrames.map { it.first.top.value }}")
+        assertTrue("positive control: part way in, the switch line is between its two places", inFrames.any { it.first.top > lineHidden.top + 0.5.dp && it.first.top < lineShown.top - 0.5.dp })
+        for ((i, f) in inFrames.withIndex()) assertTrue("frame ${i + 1} in: the map keeps its bounds ($map, then ${f.second})", near(map, f.second))
+        assertEquals("search open: the switch line has moved down by the bar's height", (pill.bottom - pill.top).value, (lineShown.top - lineHidden.top).value, 0.5f)
+        assertTrue("search open: the map keeps its bounds ($map, then ${bounds(SHORT_STUB_MAP_TAG)})", near(map, bounds(SHORT_STUB_MAP_TAG)))
+        assertTrue("search open: the bar $pill does not reach the map $map", pill.bottom <= map.top + 0.5.dp)
+        assertTrue("search open: the switch line $lineShown does not reach the map $map", lineShown.bottom <= map.top + 0.5.dp)
+        assertEquals("search open: the small gap between the switch line and the map", JOURNAL_MAP_TOP_GAP.value, (map.top - lineShown.bottom).value, 0.5f)
+
+        composeRule.mainClock.autoAdvance = false
+        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+        val outFrames = (1..6).map { composeRule.mainClock.advanceTimeByFrame(); bounds(SHORT_STUB_MAP_TAG) }
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        for ((i, f) in outFrames.withIndex()) assertTrue("frame ${i + 1} out: the map keeps its bounds ($map, then $f)", near(map, f))
+        assertTrue("hidden again", !exists(SEARCH_ENTRY_BAR_TAG))
+        assertEquals("search closed: the switch line is back at the top", lineHidden.top.value, bounds(SHORT_HEADER).top.value, 0.5f)
+        assertTrue("search closed: the map keeps its bounds", near(map, bounds(SHORT_STUB_MAP_TAG)))
+    }
+
+    @Test fun `RECORD -1333 at ROTATION_90 on Offline maps the switch line slides down with the bar and the map does not move`() = checkOfflineMapsReveal(Surface.ROTATION_90)
+    @Test fun `RECORD -1333 at ROTATION_270 on Offline maps the switch line slides down with the bar and the map does not move`() = checkOfflineMapsReveal(Surface.ROTATION_270)
+
+    @Test
+    fun `RECORD -1333 on Entries the switch line sits at the top and slides down with the bar, and back`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        val hidden = bounds(SHORT_HEADER)
+        assertEquals("search hidden: the switch line is at the top", 0f, hidden.top.value, 0.5f)
+        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        val pill = bounds(SEARCH_ENTRY_BAR_TAG)
+        assertEquals("search open: the line has moved down by the bar's height", (pill.bottom - pill.top).value, (bounds(SHORT_HEADER).top - hidden.top).value, 0.5f)
+        touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertEquals("search closed: the line is back at the top", hidden.top.value, bounds(SHORT_HEADER).top.value, 0.5f)
+    }
+
+    /**
+     * The owner (RECORD -1333): "Make sure the map doesn't move." An open entry's map, opening and closing the entry, with search
+     * hidden and with it open beforehand. The map's arrival a moment after the report opens (GrowIn, -682) stays, on the owner's
+     * word (RECORD -1334), so the map is checked from the frame it reaches its place to the end of the opening, then at every frame
+     * of the close while it is on screen. Search cannot show over an open entry (it is held hidden on the Journal, -692), so there
+     * is no search case while the entry is open.
+     */
+    private fun checkEntryMapStill(searchOpenFirst: Boolean) {
+        setScreen(Surface.ROTATION_90, entryMapData = ENTRY_MAP_DATA)
+        openJournal()
+        if (searchOpenFirst) {
+            touch(SEARCH_ICON, Offset(0.5f, 0.5f))
+            composeRule.mainClock.advanceTimeBy(2_000)
+            composeRule.waitForIdle()
+            assertTrue("positive control: search is open before the entry opens", exists(SEARCH_ENTRY_BAR_TAG))
+        }
+        composeRule.mainClock.autoAdvance = false
+        composeRule.onNodeWithTag(cardTag(MANY_ENTRIES[0].id)).performClick()
+        val opening = mutableListOf<DpRect>()
+        repeat(40) {
+            composeRule.mainClock.advanceTimeByFrame()
+            if (exists(CARTOGRAPHY_MAP_TEST_TAG)) opening += bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        }
+        composeRule.mainClock.autoAdvance = true
+        composeRule.mainClock.advanceTimeBy(2_000)
+        composeRule.waitForIdle()
+        assertEquals("positive control: the entry opened", listOf(MANY_ENTRIES[0].id), openedEntries)
+        assertTrue("positive control: the entry's map is shown", exists(CARTOGRAPHY_MAP_TEST_TAG))
+        val settled = bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        assertTrue("with the entry open, search is held hidden", !exists(SEARCH_ENTRY_BAR_TAG))
+        assertEquals("with the entry open, the switch line is at the top", 0f, bounds(SHORT_HEADER).top.value, 0.5f)
+        println("MEASURED -1333 entry map, search open first=$searchOpenFirst: settled $settled, opening tops ${opening.map { it.top.value }}, heights ${opening.map { (it.bottom - it.top).value }}")
+        assertTrue("positive control: the map was seen while the entry opened (${opening.size} frames)", opening.isNotEmpty())
+        // RECORD -1334 (the owner: "That map sliding is fine since it's acting like it's opening the map. ... Keep it."): the
+        // map's arrival (GrowIn, -682) is left to play; from the frame it reaches its place, it holds there.
+        val arrived = opening.indexOfFirst { near(it, settled) }
+        assertTrue("the map's arrival ends in its place within the frames watched (tops ${opening.map { it.top.value }})", arrived >= 0)
+        for (i in arrived until opening.size) assertTrue("opening, frame ${i + 1}, after the arrival: the map holds its place (${opening[i]}, settled $settled)", near(opening[i], settled))
+
+        composeRule.mainClock.autoAdvance = false
+        composeRule.activity.onBackPressedDispatcher.onBackPressed()
+        val closing = mutableListOf<DpRect>()
+        repeat(40) {
+            composeRule.mainClock.advanceTimeByFrame()
+            if (exists(CARTOGRAPHY_MAP_TEST_TAG)) closing += bounds(CARTOGRAPHY_MAP_TEST_TAG)
+        }
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        println("MEASURED -1333 entry map closing tops ${closing.map { it.top.value }}, heights ${closing.map { (it.bottom - it.top).value }}")
+        assertTrue("positive control: the map was seen while the entry closed (${closing.size} frames)", closing.isNotEmpty())
+        for ((i, f) in closing.withIndex()) {
+            assertEquals("closing, frame ${i + 1}: the map's top does not move", settled.top.value, f.top.value, 0.5f)
+            assertEquals("closing, frame ${i + 1}: the map's height does not change", (settled.bottom - settled.top).value, (f.bottom - f.top).value, 0.5f)
+        }
+        assertTrue("the entry closed", !exists(CARTOGRAPHY_MAP_TEST_TAG))
+    }
+
+    @Test fun `RECORD -1333 an open entry's map does not move as the entry opens and closes, search hidden`() = checkEntryMapStill(searchOpenFirst = false)
+    @Test fun `RECORD -1333 an open entry's map does not move as the entry opens and closes, search open first`() = checkEntryMapStill(searchOpenFirst = true)
+
     // ── L1: one pinned 48 dp header row ──
 
     private fun checkHeaderRow(rotation: Int) {
@@ -249,6 +493,9 @@ class AvailabilityScreenJournalShortWindowTest {
         setScreen(Surface.ROTATION_270)
         openJournal()
         node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        // On All: Records opens on Finds since RECORD -868, whose gallery puts "New find" in this row (RECORD -753).
+        node(CHIP_ALL).performClick()
         composeRule.waitForIdle()
         node(SHORT_HEADER).assertIsDisplayed()
         node(SEARCH_ICON).assertIsDisplayed()
@@ -366,23 +613,71 @@ class AvailabilityScreenJournalShortWindowTest {
         node(DRAFTS_CHIP).assertIsDisplayed()
     }
 
+    // ── RECORD -1243: on Records, the chips are on the switch's line, in landscape ──
+    //
+    // The owner (RECORD -1243): "In offline maps: still have the chips be on the same line as the entries | records. But
+    // centered between the entries | records and search icon, scrollable with offline maps showing and highlighted", then
+    // "All of Records, landscape (Recommended)". The chip row's own line (J5's L3 second row on Records) is gone, so is its
+    // hide-on-scroll: this replaces `L3 on Records the filter chip row hides on a real scroll down and returns on a scroll up`,
+    // which asserted that the row hid on a scroll down, came back on a scroll up, and sat below L1.
+
+    private fun checkChipsOnSwitchLine(rotation: Int) {
+        setScreen(rotation)
+        openJournal()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        assertEquals("one chip row", 1, composeRule.onAllNodesWithTag(CHIP_ROW).fetchSemanticsNodes().size)
+        val header = bounds(SHORT_HEADER)
+        val row = bounds(CHIP_ROW)
+        val switch = bounds(SWITCH)
+        val icon = bounds(SEARCH_ICON)
+        assertTrue("the chip row $row sits in the switch's line $header", row.top >= header.top - 0.5.dp && row.bottom <= header.bottom + 0.5.dp)
+        assertTrue("after the switch ($switch)", row.left >= switch.right - 0.5.dp)
+        assertTrue("before the search icon ($icon)", row.right <= icon.left + 0.5.dp)
+        // Centred in the row's space between the switch and the icon (the slot the row lays out there; the icons' tagged bounds
+        // are their drawn size, inside a larger touch target, so their edges are not the slot's).
+        val middle = bounds("journal-short-header-middle")
+        assertTrue("the space $middle lies between the switch $switch and the icon $icon", middle.left >= switch.right - 0.5.dp && middle.right <= icon.left + 0.5.dp)
+        assertEquals("centred in that space", ((middle.left + middle.right) / 2).value, ((row.left + row.right) / 2).value, 0.5f)
+    }
+
+    @Test fun `RECORD -1243 at ROTATION_90 the Records chips sit on the switch's line, centred before the search icon`() = checkChipsOnSwitchLine(Surface.ROTATION_90)
+    @Test fun `RECORD -1243 at ROTATION_270 the Records chips sit on the switch's line, centred before the search icon`() = checkChipsOnSwitchLine(Surface.ROTATION_270)
+
     @Test
-    fun `L3 on Records the filter chip row hides on a real scroll down and returns on a scroll up`() {
+    fun `RECORD -1243 the selected chip is scrolled into view and highlighted when Records opens`() {
+        setScreen(Surface.ROTATION_90)
+        openJournal()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        node(CHIP_OFFLINE).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        // Away to Entries and back: Records opens again, its chips laid out afresh.
+        node(SWITCH_ENTRIES).performClick()
+        composeRule.waitForIdle()
+        node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        val row = bounds(CHIP_ROW)
+        val chip = bounds(CHIP_OFFLINE)
+        assertTrue("the chip row $row is on the switch's line", row.bottom <= bounds(SHORT_HEADER).bottom + 0.5.dp)
+        assertTrue("Offline maps $chip is wholly in view in the chip row $row", chip.left >= row.left - 0.5.dp && chip.right <= row.right + 0.5.dp)
+        node(CHIP_OFFLINE).assertIsSelected()
+    }
+
+    @Test
+    fun `RECORD -1243 on Records the chips stay on the line while the list scrolls`() {
         setScreen(Surface.ROTATION_270)
         openJournal()
         node(SWITCH_RECORDS).performClick()
         composeRule.waitForIdle()
-        node(CHIP_ROW).assertIsDisplayed()
-        // The All logbook, with more rows than fit: sixteen waypoints on sixteen days.
+        node(CHIP_ALL).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        val before = bounds(CHIP_ROW)
         val list = composeRule.onNode(hasScrollAction() and hasAnyDescendant(hasText("Pin 1")))
         list.performTouchInput { swipeUp() }
         composeRule.waitForIdle()
-        assertTrue("the chip row hides on a scroll down", !exists(CHIP_ROW))
-        node(SHORT_HEADER).assertIsDisplayed()
-        list.performTouchInput { swipeDown() }
-        composeRule.waitForIdle()
         node(CHIP_ROW).assertIsDisplayed()
-        assertTrue("the chip row is the second row, below L1", bounds(CHIP_ROW).top >= bounds(SHORT_HEADER).bottom - 0.5.dp)
+        assertEquals("the chip row did not move", before.top.value, bounds(CHIP_ROW).top.value, 0.5f)
     }
 
     // ── The height budget ──
@@ -401,6 +696,9 @@ class AvailabilityScreenJournalShortWindowTest {
         assertTrue("two card rows fit in the content area: the second row ($third) ends by ${grid.bottom}", third.bottom <= grid.bottom + 0.5.dp)
         assertTrue("the first card row starts in the content area", first.top >= grid.top - 0.5.dp)
         node(SWITCH_RECORDS).performClick()
+        composeRule.waitForIdle()
+        // Records opens on Finds since RECORD -868; the budget is measured on the All logbook, as before.
+        node(CHIP_ALL).performClick()
         composeRule.waitForIdle()
         val rl1 = bounds(SHORT_HEADER)
         val chips = bounds(CHIP_ROW)
@@ -435,7 +733,7 @@ class AvailabilityScreenJournalShortWindowTest {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
         composeRule.setContent {
             fontScaleSeenByScreen = androidx.compose.ui.platform.LocalDensity.current.fontScale
-            shortWindowScreen(
+            ShortWindowScreenUnderTest(
                 cartography = CartographyUiState(),
                 onStart = {},
                 onOpen = {},
@@ -466,18 +764,28 @@ class AvailabilityScreenJournalShortWindowTest {
         return overflow to "row ${row.left}..${row.right} (${row.right - row.left}), chips ${first.left}..${last.right}, padding $padding, content ends at $contentEnd"
     }
 
+    /**
+     * Was `L5a guard - at 640 dp the five Records chips, icons and counts, fit one line without scrolling` (continuation
+     * 2026-09-27-27, the owner: "Tighter chips"), asserting a 640 dp row and no overflow. Superseded in landscape by RECORD -1243:
+     * the chips share the switch's line and "Have the chips be scrollable". The landscape guard is now that the five chips stay
+     * on one line, in the switch's line, and that a row narrower than its chips scrolls sideways. Portrait keeps J1's row and
+     * spacing (`L5a portrait chips are unchanged`, below, unchanged).
+     */
     @Test
     @GraphicsMode(GraphicsMode.Mode.NATIVE)
-    fun `L5a guard - at 640 dp the five Records chips, icons and counts, fit one line without scrolling`() {
+    fun `L5a guard, landscape since RECORD -1243 - the five Records chips stay on one line in the switch's line, scrolling sideways`() {
         openRecordsWithCounts()
         assertEquals("this case is at the default font scale", 1f, fontScaleSeenByScreen)
         val row = bounds(CHIP_ROW)
-        assertEquals("the chip row is B3's capped 640 dp", 640f, (row.right - row.left).value, 0.5f)
+        val header = bounds(SHORT_HEADER)
+        assertTrue("the chip row $row is in the switch's line $header", row.top >= header.top - 0.5.dp && row.bottom <= header.bottom + 0.5.dp)
         val chips = listOf(CHIP_ALL, "records-chip-finds", "records-chip-tracks", CHIP_WAYPOINTS, CHIP_OFFLINE).map { bounds(it) }
         chips.forEach { assertEquals("one line", chips.first().top.value, it.top.value, 0.5f) }
         val (overflow, detail) = chipRowOverflow()
         println("J5-L5A fontScale=1.0 overflow=$overflow $detail")
-        assertTrue("the chip row's content is ${overflow}dp wider than the row: $detail", overflow <= 0f)
+        if (overflow > 0f) {
+            assertTrue("a row narrower than its chips scrolls sideways: $detail", composeRule.onAllNodes(hasTestTag(CHIP_ROW) and hasScrollAction()).fetchSemanticsNodes().size == 1)
+        }
     }
 
     /**
@@ -536,8 +844,8 @@ class AvailabilityScreenJournalShortWindowTest {
                 }
             }
             var cartography by androidx.compose.runtime.remember { mutableStateOf(CartographyUiState(entries = MANY_ENTRIES, draftEntries = drafts)) }
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalConfiguration provides configuration) {
-                shortWindowScreen(
+            ProvideConfigurationAndWindow(configuration) {
+                ShortWindowScreenUnderTest(
                     cartography = cartography,
                     onStart = { date -> startedEntries += date },
                     onOpen = { id -> cartography = cartography.copy(editingEntry = (cartography.entries + cartography.draftEntries).first { it.id == id }) },
@@ -657,7 +965,17 @@ private val TWO_DRAFTS: List<CartographyEntry> = listOf(
     CartographyEntry.draft(id = "draft-b", date = LocalDate.of(2026, 9, 24), updatedAtEpochMillis = 1L),
 )
 
-private val SHORT_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
+private val SHORT_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag(SHORT_STUB_MAP_TAG)) }
+
+/** The stub map's tag (RECORD -1330's gap test measures the Offline maps picker's map). */
+private const val SHORT_STUB_MAP_TAG = "short-stub-map"
+
+/** An entry map with one waypoint, so an open entry's report draws its map (RECORD -1333's entry check). */
+private val ENTRY_MAP_DATA = com.zynergylabs.forager.app.domain.CartographyEntryMapData(
+    emptyList(), emptyList(),
+    listOf(com.zynergylabs.forager.app.domain.model.RecordPoint("wp-entry", com.zynergylabs.forager.app.domain.model.LatLng(45.52, -122.68))),
+    emptyList(), emptyList(),
+)
 
 /** Enough waypoints that the All logbook scrolls in a short window. */
 private val MANY_WAYPOINTS = (1..16).map { i ->
@@ -668,7 +986,7 @@ private val MANY_WAYPOINTS = (1..16).map { i ->
 }
 
 @androidx.compose.runtime.Composable
-private fun shortWindowScreen(
+private fun ShortWindowScreenUnderTest(
     cartography: CartographyUiState,
     onStart: (LocalDate) -> Unit,
     onOpen: (String) -> Unit,
@@ -676,41 +994,59 @@ private fun shortWindowScreen(
     onOpenCamera: (com.zynergylabs.forager.app.ui.log.InAppCameraTarget) -> Unit = {},
     logState: com.zynergylabs.forager.app.ui.log.MushroomLogUiState = com.zynergylabs.forager.app.ui.log.MushroomLogUiState(),
     tracks: List<com.zynergylabs.forager.app.domain.model.Track> = emptyList(),
+    entryMapData: com.zynergylabs.forager.app.domain.CartographyEntryMapData? = null,
 ) {
     AvailabilityScreen(
         uiState = AvailabilityUiState(),
-        onUseCurrentLocation = {},
-        onManualLatChanged = {},
-        onManualLngChanged = {},
-        onSearchManualCoordinates = {},
-        onRadiusChanged = {},
-        onMonthSelected = {},
-        onMapTabSelected = {},
-        onSeasonalTabSelected = {},
-        onTaxonSearchQueryChanged = {},
-        onTaxonSearchResultSelected = {},
-        onDismissTaxonSuggestions = {},
-        onReopenTaxonSuggestions = {},
-        onPlaceTripPin = { _, _, _ -> },
-        onDeletePlannedTrip = {},
-        onRecentSearchSelected = {},
-        onOfflineMapLatChanged = {},
-        onOfflineMapLngChanged = {},
-        onOfflineMapRadiusChanged = {},
-        onOfflineMapNameChanged = {},
-        onOfflineMapsOpened = {},
-        onDownloadOfflineMaps = {},
-        onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        searchInputs = AvailabilityScreenSearchInputs(
+            onUseCurrentLocation = {},
+            onManualLatChanged = {},
+            onManualLngChanged = {},
+            onSearchManualCoordinates = {},
+            onRadiusChanged = {},
+            onMonthSelected = {},
+            onMapTabSelected = {},
+            onSeasonalTabSelected = {},
+            onTaxonSearchQueryChanged = {},
+            onTaxonSearchResultSelected = {},
+            onDismissTaxonSuggestions = {},
+            onReopenTaxonSuggestions = {},
+            onPlaceTripPin = { _, _, _ -> },
+            onDeletePlannedTrip = {},
+            onRecentSearchSelected = {},
+        ),
+        offlineMaps = AvailabilityScreenOfflineMaps(
+            onOfflineMapLatChanged = {},
+            onOfflineMapLngChanged = {},
+            onOfflineMapRadiusChanged = {},
+            onOfflineMapNameChanged = {},
+            onOfflineMapsOpened = {},
+            onDownloadOfflineMaps = {},
+            onDeleteOfflineRegion = {},
+        ),
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = SHORT_STUB_MAP,
-        cartographyUiState = cartography,
-        onStartCartographyEntry = onStart,
-        onOpenCartographyEntry = onOpen,
-        onCloseCartographyEntry = onClose,
-        waypoints = MANY_WAYPOINTS,
-        onOpenCamera = onOpenCamera,
-        logUiState = logState,
-        tracks = tracks,
+        journalEntries = AvailabilityScreenJournalEntries(
+            cartographyUiState = cartography,
+            onStartCartographyEntry = onStart,
+            onOpenCartographyEntry = onOpen,
+            onCloseCartographyEntry = onClose,
+        ),
+        cameraInputs = AvailabilityScreenCamera(onOpenCamera = onOpenCamera),
+        findsLog = AvailabilityScreenFindsLog(
+            logUiState = logState,
+        ),
+        records = AvailabilityScreenRecords(
+            waypoints = MANY_WAYPOINTS,
+            tracks = tracks,
+        ),
+        entryReportData = AvailabilityScreenEntryReportData(
+            getCartographyEntryMapData = { _, _ ->
+                entryMapData ?: com.zynergylabs.forager.app.domain.CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+            },
+        ),
     )
 }

@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.backup
 
-import android.provider.Settings
 import androidx.core.content.ContextCompat
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -21,7 +20,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.drawable.toBitmap
 import com.zynergylabs.forager.app.R
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /** Test tags for the restore loading page. */
@@ -73,8 +75,8 @@ private const val ICON_PIXELS = 512
  *   Surface pitfall): a Material3 `Surface` consumes the touches on its bounds, which is what makes it so, and a test
  *   touches the page outside the icon to prove it.
  * - **The tap animation** (owner, "1 A"): the icon grows slightly and the page fades out, about 300 ms, revealing the
- *   Maps tab that [BackupViewModel.onRestoreDoneTapped] asked for at the moment of the tap. With the system's animator
- *   duration scale at 0 (reduced motion) it leaves at once.
+ *   Maps tab that [BackupViewModel.onRestoreDoneTapped] asked for at the moment of the tap. Under reduced motion
+ *   ([LocalReduceMotion], the phone's animator or transition scale at 0) it leaves at once.
  * - The icon is a button with the content description "Done", 168 dp across (a touch target of at least 48 dp).
  *
  * [onLeft] is called when the exit animation ends, so the ViewModel can drop the page.
@@ -82,6 +84,7 @@ private const val ICON_PIXELS = 512
 @Composable
 internal fun RestoreLoadingPage(page: RestorePage, onDoneTapped: () -> Unit, onLeft: () -> Unit, modifier: Modifier = Modifier) {
     val context = LocalContext.current
+    val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
     val pulse = remember { Animatable(1f) }
     val leave = remember { Animatable(0f) }
 
@@ -93,8 +96,8 @@ internal fun RestoreLoadingPage(page: RestorePage, onDoneTapped: () -> Unit, onL
             }
             RestorePage.DONE -> pulse.animateTo(1f, tween(200))
             RestorePage.LEAVING -> {
-                val animationsOff = Settings.Global.getFloat(context.contentResolver, Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
-                if (!animationsOff) leave.animateTo(1f, tween(LEAVE_MILLIS, easing = FastOutSlowInEasing))
+                // Dispatch 2026-09-28-652, item 1: the app-wide LocalReduceMotion, in place of reading the animator scale here.
+                if (!reduceMotion) leave.animateTo(1f, tween(LEAVE_MILLIS, easing = FastOutSlowInEasing))
                 onLeft()
             }
             RestorePage.NONE -> Unit

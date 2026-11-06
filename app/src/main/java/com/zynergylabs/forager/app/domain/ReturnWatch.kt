@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.domain
 
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
@@ -22,6 +23,13 @@ import kotlinx.coroutines.flow.asStateFlow
  * button shows a distance the ViewModel works out for itself from its own fixes (dispatch
  * 2026-09-28-400, Amendment 2, the planner's ruling on question 1), so nothing under `ui/` reads
  * this field today. It is here because the decision cannot be checked without it.
+ *
+ * [arrivedAfterReturn] (RECORD -844, -845): the last return on [trackId] ended because the walker
+ * reached the start. [isReturning] is false from that moment, so this is
+ * what Back by and the sundown alerts read beside it ([ReturnWatch.arrivalJudgedFor]) to go on
+ * judging arrival exactly as they did while the return ran. Cleared by the next Return and by the end
+ * of the recording; the walker closing the HUD afterwards leaves it set, since the return had already
+ * ended by arrival, not by the walker.
  */
 data class ReturnWatchState(
     val trackId: String? = null,
@@ -30,6 +38,7 @@ data class ReturnWatchState(
     val isReturning: Boolean = false,
     val isOffTrack: Boolean = false,
     val returnToStart: ReturnToStartInfo? = null,
+    val arrivedAfterReturn: Boolean = false,
 )
 
 /**
@@ -96,10 +105,30 @@ class ReturnWatch(
     private val computeReturnToStart: ComputeReturnToStartUseCase,
     private val alertDelivery: AlertDelivery,
     /**
-     * Dispatch 2026-09-28-451: the lasting record of Returns and off-track decisions. Written after
-     * the lock is released, as the delivery is, so no file is touched while a fix waits.
+     * Settings' "Off-track reminder" checkbox (dispatch 2026-09-28-626; Amendment 1, RECORD -627):
+     * off, a decision to alert is not delivered. Read at the moment of the decision, so
+     * a change mid-walk applies to the next stray. Only the delivery is gated: the judge still runs
+     * and [ReturnWatchState.isOffTrack] still colours the Return button. Defaults to on, the
+     * setting's own default.
      */
-    private val returnRecord: ReturnRecord = NoReturnRecord,
+    private val isReminderOn: () -> Boolean = { true },
+    /**
+     * The trail part of the way home shown now for a track, or `null` when none is (dispatch 2026-10-25-08, plan step
+     * 7 PR 1; RECORD -1631). [shownTrailOf] over `WayHomeWatch` in production. Called with [lock] held: it reads
+     * `WayHomeWatch.shown`'s value, which takes no lock, and `WayHomeWatch.progressFor`, which takes the way-home watch's
+     * own. That order, this lock then that one, is the only one: nothing the way-home watch calls under its lock takes
+     * this one (its `isReturning` reads [state]'s value). Every trail part shown on a return is kept for the rest of it
+     * and counts as on course beside the path, so following the app's own trail line home does not alert.
+     *
+     * The dotted part back along the walker's stray counts only while they head back along it (dispatch 2026-10-25-09
+     * Amendments 1 and 2; RECORD -1637, -1640, on Sorrel's 402-1), judged afresh on every reading by [isHeadingBackAlong].
+     * #402 first counted it whenever shown (RECORD -1635), and a walker straying steadily was re-routed every 50 m, the
+     * new dotted part reached back to them, and the alert never came. Only the dotted part of the way home shown now
+     * counts: an earlier one has no place of the walker on it. The line's last part, from where the walker joined the
+     * trail back to the start, is stored points from before Return, already in the path. The track-only way home is not
+     * counted (RECORD -1640, deferred).
+     */
+    private val wayHomeTrail: (trackId: String) -> ShownTrail? = { null },
 ) {
     private val _state = MutableStateFlow(ReturnWatchState())
     val state: StateFlow<ReturnWatchState> = _state.asStateFlow()
@@ -115,6 +144,13 @@ class ReturnWatch(
     private var start: TrackPoint? = null
     private var lastInfo: ReturnToStartInfo? = null
 
+    // RECORD -845, "Must leave first": whether a GPS fix has put the walker outside the arrival circle
+    // since Return was tapped. Arrival counts only once this is true.
+    private var leftArrivalCircle = false
+
+    // RECORD -844: see [ReturnWatchState.arrivedAfterReturn].
+    private var arrivedAfterReturn = false
+
     // The kept points of the track the watch is for, oldest first: the stored track, tail included.
     private val keptPoints = mutableListOf<TrackPoint>()
 
@@ -125,6 +161,11 @@ class ReturnWatch(
     // path: the start can reach the watch a moment after Return does. Null whenever no return is
     // under way, so a new return starts with a fresh judge, armed.
     private var judge: OffTrackJudge? = null
+
+    // The trail parts of every way home shown on this return, and the generation of the last one taken (RECORD -1631).
+    // The dotted part is not kept here: it is judged on each reading ([dottedPartNow]).
+    private val trailsShown = mutableListOf<List<LatLng>>()
+    private var lastTrailGeneration: Long? = null
 
     /** How many kept points the path a return is measured against has. For tests. */
     internal val pathPointCount: Int get() = synchronized(lock) { pathAtReturn.size }
@@ -147,19 +188,14 @@ class ReturnWatch(
      * the service's `onDestroy`, which has no track id left to name.
      */
     fun end(trackId: String?) {
-        val ended = synchronized(lock) {
+        synchronized(lock) {
             if (trackId == null && !begun) return
             if (trackId != null && trackId != this.trackId) return
-            val endedReturn = this.trackId?.takeIf { returning }
             forget()
             this.trackId = null
             mode = null
             begun = false
             publish()
-            endedReturn
-        }
-        if (ended != null) {
-            returnRecord.write(ReturnRecordEvent.ReturnEnded(ended, if (trackId == null) ReturnEndReason.SERVICE_DESTROYED else ReturnEndReason.RECORDING_STOPPED))
         }
     }
 
@@ -168,37 +204,31 @@ class ReturnWatch(
      * check runs in. Returns `false`, changing nothing, if the watch is begun for another track.
      * A new return snapshots the kept points as its path and starts with a fresh judge, armed.
      */
-    fun startReturn(trackId: String): Boolean {
-        var watched: String? = null
-        val taken = synchronized(lock) {
-            if (!holdFor(trackId)) {
-                watched = this.trackId
-                return@synchronized false
-            }
-            pathAtReturn = keptPoints.toList()
-            judge = null
-            returning = true
-            offTrack = false
-            publish()
-            true
-        }
-        returnRecord.write(if (taken) ReturnRecordEvent.ReturnStarted(trackId) else ReturnRecordEvent.ReturnRefused(trackId, watched))
-        return taken
+    fun startReturn(trackId: String): Boolean = synchronized(lock) {
+        if (!holdFor(trackId)) return@synchronized false
+        pathAtReturn = keptPoints.toList()
+        judge = null
+        forgetTrails()
+        returning = true
+        offTrack = false
+        leftArrivalCircle = false
+        arrivedAfterReturn = false
+        publish()
+        true
     }
 
     /** The return is over, the recording is not. Drops the path and the judge. Ignored for a track the watch is not for. */
     fun stopReturn(trackId: String) {
-        val wasReturning = synchronized(lock) {
+        synchronized(lock) {
             if (trackId != this.trackId) return
-            val was = returning
             pathAtReturn = emptyList()
             judge = null
+            forgetTrails()
             returning = false
             offTrack = false
+            leftArrivalCircle = false
             publish()
-            was
         }
-        if (wasReturning) returnRecord.write(ReturnRecordEvent.ReturnEnded(trackId, ReturnEndReason.BY_WALKER))
     }
 
     /**
@@ -228,41 +258,80 @@ class ReturnWatch(
      * [OffTrackJudge]'s reading, against the start and the path as they stood at Return, and an
      * [Alert] is delivered on the reading the judge says goes off: once per stray (the owner's
      * choice), no repeat while it lasts.
+     *
+     * [provider] is where the platform said [current] came from (dispatch 2026-09-28-527), passed beside
+     * it and never stored.
+     *
+     * A GPS fix at the start, once the walker has been away from it since Return, ends the return
+     * instead ([hasArrivedAfterLeaving], RECORD -844, -845): that fix is not judged, and none after it
+     * is, until the next Return.
      */
-    fun onFix(current: TrackPoint) {
-        var recorded: ReturnRecordEvent? = null
+    fun onFix(current: TrackPoint, provider: FixProvider) {
         val alert = synchronized(lock) {
             if (!begun) return
             val start = start ?: return
             val info = computeReturnToStart(current, start)
             lastInfo = info
             var shouldAlert = false
-            if (returning) {
-                val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current)
-                val wasOff = offTrack
+            if (returning && hasArrivedAfterLeaving(current, provider, start)) {
+                endReturnOnArrival()
+            } else if (returning) {
+                val dotted = dottedPartNow(takeTrailShown(), LatLng(current.lat, current.lng))
+                val alsoOn = if (dotted.isEmpty()) trailsShown else trailsShown + listOf(dotted)
+                val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current, provider, alsoOn = alsoOn)
                 offTrack = verdict.isOffTrack
                 shouldAlert = verdict.alert
-                val id = trackId
-                if (id != null) {
-                    recorded = when {
-                        verdict.alert -> ReturnRecordEvent.WentOffTrack(id, current.timestampEpochMillis)
-                        wasOff && !verdict.isOffTrack -> ReturnRecordEvent.ReArmed(id, current.timestampEpochMillis)
-                        else -> null
-                    }
-                }
             }
             publish()
             shouldAlert
         }
-        recorded?.let(returnRecord::write)
-        val alertedTrack = (recorded as? ReturnRecordEvent.WentOffTrack)?.trackId
+        if (alert && !isReminderOn()) return
         if (alert) {
             // overridesSilence = false: owner ruling, 2026-09-11, reversing the original. Straying
             // is often deliberate, so off-track respects a phone the user silenced. See
             // AlertDelivery's own doc comment.
-            val outcome = alertDelivery.deliverReporting(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false))
-            if (alertedTrack != null) returnRecord.write(ReturnRecordEvent.AlertDelivered(alertedTrack, outcome))
+            alertDelivery.deliverReporting(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false))
         }
+    }
+
+    /**
+     * Whether Back by and the sundown alerts should judge arrival for [trackId] (RECORD -844, -845): while
+     * a return on it is under way, as before, and also once that return has ended by arrival. Both read
+     * this one answer (`AppContainer`), so their arrival behaviour is what it was when a return never
+     * ended on its own.
+     */
+    fun arrivalJudgedFor(trackId: String): Boolean =
+        state.value.let { it.trackId == trackId && (it.isReturning || it.arrivedAfterReturn) }
+
+    /**
+     * RECORD -844 and -845: the walker is back at the start. The same test Back by and the sundown alerts
+     * use ([hasArrived]: within the larger of 15 m and twice the fix's accuracy, straight line), on a GPS
+     * fix only, as theirs is ([FixProvider.mayAct]); and only once a GPS fix has put the walker outside
+     * that circle since Return was tapped ("Must leave first"), so a Return tapped at the start does not
+     * end at once. Updates [leftArrivalCircle]. Call with [lock] held, while returning.
+     */
+    private fun hasArrivedAfterLeaving(current: TrackPoint, provider: FixProvider, start: TrackPoint): Boolean {
+        if (!provider.mayAct) return false
+        val inside = hasArrived(GeoDistance.metersBetween(LatLng(current.lat, current.lng), LatLng(start.lat, start.lng)), current.accuracyMeters)
+        if (!inside) {
+            leftArrivalCircle = true
+            return false
+        }
+        return leftArrivalCircle
+    }
+
+    /**
+     * Ends the return because the walker arrived (RECORD -844): off-track stops watching, the path and the
+     * judge go, and the recording carries on. Call with [lock] held.
+     */
+    private fun endReturnOnArrival() {
+        pathAtReturn = emptyList()
+        judge = null
+        forgetTrails()
+        returning = false
+        offTrack = false
+        leftArrivalCircle = false
+        arrivedAfterReturn = true
     }
 
     /** Makes the watch be for [trackId] if it may be: already is, or not begun yet. Call with [lock] held. */
@@ -278,11 +347,40 @@ class ReturnWatch(
     private fun forget() {
         returning = false
         offTrack = false
+        leftArrivalCircle = false
+        arrivedAfterReturn = false
         start = null
         lastInfo = null
         keptPoints.clear()
         pathAtReturn = emptyList()
         judge = null
+        forgetTrails()
+    }
+
+    /**
+     * Keeps the trail part of the way home shown now, if it is one not yet kept on this return, and returns what is shown
+     * now, or `null`. Call with [lock] held.
+     */
+    private fun takeTrailShown(): ShownTrail? {
+        val id = trackId ?: return null
+        val shown = wayHomeTrail(id) ?: return null
+        if (shown.generation == lastTrailGeneration) return shown
+        lastTrailGeneration = shown.generation
+        if (shown.points.isNotEmpty()) trailsShown += shown.points
+        return shown
+    }
+
+    /** The dotted part of [shown] when the walker at [here] is heading back along it, else nothing. */
+    private fun dottedPartNow(shown: ShownTrail?, here: LatLng): List<LatLng> {
+        if (shown == null) return emptyList()
+        val line = shown.line ?: return emptyList()
+        return if (shown.trackBack.isNotEmpty() && isHeadingBackAlong(line, shown.place, here)) shown.trackBack else emptyList()
+    }
+
+    /** Call with [lock] held. */
+    private fun forgetTrails() {
+        trailsShown.clear()
+        lastTrailGeneration = null
     }
 
     /** Call with [lock] held, so the published states are in the order the changes happened. */
@@ -294,6 +392,7 @@ class ReturnWatch(
             isReturning = returning,
             isOffTrack = offTrack,
             returnToStart = lastInfo,
+            arrivedAfterReturn = arrivedAfterReturn,
         )
     }
 }

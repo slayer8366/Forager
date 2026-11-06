@@ -81,7 +81,7 @@ class TrackDeleteEntryRefsTest {
         trackRepository = RoomTrackRepository(database.trackDao())
         waypointRepository = RoomWaypointRepository(database.waypointDao())
         entryRepository = RoomCartographyEntryRepository(database.cartographyEntryDao())
-        mapData = GetCartographyEntryMapDataUseCase(trackRepository, RoomMushroomLogRepository(database.mushroomLogDao()), RoomKeptTrackPathRepository(database.cartographyEntryDao()))
+        mapData = GetCartographyEntryMapDataUseCase(trackRepository, RoomMushroomLogRepository(database.mushroomLogDao()), RoomKeptTrackPathRepository(database.cartographyEntryDao()), ErrorLog { _, _, _ -> })
         trackRepository.create(track).getOrThrow()
         trackRepository.appendPoints(track.id, track.points).getOrThrow()
         waypointRepository.save(waypoint).getOrThrow()

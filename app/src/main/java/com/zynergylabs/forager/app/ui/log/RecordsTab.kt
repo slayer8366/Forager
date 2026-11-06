@@ -1,9 +1,15 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.DisposableEffect
+import android.net.Uri
 import androidx.activity.compose.BackHandler
+import com.zynergylabs.forager.app.ui.motion.PageSlide
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -28,6 +34,8 @@ import com.zynergylabs.forager.app.ui.availability.OfflineMapsPanel
 import com.zynergylabs.forager.app.ui.availability.WaypointsSection
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
+import com.zynergylabs.forager.app.ui.theme.Spacing
+import com.zynergylabs.forager.app.ui.track.ImportGpxButton
 import com.zynergylabs.forager.app.ui.track.TrackExportList
 
 /**
@@ -51,7 +59,7 @@ import com.zynergylabs.forager.app.ui.track.TrackExportList
  *
  * **Filter chips, not sub-tabs, as of journal redesign J1 (S3; plan J4).** The four sub-tabs
  * became a [RecordsFilterChipRow] of five chips, All · Finds · Tracks · Waypoints · Offline maps,
- * All the default. This codebase has no navigation library (no `NavHost`, no `NavController`), so
+ * All the default until RECORD -868 made Finds the default ([DEFAULT_RECORDS_FILTER]). This codebase has no navigation library (no `NavHost`, no `NavController`), so
  * [RecordsSubTab] is still an enum plus state, not a real navigation destination; that state is
  * now [selectedTabState], hoisted by [JournalTab] into [JournalScreenState] (S1).
  *
@@ -83,6 +91,7 @@ internal fun RecordsTab(
      * confirm dialog.
      */
     onDeleteWaypoint: (String) -> Unit,
+    modifier: Modifier = Modifier,
     /**
      * How many journal entries keep each waypoint (`TrackRecordingUiState.waypointEntryReferenceCounts`).
      * Unread from journal redesign J4 (its warning moved into the Undo snackbar) until J5c, whose
@@ -103,6 +112,8 @@ internal fun RecordsTab(
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
     onDownloadAgain: (Long) -> Unit = {},
+    /** Try again on a region's trail routes, and signal returning while the list is on screen (dispatch 2026-10-23-03). */
+    routeActions: com.zynergylabs.forager.app.ui.availability.OfflineRouteActions = com.zynergylabs.forager.app.ui.availability.OfflineRouteActions(),
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
     /**
@@ -127,16 +138,19 @@ internal fun RecordsTab(
      */
     finds: List<MushroomLogEntry>? = null,
     /**
-     * Opens a find's report — the All logbook's find tap (J1 S4). `RecordsTab` selects the Finds chip
-     * first, so the report opens in the Finds slot and Back goes report, Finds gallery, All (owner's
-     * answer 2). The default does nothing beyond that chip switch.
+     * Opens a find's report — the All logbook's find tap (J1 S4). Since RECORD -874 (the owner: "Find > All > Finds >
+     * out (Recommended)") the chip stays on All and [JournalTab] shows the find over Records, as a map bubble's find
+     * opens (its FindOverView): the report slides in over All, the first Back closes it to All, the second goes to
+     * Finds (this tab's chip step), the third leaves Records. Until then this tab selected the Finds chip first and the
+     * report opened in the Finds slot. The default does nothing.
      */
     onOpenFind: (String) -> Unit = {},
     /** J4b L1: the All logbook find tile's long-press Delete (pending, with Undo); `null` leaves it tap-only. */
     onDeleteFind: ((String) -> Unit)? = null,
     /**
-     * J4b L1: the All logbook find tile's long-press Edit. `RecordsTab` selects the Finds chip first,
-     * as for [onOpenFind], so the edit form opens in the Finds slot.
+     * J4b L1: the All logbook find tile's long-press Edit. Since RECORD -876 (the owner: "Yes, Edit opens over All too
+     * (Recommended)") the chip stays on All and [JournalTab] opens the edit form over Records, as for [onOpenFind], so
+     * Back from the form returns to All. Until then this tab selected the Finds chip first and the form opened there.
      */
     onEditFind: ((String) -> Unit)? = null,
     onFindsTabLeft: () -> Unit = {},
@@ -178,7 +192,6 @@ internal fun RecordsTab(
     shortWindow: Boolean = false,
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
-    modifier: Modifier = Modifier,
     /**
      * Dispatch 2026-09-28-502 (plan task T9): a waypoint's Navigate, in its rows (the All logbook and the
      * Waypoints chip) and its details sheet, given where it was tapped, so Back can come back here. `null`
@@ -191,27 +204,52 @@ internal fun RecordsTab(
      */
     reopenWaypointDetails: String? = null,
     onReopenWaypointDetailsConsumed: () -> Unit = {},
+    /**
+     * Plan T16: the Tracks chip's "Import GPX", given the file the system picker returned. `null` (the
+     * default) shows no button.
+     */
+    onGpxFilePicked: ((Uri) -> Unit)? = null,
+    /**
+     * Plan T16: a track whose details sheet to open, once it is in [tracks] (a just-imported track arrives
+     * a moment after the request); [onOpenTrackDetailsConsumed] is told once it is open.
+     */
+    openTrackDetails: String? = null,
+    onOpenTrackDetailsConsumed: () -> Unit = {},
+    /**
+     * Dispatch 2026-10-17-09, RECORD -1243 (the owner: "still have the chips be on the same line as the entries | records";
+     * "All of Records, landscape (Recommended)"): in a short window the filter chips are drawn on the Journal's switch line,
+     * which `JournalTab` draws above the pages. This tab hands its chip row up through [chipsOnSwitchLine] and draws no row of
+     * its own. `null` (portrait, the wide tree, and a short window with no holder) keeps the row here, as before.
+     */
+    chipsOnSwitchLine: MutableState<(@Composable () -> Unit)?>? = null,
 ) {
     var selectedTab by selectedTabState
-
-    LaunchedEffect(pendingSubTab) {
-        if (pendingSubTab != null) {
-            selectedTab = pendingSubTab
-            onPendingSubTabConsumed()
-        }
-    }
-
-    LaunchedEffect(selectedTab) {
-        when (selectedTab) {
-            RecordsSubTab.OFFLINE_MAPS -> onOfflineMapsOpened()
-            RecordsSubTab.RECORDED_TRACKS -> onTracksOpened()
-            RecordsSubTab.ALL, RecordsSubTab.WAYPOINTS, RecordsSubTab.FINDS -> Unit
-        }
-    }
 
     fun selectTab(tab: RecordsSubTab) {
         if (selectedTab == RecordsSubTab.FINDS && tab != RecordsSubTab.FINDS) onFindsTabLeft()
         selectedTab = tab
+    }
+
+    // Through selectTab (plan T16), so a request that moves off Finds mid-edit leaves the edit the way a
+    // chip tap does; the one earlier caller only ever asked for Finds, where the two are the same.
+    LaunchedEffect(pendingSubTab) {
+        if (pendingSubTab != null) {
+            selectTab(pendingSubTab)
+            onPendingSubTabConsumed()
+        }
+    }
+
+    // The effect reads its own key, never the live chip (dispatch 2026-11-05-01, A8). Composed with the latch above already
+    // set (the Tools drawer's Offline maps row, a GPX import's Tracks), the latch's effect selects the chip before this one
+    // first runs. Read live, this launch, keyed on the old chip, opened the new one, and the key's change opened it again:
+    // S22 session 14's doubled opening (the Phase 1 report, section 5). The key and the launch order are as before.
+    val openedTab = selectedTab
+    LaunchedEffect(openedTab) {
+        when (openedTab) {
+            RecordsSubTab.OFFLINE_MAPS -> onOfflineMapsOpened()
+            RecordsSubTab.RECORDED_TRACKS -> onTracksOpened()
+            RecordsSubTab.ALL, RecordsSubTab.WAYPOINTS, RecordsSubTab.FINDS -> Unit
+        }
     }
 
     // Journal redesign J5c: the record whose details sheet is open, if any. Saveable, so the sheet
@@ -226,20 +264,29 @@ internal fun RecordsTab(
             onReopenWaypointDetailsConsumed()
         }
     }
+    // Plan T16: an imported track's details, opened once the track has reached the list.
+    LaunchedEffect(openTrackDetails, tracks) {
+        openTrackDetails?.let { id ->
+            if (tracks.any { it.id == id }) {
+                detailsTarget = RecordDetailsTarget.TrackDetails(id)
+                onOpenTrackDetailsConsumed()
+            }
+        }
+    }
     val navigateFromRow: ((String) -> Unit)? = onNavigateToWaypoint?.let { navigate -> { id -> navigate(WaypointNavigationOrigin.RecordsRow(id)) } }
 
-    // Back-nav-and-save-flow dispatch, Item 1, retargeted by journal redesign J1 (S3, the planner's
-    // call in prompts/preserved/2026-09-27-16.md; the owner may overrule): step back to All — the
-    // fixed default, not whichever chip was last selected. It used to step back to Waypoints, the
-    // old default sub-tab; the rule is the same, only the default moved. A fixed target keeps back
-    // deterministic regardless of navigation history (the same press always does the same thing);
-    // tracking "last selected" as a second piece of state to reason about was considered and
-    // rejected for exactly that reason. Disabled while findsEditingInProgress — see that parameter's
-    // own doc comment for why this can't just rely on Compose's usual nested-handler-wins ordering
-    // here. From All this handler is off, so Back falls to JournalTab's Records -> Cartography step,
-    // exactly what Back did from Waypoints before.
-    BackHandler(enabled = backEnabled && selectedTab != RecordsSubTab.ALL && !findsEditingInProgress) {
-        selectTab(RecordsSubTab.ALL)
+    // Back-nav-and-save-flow dispatch, Item 1, retargeted twice. Back from any other chip steps to
+    // Finds, the default (RECORD -871, the owner: "Back to Finds, then out (Recommended)"); from Finds
+    // this handler is off, so Back falls to JournalTab's Records -> Cartography step, which is what
+    // Back did from All before. Journal redesign J1 had it step to All, its default then, and before
+    // that it stepped to Waypoints, the old default sub-tab: the rule is the same each time, only the
+    // default moved. A fixed target keeps back deterministic regardless of navigation history (the
+    // same press always does the same thing); tracking "last selected" as a second piece of state
+    // was considered and rejected for exactly that reason. A find opened from All does not change
+    // the chip (RECORD -874; see [onOpenFind]), so Back goes find, All, Finds, out. Disabled while findsEditingInProgress — see that parameter's own doc comment
+    // for why this can't just rely on Compose's usual nested-handler-wins ordering here.
+    BackHandler(enabled = backEnabled && selectedTab != DEFAULT_RECORDS_FILTER && !findsEditingInProgress) {
+        selectTab(DEFAULT_RECORDS_FILTER)
     }
 
     // J5, L3: a nested-scroll parent over the whole tab, so whichever list is showing (the All
@@ -266,9 +313,52 @@ internal fun RecordsTab(
                 metrics = if (shortWindow) RecordsChipRowMetrics.ShortWindow else RecordsChipRowMetrics.Default,
             )
         }
-        if (shortWindow) ShortWindowSecondRow(chipRowScroll) { chipRow() } else chipRow()
+        if (shortWindow && chipsOnSwitchLine != null) {
+            // RECORD -1243: one chip row, handed up once and kept for as long as this tab is shown, reading the current
+            // selection, counts and handler when it draws (rememberUpdatedState), so handing it up never recomposes the line
+            // in a loop.
+            val currentCounts by rememberUpdatedState(
+                RecordsFilterCounts(
+                    finds = finds?.size,
+                    tracks = tracks.size,
+                    waypoints = waypoints.size,
+                    offlineMaps = availabilityUiState.visibleOfflineRegions.size,
+                ),
+            )
+            val currentSelect by rememberUpdatedState<(RecordsSubTab) -> Unit>({ tab -> selectTab(tab) })
+            val chipsForLine: @Composable () -> Unit = remember(selectedTabState) {
+                {
+                    RecordsFilterChipRow(
+                        selected = selectedTabState.value,
+                        counts = currentCounts,
+                        onSelect = { tab -> currentSelect(tab) },
+                        metrics = RecordsChipRowMetrics.ShortWindow,
+                        onSwitchLine = true,
+                    )
+                }
+            }
+            DisposableEffect(chipsOnSwitchLine, chipsForLine) {
+                chipsOnSwitchLine.value = chipsForLine
+                onDispose { if (chipsOnSwitchLine.value === chipsForLine) chipsOnSwitchLine.value = null }
+            }
+        } else if (shortWindow) {
+            ShortWindowSecondRow(chipRowScroll) { chipRow() }
+        } else {
+            chipRow()
+        }
 
-        when (selectedTab) {
+        // Motion Part 3, Amendment 1 (RECORD -681, "Same rule everywhere"; scout R1, R2): a chip's list opens over the default
+        // chip's, sliding in from the right, and Back (which steps to the default) or the default chip slides it out again.
+        // Chip to chip slides in, as each opens over the last. The base page follows Back's target: All until RECORD -871,
+        // Finds since, so Back from Waypoints still slides out over the page it returns to. A find tapped in All does not
+        // change the chip: it slides in over All from JournalTab's find-over-the-view page (RECORD -874).
+        PageSlide(
+            targetState = selectedTab,
+            depthOf = { if (it == DEFAULT_RECORDS_FILTER) 0 else 1 },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) { shownTab ->
+        Column(modifier = Modifier.fillMaxSize()) {
+        when (shownTab) {
             // J1 S4: the All logbook — see RecordsLogbookList.
             RecordsSubTab.ALL -> RecordsLogbookList(
                 finds = finds,
@@ -282,18 +372,12 @@ internal fun RecordsTab(
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
                 onDeleteTrack = onDeleteTrack,
                 onDownloadAgain = onDownloadAgain,
-                onOpenFind = { id ->
-                    selectTab(RecordsSubTab.FINDS)
-                    onOpenFind(id)
-                },
+                // RECORD -874: All stays selected; the caller shows the find over Records, so Back closes it to All.
+                onOpenFind = { id -> onOpenFind(id) },
                 modifier = Modifier.weight(1f).testTag(RECORDS_LOGBOOK_LIST_TAG),
                 onDeleteFind = onDeleteFind,
-                onEditFind = onEditFind?.let { edit ->
-                    { id ->
-                        selectTab(RecordsSubTab.FINDS)
-                        edit(id)
-                    }
-                },
+                // RECORD -876: All stays selected; the caller opens the form over Records, so Back returns to All.
+                onEditFind = onEditFind,
                 onOpenDetails = openDetails,
                 onNavigateToWaypoint = navigateFromRow,
             )
@@ -320,24 +404,33 @@ internal fun RecordsTab(
                 onDownloadOfflineMaps = onDownloadOfflineMaps,
                 onDeleteOfflineRegion = onDeleteOfflineRegion,
                 onDownloadAgain = onDownloadAgain,
+                routeActions = routeActions,
                 onOpenRegionDetails = { id -> openDetails(RecordDetailsTarget.OfflineRegionDetails(id)) },
             )
 
-            RecordsSubTab.RECORDED_TRACKS -> TrackExportList(
-                tracks = tracks,
-                waypoints = waypoints,
-                getFullRecord = getFullRecord,
-                modifier = Modifier.weight(1f),
-                onOpenTrackDetails = { id -> openDetails(RecordDetailsTarget.TrackDetails(id)) },
-                onDeleteTrack = onDeleteTrack,
-                errorMessage = tracksErrorMessage,
-            )
+            RecordsSubTab.RECORDED_TRACKS -> Column(modifier = Modifier.weight(1f)) {
+                // Plan T16: above the list, so it is there with no tracks yet too.
+                onGpxFilePicked?.let { picked ->
+                    ImportGpxButton(onPicked = picked, modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.xs))
+                }
+                TrackExportList(
+                    tracks = tracks,
+                    waypoints = waypoints,
+                    getFullRecord = getFullRecord,
+                    modifier = Modifier.weight(1f),
+                    onOpenTrackDetails = { id -> openDetails(RecordDetailsTarget.TrackDetails(id)) },
+                    onDeleteTrack = onDeleteTrack,
+                    errorMessage = tracksErrorMessage,
+                )
+            }
 
             // Column, not Box: the relocated find-editing composables (CentrePinLocationPicker,
             // LogEntryDetailScreen, etc.) each pass themselves Modifier.weight(1f), which only
             // resolves inside a ColumnScope — see this file's own doc comment on why they were left
             // exactly as-is rather than unified.
             RecordsSubTab.FINDS -> Column(modifier = Modifier.weight(1f).fillMaxSize()) { findsContent() }
+        }
+        }
         }
     }
 
@@ -356,6 +449,8 @@ internal fun RecordsTab(
             getFullRecord = getFullRecord,
             onDeleteTrack = onDeleteTrack,
             onDismiss = { detailsTarget = null },
+            // Dispatch -616: a walk's waypoint opens in the sheet's place, and Back from it returns to the walk.
+            onOpenDetails = { next -> detailsTarget = next },
             // Owner "1 A" (dispatch 2026-09-28-104, superseding planner message -77's Q1 (b)): over a map
             // only from the Offline maps sub-tab AND only in a landscape window, where that panel's
             // picker map is beside the list (`OfflineMapsPanel`'s own test, AvailabilityOfflineMapsUi.kt:264,
@@ -375,7 +470,7 @@ internal fun RecordsTab(
 
 /**
  * Which of [RecordsTab]'s filter chips is selected — declared in chip display order (journal
- * redesign J1, S3: [ALL] added and made the default, the rest reordered to the plan's All · Finds ·
+ * redesign J1, S3: [ALL] added and made the default, until RECORD -868 made [FINDS] the default; the rest reordered to the plan's All · Finds ·
  * Tracks · Waypoints · Offline maps). Nothing reads the ordinal: [JournalScreenState]'s saver stores
  * names. `internal`, not `private`, as of Stage 2d: [JournalTab] holds a pending value of
  * this type to request [FINDS] externally — see [RecordsTab]'s own `pendingSubTab` doc comment.

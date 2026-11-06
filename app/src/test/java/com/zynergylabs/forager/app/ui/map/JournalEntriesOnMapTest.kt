@@ -29,11 +29,12 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Test
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * J8's headless half on the UI side (`prompts/preserved/2026-09-28-52.md`, J8-3 and J8-4, with the
  * owner's Q2 ruling and the planner's Q3 in `2026-09-28-53`): the chip's text, a highlighted record's
- * bubble lines naming the entries that keep it, and the Layers sheet's "Journal entries" switch. The
+ * bubble lines naming the entries that keep it, and Tools > Map Layers' "Journal Entries" switch. The
  * composables that show these are exercised through the real screens in `JournalEntriesOnMapScreenTest`.
  */
 class JournalEntriesOnMapTest {
@@ -51,7 +52,7 @@ class JournalEntriesOnMapTest {
 
     @Test
     fun `an entry is named by the report header's date form`() {
-        assertEquals("2026-09-12", journalEntryDateLabel(LocalDate.of(2026, 9, 12)))
+        assertEquals("Sep 12, 2026", journalEntryDateLabel(LocalDate.of(2026, 9, 12)))
     }
 
     // ── The bubble's entry lines ──
@@ -60,15 +61,15 @@ class JournalEntriesOnMapTest {
     fun `up to three keeping entries are each a date line labelled Open entry and the date`() {
         assertNull(keptInEntriesLines(emptyList()))
         assertEquals(
-            KeptInEntriesLines.Dates(listOf(EntryLine("a", "2026-09-12", "Open entry 2026-09-12"))),
+            KeptInEntriesLines.Dates(listOf(EntryLine("a", "Sep 12, 2026", "Open entry Sep 12, 2026"))),
             keptInEntriesLines(listOf(onMap("a", 12))),
         )
         assertEquals(
             KeptInEntriesLines.Dates(
                 listOf(
-                    EntryLine("a", "2026-09-12", "Open entry 2026-09-12"),
-                    EntryLine("b", "2026-09-05", "Open entry 2026-09-05"),
-                    EntryLine("c", "2026-08-30", "Open entry 2026-08-30"),
+                    EntryLine("a", "Sep 12, 2026", "Open entry Sep 12, 2026"),
+                    EntryLine("b", "Sep 5, 2026", "Open entry Sep 5, 2026"),
+                    EntryLine("c", "Aug 30, 2026", "Open entry Aug 30, 2026"),
                 ),
             ),
             keptInEntriesLines(listOf(onMap("a", 12), onMap("b", 5), JournalEntryOnMap("c", LocalDate.of(2026, 8, 30)))),
@@ -80,8 +81,8 @@ class JournalEntriesOnMapTest {
         val four = listOf(onMap("a", 12), onMap("b", 5), onMap("c", 3), onMap("d", 1))
         assertEquals(
             KeptInEntriesLines.Count(
-                "Kept in 4 journal entries",
-                four.map { EntryLine(it.entryId, it.date.toString(), "Open entry ${it.date}") },
+                "In 4 journal entries",
+                four.map { EntryLine(it.entryId, displayDate(it.date), "Open entry ${displayDate(it.date)}") },
             ),
             keptInEntriesLines(four),
         )
@@ -110,7 +111,7 @@ class JournalEntriesOnMapTest {
     )
 
     private fun keptInOf(kind: MapBubbleKind, layerId: String, id: String): List<JournalEntryOnMap>? =
-        when (val content = mapBubbleContentFor(MapBubbleTarget.FeatureTarget(kind, layerId, id, LatLng(45.0, -122.0)), sources)) {
+        when (val content = mapBubbleContentFor(MapBubbleTarget.FeatureTarget(kind, layerId, id, LatLng(45.0, -122.0)), sources, is24HourClock = false)) {
             is MapBubbleContent.Find -> content.keptIn
             is MapBubbleContent.Photo -> content.keptIn
             is MapBubbleContent.WaypointContent -> content.keptIn
@@ -138,10 +139,13 @@ class JournalEntriesOnMapTest {
     // ── The Layers switch ──
 
     @Test
-    fun `the Maps tab's Layers sheet lists Journal entries last, and the entry map's does not`() {
-        assertEquals(MapOverlayOption(JOURNAL_ENTRIES_SWITCH_LAYER_ID, "Journal entries"), MAPS_TAB_OVERLAYS.last())
-        assertEquals(8, MAPS_TAB_OVERLAYS.size)
-        assertEquals(emptyList<MapOverlayOption>(), ENTRY_MAP_OVERLAYS.filter { it.layerId == JOURNAL_ENTRIES_SWITCH_LAYER_ID })
+    fun `Tools Map Layers lists Journal Entries last of the record overlays, in Title Case`() {
+        // Dispatch 2026-10-28-02 Amendment 1 (RECORD -1765): "Journal entries should be Journal Entries". Trails follows it.
+        assertEquals(
+            com.zynergylabs.forager.app.ui.availability.MapOverlayOption(JOURNAL_ENTRIES_SWITCH_LAYER_ID, "Journal Entries"),
+            com.zynergylabs.forager.app.ui.availability.MAP_LAYER_OVERLAYS.last(),
+        )
+        assertEquals(8, com.zynergylabs.forager.app.ui.availability.MAP_LAYER_OVERLAYS.size)
     }
 
     @Test

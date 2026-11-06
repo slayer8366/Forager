@@ -7,6 +7,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -19,10 +22,12 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.PAN_RECORDING_MAP_TAG
 import com.zynergylabs.forager.app.ui.map.PanRecordingMapSlot
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -98,14 +103,20 @@ class OfflineMapsPanelPickerTest {
         composeRule.waitForIdle()
     }
 
+    /**
+     * Dispatch 2026-10-18-03 (Forager RECORD -1269): this screen has no OK; Download Maps picks the pin's point and asks. Was
+     * `onNodeWithText("OK").performScrollTo().performClick()`. The confirmation is closed again by its own Cancel.
+     */
     private fun confirm() {
-        composeRule.onNodeWithText("OK").performScrollTo().performClick()
+        composeRule.onNodeWithText("Download Maps").performScrollTo().performClick()
+        composeRule.waitForIdle()
+        composeRule.onNode(hasText("Cancel") and hasAnyAncestor(isDialog())).performClick()
         composeRule.waitForIdle()
     }
 
-    /** F2 (M1): after a pan, the device location arriving late moves neither the pin, nor the map, nor what OK reports. */
+    /** F2 (M1): after a pan, the device location arriving late moves neither the pin, nor the map, nor what Download Maps picks. */
     @Test
-    fun `after a pan, a late device centre moves neither the pin, nor the map's region, nor what OK reports`() {
+    fun `after a pan, a late device centre moves neither the pin, nor the map's region, nor what Download Maps picks`() {
         setPanel()
         composeRule.onNodeWithText(pinText(BUILT_IN_CENTRE)).assertExists()
         panTheMap()
@@ -119,6 +130,37 @@ class OfflineMapsPanelPickerTest {
         assertEquals("no new region may reach the map after the pan", regionsAtPan, map.regions.toList())
         confirm()
         assertEquals(PANNED, picked)
+    }
+
+    /**
+     * Dispatch 2026-10-22-01 Amendment 2 (RECORD -1556: "Offline-maps picker: shows Forager Trail Map", superseding -1309's
+     * "Always be street."): the picker's map is handed Forager Trail Map, the map downloads are made in, and only that,
+     * from its first frame and after a pan, by day and by night. Read from what the map slot was given.
+     */
+    @Test
+    fun `the picker's map is always Forager Trail Map, by day and by night, before and after a pan`() {
+        val night = mutableStateOf(false)
+        composeRule.setContent {
+            OfflineMapsPanel(
+                uiState = uiState.value,
+                distanceUnit = DistanceUnit.MILES,
+                currentTime = CurrentTimeProvider { 0L },
+                mapSlot = map.slot,
+                isNightMode = night.value,
+                onRegionPicked = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+            )
+        }
+        composeRule.waitForIdle()
+        assertEquals(listOf(Basemap.FORAGER_TRAIL), map.basemaps.toList())
+        panTheMap()
+        composeRule.runOnIdle { night.value = true }
+        composeRule.waitForIdle()
+        assertTrue("the map must have been composed again at night", map.nightSeen)
+        assertEquals(listOf(Basemap.FORAGER_TRAIL), map.basemaps.toList())
     }
 
     /** F2's other half: before any pan, the late device centre does move the picker (today's behaviour, kept). */
@@ -140,7 +182,7 @@ class OfflineMapsPanelPickerTest {
      * the radius, as it did before this fix).
      */
     @Test
-    fun `after a pan, the radius slider keeps the panned centre for the pin, the map and OK`() {
+    fun `after a pan, the radius slider keeps the panned centre for the pin, the map and Download Maps`() {
         setPanel()
         val radiusBefore = uiState.value.offlineMapRadiusKm
         panTheMap()

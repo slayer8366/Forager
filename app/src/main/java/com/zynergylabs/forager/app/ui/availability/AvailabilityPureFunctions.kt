@@ -4,8 +4,10 @@ import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.ui.geometry.Offset
+import androidx.core.net.toUri
 import com.zynergylabs.forager.app.domain.FruitingPatternAssumptions
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -15,12 +17,14 @@ import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.formatRainfall
+import com.zynergylabs.forager.app.domain.model.formatWholeLength
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import kotlin.math.abs
 import kotlin.math.cos
 import kotlin.math.min
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * How long ago [thenEpochMillis] was, in the coarsest unit that still says something useful —
@@ -72,7 +76,7 @@ internal fun mapVisibleWaypoints(waypoints: List<Waypoint>, isNavigating: Boolea
  *
  * **MGRS by default; decimal degrees only on tap ([showDecimalDegrees]).** This strip used to show
  * both at once ("`<mgrs> · Lat. X Long. Y`"), but a real hardware pass found the combined line
- * truncates mid-coordinate on a metro-width screen ("Lat. 45.3262 Lon…") — half a coordinate is not
+ * truncates mid-coordinate on a metro-width screen ("Lat. 45.3736 Lon…") — half a coordinate is not
  * a coordinate, on the one element whose job is telling you where you are. MGRS is the better fit
  * for a strip this narrow: compact, unambiguous, built for grid work.
  *
@@ -88,6 +92,10 @@ internal fun mapVisibleWaypoints(waypoints: List<Waypoint>, isNavigating: Boolea
  * instruction for exactly this case: if the setting isn't wired, hardcode MGRS and say so, rather
  * than build the setting or the emergency card as unplanned scope here.
  *
+ * **Superseded for the labels by dispatch -677, Amendment 1 (RECORD -680):** the pair is now bare, "45.3736, -121.6959",
+ * on the strip and the navigation display, because with the heading and altitude labelled the labelled pair no longer
+ * fitted at 360 dp; the owner chose "Shorter decimals, no labels (Recommended)". The reasoning below was the original's.
+ *
  * The decimal pair is labeled ("Lat."/"Long.", the project owner's own wording) rather than the bare
  * "45.5231, -122.6414" [PlannedTripRow] shows — that row sits next to a named trip, where the pair
  * reads as "that trip's location" from context; this strip has no such context, so an unlabeled pair
@@ -98,7 +106,10 @@ internal fun mapVisibleWaypoints(waypoints: List<Waypoint>, isNavigating: Boolea
 internal fun coordinatesStripText(location: LatLng?, showDecimalDegrees: Boolean): String {
     if (location == null) return "Coordinates unavailable"
     if (showDecimalDegrees) {
-        return "Lat. ${"%.4f".format(location.lat)} Long. ${"%.4f".format(location.lng)}"
+        // Dispatch 2026-09-28-677, Amendment 1 (RECORD -680; the owner: "Shorter decimals, no labels (Recommended)"):
+        // "45.3736, -121.6959", where it read "Lat. 45.3736 Long. -121.6959". Locale.US, so a comma-decimal phone cannot
+        // print "45,3736, -121,6959", a pair that no longer reads as two numbers.
+        return "${String.format(java.util.Locale.US, "%.4f", location.lat)}, ${String.format(java.util.Locale.US, "%.4f", location.lng)}"
     }
     return when (val mgrs = MgrsConverter.convert(location)) {
         is MgrsCoordinate.Grid -> mgrs.value
@@ -140,7 +151,7 @@ private const val NO_MAPS_APP_MESSAGE = "No maps app is installed to show direct
  */
 internal fun directionsIntent(name: String, location: LatLng): Intent {
     val label = Uri.encode(name)
-    val uri = Uri.parse("geo:0,0?q=${location.lat},${location.lng}($label)")
+    val uri = "geo:0,0?q=${location.lat},${location.lng}($label)".toUri()
     return Intent(Intent.ACTION_VIEW, uri)
 }
 
@@ -162,18 +173,23 @@ internal fun directionsIntent(trip: PlannedTrip): Intent = directionsIntent(trip
 internal fun launchDirections(context: Context, name: String, location: LatLng) {
     val intent = directionsIntent(name, location)
     if (intent.resolveActivity(context.packageManager) == null) {
+        // Dispatch 2026-09-28-658 (L4): the user is told, and the log says so too.
+        Log.w(LAUNCH_TAG, "No app resolves the directions intent; told the user.")
         Toast.makeText(context, NO_MAPS_APP_MESSAGE, Toast.LENGTH_SHORT).show()
         return
     }
     try {
         context.startActivity(intent)
     } catch (e: ActivityNotFoundException) {
+        Log.w(LAUNCH_TAG, "The directions app went away between the check and the launch; told the user.", e)
         Toast.makeText(context, NO_MAPS_APP_MESSAGE, Toast.LENGTH_SHORT).show()
     }
 }
 
 /** [launchDirections] for a [PlannedTrip] specifically — see [WaypointRow] for the other caller of the shared, name-plus-location overload. */
 internal fun launchDirections(context: Context, trip: PlannedTrip) = launchDirections(context, trip.name, trip.location)
+
+private const val LAUNCH_TAG = "ExternalLaunch"
 
 /** Shown when nothing can handle [inaturalistObservationIntent] — CLAUDE.md: report, don't swallow. */
 private const val NO_INATURALIST_LINK_MESSAGE = "Nothing installed can open this observation."
@@ -195,7 +211,7 @@ private const val INATURALIST_PACKAGE = "org.inaturalist.android"
  * itself publishes, not a scheme this app owns.
  */
 internal fun inaturalistObservationIntent(observationId: Long): Intent {
-    val uri = Uri.parse("https://www.inaturalist.org/observations/$observationId")
+    val uri = "https://www.inaturalist.org/observations/$observationId".toUri()
     return Intent(Intent.ACTION_VIEW, uri)
 }
 
@@ -209,12 +225,15 @@ private fun launchINaturalist(context: Context, webIntent: Intent) {
     val packageManager = context.packageManager
     val intent = if (appIntent.resolveActivity(packageManager) != null) appIntent else webIntent
     if (intent.resolveActivity(packageManager) == null) {
+        // Dispatch 2026-09-28-658 (L4): the user is told, and the log says so too.
+        Log.w(LAUNCH_TAG, "Nothing resolves the iNaturalist observation link; told the user.")
         Toast.makeText(context, NO_INATURALIST_LINK_MESSAGE, Toast.LENGTH_SHORT).show()
         return
     }
     try {
         context.startActivity(intent)
     } catch (e: ActivityNotFoundException) {
+        Log.w(LAUNCH_TAG, "The app for the iNaturalist link went away between the check and the launch; told the user.", e)
         Toast.makeText(context, NO_INATURALIST_LINK_MESSAGE, Toast.LENGTH_SHORT).show()
     }
 }
@@ -255,12 +274,13 @@ internal fun rectEdgeIntersection(halfWidth: Float, halfHeight: Float, angleDeg:
  * Never omitted for a null accuracy — a missing figure is not the same as a good one, and
  * silence would read as "precise" to a user who has no way to tell the difference.
  */
-internal fun accuracyLabel(accuracyMeters: Int?): String =
-    if (accuracyMeters != null) "±$accuracyMeters m accuracy" else "Accuracy not reported"
+internal fun accuracyLabel(accuracyMeters: Int?, unitSystem: UnitSystem): String =
+    if (accuracyMeters != null) "±${formatWholeLength(accuracyMeters.toDouble(), unitSystem)} accuracy" else "Accuracy not reported"
 
 /**
  * Why no window was found, stated specifically with the numbers behind it — never a bare "none
- * found" (CLAUDE.md: partial or empty results are reported as such).
+ * found" (CLAUDE.md: partial or empty results are reported as such). Dates read "Oct 7, 2026"
+ * since data part C (dispatch -668, the owner's choice in RECORD -656); they were "MMM d".
  */
 internal fun noTripWindowMessage(report: TripWindowReport, unitSystem: UnitSystem): String = when (val reason = report.noWindowReason) {
     is NoTripWindowReason.NoQualifyingRainEvent ->
@@ -269,12 +289,12 @@ internal fun noTripWindowMessage(report: TripWindowReport, unitSystem: UnitSyste
             "wettest run reached ${formatRainfall(reason.largestRunTotalMm, unitSystem, metricDecimals = 0)}."
 
     is NoTripWindowReason.LagRangeOutsideHorizon ->
-        "The most recent qualifying rain ended ${TRIP_WINDOW_DATE_FORMAT.format(reason.mostRecentEventEnd)}. " +
+        "The most recent qualifying rain ended ${displayDate(reason.mostRecentEventEnd)}. " +
             "The ${FruitingPatternAssumptions.FRUITING_LAG_DAYS.first}–" +
             "${FruitingPatternAssumptions.FRUITING_LAG_DAYS.last} day window it points to is " +
-            "${TRIP_WINDOW_DATE_FORMAT.format(reason.lagRangeStart)}–" +
-            "${TRIP_WINDOW_DATE_FORMAT.format(reason.lagRangeEnd)}, past the " +
-            "${TRIP_WINDOW_DATE_FORMAT.format(reason.horizonEnd)} horizon this search plans within."
+            "${displayDate(reason.lagRangeStart)} – " +
+            "${displayDate(reason.lagRangeEnd)}, past the " +
+            "${displayDate(reason.horizonEnd)} horizon this search plans within."
 
     is NoTripWindowReason.NoForecastDays ->
         "No forecast days were returned for this location, so there's nothing to plan against."

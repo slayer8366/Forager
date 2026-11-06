@@ -34,6 +34,12 @@ kotlinxCoroutinesTest = "1.11.0"
 # the exact version confirmed against Maven Central's own metadata (repo1.maven.org/maven2/org/
 # maplibre/gl/android-sdk/maven-metadata.xml), not a version copied from a tutorial that could
 # already be stale.
+#
+# Bumping this? Re-take the credits (dispatch 2026-10-13-05). The native code compiled into this AAR
+# carries its own licences (ISC, Boost, BSD-3-Clause, MIT, FreeType and others), which no POM states,
+# so they are copied by hand from MapLibre Native's own platform/android/LICENSE.md at the matching
+# android-v<version> tag into app/src/main/assets/credits/notices/. verifyCreditsCoverEveryDependency
+# fails the build when the version here and the one software.json was credited at differ.
 maplibre = "13.5.0"
 robolectric = "4.16.1"
 room = "2.8.4"

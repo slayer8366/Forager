@@ -17,7 +17,7 @@ internal data class AlbumDay(val date: LocalDate?, val photos: List<GalleryPhoto
  * Architecture).
  *
  * - **Days newest first**, the same direction the Records logbook uses (plan J4, J1's
- *   `buildRecordsLogbook`).
+ *   `buildRecordsLogbook`, grouped by day until RECORD -868 grouped it by kind).
  * - **Within a day, input order** (the gallery's own order, `MushroomLogUiState.galleryPhotos`),
  *   so the album never reorders photos the gallery already ordered.
  * - **Unknown dates last, in one group.** A migrated photo's creation time is not knowable

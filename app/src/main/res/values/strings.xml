@@ -9,14 +9,28 @@
     <string name="track_recording_needs_location">Track recording needs location access.</string>
     <string name="track_recording_already_recording">Forager is already recording a track. Stop it before starting another.</string>
     <string name="sundown_notification_channel_name">Sundown alert</string>
-    <string name="sundown_notification_channel_description">Tells you when to start heading back, and when the sun sets.</string>
-    <string name="sundown_turnaround_notification_title">Time to head back</string>
-    <!-- Says what is true and never that there is enough time: the walk back is not estimated. -->
-    <string name="sundown_turnaround_notification_text">Sunset is coming. Under trees or in a valley it gets dark sooner.</string>
+    <string name="sundown_notification_channel_description">Tells you when the sun sets and how long the walk back is.</string>
+    <!-- Back by (dispatch 2026-09-28-645, plan T15). The title is the owner's words: a reminder, said plainly. -->
+    <string name="back_by_notification_channel_name">Back by reminder</string>
+    <string name="back_by_notification_channel_description">Reminds you when you planned to be back, while recording.</string>
+    <string name="back_by_notification_title">You planned to be back by %1$s</string>
+    <string name="back_by_action_im_back">I\'m back</string>
+    <string name="back_by_action_later">+30 min</string>
+    <!-- Dispatch 2026-09-28-516: the heads-up and leave-by alerts inform and never order the walker back. %1$s is the sunset time. -->
+    <string name="sundown_alert_title">Sunset at %1$s</string>
+    <!-- The owner's wording, 2026-10-05: clock times, so a notification read late stays true. %1$s the walk back, %2$s the start-by time. "The way you came" because loops come home longer. -->
+    <string name="sundown_walk_back_measured">The walk back the way you came is about %1$s. To finish it before dark, start by %2$s.</string>
+    <string name="sundown_walk_back_at_least">The walk back is at least %1$s. To finish it before dark, start by %2$s at the latest.</string>
+    <!-- Dispatch 2026-09-28-685, fix 4 (the owner, RECORD -678: "'Start back now' (Recommended)"): when the start-by time is already gone as the alert fires, never name it. %1$s the walk back. Approved as written (Amendment 1, RECORD -694: "Approve as written (Recommended)"). -->
+    <string name="sundown_walk_back_measured_now">The walk back the way you came is about %1$s. Start back now to finish before dark.</string>
+    <string name="sundown_walk_back_at_least_now">The walk back is at least %1$s. Start back now to finish before dark.</string>
+    <string name="sundown_walk_back_unknown">The walk back is unknown.</string>
     <string name="sundown_sunset_notification_title">The sun has set</string>
     <string name="sundown_sunset_notification_text">Light is going now.</string>
     <string name="off_track_notification_channel_name">Off-track alert</string>
     <string name="off_track_notification_title">Off track</string>
-    <string name="off_track_notification_text">You\'re moving away from your start point, not toward it.</string>
+    <string name="off_track_notification_text">You\'re far from the trail and your track. The line on the map shows the way back.</string>
     <string name="log_entry_no_location">No location set.</string>
+    <string name="map_start_failed">The map couldn\'t start.</string>
+    <string name="map_start_try_again">Try again</string>
 </resources>

@@ -1,0 +1,546 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="the cut holds exactly the rectangle's cells plus a one-cell ring, each byte for byte" time="0.004395" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:32:25)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:53:32)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+}
+		</failure>
+	</testcase>
+	<testcase name="the margin is a parameter: margin 0 keeps only the rectangle's own cells" time="0.000450" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:32:25)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:62:32)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+}
+		</failure>
+	</testcase>
+	<testcase name="the cut's header, tile indexes and cells carry checksums BRouter accepts" time="0.001986" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:32:25)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:68:32)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+}
+		</failure>
+	</testcase>
+	<testcase name="BRouter's own integrity check decodes every cell of the cut" time="0.000575" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:32:25)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:90:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+}
+		</failure>
+	</testcase>
+	<testcase name="the cut is smaller than the square and its size is reported" time="0.000465" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:32:25)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:104:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+}
+		</failure>
+	</testcase>
+	<testcase name="an old-format square (no 32-division marker) is refused as unsupported" time="0.004627" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs" failure="The input did not match the regular expression /unsupported/i. Input:&#10;&#10;'Error: cutRd5: not implemented'&#10;">
+		<failure type="testCodeFailure" message="The input did not match the regular expression /unsupported/i. Input:&#10;&#10;'Error: cutRd5: not implemented'">
+[Error [ERR_TEST_FAILURE]: The input did not match the regular expression /unsupported/i. Input:
+
+'Error: cutRd5: not implemented'
+] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: AssertionError [ERR_ASSERTION]: The input did not match the regular expression /unsupported/i. Input:
+  
+  'Error: cutRd5: not implemented'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:114:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: cutRd5: not implemented
+        at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+        at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:114:24)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /unsupported/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+}
+		</failure>
+	</testcase>
+	<testcase name="a square with no footer is refused as unsupported" time="0.002703" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs" failure="The input did not match the regular expression /unsupported/i. Input:&#10;&#10;'Error: cutRd5: not implemented'&#10;">
+		<failure type="testCodeFailure" message="The input did not match the regular expression /unsupported/i. Input:&#10;&#10;'Error: cutRd5: not implemented'">
+[Error [ERR_TEST_FAILURE]: The input did not match the regular expression /unsupported/i. Input:
+
+'Error: cutRd5: not implemented'
+] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: AssertionError [ERR_ASSERTION]: The input did not match the regular expression /unsupported/i. Input:
+  
+  'Error: cutRd5: not implemented'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:119:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: cutRd5: not implemented
+        at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+        at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:119:24)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /unsupported/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+}
+		</failure>
+	</testcase>
+	<testcase name="a damaged header is refused, not cut" time="0.000827" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs" failure="The input did not match the regular expression /checksum/i. Input:&#10;&#10;'Error: cutRd5: not implemented'&#10;">
+		<failure type="testCodeFailure" message="The input did not match the regular expression /checksum/i. Input:&#10;&#10;'Error: cutRd5: not implemented'">
+[Error [ERR_TEST_FAILURE]: The input did not match the regular expression /checksum/i. Input:
+
+'Error: cutRd5: not implemented'
+] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: AssertionError [ERR_ASSERTION]: The input did not match the regular expression /checksum/i. Input:
+  
+  'Error: cutRd5: not implemented'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:125:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: cutRd5: not implemented
+        at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+        at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:125:24)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /checksum/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+}
+		</failure>
+	</testcase>
+	<testcase name="a damaged tile index is refused, not cut" time="0.002313" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs" failure="The input did not match the regular expression /checksum/i. Input:&#10;&#10;'Error: cutRd5: not implemented'&#10;">
+		<failure type="testCodeFailure" message="The input did not match the regular expression /checksum/i. Input:&#10;&#10;'Error: cutRd5: not implemented'">
+[Error [ERR_TEST_FAILURE]: The input did not match the regular expression /checksum/i. Input:
+
+'Error: cutRd5: not implemented'
+] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: AssertionError [ERR_ASSERTION]: The input did not match the regular expression /checksum/i. Input:
+  
+  'Error: cutRd5: not implemented'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:132:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: cutRd5: not implemented
+        at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+        at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:132:24)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /checksum/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+}
+		</failure>
+	</testcase>
+	<testcase name="a rectangle that misses the square, or a malformed square name, is refused" time="0.000933" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs" failure="The input did not match the regular expression /does not overlap/. Input:&#10;&#10;'Error: cutRd5: not implemented'&#10;">
+		<failure type="testCodeFailure" message="The input did not match the regular expression /does not overlap/. Input:&#10;&#10;'Error: cutRd5: not implemented'">
+[Error [ERR_TEST_FAILURE]: The input did not match the regular expression /does not overlap/. Input:
+
+'Error: cutRd5: not implemented'
+] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: AssertionError [ERR_ASSERTION]: The input did not match the regular expression /does not overlap/. Input:
+  
+  'Error: cutRd5: not implemented'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:137:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: cutRd5: not implemented
+        at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+        at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:137:24)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /does not overlap/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+}
+		</failure>
+	</testcase>
+	<testcase name="on the full fixture, every route is found and lies where its category says" time="3.271961" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs"/>
+	<testcase name="inside route inside-across-the-degree-line is identical on the cut: same points, length and cost" time="0.000689" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="inside route inside-across-the-degree-line is identical on the cut with dynamic range off" time="0.000243" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="inside route inside-short is identical on the cut: same points, length and cost" time="0.000168" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="inside route inside-short is identical on the cut with dynamic range off" time="0.000195" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="inside route inside-long is identical on the cut: same points, length and cost" time="0.000203" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="inside route inside-long is identical on the cut with dynamic range off" time="0.000201" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="edge route edge-north-a is identical on the cut: same points, length and cost" time="0.000155" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="edge route edge-north-a is identical on the cut with dynamic range off" time="0.000202" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="edge route edge-north-b is identical on the cut: same points, length and cost" time="0.000368" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="edge route edge-north-b is identical on the cut with dynamic range off" time="0.000282" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="detour route detour-west: by default BRouter quietly routes a longer way inside the cut" time="0.000280" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="detour route detour-west: dynamic range off does not change that; the detour is still returned" time="0.000177" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="outside route outside-west: by default BRouter moves the far end onto the cut's data and routes" time="0.001070" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<testcase name="outside route outside-west: with dynamic range off the cut refuses it cleanly" time="0.534103" classname="test" file="/home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs" failure="cutRd5: not implemented">
+		<failure type="testCodeFailure" message="cutRd5: not implemented">
+[Error [ERR_TEST_FAILURE]: cutRd5: not implemented] {
+  code: 'ERR_TEST_FAILURE',
+  failureType: 'testCodeFailure',
+  cause: Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.&lt;anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+}
+		</failure>
+	</testcase>
+	<!-- tests 25 -->
+	<!-- suites 0 -->
+	<!-- pass 1 -->
+	<!-- fail 24 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 0 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 4012.31217 -->
+</testsuites>

@@ -19,8 +19,7 @@ import java.time.format.DateTimeFormatter
 /**
  * Writes a recorded [Track] out as a GPX file, the missing "write it somewhere shareable" half of
  * [GpxCodec] — that class's own doc comment is explicit it is the codec only. This is Android-layer
- * (a real [File], a real [Context]-derived directory), same split as
- * [com.zynergylabs.forager.app.crash.CrashFileStore] over the pure-Kotlin thing it persists.
+ * (a real [File], a real [Context]-derived directory), over the pure-Kotlin thing it persists.
  *
  * Filenames are derived from [Track.startedAtEpochMillis], not the moment of export: two tracks
  * from the same trip get two distinct, stable names regardless of when either is shared (field-test
@@ -108,9 +107,8 @@ class TrackGpxExporter(
         private const val STALE_EXPORT_AGE_MILLIS = 60 * 60 * 1000L
 
         /**
-         * Cache storage, not external-files: unlike [com.zynergylabs.forager.app.crash.CrashFileStore.forContext]'s
-         * `crashes/` (meant to accumulate and be inspected later from Settings), an exported GPX file
-         * only needs to exist long enough for the share-sheet target app to read it — see
+         * Cache storage, not external-files: an exported GPX file is not meant to accumulate and be
+         * inspected later; it only needs to exist long enough for the share-sheet target app to read it — see
          * `res/xml/file_paths.xml`'s `tracks` cache-path entry.
          */
         fun forContext(context: Context): TrackGpxExporter = TrackGpxExporter(File(context.cacheDir, "tracks"))

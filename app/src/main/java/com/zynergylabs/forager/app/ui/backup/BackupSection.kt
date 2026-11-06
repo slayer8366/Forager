@@ -1,8 +1,10 @@
 package com.zynergylabs.forager.app.ui.backup
 
+import androidx.compose.runtime.remember
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import com.zynergylabs.forager.app.ui.motion.shapedPressLayer
 import android.Manifest
 import android.content.pm.PackageManager
-import android.net.Uri
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -26,6 +28,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.core.content.ContextCompat
 import androidx.compose.ui.semantics.Role
+import androidx.core.net.toUri
 import com.zynergylabs.forager.app.domain.BackupFrequency
 import com.zynergylabs.forager.app.domain.RestoreMode
 import com.zynergylabs.forager.app.domain.backupFileName
@@ -104,15 +107,20 @@ internal fun BackupSection(controls: BackupControls, modifier: Modifier = Modifi
 
         Text("How often", style = MaterialTheme.typography.bodyLarge)
         BackupFrequency.entries.forEach { frequency ->
+            // Amendment 1 to motion Part 1 (RECORD -657): the row's press is drawn in a rounded shape; the tap is unchanged.
+            val pressSource = remember { MutableInteractionSource() }
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .testTag(backupFrequencyTag(frequency))
                     .selectable(
                         selected = frequency == state.schedule.frequency,
+                        interactionSource = pressSource,
+                        indication = null,
                         role = Role.RadioButton,
                         onClick = { controls.onFrequencyChanged(frequency) },
-                    ),
+                    )
+                    .shapedPressLayer(pressSource),
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
@@ -225,7 +233,7 @@ private val BackupFrequency.label: String
 
 /** The picked folder's own name: the last part of its tree id (`primary:Backups` is shown as `Backups`), or the URI itself when it has none. */
 private fun folderName(uri: String): String {
-    val last = Uri.parse(uri).lastPathSegment ?: return uri
+    val last = uri.toUri().lastPathSegment ?: return uri
     return last.substringAfterLast(':').ifEmpty { last }
 }
 

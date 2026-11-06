@@ -12,344 +12,68 @@ package com.zynergylabs.forager.app.ui.availability
 // AvailabilityCompactMapUi.kt. No symbol left behind is reached from here. Seam F (the wide layout)
 // was released by the owner for this split, as recorded in the Understory amendment merged in #130.
 
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.semantics.text
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandIn
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkOut
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Cancel
-import androidx.compose.material.icons.filled.Directions
-import androidx.compose.material.icons.filled.FiberManualRecord
 import androidx.compose.material.icons.filled.Navigation
-import androidx.compose.material.icons.filled.Stop
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.AssistChip
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.State
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.RectangleShape
-import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.DpOffset
 import androidx.compose.ui.unit.dp
-import com.zynergylabs.forager.app.domain.MgrsConverter
-import com.zynergylabs.forager.app.domain.model.DistanceUnit
-import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.model.ReturnToStartInfo
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.formatWholeLength
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_CORNER_RADIUS
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_EDGE_INSET
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
-import com.zynergylabs.forager.app.ui.map.MapBarIconButton
+import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.map.MapIconBar
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
-import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
-import com.zynergylabs.forager.app.ui.map.MapModePicker
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
-import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
-import com.zynergylabs.forager.app.ui.map.mapIconBarRecordAccent
-import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING
-import com.zynergylabs.forager.app.ui.map.mapIconBarRowAnchorOffset
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.togetherWith
+import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
+import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.shrinkVertically
+import androidx.compose.ui.unit.IntSize
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
+import com.zynergylabs.forager.app.ui.motion.WordSwap
+import com.zynergylabs.forager.app.ui.motion.rememberLastShown
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import kotlin.math.roundToInt
-
-/** The compass strip's heading text — one of the two places a heading can appear, never both at once (the strip hides while the HUD shows). */
-internal const val COMPASS_STRIP_HEADING_TAG = "compass-strip-heading"
-
-/** The compass strip's whole content while there is no fix — one message, [NO_FIX_MESSAGE], in place of three fragments. */
-internal const val COMPASS_STRIP_NO_FIX_TAG = "compass-strip-no-fix"
-
-/**
- * The two Trailhead/Return controls — record start/stop and return-to-vehicle — anchored together
- * below [MapIconBar], per this dispatch's own Part B: they used to be split across a
- * [MapIconBar] row and a duplicate compass-strip readout; now they share one home.
- *
- * **Icon-bar-unify-container dispatch: laid out inside the cluster container's own Column, directly
- * below [MapIconBar], no anchoring of its own.** It used to offset itself by the bar's measured
- * bottom edge (`mapIconBarBottomPx`, from [CompactMapTab]'s `onGloballyPositioned` on the bar's
- * wrapper) — measured rather than derived from the bar's row count, which changed twice in quick
- * succession at the time. That measurement is gone: the Column's `spacedBy` is the gap now, and
- * the cluster container is what gets measured, dragged, clamped and minimised, so this pill is in
- * bounds because it is inside the thing that is bounded. On device before this change the record
- * pill hung off the bottom in fullscreen while the bar sat legally, and the directions pill was
- * left sitting on the nav after exiting — the bar was in bounds, the pills extended past it.
- *
- * **Icon-bar-drag-refinements dispatch, Items 2-3: [onLeftSide] follows [MapIconBar]'s own side.**
- * [ControlPill] stays pinned to the container's outer edge on whichever side (the Column's
- * `horizontalAlignment`). It hides and restores with the bar when minimised — by construction now.
- *
- * **The distance arm is gone (navigation-chrome dispatch, item 3).** `DistanceArm` used to extend
- * downward from [ControlPill] while returning, showing the return distance; navigation HUD stage
- * one then made the HUD visible on exactly the condition the arm rendered on, so the two were
- * always on screen together showing the same number ("0 ft beside 0 ft", on device). Confirmed
- * before removal: no state showed the arm without the HUD — both keyed on the one `isReturning`,
- * both in this tab's map Box — while the reverse (HUD without arm, cluster minimised) did exist.
- * The return row's `contentDescription` still carries the full bearing/distance/elevation
- * sentence, so the TalkBack path is unchanged; the visible distance is the HUD's. This Column is
- * kept rather than inlining the pill: it is the cluster's named "Trailhead/Return controls" slot,
- * and stage two's picker entry is expected to land here.
- *
- * `isRecording` is passed through as a plain parameter, not a presence check gating whether this
- * composable runs at all — record start/stop must stay reachable before the first recording
- * starts, the same as when it was an always-enabled [MapIconBar] row.
- */
-@Composable
-internal fun TrailheadControls(
-    isRecording: Boolean,
-    onToggleRecording: () -> Unit,
-    returnToStart: ReturnToStartInfo?,
-    isReturning: Boolean,
-    isOffTrack: Boolean,
-    onToggleReturning: () -> Unit,
-    /** For the return row's `contentDescription` sentence — the same [formatDistanceMeters] the HUD's visible distance uses. */
-    distanceUnit: DistanceUnit,
-    onLeftSide: Boolean,
-    modifier: Modifier = Modifier,
-    /** Landscape L (dispatch 2026-09-28-160): turns the pill horizontal, record then return; see [ControlPill]. */
-    horizontal: Boolean = false,
-    /** Landscape L: the pill's own fill, at the standing chrome alpha, where no container sits under it; default is the cluster child fill. */
-    fillColor: Color = Color.Unspecified,
-    /** Landscape L: spacing and end padding inside the pill; [Spacing.xs] as it has always been, zero in the L. */
-    rowSpacing: Dp = Spacing.xs,
-    /**
-     * Dispatch 2026-09-28-502: whether any navigation is on, a return or a chosen waypoint. The return
-     * control is then the X in a circle, "Stop navigating", and takes a tap with or without a recording,
-     * since a waypoint navigation needs none. [isReturning] by default, so the return alone is as before.
-     */
-    isNavigating: Boolean = isReturning,
-) {
-    Column(
-        modifier = modifier,
-        horizontalAlignment = if (onLeftSide) Alignment.Start else Alignment.End,
-    ) {
-        ControlPill(
-            horizontal = horizontal,
-            onLeftSide = onLeftSide,
-            fillColor = fillColor,
-            rowSpacing = rowSpacing,
-            isRecording = isRecording,
-            onToggleRecording = onToggleRecording,
-            returnToStart = returnToStart,
-            isReturning = isReturning,
-            isNavigating = isNavigating,
-            isOffTrack = isOffTrack,
-            onToggleReturning = onToggleReturning,
-            distanceUnit = distanceUnit,
-        )
-    }
-}
-
-/**
- * The vertical control pill at the bottom right, below [MapIconBar] — record start/stop and
- * return-to-vehicle, the two Trailhead/Return controls, sharing one home per this dispatch's own
- * Part B rather than split across a [MapIconBar] row and a duplicate compass-strip readout.
- *
- * Same visual language as [MapIconBar] on purpose — same [MAP_ICON_BAR_CORNER_RADIUS] stadium
- * shape, same theme-aware surface/border colors, same [MapBarIconButton] rows — so this reads as a
- * sibling of the bar, not a new kind of floating control. Both rows carry over unchanged from
- * [MapIconBar]'s own former record/return-to-vehicle rows, including their accents
- * ([mapIconBarRecordAccent]) and the return row's disabled-while-not-recording treatment.
- */
-@Composable
-private fun ControlPill(
-    isRecording: Boolean,
-    onToggleRecording: () -> Unit,
-    returnToStart: ReturnToStartInfo?,
-    isReturning: Boolean,
-    /** Dispatch 2026-09-28-502: see [TrailheadControls]' parameter of the same name. */
-    isNavigating: Boolean,
-    isOffTrack: Boolean,
-    onToggleReturning: () -> Unit,
-    distanceUnit: DistanceUnit,
-    modifier: Modifier = Modifier,
-    horizontal: Boolean = false,
-    /** Which side the cluster is on: the horizontal pill keeps record at the outer end, under the bar, so its order mirrors. */
-    onLeftSide: Boolean = true,
-    fillColor: Color = Color.Unspecified,
-    rowSpacing: Dp = Spacing.xs,
-) {
-    val isDarkTheme = LocalForagerDarkTheme.current
-    // A child of the cluster container — see MAP_ICON_CLUSTER_CHILD_ALPHA's own doc comment — unless the landscape L hands it
-    // its own single-layer fill.
-    val pillFill = fillColor.takeOrElse { mapIconClusterChildColor() }
-    val pillContentColor = if (isDarkTheme) Color.White else Bark
-    val pillBorder = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT)
-    val buttons: @Composable () -> Unit = {
-        // The two buttons, once: the vertical pill lays them in a Column, the landscape L's horizontal pill (record under the bar's
-        // column, return extending inboard) in a Row. Same buttons, tags, states and accents either way.
-        val record: @Composable () -> Unit = {
-            MapBarIconButton(
-                icon = if (isRecording) Icons.Filled.Stop else Icons.Filled.FiberManualRecord,
-                contentDescription = if (isRecording) "Stop recording track" else "Start recording track",
-                onClick = onToggleRecording,
-                filled = isRecording,
-                fillColor = mapIconBarRecordAccent(isDarkTheme).fill,
-                fillContentColor = mapIconBarRecordAccent(isDarkTheme).onFill,
-                modifier = Modifier.testTag("control-pill-record"),
-            )
-        }
-        val returnToVehicle: @Composable () -> Unit = {
-            MapBarIconButton(
-                icon = returnControlIcon(isNavigating),
-                contentDescription = returnControlDescription(isNavigating, isRecording, returnToStart, distanceUnit),
-                onClick = onToggleReturning,
-                // Dispatch -502: a waypoint navigation needs no recording, and its X-circle must still end it.
-                enabled = isRecording || isNavigating,
-                activeColor = when {
-                    isOffTrack -> MaterialTheme.colorScheme.error
-                    isNavigating -> MaterialTheme.colorScheme.primary
-                    else -> null
-                },
-                modifier = Modifier.testTag("control-pill-return-to-vehicle"),
-            )
-        }
-        if (horizontal) {
-            Row(
-                modifier = Modifier.padding(horizontal = rowSpacing),
-                horizontalArrangement = Arrangement.spacedBy(rowSpacing),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (onLeftSide) {
-                    record()
-                    returnToVehicle()
-                } else {
-                    returnToVehicle()
-                    record()
-                }
-            }
-        } else {
-            Column(
-                modifier = Modifier.padding(vertical = rowSpacing),
-                verticalArrangement = Arrangement.spacedBy(rowSpacing),
-                horizontalAlignment = Alignment.CenterHorizontally,
-            ) {
-                record()
-                returnToVehicle()
-            }
-        }
-    }
-    if (horizontal) {
-        // Owner's ruling (d), continuation 2026-09-28-172: both buttons take touches across their full 48 x 48 squares, corners
-        // included. The drawn pill is a content-less Surface underneath, so its rounded ends do not clip the buttons' hit areas.
-        Box(modifier = modifier.testTag("control-pill").mapChromeContainerColor(pillFill)) {
-            Surface(
-                shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-                color = pillFill,
-                shadowElevation = 2.dp,
-                border = pillBorder,
-                modifier = Modifier.matchParentSize(),
-            ) {}
-            CompositionLocalProvider(LocalContentColor provides pillContentColor) { buttons() }
-        }
-    } else {
-        Surface(
-            shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
-            color = pillFill,
-            contentColor = pillContentColor,
-            shadowElevation = 2.dp,
-            border = pillBorder,
-            modifier = modifier.testTag("control-pill").mapChromeContainerColor(pillFill),
-        ) { buttons() }
-    }
-}
-
-/**
- * Decisions #7-8: compass heading + GPS elevation folded into one bar at the top of the map — a
- * compass-tape-style heading readout, not a separate elevation/speed stats pill (that would be
- * tied to active track recording, out of scope here — see the plan doc's decision #9). The MGRS
- * grid reference on its own line below extends this same strip rather than becoming a separate
- * "navigator screen" — position and heading are the one thing a field navigator needs together at
- * a glance, and [MgrsConverter] already exists ([PlannedTripRow] uses it the same way).
- *
- * A thin wrapper around [CompassElevationStripContent] that does the one impure thing (collecting
- * [compassProvider]'s [Flow][kotlinx.coroutines.flow.Flow]) so that content composable stays a pure
- * function of primitive values — directly testable without a real sensor, per the plan doc's test
- * requirements, and so heading ticks recompose only this small leaf rather than the whole map tab
- * (which would otherwise fight the user's own pan/zoom on every sensor update).
- */
-@Composable
-internal fun CompassElevationStrip(
-    /**
-     * **True north, as of navigation HUD stage one** — the one smoothed, declination-corrected
-     * reading the HUD reads too ([rememberTrueHeading]), so the strip and the HUD can never
-     * disagree. This strip used to rotate the raw magnetic value, which differs from the HUD's
-     * true-north bearings by local declination — about 15° in the Pacific Northwest, a fixed
-     * offset that no averaging removes. Do not move it back to magnetic: a needle and a readout on
-     * the same screen that disagree by 15° is the exact failure the foundations work exists to
-     * prevent. Read as a [State] here, in this leaf, and nowhere above — see
-     * [rememberTrueHeading]'s own doc comment.
-     */
-    heading: State<TrueHeadingReading>,
-    elevationMeters: Double?,
-    location: LatLng?,
-    /** The MGRS/decimal choice, hoisted to [CompactMapTab] and shared with [NavigationHud] — see that call site. */
-    showDecimalDegrees: Boolean,
-    onToggleCoordinateFormat: () -> Unit,
-    modifier: Modifier = Modifier,
-    /**
-     * Landscape B2 (S4): wrap the content instead of spanning the width — the strip sits in the
-     * top corner on the rail side there. False (full width) everywhere else, as before.
-     */
-    contentWidth: Boolean = false,
-    /**
-     * Dispatch 2026-09-28-510: what the strip says while the position is approximate or last known
-     * ([rememberPositionNote]), read here, in this leaf, so its ticking age recomposes the strip alone.
-     */
-    positionNote: State<PositionNote?>? = null,
-) {
-    val reading by heading
-    CompassElevationStripContent(
-        heading = reading,
-        elevationMeters = elevationMeters,
-        location = location,
-        showDecimalDegrees = showDecimalDegrees,
-        onToggleCoordinateFormat = onToggleCoordinateFormat,
-        modifier = modifier,
-        contentWidth = contentWidth,
-        positionNote = positionNote?.value,
-    )
-}
 
 /**
  * Heading, elevation, and coordinates only — one centered line. Pure readout, per this dispatch's
@@ -369,15 +93,28 @@ internal fun CompassElevationStrip(
  * and no fix showing three fragments again.
  */
 @Composable
-private fun CompassElevationStripContent(
+internal fun CompassElevationStripContent(
     heading: TrueHeadingReading,
     elevationMeters: Double?,
+    unitSystem: UnitSystem,
     location: LatLng?,
     showDecimalDegrees: Boolean,
     onToggleCoordinateFormat: () -> Unit,
     modifier: Modifier = Modifier,
     contentWidth: Boolean = false,
+    shortHeadingStatus: Boolean = false,
     positionNote: PositionNote? = null,
+    sundownLine: String? = null,
+    backByLine: String? = null,
+    quickSettings: MapQuickSettings? = null,
+    cardCorners: MapCardCorners = MapCardCorners.BOTTOM,
+    tuck: Dp = 0.dp,
+    navigating: Boolean = false,
+    fill: Color? = null,
+    navigationInfo: (@Composable () -> Unit)? = null,
+    outlineSides: MapChromeOutlineSides? = null,
+    readoutCentredOnMenu: Boolean = false,
+    coordinatesSizedForBothForms: Boolean = false,
 ) {
     // A plain Box + background, not Surface: Surface (even with no onClick) intercepts pointer
     // input for the area it occupies, which — now that this strip is full-width — swallowed the
@@ -398,9 +135,15 @@ private fun CompassElevationStripContent(
                 // return-to-vehicle IconButton a real touch target; that control moved out to
                 // ControlPill (Part B), so this strip wraps its Row's natural text-content height
                 // again, the same as before that dispatch.
-                .background(
-                    color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
-                    shape = RectangleShape,
+                // Dispatch 2026-10-12-06 (RECORD -932, -934): the rounded card, tucked under the pill in portrait, still a
+                // background with no pointer input of its own (RoundedMapCard.kt), so the map keeps every touch but the strip's
+                // own controls, its corner gaps included.
+                .mapCardSurface(
+                    fill = fill ?: if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
+                    corners = cardCorners,
+                    tuck = tuck,
+                    outline = mapChromeOutline(),
+                    outlineSides = outlineSides,
                 )
                 // Lets CompactMapTab's own onGloballyPositioned measure this strip's real height —
                 // AnchoredAtScreenPoint's minY and the taxon filter chip's top padding both need to
@@ -408,8 +151,28 @@ private fun CompassElevationStripContent(
                 // measured value is the only one that stays correct as font scale or content change
                 // it. Also still what this composable's own regression test targets directly.
                 .testTag("compass-elevation-strip")
-                .mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
+                .mapChromeContainerColor(fill ?: if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
         ) {
+            // Dispatch 2026-09-28-645 (Amendment 2, the owner: "Taller strip (Recommended)"; Amendment 3,
+            // RECORD -648: "a 3 dot menu at the far right", 36 dp): a Row so the quick-settings button
+            // sits at the strip's far right, its whole QUICK_SETTINGS_TAP_TARGET square within the
+            // strip's own height: the strip is at least that tall, and nothing hangs over the map. The
+            // Row draws nothing and takes no touches; the button takes them in its own square. Its place
+            // follows the strip, not the screen (RECORD -649, the owner: "far right in the strip").
+            // Dispatch 2026-10-12-08: a Column around that Row, drawing nothing and taking no touch, so the navigation info sits
+            // under the line inside this card (portrait, RECORD -950); the three-dot button stays on the line, above the X.
+            Column(modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth()) {
+            Row(
+                modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+            // Dispatch 2026-09-28-592: a Column so the sundown line can sit under the readout. It draws
+            // nothing and takes no touches of its own, like the Box around it.
+            // RECORD -709 (the planner): in a landscape window the strip is content-width under the small fixes' cap, and this
+            // column took all of it before the button was measured, leaving the three-dot button 0 dp wide at 780 x 360 dp. Weighted,
+            // not filling, it is measured after the button, which always keeps its QUICK_SETTINGS_TAP_TARGET; the readouts then give
+            // way inside what is left (readoutsFitBeside), coordinates first.
+            Column(modifier = if (contentWidth) Modifier.weight(1f, fill = false) else Modifier.weight(1f)) {
             Row(
                 // fillMaxWidth, not fillMaxSize — see this Box's own doc comment above for the
                 // hardware-caught bug an unbounded-height descendant caused here previously; nothing
@@ -439,299 +202,308 @@ private fun CompassElevationStripContent(
                 // match the return-to-vehicle control's box that shared this Row; that control is
                 // gone, and holding this box at 48dp anyway would defeat item 1's height revert by
                 // becoming the Row's own tallest child in the vehicle box's place.
-                Box(contentAlignment = Alignment.Center) {
+                // Dispatch 2026-10-12-08 (RECORD -948): navigating, the line drops the north arrow with the heading.
+                if (!navigating) Box(contentAlignment = Alignment.Center, modifier = Modifier.testTag(COMPASS_STRIP_NEEDLE_TAG)) {
                     Icon(
                         imageVector = Icons.Filled.Navigation,
                         contentDescription = null,
                         modifier = Modifier
-                            .size(18.dp)
+                            .size(STRIP_NEEDLE_SIZE)
                             .rotate((heading as? TrueHeadingReading.Available)?.degrees ?: 0f),
                     )
                 }
-                if (positionNote != null) {
-                    // Dispatch 2026-09-28-510 (the owner chose "Say so, no coordinates"): the heading,
-                    // then what the position is, in place of elevation and coordinates, which a reading
-                    // known to 100 m, or hours old, cannot honestly give. Not tappable: there is no
-                    // coordinate pair to toggle. Before the no-fix case, since an approximate or last
-                    // known position is something rather than nothing.
-                    Row(
-                        modifier = if (contentWidth) Modifier else Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
-                    ) {
-                        Text(
-                            text = stripHeadingText(heading),
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
-                        )
-                        Text("·", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            text = positionNote.stripText,
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f, fill = false)
-                                .testTag(COMPASS_STRIP_POSITION_NOTE_TAG),
-                        )
-                    }
-                } else if (location == null) {
-                    // One statement across the strip — see this composable's own doc comment. Not
-                    // tappable: there is no coordinate pair to toggle, and nothing to fabricate one
-                    // from. The Row's remaining width, so it centres where the three segments did.
-                    Text(
-                        text = NO_FIX_MESSAGE,
-                        style = MaterialTheme.typography.labelMedium,
-                        maxLines = 1,
-                        textAlign = TextAlign.Center,
-                        // Landscape B2 (S4): no weight when content-width, or this one line
-                        // would stretch the strip back across the window.
+                // Motion Part 2, Amendment 1 (RECORD -672), item 3 (scout C2): the swap between the readout, "Location services
+                // unavailable" and the position note crossfades, on the word swap's spec, rather than jumping. The outgoing one
+                // keeps drawing what it showed (lastNote, lastLocation) and takes no touch, so its coordinates cannot be tapped
+                // as it fades (item 5). The width given to the three (the Row's remaining width, or content width in landscape)
+                // is now on this box; each fills it, as each used to take it by weight. No size animation.
+                val readoutKind = when {
+                    positionNote != null -> StripReadout.POSITION_NOTE
+                    location == null -> StripReadout.NO_FIX
+                    navigating -> StripReadout.NAVIGATING
+                    else -> StripReadout.READOUT
+                }
+                val lastNote = rememberLastShown(positionNote)
+                val lastLocation = rememberLastShown(location)
+                val readoutFade = MotionTokens.wordSwapSpec<Float>()
+                AnimatedContent(
+                    targetState = readoutKind,
+                    modifier = (if (contentWidth) Modifier else Modifier.weight(1f))
+                        // Dispatch 2026-10-13-02, RECORD -983, -984: centred between the arrow and the dots (see
+                        // stripReadoutShiftToMenu); drawn and touched where it is placed, measured as before.
+                        .then(if (readoutCentredOnMenu && quickSettings != null) Modifier.offset(x = stripReadoutShiftToMenu(navigating)) else Modifier),
+                    transitionSpec = { (fadeIn(animationSpec = readoutFade) togetherWith fadeOut(animationSpec = readoutFade)).using(null) },
+                    contentAlignment = Alignment.Center,
+                    label = "stripReadout",
+                ) { kind ->
+                    // RECORD -691: no minimum touch target while it leaves, so a touch near a leaving piece under 48 dp is not handed to it (motion/LeavingTakesNoTouches.kt, NoTouchTargetExpansion).
+                    NoTouchTargetExpansion(active = kind != readoutKind) {
+                    Box(
                         modifier = Modifier
-                            .then(if (contentWidth) Modifier else Modifier.weight(1f))
-                            .testTag(COMPASS_STRIP_NO_FIX_TAG),
-                    )
-                } else {
-                    // Heading, elevation, and coordinates, taking whatever width is left after the fixed
-                    // compass-icon box above — this group used to share its weight(1f) budget with that
-                    // icon's inline width, which is exactly the width the coordinates segment's own
-                    // ellipsis was giving up first on a narrow screen (a hardware report: "cut off for no
-                    // reason" — there was room, it just wasn't reaching this Text). Pulling the icon out
-                    // of this Row's own measurement entirely is the fix, not a wider budget. Only one
-                    // fixed sibling now (Part A item 3 removed the strip's own return-to-vehicle box),
-                    // so this group's own available width is wider still than when that box also took a
-                    // share. TextOverflow.Ellipsis on the coordinates segment stays as the last-resort
-                    // safety net for a screen too narrow for all three fields regardless, not
-                    // horizontalScroll — see this composable's own doc comment above for why
-                    // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
-                    Row(
-                        // Landscape B2 (S4): no weight when content-width.
-                        modifier = if (contentWidth) Modifier else Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                            .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
+                            .leavingTakesNoTouches(leaving = kind != readoutKind),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            // With a fix, the heading has two real states and one transient: a value,
-                            // no sensor, or NeedsFix for the frame or two between the fix landing and
-                            // the next sensor emission (rememberTrueHeading restarts its producer on
-                            // that transition). The transient shows a dash, the same as the HUD — the
-                            // "needs a fix" wording is gone, replaced by NO_FIX_MESSAGE above.
-                            text = stripHeadingText(heading),
-                            // Landscape B2 (S5): tabular figures, so the strip's width holds
-                            // steady as the digits change. Both orientations; labelMedium kept.
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
-                        )
-                        Text("·", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            // Meters, matching this app's existing metric convention (radiusKm) rather
-                            // than introducing feet — nothing else in the app displays imperial units.
-                            text = elevationMeters?.let { "${it.roundToInt()} m" } ?: "Elevation unavailable",
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                        )
-                        Text("·", style = MaterialTheme.typography.labelMedium)
-                        Text(
-                            text = coordinatesStripText(location, showDecimalDegrees),
-                            style = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier
-                                .weight(1f, fill = false)
-                                .clickable(onClick = onToggleCoordinateFormat),
-                        )
+                        if (kind == StripReadout.POSITION_NOTE && lastNote != null) {
+                            // Dispatch 2026-09-28-510 (the owner chose "Say so, no coordinates"): the heading,
+                            // then what the position is, in place of elevation and coordinates, which a reading
+                            // known to 100 m, or hours old, cannot honestly give. Not tappable: there is no
+                            // coordinate pair to toggle. Before the no-fix case, since an approximate or last
+                            // known position is something rather than nothing.
+                            Row(
+                                modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                            ) {
+                                // Motion Part 2, item 6: words crossfade, numbers change at once (WordSwap).
+                                // Dispatch 2026-09-28-677: labelled, as on the navigation display (LabelledReadout).
+                                // Dispatch 2026-10-12-08: navigating, the note alone; the heading is the navigation info's.
+                                if (!navigating) {
+                                    if (shortHeadingStatus && heading.isCompassStatus()) {
+                                        StripHeadingStatusIcon(heading)
+                                    } else {
+                                        LabelledReadout(label = stripHeadingLabel(heading), labelStyle = stripReadoutStyle()) {
+                                            WordSwap(text = stripHeadingText(heading)) { shown ->
+                                                Text(
+                                                    text = shown,
+                                                    style = stripReadoutStyle().copy(fontFeatureSettings = "tnum"),
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Text("·", style = stripReadoutStyle())
+                                }
+                                WordSwap(text = lastNote.stripText, modifier = Modifier.weight(1f, fill = false)) { shown ->
+                                    Text(
+                                        text = shown,
+                                        style = stripReadoutStyle().copy(fontFeatureSettings = "tnum"),
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.testTag(COMPASS_STRIP_POSITION_NOTE_TAG),
+                                    )
+                                }
+                            }
+                        } else if (kind == StripReadout.NAVIGATING && lastLocation != null) {
+                            StripNavigatingReadout(
+                                coordinatesSizedForBothForms = coordinatesSizedForBothForms,
+                                elevationMeters = elevationMeters,
+                                unitSystem = unitSystem,
+                                location = lastLocation,
+                                showDecimalDegrees = showDecimalDegrees,
+                                onToggleCoordinateFormat = onToggleCoordinateFormat,
+                            )
+                        } else if (kind == StripReadout.NO_FIX || lastLocation == null) {
+                            // One statement across the strip — see this composable's own doc comment. Not
+                            // tappable: there is no coordinate pair to toggle, and nothing to fabricate one
+                            // from. The Row's remaining width, so it centres where the three segments did.
+                            Text(
+                                text = NO_FIX_MESSAGE,
+                                style = stripReadoutStyle(),
+                                maxLines = 1,
+                                softWrap = false,
+                                overflow = TextOverflow.Ellipsis,
+                                textAlign = TextAlign.Center,
+                                // Landscape B2 (S4): no weight when content-width, or this one line
+                                // would stretch the strip back across the window.
+                                modifier = Modifier
+                                    .then(if (contentWidth) Modifier else Modifier.fillMaxWidth())
+                                    .testTag(COMPASS_STRIP_NO_FIX_TAG),
+                            )
+                        } else {
+                            // Heading, elevation, and coordinates, taking whatever width is left after the fixed
+                            // compass-icon box above — this group used to share its weight(1f) budget with that
+                            // icon's inline width, which is exactly the width the coordinates segment's own
+                            // ellipsis was giving up first on a narrow screen (a hardware report: "cut off for no
+                            // reason" — there was room, it just wasn't reaching this Text). Pulling the icon out
+                            // of this Row's own measurement entirely is the fix, not a wider budget. Only one
+                            // fixed sibling now (Part A item 3 removed the strip's own return-to-vehicle box),
+                            // so this group's own available width is wider still than when that box also took a
+                            // share. TextOverflow.Ellipsis on the coordinates segment stays as the last-resort
+                            // safety net for a screen too narrow for all three fields regardless, not
+                            // horizontalScroll — see this composable's own doc comment above for why
+                            // horizontalScroll was rejected (it intercepts touches meant for the map underneath).
+                            // Dispatch 2026-09-28-685, Amendment 2 (RECORD -699; the owner: "Coordinates take priority
+                            // (Recommended)"): when the strip runs short, the facing and altitude readouts give way first,
+                            // shortening with "…" and then dropping out, and the coordinates stay whole. Since RECORD -713 the
+                            // shortening is gone: labels drop first, then facing, then altitude, each shown value whole. Measured
+                            // here, in the width this row is offered, by readoutsFitBeside; the coordinates are measured first.
+                            // Facing drops before altitude: the needle beside it still shows the direction.
+                            val readoutStyle = stripReadoutStyle().copy(fontFeatureSettings = "tnum")
+                            val readoutLabelStyle = stripReadoutStyle()
+                            val readoutMeasurer = rememberTextMeasurer()
+                            val headingLabel = stripHeadingLabel(heading)
+                            val headingText = stripHeadingText(heading)
+                            // RECORD -735: the crossed-out compass in landscape, measured as the icon's square, not the words.
+                            val headingIcon = shortHeadingStatus && heading.isCompassStatus()
+                            val elevationLabel = ALTITUDE_LABEL.takeIf { elevationMeters != null }
+                            val elevationText = elevationMeters?.let { formatWholeLength(it, unitSystem) } ?: ELEVATION_UNAVAILABLE_TEXT
+                            val coordinatesText = coordinatesStripText(lastLocation, showDecimalDegrees)
+                            BoxWithConstraints(contentAlignment = Alignment.Center) {
+                                val density = LocalDensity.current
+                                fun widthOf(text: String, style: TextStyle) = readoutMeasurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+                                fun labelPx(label: String?) = label?.let { widthOf(it, readoutLabelStyle) + with(density) { Spacing.xs.roundToPx() } } ?: 0
+                                val availablePx = if (constraints.hasBoundedWidth) constraints.maxWidth else Int.MAX_VALUE
+                                // RECORD -987: in landscape the readouts give way as if the wider coordinate form were showing, so
+                                // switching forms changes only the coordinates, never which readouts or labels are shown.
+                                val coordinatesPx = if (coordinatesSizedForBothForms) {
+                                    coordinatesBothFormsWidthPx(lastLocation, ::widthOf, readoutStyle)
+                                } else {
+                                    widthOf(coordinatesText, readoutStyle)
+                                }
+                                val separatorPx = widthOf("·", readoutLabelStyle) + with(density) { 2 * Spacing.sm.roundToPx() }
+                                // RECORD -713 (the owner: "Drop labels, then values (Recommended)"): labels go first, then facing,
+                                // then altitude; whatever is shown is whole. See readoutsFitBeside.
+                                val fit = readoutsFitBeside(
+                                    availablePx = availablePx,
+                                    coordinatesPx = coordinatesPx,
+                                    labelsPx = listOf(labelPx(headingLabel), labelPx(elevationLabel)),
+                                    valuesPx = listOf(
+                                        if (headingIcon) with(density) { stripHeadingIconSize().roundToPx() } else widthOf(headingText, readoutStyle),
+                                        widthOf(elevationText, readoutStyle),
+                                    ),
+                                    separatorPx = separatorPx,
+                                )
+                            Row(
+                                // Landscape B2 (S4): no weight when content-width.
+                                modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                            ) {
+                                // With a fix, the heading has two real states and one transient: a value,
+                                // no sensor, or NeedsFix for the frame or two between the fix landing and
+                                // the next sensor emission (rememberTrueHeading restarts its producer on
+                                // that transition). The transient shows a dash, the same as the HUD — the
+                                // "needs a fix" wording is gone, replaced by NO_FIX_MESSAGE above.
+                                // Motion Part 2, item 6: its words (the compass point, or a status) crossfade; its
+                                // degrees change at once (WordSwap). The elevation's likewise.
+                                // Dispatch 2026-09-28-677 (the owner, RECORD -656: "heading and altitude labelled"): each
+                                // reading after its short label, as on the navigation display (LabelledReadout); a status
+                                // ("Compass unavailable", "Alt unavailable") names itself and has none.
+                                if (fit.shown[0]) {
+                                    Box {
+                                        if (headingIcon) StripHeadingStatusIcon(heading) else
+                                        LabelledReadout(label = headingLabel.takeIf { fit.labels }, labelStyle = readoutLabelStyle) {
+                                            WordSwap(text = headingText) { shownText ->
+                                                Text(
+                                                    text = shownText,
+                                                    // Landscape B2 (S5): tabular figures, so the strip's width holds
+                                                    // steady as the digits change. Both orientations; labelMedium kept.
+                                                    style = readoutStyle,
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.testTag(COMPASS_STRIP_HEADING_TAG),
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Text("·", style = readoutLabelStyle)
+                                }
+                                // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
+                                if (fit.shown[1]) {
+                                    Box {
+                                        LabelledReadout(label = elevationLabel.takeIf { fit.labels }, labelStyle = readoutLabelStyle) {
+                                            WordSwap(text = elevationText) { shownText ->
+                                                Text(
+                                                    text = shownText,
+                                                    style = readoutStyle,
+                                                    maxLines = 1,
+                                                    softWrap = false,
+                                                    overflow = TextOverflow.Ellipsis,
+                                                    modifier = Modifier.testTag(COMPASS_STRIP_ELEVATION_TAG),
+                                                )
+                                            }
+                                        }
+                                    }
+                                    Text("·", style = readoutLabelStyle)
+                                }
+                                // Whole whenever it fits the strip at all: measured before the readouts (no weight). The
+                                // ellipsis is the last resort for a strip too narrow even for the coordinates alone.
+                                Text(
+                                    text = coordinatesText,
+                                    style = readoutStyle,
+                                    maxLines = 1,
+                                    softWrap = false,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier
+                                        .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
+                                        .testTag(COMPASS_STRIP_COORDINATES_TAG),
+                                )
+                            }
+                            }
+                        }
+                    }
                     }
                 }
             }
-        }
-    }
-}
-
-/**
- * The Return control's icon (dispatch 2026-09-28-497, plan task T7): an X in a circle while
- * navigating, so it reads as the way out (the owner: "The navigation icon should turn into an X
- * circle to let the user know it's used to exit navigation"); its own directions icon otherwise.
- * [isReturning] is whether any navigation is on: since dispatch 2026-09-28-502 the pill passes its
- * `isNavigating` here, a waypoint navigation included. The parameter keeps the name T7 gave it, which
- * T7's own test calls it by.
- */
-internal fun returnControlIcon(isReturning: Boolean): ImageVector = if (isReturning) Icons.Filled.Cancel else Icons.Filled.Directions
-
-/** The Return control's label, matching its icon: the HUD exit's own words while navigating, today's label otherwise. [isReturning] as in [returnControlIcon]. */
-internal fun returnControlDescription(isReturning: Boolean, isRecording: Boolean, info: ReturnToStartInfo?, distanceUnit: DistanceUnit): String =
-    if (isReturning) {
-        "Stop navigating"
-    } else {
-        returnToStartStripText(isRecording, info, distanceUnit).ifBlank { "Return to vehicle — start recording first" }
-    }
-
-/**
- * The return-to-vehicle line's text — blank while not recording (nothing to return to), a status
- * message once recording starts but before the first breadcrumb lands (bearing/distance need a
- * start point), then bearing, distance, and elevation difference once [info] is real. Now
- * [ControlPill]'s own `contentDescription` for its return-to-vehicle row (this used to also feed
- * the compass strip's own visible readout via `ReturnToVehicleStripControl`, removed in this
- * dispatch's Part A — see [CompassElevationStripContent]'s own doc comment).
- * [ReturnToStartInfo]'s own doc comment covers why there's no ETA here.
- */
-internal fun returnToStartStripText(isRecording: Boolean, info: ReturnToStartInfo?, distanceUnit: DistanceUnit): String {
-    if (!isRecording) return ""
-    if (info == null) return "Recording — waiting for a fix to compute the way back"
-    val elevationText = info.elevationDifferenceMeters?.let {
-        "${if (it >= 0) "+" else ""}${it.roundToInt()} m"
-    } ?: "elevation diff. unavailable"
-    val bearing = info.bearingDegrees.roundToInt()
-    return "Return: $bearing° ${cardinalDirection(info.bearingDegrees.toFloat())} · ${formatDistanceMeters(info.distanceMeters, distanceUnit)} · $elevationText"
-}
-
-/**
- * [CompactMapTab]'s three-way chooser — three choices over the shared [PendingMapAction] state,
- * presented as a small tile that grows out of the add button's own corner of the icon bar rather
- * than [AlertDialog]'s centered scale-in, per the project owner's own description of how it should
- * open. (The tablet's plain `ThreeWayActionDialog` was removed in dispatch 2026-09-28-245.)
- *
- * **Real [AssistChip]s, short labels, no title row.** The original had a "Add..." title plus four
- * full-width [TextButton]s (three choices, and its own "Cancel") — a real hardware-reported
- * problem, not a style preference: a full-width button is as wide as its longest label, which made
- * the whole tile noticeably wider than the icon bar it grows out of. Short labels ("Trip"/
- * "Find"/"Waypoint") in a [Row] instead of a [Column] let the tile's own width shrink to what three
- * short buttons actually need, rather than the longest of three sentences. No separate "Cancel"
- * button either — the scrim below already dismisses on a tap outside, and a fourth wide row would
- * undo the same fit this rewrite exists for.
- *
- * **[AssistChip], not the filled Material [Button] this tile used at first.** A solid
- * `colorScheme.primary`-filled button is its own large block of colour, and three of them side by
- * side visually crowded out the tile's own theme-aware card fill entirely — from the project
- * owner's own side-by-side comparison against [MapModePicker], whose unselected [FilterChip]s stay
- * outlined and let that same card fill read clearly instead. [AssistChip] is the semantically
- * correct match, not [FilterChip] borrowed wholesale: these three rows perform an action each and
- * share no "currently selected" state the way [MapModePicker]'s three modes do, so nothing here is
- * ever passed a `selected` value.
- *
- * Same theme-aware, 80%-opacity fill as [MapIconBar]
- * ([MapIconStackButtonColorDark]/[MapIconStackButtonColorLight]) rather than a plain
- * [MaterialTheme.colorScheme.surface] — one visual language for every control floating over the
- * map, the same reasoning [MapModePicker] gives for the same choice.
- *
- * A scrim (its own [AnimatedVisibility], faded independently of the tile) makes the map behind it
- * unmistakably unavailable to tap while a choice is pending — the same modal intent the dialog it
- * replaces had, just without borrowing [AlertDialog]'s fixed presentation. The scrim carries no
- * visible label of its own (unlike the three buttons beside it), so it is addressed in tests by
- * [ADD_ACTION_TILE_SCRIM_TAG] rather than text.
- *
- * [anchor]/[anchorOffset] mirror [MapModePicker]'s own pair exactly (expanded-panels dispatch):
- * this used to hardcode `CenterEnd` / `-Spacing.sm` / [ADD_TILE_ANCHOR_OFFSET] internally, which
- * was fine while [MapIconBar] could only ever sit at its default right-centre position, and
- * silently wrong once the bar became draggable — the tile kept opening at the bar's *old*
- * position. The single caller now feeds the bar's live side and drag offset. [growsFrom] is the
- * corner the tile grows out of / shrinks back into, the add row's own corner of the bar: bottom-
- * end on the right, bottom-start once the bar is snapped to the left — passed explicitly rather
- * than derived from [anchor] here, so the caller's intent is visible at the call site.
- */
-@Composable
-internal fun AddActionTile(
-    visible: Boolean,
-    onPlanTrip: () -> Unit,
-    onLogFind: () -> Unit,
-    onDropWaypoint: () -> Unit,
-    onDismiss: () -> Unit,
-    modifier: Modifier = Modifier,
-    anchor: Alignment = Alignment.CenterEnd,
-    anchorOffset: DpOffset = DpOffset(x = -MAP_ICON_BAR_EDGE_INSET, y = ADD_TILE_ANCHOR_OFFSET),
-    growsFrom: Alignment = Alignment.BottomEnd,
-) {
-    val isDarkTheme = LocalForagerDarkTheme.current
-    Box(modifier = modifier) {
-        // docs/motion-spec.md §2 "Panels and navigation": panels accept mild spring overshoot as
-        // a taste call, per docs/adr/0002-motion-scheme-adoption.md. Passing MotionTokens's spec
-        // explicitly here removes any dependence on AnimatedVisibility's own default spec.
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec()),
-            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec()),
-            modifier = Modifier.fillMaxSize(),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .testTag(ADD_ACTION_TILE_SCRIM_TAG)
-                    .background(Color.Black.copy(alpha = 0.32f))
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = onDismiss,
-                    ),
-            )
-        }
-
-        AnimatedVisibility(
-            visible = visible,
-            enter = fadeIn(animationSpec = MotionTokens.panelMotionSpec()) +
-                expandIn(
-                    animationSpec = MotionTokens.panelMotionSpec(),
-                    expandFrom = growsFrom,
-                ),
-            exit = fadeOut(animationSpec = MotionTokens.panelMotionSpec()) +
-                shrinkOut(
-                    animationSpec = MotionTokens.panelMotionSpec(),
-                    shrinkTowards = growsFrom,
-                ),
-            modifier = Modifier
-                .align(anchor)
-                .offset(x = anchorOffset.x, y = anchorOffset.y),
-        ) {
-            Surface(
-                modifier = Modifier.testTag(ADD_ACTION_TILE_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
-                shape = RoundedCornerShape(Spacing.md),
-                shadowElevation = 4.dp,
-                color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
-                contentColor = if (isDarkTheme) Color.White else Bark,
-                border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
+            // Motion Part 2, item 4 (dispatch 2026-09-28-666, scout C1; the owner, RECORD -651: "Fade and grow", from where it
+            // belongs): when its window opens the line fades in and the strip grows down to hold it, from under the readout,
+            // and the reverse when it closes; the fade alone, with the strip's height changing at once, under reduced motion.
+            // Unlike the map's pop-ups this grow is laid out, not drawn: the strip's own background has to grow with it. The
+            // strip takes no touch outside its coordinates (the Box's comment above), so the growing band moves no touch;
+            // what reads the strip's height (the notice below the bar, the fan's keep-out) follows it frame by frame. Item 6:
+            // a change in its words crossfades, a change in its times alone does not. The Back by line below does the same
+            // (merged in with dispatch 2026-09-28-645).
+            val sundownLineShown = rememberLastShown(sundownLine)
+            val reduceMotion = LocalReduceMotion.current
+            val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
+            val lineGrow = MotionTokens.mapPopUpGrowSpec<IntSize>()
+            AnimatedVisibility(
+                visible = sundownLine != null,
+                enter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top),
+                exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top),
+                label = "stripSundownLine",
             ) {
-                Row(
-                    modifier = Modifier.padding(Spacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                ) {
-                    AssistChip(onClick = onPlanTrip, label = { Text("Trip") })
-                    AssistChip(onClick = onLogFind, label = { Text("Find") })
-                    AssistChip(onClick = onDropWaypoint, label = { Text("Waypoint") })
+                sundownLineShown?.let { line ->
+                    WordSwap(
+                        text = line,
+                        modifier = Modifier
+                            .padding(horizontal = Spacing.sm)
+                            .then(if (contentWidth) Modifier else Modifier.fillMaxWidth()),
+                        contentAlignment = Alignment.Center,
+                    ) { shownLine ->
+                        StripEveningLine(line = shownLine, tag = STRIP_SUNDOWN_LINE_TAG, contentWidth = contentWidth)
+                    }
                 }
+            }
+            // Back by's line (dispatch 2026-09-28-645; RECORD -687), under the sundown line, with the same pop-up grow and
+            // word crossfade as the line above, so the two behave alike when either window opens or closes.
+            val backByLineShown = rememberLastShown(backByLine)
+            AnimatedVisibility(
+                visible = backByLine != null,
+                enter = if (reduceMotion) fadeIn(animationSpec = lineFade) else fadeIn(animationSpec = lineFade) + expandVertically(animationSpec = lineGrow, expandFrom = Alignment.Top),
+                exit = if (reduceMotion) fadeOut(animationSpec = lineFade) else fadeOut(animationSpec = lineFade) + shrinkVertically(animationSpec = lineGrow, shrinkTowards = Alignment.Top),
+                label = "stripBackByLine",
+            ) {
+                backByLineShown?.let { line ->
+                    WordSwap(
+                        text = line,
+                        modifier = Modifier
+                            .padding(horizontal = Spacing.sm)
+                            .then(if (contentWidth) Modifier else Modifier.fillMaxWidth()),
+                        contentAlignment = Alignment.Center,
+                    ) { shownLine ->
+                        StripEveningLine(line = shownLine, tag = STRIP_BACK_BY_LINE_TAG, contentWidth = contentWidth)
+                    }
+                }
+            }
+            }
+            if (quickSettings != null) MapQuickSettingsButton(quickSettings)
+            }
+            navigationInfo?.invoke()
             }
         }
     }
 }
-
-/** See [AddActionTile]'s own doc comment — its scrim has no visible label, so tests address it by tag. */
-internal const val ADD_ACTION_TILE_SCRIM_TAG = "add-action-tile-scrim"
-
-/**
- * [AddActionTile]'s own panel `Surface` — what the expanded-panels dispatch's tests measure its
- * real edges by. Its chips are not a usable proxy for those edges: under Robolectric's near-zero-
- * width fonts each chip measures under 48dp wide, so Material's `minimumInteractiveComponentSize`
- * wrapper pads it out and the chip's own semantics bounds stop short of the panel's edge by a
- * font-dependent margin (measured: ~5.5–7dp) that a real device would not show.
- */
-internal const val ADD_ACTION_TILE_TAG = "add-action-tile"
-
-/**
- * [MapIconBar]'s add row is its 5th (last) of 5 — see [mapIconBarRowAnchorOffset], promoted into
- * `MapChrome.kt` (fullscreen-fixes dispatch, Item 2) so the Cartography entry map's own
- * `MapModePicker` call can use the same row-anchor arithmetic this file's calls already did.
- */
-internal val ADD_TILE_ANCHOR_OFFSET = mapIconBarRowAnchorOffset(rowIndexFromTop = 5)
-
-/**
- * [ADD_TILE_ANCHOR_OFFSET] for the landscape L's bar (dispatch 2026-09-28-160), whose rows are 48 dp apart, not 52: the add row's
- * centre is 96 dp below the bar's, not 104.
- */
-internal val ADD_TILE_ANCHOR_OFFSET_LANDSCAPE = mapIconBarRowAnchorOffset(rowIndexFromTop = 5, rowSpacing = MAP_ICON_BAR_LANDSCAPE_ROW_SPACING)
-
 /**
  * The strip's heading text, shared by its with-fix row and its position-note row (dispatch
  * 2026-09-28-510), so the two word the compass identically.
  */
-private fun stripHeadingText(heading: TrueHeadingReading): String = when (heading) {
+internal fun stripHeadingText(heading: TrueHeadingReading): String = when (heading) {
     is TrueHeadingReading.Available -> "${heading.degrees.roundToInt() % 360}° ${cardinalDirection(heading.degrees)}"
     TrueHeadingReading.NoSensor -> "Compass unavailable"
     // Present but not to be trusted (compass-reliability dispatch).
@@ -739,5 +511,15 @@ private fun stripHeadingText(heading: TrueHeadingReading): String = when (headin
     // calibrated sensor, and the remedies differ — telling someone to
     // calibrate beside a truck is wrong advice confidently given.
     TrueHeadingReading.Unreliable -> "Compass unreliable"
-    TrueHeadingReading.NeedsFix -> "—"
+    TrueHeadingReading.NeedsFix -> NO_HEADING_TEXT
 }
+
+/**
+ * Dispatch 2026-09-28-677 gave the heading a label on the strip, "Facing", for a reading only. RECORD -728, the owner: "Keep
+ * the the 330° NW metric, just remove the word "facing" and nothing else." So no heading state has a label now.
+ */
+@Suppress("UNUSED_PARAMETER")
+private fun stripHeadingLabel(heading: TrueHeadingReading): String? = null
+
+/** What the compass strip's readout shows (motion Part 2, Amendment 1, item 3): the key its crossfade runs on. */
+private enum class StripReadout { POSITION_NOTE, NO_FIX, READOUT, NAVIGATING }

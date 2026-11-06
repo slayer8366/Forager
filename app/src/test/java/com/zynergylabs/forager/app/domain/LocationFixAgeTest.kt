@@ -16,6 +16,7 @@ class LocationFixAgeTest {
         altitude = 50.0,
         accuracyMeters = 12.5f,
         timestampEpochMillis = 1_700_000_000_000L,
+        provider = FixProvider.GPS,
     )
 
     @Test

@@ -160,4 +160,21 @@ class IntendedOrientationTest {
     private companion object {
         val FRAME = Size(40, 20)
     }
+
+    // ── RAW stage 2 (dispatch 2026-10-15-01, Amendment 1 item 4): the DNG takes the JPG's final tag ────────────────
+
+    @Test
+    fun `a DNG takes the JPG's final tag when the JPG is the unrotated frame, rewritten or kept`() {
+        assertEquals(ExifInterface.ORIENTATION_ROTATE_90, rawOrientationFor(OrientationReapplyOutcome.Rewritten(fromTag = ExifInterface.ORIENTATION_NORMAL, toTag = ExifInterface.ORIENTATION_ROTATE_90), 90))
+        assertEquals(ExifInterface.ORIENTATION_ROTATE_270, rawOrientationFor(OrientationReapplyOutcome.Kept(ExifInterface.ORIENTATION_ROTATE_270), 270))
+        assertEquals("an absent tag reads as upright, as the scrub's rule has it", ExifInterface.ORIENTATION_NORMAL, rawOrientationFor(OrientationReapplyOutcome.Kept(ExifInterface.ORIENTATION_UNDEFINED), 0))
+    }
+
+    @Test
+    fun `when the JPG kept the HAL's tag, the DNG takes the shot's intended degrees, never the JPG's other-frame tag`() {
+        assertEquals(ExifInterface.ORIENTATION_ROTATE_90, rawOrientationFor(OrientationReapplyOutcome.Declined("the HAL rotated the pixels", tag = ExifInterface.ORIENTATION_NORMAL), 90))
+        assertEquals(ExifInterface.ORIENTATION_ROTATE_180, rawOrientationFor(OrientationReapplyOutcome.Failed(IllegalStateException("x")), 180))
+        assertEquals("not a right angle: upright", ExifInterface.ORIENTATION_NORMAL, rawOrientationFor(OrientationReapplyOutcome.Declined("odd", tag = null), 45))
+    }
 }
+

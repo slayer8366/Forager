@@ -58,20 +58,19 @@ class InAppCameraHostTest {
     private val albumPhotos = mutableListOf<PhotoSource>()
     private val cartographyPhotos = mutableListOf<PhotoSource>()
     private var dismissed = 0
-    private var slotSawLockToPortrait: Boolean? = null
 
     /** The test's slot: the real dialog over the fake session, viewfinder a plain box. */
-    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, lockToPortrait, gridMode, onGridModeChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
-        slotSawLockToPortrait = lockToPortrait
+    private val fakeCamera: InAppCameraSlot = { cameraCaptureFiles, gridMode, onGridModeChanged, cameraFormat, onCameraFormatChanged, autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, onPhotoCaptured, onDismiss ->
         val session = FakeCameraCaptureSession()
         InAppCameraDialog(
             session = session,
             cameraCaptureFiles = cameraCaptureFiles,
-            lockToPortrait = lockToPortrait,
             onPhotoCaptured = onPhotoCaptured,
             onDismiss = onDismiss,
             gridMode = gridMode,
             onGridModeChanged = onGridModeChanged,
+            cameraFormat = cameraFormat,
+            onCameraFormatChanged = onCameraFormatChanged,
             autoSaveLocationToPhotos = autoSaveLocationToPhotos,
             onAutoSaveLocationToPhotosChanged = onAutoSaveLocationToPhotosChanged,
             levelProvider = FakeLevelProvider(),
@@ -87,7 +86,6 @@ class InAppCameraHostTest {
             InAppCameraHost(
                 target = target,
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                lockToPortrait = false,
                 gridMode = GridMode.Off,
                 onGridModeChanged = {},
                 autoSaveLocationToPhotos = true,
@@ -119,7 +117,6 @@ class InAppCameraHostTest {
         shoot()
         assertEquals(1, logEntryPhotos.size)
         assertTrue(logEntryPhotos.single() is CameraCapturePhotoSource)
-        assertEquals("the host hands the setting to the slot unchanged", false, slotSawLockToPortrait)
         assertEquals(0, albumPhotos.size)
         assertEquals(0, cartographyPhotos.size)
     }

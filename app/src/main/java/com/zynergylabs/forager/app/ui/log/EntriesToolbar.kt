@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingFilledIconToggleButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -7,7 +8,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ViewList
 import androidx.compose.material.icons.filled.GridView
-import androidx.compose.material3.FilledIconToggleButton
 import androidx.compose.material3.Icon
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -32,14 +32,14 @@ internal fun EntriesToolbar(
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.End),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        FilledIconToggleButton(
+        BouncingFilledIconToggleButton(
             checked = viewMode == EntriesViewMode.TIMELINE,
             onCheckedChange = { if (it) onViewModeChange(EntriesViewMode.TIMELINE) },
             modifier = Modifier.testTag(ENTRIES_VIEW_TIMELINE_TAG),
         ) {
             Icon(Icons.AutoMirrored.Filled.ViewList, contentDescription = "Timeline view")
         }
-        FilledIconToggleButton(
+        BouncingFilledIconToggleButton(
             checked = viewMode == EntriesViewMode.ALBUM,
             onCheckedChange = { if (it) onViewModeChange(EntriesViewMode.ALBUM) },
             modifier = Modifier.testTag(ENTRIES_VIEW_ALBUM_TAG),

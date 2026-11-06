@@ -28,7 +28,7 @@ import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.ui.log.formatTrackDuration
 import com.zynergylabs.forager.app.ui.map.layers.LEGEND_REFERENCE_CLASS
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
-import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
+import com.zynergylabs.forager.app.ui.format.displayDateTime
 import java.time.LocalDate
 import java.util.concurrent.TimeUnit
 import kotlin.math.abs
@@ -156,30 +156,30 @@ class MapBubblesTest {
     // Content per kind (B3).
 
     @Test
-    fun `a find shows its identification, its date and its cover photo, an unnamed one its date as the title, and a record gone from its list nothing`() {
+    fun `a find shows its identification, its date and its cover photo, an unnamed one with no time no title but its date line and the tile's label, and a record gone from its list nothing`() {
         assertEquals(
-            MapBubbleContent.Find("find-1", "Chanterelle", "Find on 2026-09-12", "photos/ph-1.jpg"),
-            mapBubbleContentFor(target(MapBubbleKind.FIND, MapLayerIds.FINDS, "find-1"), sources),
+            MapBubbleContent.Find("find-1", "Chanterelle", "Find on Sep 12, 2026", "photos/ph-1.jpg"),
+            mapBubbleContentFor(target(MapBubbleKind.FIND, MapLayerIds.FINDS, "find-1"), sources, is24HourClock = false),
         )
         assertEquals(
-            MapBubbleContent.Find("find-2", "Find on 2026-09-12", null, null),
-            mapBubbleContentFor(target(MapBubbleKind.FIND, MapLayerIds.FINDS, "find-2"), sources),
+            MapBubbleContent.Find("find-2", null, "Find on Sep 12, 2026", null, blankTitleLabel = "Find, Sep 12, 2026"),
+            mapBubbleContentFor(target(MapBubbleKind.FIND, MapLayerIds.FINDS, "find-2"), sources, is24HourClock = false),
         )
         // A record no longer in its list (a delete landed, a list reloaded) has no bubble.
-        assertNull(mapBubbleContentFor(target(MapBubbleKind.FIND, MapLayerIds.FINDS, "gone"), sources))
-        assertNull(mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "gone"), sources))
-        assertNull(mapBubbleContentFor(target(MapBubbleKind.OFFLINE_REGION, MapLayerIds.OFFLINE_REGION_OUTLINE, "not-a-number"), sources))
+        assertNull(mapBubbleContentFor(target(MapBubbleKind.FIND, MapLayerIds.FINDS, "gone"), sources, is24HourClock = false))
+        assertNull(mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "gone"), sources, is24HourClock = false))
+        assertNull(mapBubbleContentFor(target(MapBubbleKind.OFFLINE_REGION, MapLayerIds.OFFLINE_REGION_OUTLINE, "not-a-number"), sources, is24HourClock = false))
     }
 
     @Test
     fun `a photo shows itself, its date and what it is attached to`() {
         assertEquals(
-            MapBubbleContent.Photo(photo.photo, formatRecordTimestamp(1_700_000_000_000L), "In Chanterelle · Kept in 2 journal entries"),
-            mapBubbleContentFor(target(MapBubbleKind.PHOTO, MapLayerIds.PHOTOS, "ph-1"), sources),
+            MapBubbleContent.Photo(photo.photo, displayDateTime(1_700_000_000_000L, is24HourClock = false), "Chanterelle · 2 journal entries"),
+            mapBubbleContentFor(target(MapBubbleKind.PHOTO, MapLayerIds.PHOTOS, "ph-1"), sources, is24HourClock = false),
         )
         assertEquals(
             MapBubbleContent.Photo(loosePhoto.photo, "Date unknown", "Not in a find or a journal entry"),
-            mapBubbleContentFor(target(MapBubbleKind.PHOTO, MapLayerIds.PHOTOS, "ph-2"), sources),
+            mapBubbleContentFor(target(MapBubbleKind.PHOTO, MapLayerIds.PHOTOS, "ph-2"), sources, is24HourClock = false),
         )
     }
 
@@ -188,17 +188,39 @@ class MapBubblesTest {
         val mgrs = (MgrsConverter.convert(LatLng(45.55, -122.65)) as MgrsCoordinate.Grid).value
         assertEquals(
             MapBubbleContent.WaypointContent(waypoint, mgrs),
-            mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-1"), sources),
+            mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-1"), sources, is24HourClock = false),
         )
     }
 
     @Test
     fun `an entry map's kept waypoint gone from Records is named from the entry's snapshot, with no details`() {
         val kept = Waypoint("wp-gone", 45.4, -122.5, null, "Old gate", "", 0L)
-        val content = mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-gone"), sources.copy(snapshotWaypoints = listOf(kept)))
+        val content = mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-gone"), sources.copy(snapshotWaypoints = listOf(kept)), is24HourClock = false)
         assertEquals(MapBubbleContent.WaypointContent(kept, (MgrsConverter.convert(LatLng(45.4, -122.5)) as MgrsCoordinate.Grid).value, hasDetails = false), content)
         // A waypoint still in Records is the record, with details, even when a snapshot exists too.
-        assertEquals(true, (mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-1"), sources.copy(snapshotWaypoints = listOf(kept))) as MapBubbleContent.WaypointContent).hasDetails)
+        assertEquals(true, (mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-1"), sources.copy(snapshotWaypoints = listOf(kept)), is24HourClock = false) as MapBubbleContent.WaypointContent).hasDetails)
+    }
+
+    /**
+     * RECORD -867 ("Add it to the icon's details"): on an entry map a waypoint's bubble gives the distance walked from
+     * the start, in the unit setting, for a live record and for one known only from the entry's snapshot. 556 m is
+     * 0.3 mi. A waypoint with no known distance, and every other map, get no such line.
+     */
+    @Test
+    fun `on an entry map a waypoint's bubble gives the distance walked from the start`() {
+        val kept = Waypoint("wp-gone", 45.4, -122.5, null, "Old gate", "", 0L)
+        val entryMap = sources.copy(
+            distanceUnit = DistanceUnit.MILES,
+            snapshotWaypoints = listOf(kept),
+            waypointDistancesFromStart = mapOf("wp-1" to 556.0, "wp-gone" to 0.0),
+        )
+        fun fromStart(id: String, from: MapRecordSources) =
+            (mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, id), from, is24HourClock = false) as MapBubbleContent.WaypointContent).fromStart
+
+        assertEquals("0.3 mi walked from the start", fromStart("wp-1", entryMap))
+        assertEquals("0 ft walked from the start", fromStart("wp-gone", entryMap))
+        assertEquals(null, fromStart("wp-1", sources))
+        assertEquals(null, fromStart("wp-1", entryMap.copy(waypointDistancesFromStart = emptyMap())))
     }
 
     @Test
@@ -208,11 +230,11 @@ class MapBubblesTest {
             MapBubbleContent.TrackContent(
                 trackId = "trk-1",
                 title = "Morning loop",
-                date = formatRecordTimestamp(1_700_000_000_000L),
+                date = displayDateTime(1_700_000_000_000L, is24HourClock = false),
                 distance = formatDistanceMeters(stats.distanceMeters, DistanceUnit.KILOMETERS),
                 duration = formatTrackDuration(stats.durationMillis),
             ),
-            mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-1"), sources),
+            mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-1"), sources, is24HourClock = false),
         )
         assertEquals("1h 0m", formatTrackDuration(stats.durationMillis))
     }
@@ -224,7 +246,7 @@ class MapBubblesTest {
     @Test
     fun `an entry map's kept track gone from Records is named from the entry's snapshot, with no date and no details`() {
         val kept = TrackDecision("trk-gone", "Old ridge", 1234.0, 3_660_000L, 5, kept = true)
-        val content = mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-gone"), sources.copy(snapshotTracks = listOf(kept)))
+        val content = mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-gone"), sources.copy(snapshotTracks = listOf(kept)), is24HourClock = false)
         assertEquals(
             MapBubbleContent.TrackContent(
                 trackId = "trk-gone",
@@ -241,40 +263,53 @@ class MapBubblesTest {
     @Test
     fun `a snapshot track with no name is titled as the entry report titles it`() {
         val kept = TrackDecision("trk-gone", null, 10.0, 60_000L, 1, kept = true)
-        val content = mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-gone"), sources.copy(snapshotTracks = listOf(kept))) as MapBubbleContent.TrackContent
+        val content = mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-gone"), sources.copy(snapshotTracks = listOf(kept)), is24HourClock = false) as MapBubbleContent.TrackContent
         assertEquals("Recorded track", content.title)
     }
 
     @Test
     fun `a track still in Records is the record, with details, even when a snapshot exists too`() {
         val kept = TrackDecision("trk-1", "Old name", 1.0, 1L, 1, kept = true)
-        val content = mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-1"), sources.copy(snapshotTracks = listOf(kept))) as MapBubbleContent.TrackContent
+        val content = mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-1"), sources.copy(snapshotTracks = listOf(kept)), is24HourClock = false) as MapBubbleContent.TrackContent
         assertEquals("Morning loop", content.title)
         assertEquals(true, content.hasDetails)
-        assertEquals(formatRecordTimestamp(1_700_000_000_000L), content.date)
+        assertEquals(displayDateTime(1_700_000_000_000L, is24HourClock = false), content.date)
     }
 
     @Test
     fun `a track that is in neither Records nor the snapshots has no bubble`() {
-        assertEquals(null, mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-nowhere"), sources))
+        assertEquals(null, mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-nowhere"), sources, is24HourClock = false))
     }
 
+    // Dispatch 2026-11-05-05 (A1; RECORD -2140, the owner: "Remove the long/lat coordinates from the Trip icon, and keep the
+    // military style"): was `a planned trip shows what its Trip Planner row shows`, which expected the row's four lines, the
+    // decimal degrees "45.5600, -122.6600" among them. Now name, date and MGRS, with no coordinates, and no elevation until
+    // the bubble's layer reads one (as a waypoint's).
     @Test
-    fun `a planned trip shows what its Trip Planner row shows`() {
+    fun `a planned trip shows its name, date and MGRS, without the coordinates`() {
         val mgrs = (MgrsConverter.convert(LatLng(45.56, -122.66)) as MgrsCoordinate.Grid).value
         assertEquals(
-            MapBubbleContent.Trip(trip, "Oct 3", mgrs, "45.5600, -122.6600"),
-            mapBubbleContentFor(target(MapBubbleKind.PLANNED_TRIP, MapLayerIds.PLANNED_TRIPS, "trip-1"), sources),
+            MapBubbleContent.Trip(trip, "Oct 3, 2026", mgrs),
+            mapBubbleContentFor(target(MapBubbleKind.PLANNED_TRIP, MapLayerIds.PLANNED_TRIPS, "trip-1"), sources, is24HourClock = false),
         )
+    }
+
+    // Schema 23 (dispatch 2026-10-30-02): an undated trip's bubble has no date line.
+    @Test
+    fun `an undated planned trip's bubble has no date`() {
+        val undated = trip.copy(id = "trip-2", date = null)
+        val content = mapBubbleContentFor(target(MapBubbleKind.PLANNED_TRIP, MapLayerIds.PLANNED_TRIPS, "trip-2"), sources.copy(plannedTrips = listOf(undated)), is24HourClock = false)
+
+        assertEquals(null, (content as MapBubbleContent.Trip).date)
     }
 
     @Test
     fun `an offline region shows its name, radius and size, and says Stale only when stale`() {
         assertEquals(
             MapBubbleContent.Region(7L, "Forest Park", "5 km", "12.3 MB", stale = false),
-            mapBubbleContentFor(target(MapBubbleKind.OFFLINE_REGION, MapLayerIds.OFFLINE_REGION_OUTLINE, "7"), sources),
+            mapBubbleContentFor(target(MapBubbleKind.OFFLINE_REGION, MapLayerIds.OFFLINE_REGION_OUTLINE, "7"), sources, is24HourClock = false),
         )
-        assertEquals(true, (mapBubbleContentFor(target(MapBubbleKind.OFFLINE_REGION, MapLayerIds.OFFLINE_REGION_OUTLINE, "8"), sources) as MapBubbleContent.Region).stale)
+        assertEquals(true, (mapBubbleContentFor(target(MapBubbleKind.OFFLINE_REGION, MapLayerIds.OFFLINE_REGION_OUTLINE, "8"), sources, is24HourClock = false) as MapBubbleContent.Region).stale)
     }
 
     // The forecast cell: re-read from the store by group, week and block (planner's M1 ruling).
@@ -338,14 +373,14 @@ class MapBubblesTest {
         val cell = cellAt(45.5, -122.6, 0.37)
         assertEquals(
             MapBubbleContent.Cell(
-                layerName = "Test forecast: chanterelles (synthetic data)",
+                layerName = "Test Forecast: Chanterelles (Synthetic Data)",
                 chance = "37%",
                 range = "Uncertainty 21% to 58%",
                 drivers = listOf("rain, last 14 days: 62 mm", "soil temperature: 11"),
-                dates = "Week of 2026-09-28, weather to 2026-09-26",
+                dates = "Week of Sep 28, 2026, weather to Sep 26, 2026",
                 referenceClass = LEGEND_REFERENCE_CLASS,
             ),
-            forecastCellBubble("Test forecast: chanterelles (synthetic data)", cell),
+            forecastCellBubble("Test Forecast: Chanterelles (Synthetic Data)", cell),
         )
     }
 

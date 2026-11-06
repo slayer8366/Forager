@@ -81,6 +81,7 @@ class RoomMushroomLogRepository(
                     createdAtEpochMillis = entity.createdAtEpochMillis,
                     latitude = entity.latitude,
                     longitude = entity.longitude,
+                    rawRelativePath = entity.rawRelativePath,
                 ),
                 referencingEntryIds = entryIdsByPhoto[entity.id].orEmpty(),
             )
@@ -289,6 +290,7 @@ private fun MushroomLogEntry.toEntity(): MushroomLogEntryEntity {
 
         isDraft = isDraft,
         draftOfEntryId = draftOfEntryId,
+        foundAtEpochMillis = foundAtEpochMillis,
     )
 }
 
@@ -311,6 +313,7 @@ private fun LogPhoto.toEntity() = LogPhotoEntity(
     createdAtEpochMillis = createdAtEpochMillis,
     latitude = latitude,
     longitude = longitude,
+    rawRelativePath = rawRelativePath,
 )
 
 // --- MushroomLogEntryEntity -> MushroomLogEntry --------------------------------------------------
@@ -418,6 +421,7 @@ private fun MushroomLogEntryEntity.toDomain(photos: List<LogPhotoEntity>): Mushr
             createdAtEpochMillis = it.createdAtEpochMillis,
             latitude = it.latitude,
             longitude = it.longitude,
+            rawRelativePath = it.rawRelativePath,
         )
     },
     syncState = when (syncStateKind) {
@@ -437,4 +441,5 @@ private fun MushroomLogEntryEntity.toDomain(photos: List<LogPhotoEntity>): Mushr
     },
     isDraft = isDraft,
     draftOfEntryId = draftOfEntryId,
+    foundAtEpochMillis = foundAtEpochMillis,
 )

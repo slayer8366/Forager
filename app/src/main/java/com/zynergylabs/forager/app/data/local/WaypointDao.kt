@@ -15,7 +15,17 @@ interface WaypointDao {
      * `createdAtEpochMillis` index [MIGRATION_9_10] adds. Half-open range, `[dayStartInclusive,
      * dayEndExclusive)` — see [com.zynergylabs.forager.app.domain.LocalDayRange]'s own doc comment for why.
      */
-    @Query("SELECT * FROM waypoints WHERE createdAtEpochMillis >= :dayStartInclusive AND createdAtEpochMillis < :dayEndExclusive")
+    // Plan T16 ("Records and map only", -636): a waypoint that came in with an imported GPX track is
+    // part of that import, and stays out of the Journal's derived trips with it. Only while it is
+    // linked: deleting the track unlinks its waypoints (DeleteTrackUseCase), and they are ordinary
+    // waypoints from then on.
+    @Query(
+        """
+        SELECT * FROM waypoints
+        WHERE createdAtEpochMillis >= :dayStartInclusive AND createdAtEpochMillis < :dayEndExclusive
+        AND (trackId IS NULL OR trackId NOT IN (SELECT id FROM tracks WHERE importedAtEpochMillis IS NOT NULL))
+        """,
+    )
     suspend fun getForDay(dayStartInclusive: Long, dayEndExclusive: Long): List<WaypointEntity>
 
     @Query("SELECT * FROM waypoints WHERE id = :id")

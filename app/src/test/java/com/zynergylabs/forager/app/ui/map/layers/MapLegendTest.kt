@@ -34,12 +34,12 @@ class MapLegendTest {
     @Test
     fun `collapsed, the chip names the one visible layer, or reads 2 layers, and expanded lists them top of the draw order first`() {
         val one = mapLegendFor(effective(both, hidden(MapLayerIds.FORECAST_CHANTERELLES)), registry, COLOUR_FIELDS, emptyMap())
-        assertEquals("Test forecast: chicken of the woods (synthetic data)", one?.collapsedLabel)
+        assertEquals("Test Forecast: Chicken of the Woods (Synthetic Data)", one?.collapsedLabel)
 
         val two = mapLegendFor(effective(both), registry, COLOUR_FIELDS, emptyMap())
         assertEquals("2 layers", two?.collapsedLabel)
         assertEquals(
-            listOf("Test forecast: chanterelles (synthetic data)", "Test forecast: chicken of the woods (synthetic data)"),
+            listOf("Test Forecast: Chanterelles (Synthetic Data)", "Test Forecast: Chicken of the Woods (Synthetic Data)"),
             two?.layers?.map { it.name },
         )
         assertEquals(COLOUR_FIELDS.single { it.layerId == MapLayerIds.FORECAST_CHANTERELLES }.ramp, two?.layers?.first()?.ramp)
@@ -52,6 +52,21 @@ class MapLegendTest {
         )
     }
 
+    /**
+     * Data part C (dispatch -668, the owner's "Fix both (Recommended)", RECORD -656): below the
+     * colour fields' minimum zoom the legend carries the note; otherwise it does not.
+     */
+    @Test
+    fun `the legend is marked zoomed out only when the map says the camera is below the forecast's zoom`() {
+        val zoomedOut = mapLegendFor(effective(both), registry, COLOUR_FIELDS, emptyMap(), zoomedOut = true)
+        val zoomedIn = mapLegendFor(effective(both), registry, COLOUR_FIELDS, emptyMap(), zoomedOut = false)
+
+        assertEquals(true, zoomedOut?.zoomedOut)
+        assertEquals(false, zoomedIn?.zoomedOut)
+        assertEquals("Zoom in to see the forecast", LEGEND_ZOOM_IN_FOR_FORECAST)
+        assertNull("no visible field: no legend, zoomed out or not", mapLegendFor(effective(emptySet()), registry, COLOUR_FIELDS, emptyMap(), zoomedOut = true))
+    }
+
     @Test
     fun `each layer's dates read Week of the week, weather to the weather date, and are left out while none of its cells is in view`() {
         val shown = mapOf(
@@ -60,8 +75,8 @@ class MapLegendTest {
 
         val legend = mapLegendFor(effective(both), registry, COLOUR_FIELDS, shown)
 
-        assertEquals("Week of 2026-09-28, weather to 2026-09-26", legend?.layers?.single { it.layerId == MapLayerIds.FORECAST_CHANTERELLES }?.dates)
+        assertEquals("Week of Sep 28, 2026, weather to Sep 26, 2026", legend?.layers?.single { it.layerId == MapLayerIds.FORECAST_CHANTERELLES }?.dates)
         assertNull(legend?.layers?.single { it.layerId == MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS }?.dates)
-        assertEquals("Week of 2026-09-28, weather to 2026-09-26", legendDatesLine(shown.values.single()))
+        assertEquals("Week of Sep 28, 2026, weather to Sep 26, 2026", legendDatesLine(shown.values.single()))
     }
 }

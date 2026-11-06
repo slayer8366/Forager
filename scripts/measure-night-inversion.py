@@ -179,6 +179,10 @@ def main() -> None:
     pooled_as_is_pixels: list[float] = []
     pooled_inverted_pixels: list[float] = []
     rows = []
+    # Dispatch 2026-09-28-658 (F11): a tile that fails to fetch is reported and skipped, and the
+    # summary says how many, so a partial sample is not read as the whole one.
+    attempted = 0
+    skipped = 0
 
     print("| Basemap | Location | Zoom | As-is min/max/median/spread | Inverted min/max/median/spread |")
     print("|---|---|---|---|---|")
@@ -187,10 +191,12 @@ def main() -> None:
         for location_name, (lat, lng) in LOCATIONS.items():
             for zoom in WALKING_ZOOMS:
                 x, y = latlng_to_tile(lat, lng, zoom)
+                attempted += 1
                 try:
                     img = fetch_tile(url_template, zoom, x, y)
                 except Exception as e:  # noqa: BLE001 -- measurement tool, report and continue
                     print(f"| {basemap_name} | {location_name} | z{zoom} | FETCH FAILED: {e} | |")
+                    skipped += 1
                     continue
                 result = analyze_tile(img)
                 a, inv = result["as_is"], result["inverted"]
@@ -208,6 +214,13 @@ def main() -> None:
     print()
     print("## Worst case across all night-eligible sources/zooms sampled")
     print()
+    sampled = attempted - skipped
+    print(f"Sampled {sampled} of {attempted} tiles; {skipped} skipped (fetch failed, listed above). "
+          f"Every figure below covers the {sampled} sampled only.")
+    print()
+    if sampled == 0:
+        print("Nothing was sampled, so there is no summary.")
+        sys.exit(1)
     worst_as_is_min = min(r["min"] for r in all_as_is_lum)
     worst_as_is_max = max(r["max"] for r in all_as_is_lum)
     worst_inv_min = min(r["min"] for r in all_inverted_lum)

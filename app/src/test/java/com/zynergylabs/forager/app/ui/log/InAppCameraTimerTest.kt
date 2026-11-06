@@ -6,9 +6,9 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Timer10
-import androidx.compose.material.icons.filled.Timer3
-import androidx.compose.material.icons.filled.TimerOff
+import androidx.compose.material.icons.outlined.Timer10
+import androidx.compose.material.icons.outlined.Timer3
+import androidx.compose.material.icons.outlined.TimerOff
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -91,7 +91,6 @@ class InAppCameraTimerTest {
                 InAppCameraDialog(
                     session = session,
                     cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                    lockToPortrait = false,
                     onPhotoCaptured = { captured += it },
                     onDismiss = { dismissals += 1; shown = false },
                     gridMode = GridMode.Off,
@@ -160,9 +159,10 @@ class InAppCameraTimerTest {
 
     @Test
     fun `each timer setting has its own glyph and label`() {
-        assertEquals(TimerGlyph(Icons.Filled.TimerOff, "Timer off"), timerGlyph(TimerMode.Off))
-        assertEquals(TimerGlyph(Icons.Filled.Timer3, "Timer 3 seconds"), timerGlyph(TimerMode.ThreeSeconds))
-        assertEquals(TimerGlyph(Icons.Filled.Timer10, "Timer 10 seconds"), timerGlyph(TimerMode.TenSeconds))
+        // RECORD -970 (the owner, on the strip icons: "C both"): the thin-line (Outlined) style of the same symbols. Was Icons.Filled.*, same names.
+        assertEquals(TimerGlyph(Icons.Outlined.TimerOff, "Timer off"), timerGlyph(TimerMode.Off))
+        assertEquals(TimerGlyph(Icons.Outlined.Timer3, "Timer 3 seconds"), timerGlyph(TimerMode.ThreeSeconds))
+        assertEquals(TimerGlyph(Icons.Outlined.Timer10, "Timer 10 seconds"), timerGlyph(TimerMode.TenSeconds))
     }
 
     /**

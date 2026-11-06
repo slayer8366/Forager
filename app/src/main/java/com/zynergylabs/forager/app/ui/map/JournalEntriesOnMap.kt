@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.map
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.ui.log.journalEntryCountLabel
 import java.time.LocalDate
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /** The report menu's item for an entry not shown on the map (J8, the dispatch's copy). */
 const val SHOW_ON_MAP_LABEL = "Show on map"
@@ -10,8 +11,8 @@ const val SHOW_ON_MAP_LABEL = "Show on map"
 /** The report menu's item for an entry shown on the map (J8, the dispatch's copy). */
 const val HIDE_FROM_MAP_LABEL = "Hide from map"
 
-/** The Layers sheet's switch for every highlight at once (J8, the dispatch's copy). */
-const val JOURNAL_ENTRIES_OVERLAY_LABEL = "Journal entries"
+/** Tools > Map Layers' switch for every highlight at once (J8; Title Case by dispatch 2026-10-28-02 Amendment 1, RECORD -1765). */
+const val JOURNAL_ENTRIES_OVERLAY_LABEL = "Journal Entries"
 
 /** The chip list's action for one entry (J8, the dispatch's copy). */
 const val HIDE_JOURNAL_ENTRY_LABEL = "Hide"
@@ -23,8 +24,12 @@ const val HIDE_ALL_JOURNAL_ENTRIES_LABEL = "Hide all"
 fun journalEntriesChipLabel(count: Int): String =
     if (count == 1) "1 journal entry on map" else "$count journal entries on map"
 
-/** An entry's date as the Journal's report header shows it (planner, Q3: `2026-09-12`). */
-fun journalEntryDateLabel(date: LocalDate): String = date.toString()
+/**
+ * An entry's date as the Journal's report header shows it, "Oct 7, 2026": the map's journal menu and its bubbles' date lines.
+ * The planner's earlier ISO answer (Q3, `2026-09-12`) is superseded by the owner's "Use 'Oct 7, 2026' everywhere" (RECORD -656,
+ * applied by -702).
+ */
+fun journalEntryDateLabel(date: LocalDate): String = displayDate(date)
 
 /** A bubble date line's accessibility label (owner's Q2 ruling, "Tap a date line"). */
 fun openEntryAccessibilityLabel(date: String): String = "Open entry $date"
@@ -44,7 +49,7 @@ sealed interface KeptInEntriesLines {
 /**
  * What a highlighted record's bubble says about [entries], the shown entries that keep it (owner's Q2
  * ruling, "Tap a date line"): nothing for none; one date line each for up to three; past three, one
- * line, "Kept in N journal entries" — the photo bubble's own wording and plural
+ * line, "In N journal entries" (was "Kept in"; the owner, RECORD -671) — the photo bubble's own wording and plural
  * ([journalEntryCountLabel]) — over the list of their dates.
  */
 fun keptInEntriesLines(entries: List<JournalEntryOnMap>): KeptInEntriesLines? {
@@ -56,7 +61,7 @@ fun keptInEntriesLines(entries: List<JournalEntryOnMap>): KeptInEntriesLines? {
     return if (lines.size <= MAX_ENTRY_DATE_LINES) {
         KeptInEntriesLines.Dates(lines)
     } else {
-        KeptInEntriesLines.Count("Kept in ${journalEntryCountLabel(lines.size)}", lines)
+        KeptInEntriesLines.Count("In ${journalEntryCountLabel(lines.size)}", lines)
     }
 }
 

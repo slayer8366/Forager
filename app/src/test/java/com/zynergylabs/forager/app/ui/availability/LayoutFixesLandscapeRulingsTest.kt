@@ -140,8 +140,9 @@ class LayoutFixesLegendLandscapeTest {
     @Test
     fun `T1 at ROTATION_90 the legend is clear of the cluster on either side, inboard of it on the legend's side`() = run(Surface.ROTATION_90, defaultClusterOnRight = false)
 
+    // RECORD -956 (the owner: "One should look exactly line the other"): the cluster defaults to the left at 270 too. Was `defaultClusterOnRight = true`.
     @Test
-    fun `T1 at ROTATION_270 the legend is clear of the cluster on either side, inboard of it on the legend's side`() = run(Surface.ROTATION_270, defaultClusterOnRight = true)
+    fun `T1 at ROTATION_270 the legend is clear of the cluster on either side, inboard of it on the legend's side`() = run(Surface.ROTATION_270, defaultClusterOnRight = false)
 
     /** A long-press drag of the minimise handle by [dy] dp down, returning how far the cluster's top moved. */
     private fun dragClusterDown(dy: Dp): Float {
@@ -173,11 +174,14 @@ class LayoutFixesLegendLandscapeTest {
         assertFalse("the legend ${legend().describe()} and the cluster ${cluster().describe()} still do not intersect", legend().overlapsRect(cluster()))
     }
 
+    // RECORD -956 (the owner: "One should look exactly line the other"): at 270 the cluster's default is the left, away from the legend, so the two
+    // cases below snap it right to the legend's side first, as at 90. Was `snapLeft = null` (the default, then the right, the
+    // legend's side); under -956 that left the cluster away from the legend and the cases passed without meeting it.
     @Test fun `Q4 at ROTATION_270 with the legend collapsed on the cluster's side the cluster drags down past the legend's top`() =
-        assertClusterDragsPastTheLegendsTop(Surface.ROTATION_270, snapLeft = null, expanded = false)
+        assertClusterDragsPastTheLegendsTop(Surface.ROTATION_270, snapLeft = false, expanded = false)
 
     @Test fun `Q4 at ROTATION_270 with the legend expanded on the cluster's side the cluster drags down past the legend's top`() =
-        assertClusterDragsPastTheLegendsTop(Surface.ROTATION_270, snapLeft = null, expanded = true)
+        assertClusterDragsPastTheLegendsTop(Surface.ROTATION_270, snapLeft = false, expanded = true)
 
     @Test fun `Q4 at ROTATION_90 with the cluster snapped to the legend's side the cluster drags down past the legend's top`() =
         assertClusterDragsPastTheLegendsTop(Surface.ROTATION_90, snapLeft = false, expanded = false)

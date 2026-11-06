@@ -1,7 +1,5 @@
 package com.zynergylabs.forager.app.ui.log
 
-import com.zynergylabs.forager.app.ui.adaptive.portEdgeFor
-
 /**
  * Which of the camera dialog's arrangements a session uses — chosen once when the camera opens and
  * held for the life of the dialog. Owner's requirement, device check on `51882cb`, step 3.4:
@@ -91,6 +89,21 @@ import com.zynergylabs.forager.app.ui.adaptive.portEdgeFor
  * two window inputs are constant and cannot disagree with the window. It goes through the same
  * `remember` as setting off. It is not protected: the moment either input stops being constant —
  * a platform that ignores the portrait request, say — it is on the same path as everything else.
+ *
+ * **Since RECORD -985 the inputs are the device's natural frame, not the window's**, whenever the window is full screen:
+ * `NaturalOrientationHold` passes the natural frame's shape and `ROTATION_0` while it holds a turned window. So "portrait"
+ * below means the device's own upright, the shutter goes on the natural bottom, and a landscape-natural tablet (the owner,
+ * "Option A") gets the landscape arrangement at its natural rotation and keeps it however it is held. Which physical edge a
+ * landscape-natural tablet's charger port is on is not known here; its shutter is on the right as in RECORD -958. The
+ * window's own values reach this function only in split screen or a freeform window.
+ *
+ * **Since RECORD -980 and -981** the window is held portrait (`SCREEN_ORIENTATION_PORTRAIT`, no
+ * setting), so on a phone this returns [CameraArrangement.Portrait]. The window inputs stay, because a
+ * display 600 dp or wider under Android 17 ignores the request and turns the window anyway.
+ *
+ * **History since dispatch 2026-10-13-03:** "Lock camera to portrait" was removed (RECORD -968), and
+ * with it this function's first input, `lockToPortrait`, which returned [CameraArrangement.Portrait]
+ * whatever the window. "The setting" above, and "setting off" throughout, now describe the only case.
  */
 internal enum class CameraArrangement {
     /** Today's layout: Done top-left, count and shutter along the bottom, controls turning in place. */
@@ -123,21 +136,24 @@ internal enum class CameraArrangement {
  * test can state what each of the four produces.
  */
 internal fun cameraArrangement(
-    lockToPortrait: Boolean,
     windowIsLandscape: Boolean,
     displayRotation: Int,
 ): CameraArrangement = when {
     // No reverse-portrait case on purpose: the camera's window cannot occupy ROTATION_180
-    // (RequestWindowOrientation asks for SCREEN_ORIENTATION_SENSOR, which the platform will not
-    // resolve to 180 on a phone), so this branch's portrait answer is never wrong in practice. It
+    // (RequestWindowOrientation asks for SCREEN_ORIENTATION_PORTRAIT since RECORD -980, which excludes
+    // it; SENSOR before that, which the platform would not resolve to 180 on a phone), so this branch's
+    // portrait answer is never wrong in practice. A landscape window is still handled below: on a
+    // display 600 dp or wider, Android 17 ignores the portrait request for this app's targetSdk 37. It
     // *would* be wrong there — shutter on the punch-hole edge, strip on the port edge, measured on
     // the emulator 2026-09-19 — so anything that makes 180 reachable again needs a fourth
     // arrangement built with it. See this function's doc comment.
-    lockToPortrait || !windowIsLandscape -> CameraArrangement.Portrait
-    // The rotation-to-port-edge mapping is shared with the main window's navigation rail and
-    // lives in one place, ui/adaptive's portEdgeFor (landscape B1, Resolution R16). Unchanged:
-    // ROTATION_270 is the port on the left, anything else in landscape the port on the right.
-    portEdgeFor(windowIsLandscape = true, displayRotation) == ScreenEdge.Left -> CameraArrangement.LandscapePortLeft
+    !windowIsLandscape -> CameraArrangement.Portrait
+    // RECORD -958 (asked whether the in-app camera should look the same both ways, as the map does since RECORD -956, the owner:
+    // "Yes"): in a landscape window the layout is the same at ROTATION_90 and ROTATION_270, as it was at ROTATION_90: the shutter on
+    // the screen's right, the strip on its left. On-screen placement only: the photo's orientation comes from the sensor
+    // (CameraCaptureSession.deviceRotation, CameraXCaptureSession's targetRotation), and the glyphs still turn by sensor minus display
+    // (rotateWithDevice), neither of which reads this. Was: portEdgeFor(displayRotation), the port's edge, so ROTATION_270 was the
+    // mirror ([CameraArrangement.LandscapePortLeft], now unreached; kept so the enum's history and its tests stay readable).
     else -> CameraArrangement.LandscapePortRight
 }
 

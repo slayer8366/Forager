@@ -19,7 +19,7 @@ uncommitted.
    (not `performClick`, not any Compose semantics-layer dispatch), with a record-row tap as a
    control. No emulator existed in this environment, so it was installed from scratch
    (`sdkmanager`: `emulator` package, `system-images;android-29;default;x86_64`, `avdmanager create
-   avd`) — chosen over a Google APIs image because the map stack is MapLibre, not a mainstream maps app, so
+   avd`) — chosen over a Google APIs image because the map stack is MapLibre, not a mainstream maps app's SDK, so
    no Play Services dependency. **Result: return-to-vehicle works.** Three real taps, three correct
    alternating UI-state changes (`DistanceArm` extend/retract, icon color toggle); the control tap
    confirmed tap-targeting was sound throughout (its first read looked like a miss and was actually

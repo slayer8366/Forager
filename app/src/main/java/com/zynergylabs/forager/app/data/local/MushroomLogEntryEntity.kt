@@ -175,4 +175,11 @@ data class MushroomLogEntryEntity(
      * mid-edit.
      */
     val draftOfEntryId: String? = null,
+
+    /**
+     * [com.zynergylabs.forager.app.domain.model.MushroomLogEntry.foundAtEpochMillis]: when the find was found, written when it
+     * is created. Nullable with no backfill: rows from before version 20 (data part D, RECORD -703; [MIGRATION_19_20]) have no
+     * time of day to give it. Its reader is the find's title (`ui/log/FindTitles.kt`).
+     */
+    val foundAtEpochMillis: Long? = null,
 )

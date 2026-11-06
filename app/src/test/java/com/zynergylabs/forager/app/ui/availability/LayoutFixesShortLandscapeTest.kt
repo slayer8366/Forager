@@ -132,10 +132,11 @@ class LayoutFixesShortLandscapeTest {
         assertPillInboardAndBottomAligned(clusterOnLeft = true)
     }
 
+    // RECORD -956 (the owner: "One should look exactly line the other"): the L defaults to the screen's left at 270 too. Was `clusterOnLeft = false`.
     @Test
     fun `TR2 at ROTATION_270 the pill sits beneath the bar, flush on its outer end, extending inboard`() {
         setScreen(Surface.ROTATION_270)
-        assertPillInboardAndBottomAligned(clusterOnLeft = false)
+        assertPillInboardAndBottomAligned(clusterOnLeft = true)
     }
 
     /** Five real touches spread across each of the pill's two controls; each reaches it. */
@@ -235,9 +236,14 @@ class LayoutFixesShortLandscapeTest {
         assertEquals("in fullscreen the end inset follows the caption to the edge", 0f, map.renderMode!!.attributionEndInset.value, 0.5f)
     }
 
+    // RECORD -956 (the owner: "One should look exactly line the other"): the rail is on the right, the attribution's end side, at 270 too, so the end
+    // inset is the rail's width there as at 90. Was `T5 guard at ROTATION_270 the attribution end inset is zero, the end side being
+    // the punch-hole side`, `assertEquals(0f, attributionEndInset)`.
     @Test
-    fun `T5 guard at ROTATION_270 the attribution end inset is zero, the end side being the punch-hole side`() {
+    fun `T5 at ROTATION_270 the map is handed the rail's width as the attribution end inset, as at ROTATION_90`() {
         setScreen(Surface.ROTATION_270)
-        assertEquals(0f, map.renderMode!!.attributionEndInset.value, 0.5f)
+        val rail = tag(COMPACT_NAVIGATION_RAIL_TAG)
+        assertTrue("the rail ${rail.describe()} is on the right, the attribution's end side", rail.right >= mapArea().right - 0.5.dp)
+        assertEquals("the end inset is the rail's width", (rail.right - rail.left).value, map.renderMode!!.attributionEndInset.value, 0.5f)
     }
 }

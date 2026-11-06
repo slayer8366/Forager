@@ -54,6 +54,13 @@ class CameraCaptureFiles(private val context: Context) {
         return Capture(uri = uri, file = file)
     }
 
+    /**
+     * A fresh scratch file for a RAW shot's DNG (dispatch 2026-10-15-01), beside the shot's JPG capture in `captures/`, so
+     * [sweepOrphans] covers it the same way. No URI: only this app's own code ever reads it, [FilePhotoStore.persist] by
+     * file. Creates the directory, not the file.
+     */
+    fun newRawFile(): File = File(capturesDir, "${UUID.randomUUID()}.dng")
+
     fun deleteCapture(capture: Capture) {
         capture.file.delete()
     }

@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.domain.model
 
+import java.util.Locale
 import kotlin.math.roundToInt
 
 /**
@@ -74,6 +75,20 @@ fun formatDistanceMeters(distanceMeters: Double, unit: DistanceUnit): String = w
     DistanceUnit.MILES -> {
         val miles = distanceMeters / METERS_PER_MILE
         if (miles < 0.25) "${(distanceMeters * FEET_PER_METER).roundToInt()} ft" else "${"%.1f".format(miles)} mi"
+    }
+}
+
+/**
+ * The distance [formatDistanceMeters] prints for [distanceMeters], in metres: what is left of the figure once it is rounded for
+ * the screen. For adding up what is shown (the route card's totals, dispatch 2026-10-30-08, Amendment 10). The tenths are read
+ * back from the same format string, so this can never round differently from the label.
+ */
+fun shownDistanceMeters(distanceMeters: Double, unit: DistanceUnit): Double = when (unit) {
+    DistanceUnit.KILOMETERS ->
+        if (distanceMeters < 1_000.0) distanceMeters.roundToInt().toDouble() else "%.1f".format(Locale.US, distanceMeters / 1_000.0).toDouble() * 1_000.0
+    DistanceUnit.MILES -> {
+        val miles = distanceMeters / METERS_PER_MILE
+        if (miles < 0.25) (distanceMeters * FEET_PER_METER).roundToInt() / FEET_PER_METER else "%.1f".format(Locale.US, miles).toDouble() * METERS_PER_MILE
     }
 }
 

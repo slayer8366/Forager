@@ -11,8 +11,8 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalContext
-import com.zynergylabs.forager.app.ui.motion.isReduceMotionEnabled
+import androidx.compose.runtime.rememberUpdatedState
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 
 /**
  * What a map's fan-out is doing, as plain observable state: which markers are fanned ([members], kept
@@ -65,17 +65,23 @@ class MarkerFanOutState {
 
 /**
  * The clock for [state]: moves its progress to 1 when it opens and back to 0 when it folds, each over
- * [FAN_DURATION_MS], then releases it. With the system's animations off ([isReduceMotionEnabled], the
+ * [FAN_DURATION_MS], then releases it. With the system's animations off ([LocalReduceMotion], the
  * owner's "spread out at once") the progress jumps to its end. The easing is the standard
  * fast-out-slow-in: the owner chose the duration and not the curve.
+ *
+ * Reads the app-wide [LocalReduceMotion] (dispatch 2026-09-28-652, item 1: "Move the marker fan and the
+ * restore page onto it, without changing what they do"). It used to read the setting itself through
+ * `isReduceMotionEnabled` when each fan started; the local is fed by that same function and kept current
+ * by `ProvideReduceMotion`, so what the fan does is unchanged under the app's theme. The value is read
+ * when each fan starts, through [rememberUpdatedState], as before.
  */
 @Composable
 fun MarkerFanOutHost(state: MarkerFanOutState) {
-    val contentResolver = LocalContext.current.contentResolver
+    val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
     LaunchedEffect(state.generation) {
         if (state.members.isEmpty()) return@LaunchedEffect
         val target = if (state.wantOpen) 1f else 0f
-        if (isReduceMotionEnabled(contentResolver)) {
+        if (reduceMotion) {
             state.progress = target
         } else {
             Animatable(state.progress).animateTo(target, tween(FAN_DURATION_MS, easing = FastOutSlowInEasing)) {

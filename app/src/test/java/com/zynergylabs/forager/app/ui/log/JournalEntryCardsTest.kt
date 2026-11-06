@@ -113,7 +113,7 @@ class JournalEntryCardsTest {
                 onOpenCameraForAlbum = {},
                 onOpenCameraForCartographyEntry = {},
                 mapSlot = CARDS_STUB_MAP,
-                pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
                 basemap = Basemap.DEFAULT,
                 onOpenEntry = {},
                 onCloseEntry = {},
@@ -311,7 +311,7 @@ class JournalEntryCardsTest {
         setScreen(listOf(EMPTY_ENTRY))
 
         node(rowTag(EMPTY_ENTRY.id)).assertIsDisplayed()
-        textIn(rowTag(EMPTY_ENTRY.id), "Nothing kept").assertIsDisplayed()
+        textIn(rowTag(EMPTY_ENTRY.id), "Nothing included").assertIsDisplayed()
     }
 
     // ── C2: the hero photo (owner: "Direct photos only (Recommended)") ──

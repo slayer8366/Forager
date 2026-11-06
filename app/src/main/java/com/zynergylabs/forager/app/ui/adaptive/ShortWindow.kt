@@ -3,6 +3,8 @@ package com.zynergylabs.forager.app.ui.adaptive
 import androidx.compose.runtime.Composable
 import android.content.res.Configuration
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
+import androidx.compose.ui.unit.dp
 
 /**
  * Material 3's compact-height boundary: a window shorter than this is *short*.
@@ -22,11 +24,11 @@ private const val SHORT_WINDOW_MAX_HEIGHT_DP = 480
  *
  * A separate function beside [currentWindowWidthClass] rather than a fourth [WindowWidthClass]
  * case or a height read threaded into that function (CLAUDE.md, Building: new capability is a new
- * function). Reads [LocalConfiguration] for the same reason [currentWindowWidthClass] does (its
- * doc comment).
+ * function). Reads the window's own height, `LocalWindowInfo.current.containerDpSize`, for the same
+ * reason [currentWindowWidthClass] does (its doc comment).
  */
 @Composable
-fun isShortWindow(): Boolean = LocalConfiguration.current.screenHeightDp < SHORT_WINDOW_MAX_HEIGHT_DP
+fun isShortWindow(): Boolean = LocalWindowInfo.current.containerDpSize.height < SHORT_WINDOW_MAX_HEIGHT_DP.dp
 
 /**
  * Whether the current window is in landscape, whatever its height: the gate for the phone's landscape
@@ -42,3 +44,14 @@ fun isLandscapeWindow(): Boolean = LocalConfiguration.current.orientation == Con
 /** Short, or landscape: the gate for a rule that was "short" and is meant to follow the landscape layouts too. */
 @Composable
 fun isShortOrLandscapeWindow(): Boolean = isShortWindow() || isLandscapeWindow()
+
+/**
+ * Whether the window is a large screen, a tablet or an unfolded foldable: its smallest width is at least
+ * [com.zynergylabs.forager.app.ui.log.LARGE_SCREEN_MIN_SMALLEST_WIDTH_DP] (600 dp, the same threshold the camera's natural-frame
+ * hold uses). Dispatch 2026-10-18-10 (Forager RECORD -1337, -1338, -1340): the gate for the tablet Journal's wider column and square
+ * maps. Every phone, in either orientation, is under it (the S22 Ultra's smallest width is 384 dp), so a phone's layout never reads
+ * true here. A separate function, not a case threaded into [isLandscapeWindow] (CLAUDE.md, Building).
+ */
+@Composable
+fun isLargeScreenWindow(): Boolean =
+    LocalConfiguration.current.smallestScreenWidthDp >= com.zynergylabs.forager.app.ui.log.LARGE_SCREEN_MIN_SMALLEST_WIDTH_DP

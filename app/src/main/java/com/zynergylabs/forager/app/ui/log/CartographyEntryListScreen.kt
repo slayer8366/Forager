@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -29,7 +30,15 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Track
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.ListRowShape
+import com.zynergylabs.forager.app.ui.motion.MotionTokens
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import androidx.compose.ui.unit.IntOffset
+import java.time.YearMonth
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The Entries/Drafts submenus' shared list — Journal Stage 2b. A grid, the same shape
@@ -96,23 +105,12 @@ internal fun CartographyEntryListScreen(
      */
     sideways: Boolean = false,
 ) {
-    if (isLoading && entries.isEmpty()) {
-        Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-            CircularProgressIndicator()
-        }
-        return
-    }
-
-    if (entries.isEmpty() && loadErrorMessage == null) {
-        Text(
-            emptyMessage,
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = modifier.fillMaxWidth().padding(Spacing.lg),
-        )
-        return
-    }
-
-    val months = remember(entries) { groupEntriesByMonth(entries) }
+    // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"): a deleted card stays to fade and shrink while the rest
+    // close up, and comes back the way it went on Undo; see motion/ListMotion.kt. The empty message waits on these rows, so
+    // the last card of a list still leaves before the empty message shows.
+    val rows = rememberListRows(entries, key = { it.id })
+    val glide = MotionTokens.listRowSpec<IntOffset>()
+    val months = remember(rows) { groupRowsByMonth(rows) }
     val photosById = remember(galleryPhotos) { galleryPhotos.associateBy { it.photo.id } }
     val tracksById = remember(tracks) { tracks.associateBy { it.id } }
     val savedPathsByEntry by produceState(initialValue = emptyMap<String, Map<String, List<LatLng>>>(), entries, tracksById) {
@@ -124,7 +122,25 @@ internal fun CartographyEntryListScreen(
     LaunchedEffect(gridState, swipeGroup) {
         snapshotFlow { gridState.isScrollInProgress }.collect { scrolling -> if (scrolling) swipeGroup.closeAll() }
     }
-    Column(modifier = modifier.fillMaxSize()) {
+    // Motion Part 3, Amendment 2 (RECORD -682; scout J10): the spinner, the empty message and the list crossfade into each other
+    // instead of swapping in one frame (motion/StateCrossfade.kt).
+    val listState = when {
+        isLoading && rows.isEmpty() -> EntryListState.LOADING
+        rows.isEmpty() && loadErrorMessage == null -> EntryListState.EMPTY
+        else -> EntryListState.LIST
+    }
+    StateCrossfade(targetState = listState, modifier = modifier.fillMaxSize()) { shownState ->
+    when (shownState) {
+    EntryListState.LOADING -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        CircularProgressIndicator()
+    }
+    EntryListState.EMPTY -> Text(
+        emptyMessage,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
+    )
+    EntryListState.LIST ->
+    Column(modifier = Modifier.fillMaxSize()) {
         if (entries.isEmpty() && loadErrorMessage != null) {
             Text(
                 loadErrorMessage,
@@ -144,7 +160,13 @@ internal fun CartographyEntryListScreen(
                 // J3, C1 (plan J5): a sticky header per month. The run index keeps keys unique where
                 // a month recurs (the drafts list's order is by last update, not date).
                 stickyHeader(key = "month-$month-$run", contentType = "month") { EntryMonthHeader(month) }
-                items(monthEntries, key = { it.id }) { entry ->
+                items(monthEntries, key = { it.key }) { row ->
+                  // Placement glide for a card that moves (another added or gone above it); the fade and the grow are the row's own.
+                  ListRowMotion(
+                    row = row,
+                    modifier = Modifier.animateItem(fadeInSpec = null, placementSpec = glide, fadeOutSpec = null),
+                    shape = if (columns == 1) ListRowShape.ROW else ListRowShape.TILE,
+                  ) { entry ->
                     val open = { onOpenEntry(entry.id) }
                     val hero = entryHeroPhoto(entry, photosById)
                     if (sideways) {
@@ -179,16 +201,40 @@ internal fun CartographyEntryListScreen(
                                 group = swipeGroup,
                                 onDelete = { onDeleteEntry(entry.id) },
                                 onEdit = onEditEntry?.let { edit -> { edit(entry.id) } },
+                                // The cards' own shape (CartographyEntryCard, CollapsedEntryRow), for the close tap's highlight.
+                                highlightShape = RoundedCornerShape(Spacing.sm),
                                 content = card,
                             )
                         } else {
                             card()
                         }
                     }
+                  }
                 }
             }
         }
     }
+    }
+    }
+}
+
+/** What [CartographyEntryListScreen] shows (motion Part 3, Amendment 2): one value, so the three can crossfade. */
+private enum class EntryListState { LOADING, EMPTY, LIST }
+
+/**
+ * [groupEntriesByMonth] for the rows the list draws (motion Part 3), so a leaving card keeps its month, and its month header stays
+ * until it has gone.
+ */
+private fun groupRowsByMonth(
+    rows: List<com.zynergylabs.forager.app.ui.motion.ListRow<CartographyEntry>>,
+): List<Pair<YearMonth, List<com.zynergylabs.forager.app.ui.motion.ListRow<CartographyEntry>>>> {
+    val runs = mutableListOf<Pair<YearMonth, MutableList<com.zynergylabs.forager.app.ui.motion.ListRow<CartographyEntry>>>>()
+    for (row in rows) {
+        val month = YearMonth.from(row.item.date)
+        val last = runs.lastOrNull()
+        if (last != null && last.first == month) last.second += row else runs += month to mutableListOf(row)
+    }
+    return runs
 }
 
 /**
@@ -223,7 +269,7 @@ private fun SidewaysEntryItem(
     }
     if (onDelete != null) {
         LongPressOptionsBox(
-            longClickLabel = "Options for entry on ${entry.date}",
+            longClickLabel = "Options for entry on ${displayDate(entry.date)}",
             onEdit = onEdit,
             onDelete = onDelete,
         ) { options -> item(options) }

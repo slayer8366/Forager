@@ -1,11 +1,11 @@
 package com.zynergylabs.forager.app.data.repository
 
+import com.zynergylabs.forager.app.domain.SettingsResetListener
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.domain.BackupFrequency
 import com.zynergylabs.forager.app.domain.BackupSchedulePreferences
 import com.zynergylabs.forager.app.domain.BackupScheduleSettings
@@ -19,22 +19,25 @@ import kotlinx.coroutines.flow.first
  * reason [DataStoreMapPreferencesRepository] records. Keys are namespaced `backup.`.
  *
  * Nothing stored means the defaults of [BackupScheduleSettings]: **off**, weekly, no folder. A stored frequency
- * this build does not know (a file written by a newer build) is a failure, not a quiet default.
+ * this build does not know (a file written by a newer build) is logged and read as the default, weekly (RECORD
+ * -660, the owner: "Fall back and log"; it was a failed read before).
  */
-class DataStoreBackupSchedulePreferences(context: Context) : BackupSchedulePreferences {
+class DataStoreBackupSchedulePreferences(
+    context: Context,
+    /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
+    settingsReset: SettingsResetListener = SettingsResetListener.None,
+) : BackupSchedulePreferences {
 
-    private val dataStore = PreferenceDataStoreFactory.create(
-        produceFile = { context.applicationContext.preferencesDataStoreFile(DATA_STORE_NAME) },
-    )
+    private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset)
 
     override suspend fun get(): Result<BackupScheduleSettings> = runCatchingCancellable {
         val prefs = dataStore.data.first()
         val defaults = BackupScheduleSettings()
         BackupScheduleSettings(
             enabled = prefs[KEY_ENABLED] ?: defaults.enabled,
-            frequency = prefs[KEY_FREQUENCY]?.let { stored ->
-                BackupFrequency.entries.firstOrNull { it.name == stored } ?: error("unknown backup frequency '$stored'")
-            } ?: defaults.frequency,
+            // RECORD -660 (D3): an unknown stored frequency is logged and takes the default, where it
+            // used to fail the whole schedule read (and the section then started from "off").
+            frequency = decodeStoredName(prefs[KEY_FREQUENCY], BackupFrequency.entries, defaults.frequency, "backup frequency"),
             folderUri = prefs[KEY_FOLDER],
         )
     }

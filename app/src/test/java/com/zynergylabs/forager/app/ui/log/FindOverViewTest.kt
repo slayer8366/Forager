@@ -21,6 +21,13 @@ class FindOverViewTest {
         assertEquals(waiting, nextFindOverView(waiting, openFindId = "find-0"))
     }
 
+    /** RECORD -876: a find opened straight into its form opens as its draft row; that draft of the asked-for find shows it. */
+    @Test
+    fun `waiting, it shows once a draft of the asked-for find is open, and not for a draft of another`() {
+        assertEquals(FindOverView("find-1", shown = true), nextFindOverView(waiting, openFindId = "draft-x", openFindDraftOf = "find-1"))
+        assertEquals(waiting, nextFindOverView(waiting, openFindId = "draft-y", openFindDraftOf = "find-0"))
+    }
+
     @Test
     fun `shown, it stays while a find is open, including the draft an edit swaps in, and goes when none is`() {
         val shown = FindOverView("find-1", shown = true)

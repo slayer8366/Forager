@@ -109,6 +109,47 @@ object SunCrossing {
         return null
     }
 
+    /**
+     * The latest instant in `[fromEpochMillis - withinMillis, fromEpochMillis]` at which the sun's
+     * altitude passed **down** through [altitudeDegrees], or `null` when it did not in that window.
+     *
+     * The backward twin of [nextDescendingCrossing] (dispatch 2026-09-28-592, Amendment 1, RECORD
+     * -593): the sundown line after sunset says when the sun *set* and when it got dark, today's
+     * times, where [nextDescendingCrossing] can only give tomorrow's. The scan walks back from
+     * [fromEpochMillis] in the same ten-minute steps and bisects the first bracket it meets, so the
+     * crossing found is the most recent one. The same three `null` situations apply.
+     */
+    fun previousDescendingCrossing(
+        fromEpochMillis: Long,
+        withinMillis: Long,
+        latitude: Double,
+        longitude: Double,
+        altitudeDegrees: Double,
+    ): Long? {
+        require(withinMillis > 0) { "withinMillis must be positive, was $withinMillis" }
+        val start = fromEpochMillis - withinMillis
+
+        var laterAt = fromEpochMillis
+        var laterAbove = isAbove(laterAt, latitude, longitude, altitudeDegrees)
+        var at = fromEpochMillis - COARSE_STEP_MILLIS
+
+        while (at >= start) {
+            val above = isAbove(at, latitude, longitude, altitudeDegrees)
+            if (above && !laterAbove) {
+                return bisect(at, laterAt, latitude, longitude, altitudeDegrees)
+            }
+            laterAt = at
+            laterAbove = above
+            at -= COARSE_STEP_MILLIS
+        }
+
+        // The last partial step, as in nextDescendingCrossing.
+        if (laterAt > start && !laterAbove && isAbove(start, latitude, longitude, altitudeDegrees)) {
+            return bisect(start, laterAt, latitude, longitude, altitudeDegrees)
+        }
+        return null
+    }
+
     private fun isAbove(at: Long, latitude: Double, longitude: Double, altitudeDegrees: Double): Boolean =
         CivilTwilight.sunAltitudeDegrees(at, latitude, longitude) > altitudeDegrees
 

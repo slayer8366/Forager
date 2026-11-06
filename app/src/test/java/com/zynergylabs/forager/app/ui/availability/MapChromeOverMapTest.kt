@@ -43,6 +43,7 @@ import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.log.ENTRY_DELETE_DIALOG_TAG
 import com.zynergylabs.forager.app.ui.log.ENTRY_OVERFLOW_MENU_TAG
 import com.zynergylabs.forager.app.ui.log.RECORD_DETAILS_SHEET_TAG
+import com.zynergylabs.forager.app.ui.log.trackTileTag
 import com.zynergylabs.forager.app.ui.log.RecordsSubTab
 import com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag
 import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
@@ -164,47 +165,68 @@ internal fun MapChromeTestScreen(
         roles.Capture()
         AvailabilityScreen(
             uiState = state.ui,
-            onUseCurrentLocation = {},
-            onManualLatChanged = {},
-            onManualLngChanged = {},
-            onSearchManualCoordinates = {},
-            onRadiusChanged = {},
-            onMonthSelected = {},
-            onMapTabSelected = {},
-            onSeasonalTabSelected = {},
-            onTaxonSearchQueryChanged = { query ->
-                state.ui = state.ui.copy(taxonSearchQuery = query, taxonSearchHasNoResults = query.trim().length >= 3)
-            },
-            onTaxonSearchResultSelected = {},
-            onDismissTaxonSuggestions = { state.ui = state.ui.copy(taxonSearchHasNoResults = false) },
-            onReopenTaxonSuggestions = {},
-            onPlaceTripPin = { _, _, _ -> },
-            onDeletePlannedTrip = {},
-            onRecentSearchSelected = {},
-            onOfflineMapLatChanged = {},
-            onOfflineMapLngChanged = {},
-            onOfflineMapRadiusChanged = {},
-            onOfflineMapNameChanged = {},
-            onOfflineMapsOpened = {},
-            onDownloadOfflineMaps = {},
-            onDeleteOfflineRegion = {},
-            onNightModeMapsChanged = {},
-            onThemeModeChanged = {},
+            searchInputs = AvailabilityScreenSearchInputs(
+                onUseCurrentLocation = {},
+                onManualLatChanged = {},
+                onManualLngChanged = {},
+                onSearchManualCoordinates = {},
+                onRadiusChanged = {},
+                onMonthSelected = {},
+                onMapTabSelected = {},
+                onSeasonalTabSelected = {},
+                onTaxonSearchQueryChanged = { query ->
+                    state.ui = state.ui.copy(taxonSearchQuery = query, taxonSearchHasNoResults = query.trim().length >= 3)
+                },
+                onTaxonSearchResultSelected = {},
+                onDismissTaxonSuggestions = { state.ui = state.ui.copy(taxonSearchHasNoResults = false) },
+                onReopenTaxonSuggestions = {},
+                onPlaceTripPin = { _, _, _ -> },
+                onDeletePlannedTrip = {},
+                onRecentSearchSelected = {},
+            ),
+            settings = AvailabilityScreenSettings(
+                onNightModeMapsChanged = {},
+                onThemeModeChanged = {},
+            ),
             mapSlot = mapSlotOverride ?: map.slot,
-            waypoints = listOf(BUBBLE_WAYPOINT),
-            tracks = listOf(BUBBLE_TRACK),
-            isReturning = state.isReturning,
-            tripStartWarning = state.tripStartWarning,
-            cartographyUiState = state.cartography,
-            getCartographyEntryMapData = { _, _ -> state.entryMapData },
-            backup = state.backup,
-            returnToMapRequest = state.returnToMapRequest,
-            openBackupRequest = state.openBackupRequest,
-            onDownloadAgain = { state.downloadedAgain += it },
+            records = AvailabilityScreenRecords(
+                waypoints = listOf(BUBBLE_WAYPOINT),
+                tracks = listOf(BUBBLE_TRACK),
+            ),
+            navigation = AvailabilityScreenNavigation(
+                isReturning = state.isReturning,
+            ),
+            recording = AvailabilityScreenRecording(
+                tripStartWarning = state.tripStartWarning,
+            ),
+            journalEntries = AvailabilityScreenJournalEntries(
+                cartographyUiState = state.cartography,
+            ),
+            entryReportData = AvailabilityScreenEntryReportData(
+                getCartographyEntryMapData = { _, _ -> state.entryMapData },
+            ),
+            backupAndImport = AvailabilityScreenBackupAndImport(
+                backup = state.backup,
+                returnToMapRequest = state.returnToMapRequest,
+                openBackupRequest = state.openBackupRequest,
+            ),
+            offlineMaps = AvailabilityScreenOfflineMaps(
+                onOfflineMapLatChanged = {},
+                onOfflineMapLngChanged = {},
+                onOfflineMapRadiusChanged = {},
+                onOfflineMapNameChanged = {},
+                onOfflineMapsOpened = {},
+                onDownloadOfflineMaps = {},
+                onDeleteOfflineRegion = {},
+                onDownloadAgain = { state.downloadedAgain += it },
+            ),
         )
         overlay()
     }
 }
+
+/** The track sheet's five tiles (dispatch -677), by label. */
+private val TRACK_SHEET_TILE_LABELS = listOf("Distance", "Time", "Climb", "Descent", "Moving speed")
 
 internal fun mapChromeHostActivityRule() = object : ExternalResource() {
     override fun before() {
@@ -317,6 +339,20 @@ abstract class MapChromeCompactTests(glyphX: Dp, glyphY: Dp, glyphStep: Dp) {
         setScreen()
         openDetailsFrom(BUBBLE_TRACK.id)
         composeRule.assertOverMap(RECORD_DETAILS_SHEET_TAG, roles.sheet, roles.onSurface)
+    }
+
+    /**
+     * Dispatch 2026-09-28-677 (data part B): the track sheet's tiles, over a map, are outlined with no fill of their own, so
+     * the sheet's container stays the one fill between the map and the eye (layered fills composite; CLAUDE.md, "Nothing
+     * fully obstructs the map view"). Every tile is checked, so one left filled cannot pass.
+     */
+    @Test
+    fun `a track's details sheet opened from its bubble draws its tiles with no fill of their own`() {
+        setScreen()
+        openDetailsFrom(BUBBLE_TRACK.id)
+        TRACK_SHEET_TILE_LABELS.forEach { label ->
+            assertEquals("$label tile: container", Color.Transparent, composeRule.colourOn(trackTileTag(label), MapChromeContainerColor))
+        }
     }
 
     @Test
@@ -649,6 +685,17 @@ abstract class MapChromeRecordsTests(private val pickerMapBesideList: Boolean) {
         openRecords(RecordsSubTab.RECORDED_TRACKS)
         touchRow("track-row-${BUBBLE_TRACK.id}")
         assertDetailsSolid()
+    }
+
+    /** Dispatch -677: off a map the track sheet's tiles are filled, as the entry report's are; the outline is for over a map only. */
+    @Test
+    fun `a track's details sheet from the Tracks sub-tab fills its tiles`() {
+        openRecords(RecordsSubTab.RECORDED_TRACKS)
+        touchRow("track-row-${BUBBLE_TRACK.id}")
+        TRACK_SHEET_TILE_LABELS.forEach { label ->
+            val fill = composeRule.colourOn(trackTileTag(label), MapChromeContainerColor)
+            assertEquals("$label tile: filled, solid", 1f, fill.alpha, 0.002f)
+        }
     }
 }
 

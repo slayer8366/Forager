@@ -20,6 +20,7 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
@@ -34,9 +35,11 @@ import com.zynergylabs.forager.app.domain.CompassReading
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeclinationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GeoDistance
 import com.zynergylabs.forager.app.domain.HeadingUncertainty
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.ReturnLeg
 import com.zynergylabs.forager.app.domain.RouteLine
 import com.zynergylabs.forager.app.domain.WaypointNavigation
@@ -48,6 +51,7 @@ import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.domain.model.formatDistanceWithAccuracy
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
+import com.zynergylabs.forager.app.ui.log.RECORD_DETAILS_DIRECTIONS_TAG
 import com.zynergylabs.forager.app.ui.log.RECORD_DETAILS_NAVIGATE_TAG
 import com.zynergylabs.forager.app.ui.log.RECORD_DETAILS_SHEET_TAG
 import com.zynergylabs.forager.app.ui.log.RECORD_DETAILS_TITLE_TAG
@@ -62,6 +66,7 @@ import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -84,7 +89,7 @@ import org.robolectric.annotation.Config
  * Arrival is the start's (the ring and "Arrived"). Back ends it and goes back to where Navigate was
  * tapped; the X-circle and the HUD's ✕ end it where the walker is. A return under way is paused and picks
  * back up. A waypoint deleted meanwhile, or while the app was closed, ends it with a message. An entry
- * map's bubble keeps Directions only.
+ * map's bubble offers Navigate too since RECORD -890, and Back from it returns to the entry.
  *
  * Every touch on a control is a real one at screen coordinates (CLAUDE.md, Testing); getting to a tab may
  * be a semantic click. The map is [BubbleMapSlot], which records what it is handed and reports glyph taps
@@ -107,23 +112,45 @@ class AvailabilityScreenWaypointNavigateTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private val t = 1_700_000_000_000L
-    private val creek = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
-    private val oak = Waypoint("wp-2", 45.30, -122.60, null, "Big oak", "", 2_000L)
-    private val origin = Waypoint("origin", 45.31, -122.634, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
+    private val oak = Waypoint("wp-2", 45.35, -121.66, null, "Big oak", "", 2_000L)
+    private val origin = Waypoint("origin", 45.36, -121.6959, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     /** A fix [metersSouth] metres due south of the creek pin, with the S22's constant 3.79 m accuracy. */
     private fun southOfCreek(metersSouth: Double) =
-        LocationFix.Update(lat = creek.lat - metersSouth / 111_195.08, lng = creek.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t)
+        LocationFix.Update(lat = creek.lat - metersSouth / 111_195.08, lng = creek.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
 
     private val returnLine = RouteLine(
-        atReturn = listOf(LatLng(45.32, -122.634), LatLng(45.31, -122.634)),
-        ahead = listOf(LatLng(45.32, -122.634), LatLng(45.31, -122.634)),
+        atReturn = listOf(LatLng(45.37, -121.6959), LatLng(45.36, -121.6959)),
+        ahead = listOf(LatLng(45.37, -121.6959), LatLng(45.36, -121.6959)),
         aheadIsCurrent = true,
     )
 
-    private var fix by mutableStateOf(southOfCreek(500.0))
+    // Step 6 PR 1 (dispatch 2026-10-26-06): the ViewModel now draws the line from its own live fix, so every fix the
+    // screen is given is also sent through the ViewModel's location source ([publishedFix]); the cases are unchanged.
+    private val publishedFix = MutableStateFlow<LocationFix.Update?>(null)
+    private var fixState by mutableStateOf(southOfCreek(500.0))
+    private var fix: LocationFix.Update
+        get() = fixState
+        set(value) {
+            fixState = value
+            publishFix()
+        }
+    private var fixPresentState by mutableStateOf(true)
     /** False while the phone has no fix at all, as just after the app opens. */
-    private var fixPresent by mutableStateOf(true)
+    private var fixPresent: Boolean
+        get() = fixPresentState
+        set(value) {
+            fixPresentState = value
+            publishFix()
+        }
+    private fun publishFix() {
+        publishedFix.value = if (fixPresentState) fixState else null
+    }
+    private val tracker = object : LocationTracker { override val fixes: Flow<LocationFix> = publishedFix.filterNotNull() }
+    /** The waypoints as stored, which the ViewModel looks the navigated one up in by id (RECORD -1657). */
+    private val storedWaypoints = listOf(creek, oak)
+    private val clock = CurrentTimeProvider { t + 1_000L }
     private var waypoints by mutableStateOf(listOf(creek, oak))
     private var waypointsLoaded by mutableStateOf(true)
     private var recording by mutableStateOf(false)
@@ -151,51 +178,75 @@ class AvailabilityScreenWaypointNavigateTest {
     private lateinit var viewModel: AvailabilityViewModel
 
     private fun setScreen(entryMapData: CartographyEntryMapData? = null) {
-        viewModel = mapLayersViewModel(waypointNavigationRepository = store, returnLeg = leg)
+        publishFix()
+        viewModel = mapLayersViewModel(
+            waypointNavigationRepository = store,
+            returnLeg = leg,
+            locationTracker = tracker,
+            readWaypoint = { id -> Result.success(storedWaypoints.firstOrNull { it.id == id }) },
+            currentTime = clock,
+        )
+        viewModel.onEnteredForeground()
         composeRule.setContent {
             val state by viewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = state.copy(liveFix = if (fixPresent) fix else null),
-                onUseCurrentLocation = {},
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = map.slot,
-                waypoints = waypoints,
-                waypointsLoaded = waypointsLoaded,
-                isRecording = recording,
-                isReturning = returning,
-                onToggleReturning = { returning = !returning },
-                navigationTarget = if (recording) origin else null,
-                returnRoute = ReturnRoute.Ahead(LatLng(45.32, -122.634), 1_800.0),
-                routeLine = if (returning) returnLine else null,
-                onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
-                onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
+                records = AvailabilityScreenRecords(
+                    waypoints = waypoints,
+                    waypointsLoaded = waypointsLoaded,
+                ),
+                recording = AvailabilityScreenRecording(
+                    isRecording = recording,
+                ),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = returning,
+                    onToggleReturning = { returning = !returning },
+                    navigationTarget = if (recording) origin else null,
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.37, -121.6959), 1_800.0),
+                    routeLine = if (returning) returnLine else null,
+                    onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
+                    onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
+                ),
                 compassProvider = FixedCompass(0f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
-                currentTime = CurrentTimeProvider { t + 1_000L },
-                cartographyUiState = cartography,
-                getCartographyEntryMapData = { _, _ -> entryMapData ?: CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()) },
+                currentTime = clock,
+                journalEntries = AvailabilityScreenJournalEntries(
+                    cartographyUiState = cartography,
+                ),
+                entryReportData = AvailabilityScreenEntryReportData(
+                    getCartographyEntryMapData = { _, _ -> entryMapData ?: CartographyEntryMapData(emptyList(), emptyList(), emptyList(), emptyList(), emptyList()) },
+                ),
             )
         }
         composeRule.waitForIdle()
@@ -223,6 +274,32 @@ class AvailabilityScreenWaypointNavigateTest {
 
     private fun openBubble() = touchCentreOf(glyphTag("wp-1"))
 
+    /** Dispatch 2026-10-29-09 (RECORD -1819): where Navigate is offered, labelled "Navigate", Directions is not. */
+    private fun assertNavigateNotDirections(navigateTag: String, directionsTag: String) {
+        assertEquals("Navigate", text(navigateTag))
+        composeRule.onNodeWithTag(directionsTag).assertDoesNotExist()
+    }
+
+    /**
+     * Dispatch 2026-11-05-05 (A5; RECORD -2140, the owner: "In the Details card add the Directions button for external maps to
+     * the right of the in-app Navigate button"): on the card, Navigate and Directions both, Directions to the right. What
+     * Directions does, and the centring, are WaypointCardDirectionsTest's.
+     */
+    private fun assertNavigateAndDirections(navigateTag: String, directionsTag: String) {
+        assertEquals("Navigate", text(navigateTag))
+        assertEquals("Directions", text(directionsTag))
+        val navigate = composeRule.onNodeWithTag(navigateTag).getUnclippedBoundsInRoot()
+        val directions = composeRule.onNodeWithTag(directionsTag).getUnclippedBoundsInRoot()
+        assertTrue("Directions to the right of Navigate: ${directions.left} vs ${navigate.right}", directions.left > navigate.right)
+    }
+
+    /** The same for a waypoint row, whose buttons are icons named for the waypoint. */
+    private fun assertRowNavigateNotDirections() {
+        composeRule.onNodeWithTag(waypointRowNavigateTag("wp-1")).performScrollTo()
+        composeRule.onNodeWithContentDescription("Navigate to Creek pin").assertExists()
+        composeRule.onNodeWithContentDescription("Directions to Creek pin").assertDoesNotExist()
+    }
+
     private fun openRecords() {
         composeRule.onNodeWithText("Journal").performTouchInput { click(center) }
         composeRule.waitForIdle()
@@ -242,7 +319,7 @@ class AvailabilityScreenWaypointNavigateTest {
     /** The HUD aims at the creek pin, due north of a walker facing north, with the straight line to it in the large slot. */
     private fun assertHudAimsAtCreek() {
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
-        assertEquals("the needle aims at the waypoint", "Turn 0°", text(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("the needle aims at the waypoint", "ahead 0°", text(NAVIGATION_HUD_TARGET_TAG))
         val straight = GeoDistance.metersBetween(LatLng(fix.lat, fix.lng), LatLng(creek.lat, creek.lng))
         assertEquals(formatDistanceWithAccuracy(straight, fix.accuracyMeters, viewModel.uiState.value.distanceUnit), text(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("the straight-line HUD: no route, so no \"Straight line\" label", "", text(NAVIGATION_HUD_STATUS_TAG))
@@ -261,6 +338,7 @@ class AvailabilityScreenWaypointNavigateTest {
     fun `from a waypoint's bubble on the Maps tab, Navigate targets that waypoint, with no recording`() {
         setScreen()
         openBubble()
+        assertNavigateNotDirections(MAP_BUBBLE_NAVIGATE_TAG, MAP_BUBBLE_DIRECTIONS_TAG)
 
         touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
 
@@ -282,6 +360,8 @@ class AvailabilityScreenWaypointNavigateTest {
         composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
 
         composeRule.onNodeWithTag(RECORD_DETAILS_NAVIGATE_TAG).performScrollTo()
+        // Dispatch 2026-11-05-05 (A5): was assertNavigateNotDirections, Navigate with no Directions (RECORD -1819). Now both.
+        assertNavigateAndDirections(RECORD_DETAILS_NAVIGATE_TAG, RECORD_DETAILS_DIRECTIONS_TAG)
         touchCentreOf(RECORD_DETAILS_NAVIGATE_TAG)
 
         assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
@@ -293,12 +373,28 @@ class AvailabilityScreenWaypointNavigateTest {
     fun `from a Records row, Navigate targets that waypoint on the Maps tab`() {
         setScreen()
         openRecords()
+        assertRowNavigateNotDirections()
 
         touchRowNavigate()
 
         assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
         assertHudAimsAtCreek()
         assertTrue("on the Maps tab", map.content != null && shown(NAVIGATION_HUD_TAG))
+    }
+
+    /** Dispatch 2026-10-29-09: the All logbook's waypoint row is the same row, with the same Navigate and no Directions. */
+    @Test
+    fun `from a Records All row, Navigate targets that waypoint on the Maps tab`() {
+        setScreen()
+        openRecords()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.ALL)).performScrollTo().performTouchInput { click(center) }
+        composeRule.waitForIdle()
+        assertRowNavigateNotDirections()
+
+        touchRowNavigate()
+
+        assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
+        assertHudAimsAtCreek()
     }
 
     @Test
@@ -310,6 +406,8 @@ class AvailabilityScreenWaypointNavigateTest {
         composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
 
         composeRule.onNodeWithTag(RECORD_DETAILS_NAVIGATE_TAG).performScrollTo()
+        // Dispatch 2026-11-05-05 (A5): was assertNavigateNotDirections, Navigate with no Directions (RECORD -1819). Now both.
+        assertNavigateAndDirections(RECORD_DETAILS_NAVIGATE_TAG, RECORD_DETAILS_DIRECTIONS_TAG)
         touchCentreOf(RECORD_DETAILS_NAVIGATE_TAG)
 
         assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
@@ -518,7 +616,9 @@ class AvailabilityScreenWaypointNavigateTest {
 
         assertEquals("the return picks up again", 1, resumes)
         assertNull(navigatingTo())
-        assertTrue("the return's HUD: the straight line to the start is labelled", text(NAVIGATION_HUD_STATUS_TAG).startsWith("Straight line"))
+        // RECORD -942: on the route the return's HUD has no straight-line note; its large figure is the route's, by trail. Was:
+        // the status line ends in " straight".
+        assertEquals("the return's HUD: no straight-line note on the route", "", text(NAVIGATION_HUD_STATUS_TAG))
         assertEquals(returnLine, map.content!!.route!!.line)
         assertTrue("the bubble is back", shown(MAP_BUBBLE_TAG))
 
@@ -587,10 +687,10 @@ class AvailabilityScreenWaypointNavigateTest {
         assertHudAimsAtCreek()
     }
 
-    // ── Entry maps keep Directions only (Amendment 1) ──
+    // ── Entry maps offer Navigate too (RECORD -890; until then Directions only, Amendment 1; Directions gone, -1819) ──
 
-    @Test
-    fun `a waypoint's bubble on a journal entry's map offers Directions, not Navigate`() {
+    /** Sets the screen with a saved entry holding the creek pin, open on the Journal with its map drawn, and opens the pin's bubble by a real touch. */
+    private fun openEntryBubble() {
         val entry = CartographyEntry.draft(id = "entry-1", date = java.time.LocalDate.of(2026, 9, 12), updatedAtEpochMillis = 1_000L).copy(
             isDraft = false,
             text = "Along the creek.",
@@ -603,11 +703,45 @@ class AvailabilityScreenWaypointNavigateTest {
         composeRule.onNodeWithText("Journal").performTouchInput { click(center) }
         composeRule.waitForIdle()
         composeRule.onNodeWithText("Along the creek.").assertExists()
-
         touchCentreOf(glyphTag("wp-1"))
+    }
 
-        composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertExists()
-        assertFalse("no Navigate on an entry map", shown(MAP_BUBBLE_NAVIGATE_TAG))
+    /**
+     * RECORD -890 (the owner: "Waypoints only, as described (Recommended)"): a waypoint's bubble on a journal entry's map
+     * offers Navigate and Details, and a real touch on it opens the Maps tab navigating to that waypoint, as from
+     * Records. Until 2026-10-11 this test was `a waypoint's bubble on a journal entry's map offers Directions, not
+     * Navigate` (dispatch -502, Amendment 1); its "no Navigate" assertion is inverted here, as -890 rules. Its Directions
+     * assertion was inverted by dispatch 2026-10-29-09 (RECORD -1819): where Navigate is offered, Directions is not.
+     */
+    @Test
+    fun `from a waypoint's bubble on a journal entry's map, Navigate targets that waypoint on the Maps tab`() {
+        openEntryBubble()
+        assertNavigateNotDirections(MAP_BUBBLE_NAVIGATE_TAG, MAP_BUBBLE_DIRECTIONS_TAG)
+        composeRule.onNodeWithTag(MAP_BUBBLE_DETAILS_TAG).assertExists()
+
+        touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
+
+        assertEquals(WaypointNavigation("wp-1", resumesReturn = false), navigatingTo())
+        assertHudAimsAtCreek()
+        assertTrue("on the Maps tab", map.content != null && shown(NAVIGATION_HUD_TAG))
+        composeRule.onNodeWithText("Along the creek.").assertDoesNotExist()
+    }
+
+    /**
+     * RECORD -890: "Back behaves as it does after starting navigation from Records": one Back ends the navigation and goes
+     * back to where Navigate was tapped, here the journal entry, not Records and not the Maps tab.
+     */
+    @Test
+    fun `Back from a navigation started on a journal entry's map ends it and returns to the entry`() {
+        openEntryBubble()
+        touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
+
+        back()
+
+        assertNull(navigatingTo())
+        assertFalse(shown(NAVIGATION_HUD_TAG))
+        composeRule.onNodeWithText("Along the creek.").assertExists()
+        assertFalse("not Records", shown(swipeToDeleteTag(RecordType.WAYPOINTS, "wp-1")))
     }
 
     // ── CLAUDE.md, the Surface pitfall ──

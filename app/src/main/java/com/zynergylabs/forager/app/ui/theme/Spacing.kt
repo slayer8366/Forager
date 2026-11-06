@@ -12,8 +12,8 @@ import androidx.compose.ui.unit.dp
  * near-identical copies had accumulated where that original wasn't reachable from, none recorded
  * in the design doc — found by searching for the pattern once, not by the doc naming them:
  * `LogSpacing` (`internal`, in `LogFieldEditors.kt`, 67 call sites across 9 files in `ui/log`),
- * `CrashLogSpacing` (`private`, in `CrashLogPanel.kt`, 10 call sites, missing `md` since nothing
- * there had needed it), and `MapPickerSpacing` (`private`, in `CentrePinLocationPicker.kt`, 6 call
+ * a `private` copy in a since-removed panel (10 call sites, missing `md` since nothing there had
+ * needed it), and `MapPickerSpacing` (`private`, in `CentrePinLocationPicker.kt`, 6 call
  * sites, only `sm`/`lg` — its own doc comment said it existed because that file "sits in neither
  * package, so it keeps its own copy rather than depending sideways on either"; promoting the
  * original into a package every file can reach is what removes the reason for that copy to exist).
@@ -26,6 +26,8 @@ import androidx.compose.ui.unit.dp
  * step for "sheet and dialog internal padding" and "empty-state and first-run breathing room" to
  * reach for the next time either is needed, rather than another ad hoc value invented at that call
  * site the way the four steps below were before this file existed.
+ *
+ * Still unwired, and kept for the design system (dispatch 2026-09-28-658; the owner: "Remove what costs, keep plans").
  */
 object Spacing {
     /** Within a tightly related group — a line and its own subtext, one card's internal rows. */

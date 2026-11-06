@@ -1,0 +1,158 @@
+package com.zynergylabs.forager.app.ui.availability
+
+// UI split Phase 2.6, PR 4 (dispatch 2026-10-19-40): the Tools drawer and the screen it slides over, moved out of
+// AvailabilityScreen's body into one composable. The body calls it unconditionally, at the line where this tree was, so it
+// is composed at the same point among the same siblings: after every effect and remember above it, and before
+// InAppCameraHost, which stays in the body after it because composition order is what puts the camera on top.
+
+import com.zynergylabs.forager.app.domain.model.PlannedTrip
+import androidx.compose.foundation.layout.Box
+import androidx.compose.material3.DrawerState
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.ModalDrawerSheet
+import androidx.compose.material3.ModalNavigationDrawer
+import androidx.compose.material3.contentColorFor
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.MutableState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalLayoutDirection
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.LayoutDirection
+import com.zynergylabs.forager.app.domain.model.AppThemeMode
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.ui.backup.BackupControls
+import com.zynergylabs.forager.app.ui.log.LocalTrackDetailsFold
+import com.zynergylabs.forager.app.ui.map.LocalMapCompass
+import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
+import com.zynergylabs.forager.app.ui.map.LocalMapPosition
+import com.zynergylabs.forager.app.ui.map.MapCompass
+import com.zynergylabs.forager.app.ui.map.MapLayersControls
+import com.zynergylabs.forager.app.ui.map.MapPosition
+import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
+import com.zynergylabs.forager.app.ui.map.mapChromeShape
+import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
+
+/**
+ * The screen's composition locals around the Tools drawer and the frame. Everything it reads is computed or remembered in
+ * the body and passed in as itself; the tab and the settings-only request are read through [state], inside the drawer's
+ * content, where the body's own lambda read them, and closing writes the drawer flag through [state].
+ */
+@Composable
+internal fun AvailabilityScreenDrawerHost(
+    state: AvailabilityScreenState,
+    drawerState: DrawerState,
+    drawerDirection: LayoutDirection,
+    ambientDirection: LayoutDirection,
+    mapKeepOuts: MapKeepOuts,
+    mapCompass: MapCompass,
+    mapPosition: MapPosition,
+    trackDetailsFoldOpen: MutableState<Boolean>,
+    /** Dispatch 2026-10-28-02: Tools > Map Layers' fold, held by the body, and what its switches show and change. */
+    mapLayersFoldOpen: MutableState<Boolean>,
+    /** Amendment 3 (RECORD -1770): Tools > Trip Planner's fold, held by the body as Map Layers' is. */
+    tripPlannerFoldOpen: MutableState<Boolean>,
+    mapLayers: MapLayersControls,
+    uiState: AvailabilityUiState,
+    distanceUnit: DistanceUnit,
+    onDistanceUnitSelected: (DistanceUnit) -> Unit,
+    onDeletePlannedTrip: (String) -> Unit,
+    isNightMode: Boolean,
+    onNightModeMapsChanged: (Boolean) -> Unit,
+    crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
+    waypointNames: WaypointNamesControls = WaypointNamesControls(),
+    onThemeModeChanged: (AppThemeMode) -> Unit,
+    backup: BackupControls,
+    openBackupRequest: Int,
+    openOfflineMapsFromTools: () -> Unit,
+    /** Dispatch 2026-10-30-08: a Trip Planner route row's tap; `null` leaves the rows as they were. */
+    onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null,
+    compactMainScaffold: @Composable () -> Unit,
+) {
+    CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts, LocalMapCompass provides mapCompass, LocalMapPosition provides mapPosition, LocalTrackDetailsFold provides trackDetailsFoldOpen) {
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        // Swipe-to-open is off on purpose: the content behind the drawer is a full-screen
+        // pannable map, and a horizontal drag there means "pan", not "open the drawer". Tools
+        // is the way in. Gestures are on only while the drawer is open, which is what lets a
+        // scrim tap close it: in material3 1.5.0-alpha26 both the scrim's dismiss and the
+        // drag are gated on this flag (`if (gesturesEnabled && ...)` and
+        // `anchoredDraggable(enabled = gesturesEnabled)`), so with it off neither a scrim tap
+        // nor swipe-to-close worked. While open it also re-enables swipe-to-close; while
+        // closed it stays false, so swipe-to-open stays off. See docs/audits/2026-09-27-landscape-b3-prebuild-report.md.
+        gesturesEnabled = drawerState.isOpen,
+        // Dispatch 2026-10-18-08 Amendment 1, RECORD -1313 (the owner: "When opening it, there should be no coloring of the
+        // app", then "Portrait too" and "yes same behavior, just no added color"): no tint over the app behind the open drawer.
+        // Transparent, not Color.Unspecified: material3 1.5.0-alpha26's Scrim (Scrim.kt) draws, and takes the tap that closes
+        // the drawer, only `if (color.isSpecified)`, so Unspecified would also drop the tap-outside close. Transparent keeps the
+        // scrim's full-screen tap target and its "Close drawer" semantics and draws nothing. Until -1313 the default,
+        // DrawerDefaults.scrimColor (ScrimTokens' colour at ScrimTokens.ContainerOpacity).
+        scrimColor = Color.Transparent,
+        drawerContent = {
+            // The sheet itself stays in drawerDirection, so its rounded edge faces the
+            // content and its start-side inset padding lands on the window edge it sits on.
+            // Only what is inside it goes back to the ambient direction.
+            // Material3's own default container role for a modal drawer, passed explicitly, and
+            // its content colour pinned to the role's own (`contentColorFor` matches a colour-scheme
+            // role exactly).
+            // Over the Maps tab at the map chrome's alpha, following the tab (owner: "80% over Maps
+            // (Recommended)"; planner message -77, Q4); solid over the other tabs.
+            // Dispatch 2026-11-05-09 (RECORD -2180, the owner: "Give the tools drawer an outline also please"): the same one value
+            // decides the line. Over the Maps tab the sheet carries the map-chrome hairline on its edge facing the map
+            // (toolsDrawerEdge); over the other tabs it stays solid with none (the owner: "In the places that aren't covering a
+            // map, they can stay solid").
+            val overMap = state.compactTab() == CompactTab.MAP
+            val drawerColor = mapChromeFill(navigationBarContainerColor(), overMap)
+            val drawerContentColor = contentColorFor(navigationBarContainerColor())
+            // The sheet's shape, Material's own default for a modal drawer (toolsDrawerShape), built once and given to the sheet
+            // and its line, so the two cannot drift, and set on its node so a test reads the corners the sheet is filled to.
+            val drawerShape = toolsDrawerShape()
+            val drawerEdge = if (overMap) Modifier.toolsDrawerEdge(drawerShape, mapChromeOutline()) else Modifier
+            ModalDrawerSheet(
+                modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor).mapChromeShape(drawerShape).then(drawerEdge),
+                drawerShape = drawerShape,
+                drawerContainerColor = drawerColor,
+                drawerContentColor = drawerContentColor,
+            ) {
+                CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
+                Box(modifier = Modifier.mapChromeContentColor(LocalContentColor.current)) {
+                CompactToolsDrawerContent(
+                    uiState = uiState,
+                    distanceUnit = distanceUnit,
+                    onDistanceUnitSelected = onDistanceUnitSelected,
+                    onClose = { state.setIsDrawerOpen(false) },
+                    onDeletePlannedTrip = onDeletePlannedTrip,
+                    isNightMode = isNightMode,
+                    onNightModeMapsChanged = onNightModeMapsChanged,
+                    crowdedIcons = crowdedIcons,
+                    waypointNames = waypointNames,
+                    themeMode = uiState.themeMode,
+                    onThemeModeChanged = onThemeModeChanged,
+                    backup = backup,
+                    openSettingsRequest = openBackupRequest,
+                    openSettingsOnlyRequest = state.openSettingsOnlyRequest(),
+                    onOpenOfflineMaps = openOfflineMapsFromTools,
+                    mapLayers = mapLayers,
+                    mapLayersOpen = mapLayersFoldOpen.value,
+                    onMapLayersOpenChange = { mapLayersFoldOpen.value = it },
+                    tripPlannerOpen = tripPlannerFoldOpen.value,
+                    onTripPlannerOpenChange = { tripPlannerFoldOpen.value = it },
+                    onOpenPlannedRoute = onOpenPlannedRoute,
+                )
+                }
+                }
+            }
+        },
+        content = {
+            CompositionLocalProvider(LocalLayoutDirection provides ambientDirection) {
+                compactMainScaffold()
+            }
+        },
+    )
+    }
+}

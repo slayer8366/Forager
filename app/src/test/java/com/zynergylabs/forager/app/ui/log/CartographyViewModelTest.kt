@@ -13,6 +13,7 @@ import com.zynergylabs.forager.app.domain.CommitCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.CreateCartographyEntryUseCase
 import com.zynergylabs.forager.app.domain.DeleteCartographyEntryUseCase
+import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.GetCartographyDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetCartographyEntryUseCase
@@ -28,6 +29,7 @@ import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -175,6 +177,60 @@ class CartographyViewModelTest {
         assertEquals(listOf("find-1"), entry?.findDecisions?.map { it.findId })
         assertEquals(listOf("waypoint-1"), entry?.waypointDecisions?.map { it.waypointId })
         assertEquals(listOf("track-1"), entry?.trackDecisions?.map { it.trackId })
+    }
+
+    /**
+     * RECORD -867 ("Leave out recordings under a minute"): a recording started and stopped inside a minute, beside a
+     * real walk, starts left out of the day's new entry, with a decision the editor shows, while the walk is kept.
+     * The short one stays in Records.
+     */
+    @Test
+    fun `starting a new entry leaves out a recording shorter than a minute, which stays in Records`() = runTest(dispatcher) {
+        val trackRepository = RoomTrackRepository(database.trackDao())
+        val blip = Track(id = "track-blip", name = null, startedAtEpochMillis = dayStartMillis() + 60_000L, endedAtEpochMillis = null, points = emptyList())
+        trackRepository.create(blip).getOrThrow()
+        trackRepository.end(blip.id, dayStartMillis() + 60_000L + 20_000L).getOrThrow()
+        val walk = Track(id = "track-walk", name = "Ridge Loop", startedAtEpochMillis = dayStartMillis() + 600_000L, endedAtEpochMillis = null, points = emptyList())
+        trackRepository.create(walk).getOrThrow()
+        trackRepository.end(walk.id, dayStartMillis() + 600_000L + 3_600_000L).getOrThrow()
+
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+
+        val decisions = viewModel.uiState.value.editingEntry?.trackDecisions?.associate { it.trackId to it.kept }
+        assertEquals(mapOf("track-blip" to false, "track-walk" to true), decisions)
+        assertEquals("the short recording is still in Records", true, trackRepository.getAll().getOrThrow().any { it.id == "track-blip" })
+    }
+
+    /**
+     * RECORD -873 ("Leave out its Start and End pins too"): the left-out short recording's own Start and End markers are
+     * left out with it; a waypoint the user saved during it stays in, and so does the long walk's own Start marker. All
+     * of them stay in Records.
+     */
+    @Test
+    fun `starting a new entry leaves out a short recording's own Start and End markers, and keeps a waypoint saved during it`() = runTest(dispatcher) {
+        val trackRepository = RoomTrackRepository(database.trackDao())
+        val waypointRepository = RoomWaypointRepository(database.waypointDao())
+        val t0 = dayStartMillis() + 60_000L
+        trackRepository.create(Track(id = "track-blip", name = null, startedAtEpochMillis = t0, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
+        trackRepository.end("track-blip", t0 + 20_000L).getOrThrow()
+        trackRepository.create(Track(id = "track-walk", name = "Ridge Loop", startedAtEpochMillis = t0 + 600_000L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
+        trackRepository.end("track-walk", t0 + 600_000L + 3_600_000L).getOrThrow()
+        fun marker(id: String, trackId: String, at: Long, designation: WaypointDesignation?) =
+            Waypoint(id = id, lat = 45.5, lng = -122.6, altitude = null, name = id, note = "", createdAtEpochMillis = at, trackId = trackId, designation = designation)
+        listOf(
+            marker("blip-start", "track-blip", t0 + 5_000L, WaypointDesignation.ORIGIN),
+            marker("blip-saved", "track-blip", t0 + 10_000L, null),
+            marker("blip-end", "track-blip", t0 + 20_000L, WaypointDesignation.END),
+            marker("walk-start", "track-walk", t0 + 605_000L, WaypointDesignation.ORIGIN),
+        ).forEach { waypointRepository.save(it).getOrThrow() }
+
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+
+        val decisions = viewModel.uiState.value.editingEntry?.waypointDecisions?.associate { it.waypointId to it.kept }
+        assertEquals(mapOf("blip-start" to false, "blip-saved" to true, "blip-end" to false, "walk-start" to true), decisions)
+        assertEquals("all four are still in Records", 4, waypointRepository.getAll().getOrThrow().size)
     }
 
     @Test
@@ -861,6 +917,134 @@ class CartographyViewModelTest {
         val persisted = entryRepository.getById(entry.id).getOrThrow()!!.trackDecisions.single()
         assertEquals(222.39, persisted.distanceMeters, 0.05)
         assertEquals(3, persisted.pointCount)
+    }
+
+    // ── Data part A (dispatch 2026-09-28-667): the "In this entry" panel's group switches ──
+
+    /**
+     * One recorded walk with its own Start, End and a dropped waypoint, a waypoint dropped with no
+     * recording, and a find, all on [DAY]. Whole-second point times, so the read seam keeps every point.
+     */
+    private suspend fun seedWalkDay() {
+        val trackRepository = RoomTrackRepository(database.trackDao())
+        val waypointRepository = RoomWaypointRepository(database.waypointDao())
+        val t0 = dayStartMillis() + 9 * 3_600_000L
+        trackRepository.create(Track(id = "track-1", name = "Ridge Loop", startedAtEpochMillis = t0, endedAtEpochMillis = t0 + 110_000L, points = emptyList())).getOrThrow()
+        trackRepository.appendPoints(
+            "track-1",
+            (0 until 12).map { i -> TrackPoint(lat = 45.0 + 0.001 * i, lng = -122.0, altitude = 100.0 + 5.0 * i, accuracyMeters = 5f, timestampEpochMillis = t0 + i * 10_000L) },
+        ).getOrThrow()
+        trackRepository.end("track-1", t0 + 110_000L).getOrThrow()
+        waypointRepository.save(Waypoint(id = "wp-start", lat = 45.0, lng = -122.0, altitude = null, name = "Start", note = "", createdAtEpochMillis = t0, trackId = "track-1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.ORIGIN)).getOrThrow()
+        waypointRepository.save(Waypoint(id = "wp-end", lat = 45.011, lng = -122.0, altitude = null, name = "End", note = "", createdAtEpochMillis = t0 + 110_000L, trackId = "track-1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.END)).getOrThrow()
+        waypointRepository.save(Waypoint(id = "wp-dropped", lat = 45.005, lng = -122.0, altitude = null, name = "Big fir", note = "", createdAtEpochMillis = t0 + 50_000L, trackId = "track-1")).getOrThrow()
+        waypointRepository.save(Waypoint(id = "wp-loose", lat = 45.2, lng = -122.2, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = t0 + 3_600_000L)).getOrThrow()
+        RoomMushroomLogRepository(database.mushroomLogDao()).save(MushroomLogEntry.draft(id = "find-1", location = LatLng(45.5, -122.6), date = DAY).copy(isDraft = false)).getOrThrow()
+    }
+
+    private fun keptById(entry: com.zynergylabs.forager.app.domain.model.CartographyEntry): Map<String, Boolean> =
+        entry.trackDecisions.associate { it.trackId to it.kept } +
+            entry.waypointDecisions.associate { it.waypointId to it.kept } +
+            entry.findDecisions.associate { it.findId to it.kept }
+
+    /**
+     * The Tracks switch reaches the track and every waypoint whose record names it (its Start, its End
+     * and the one dropped while it recorded), and nothing else. A draft stores it at once, as every
+     * draft change does. Fails if the group's members come out of [com.zynergylabs.forager.app.domain.entryContentsOf]
+     * wrong (a waypoint grouped by the wrong rule) or if the setter writes anything but `kept = false`.
+     */
+    @Test
+    fun `the Tracks switch leaves out the track with its Start, End and dropped waypoint, and nothing else`() = runTest(dispatcher) {
+        seedWalkDay()
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val id = viewModel.uiState.value.editingEntry!!.id
+
+        viewModel.onSetEntryGroupIncluded(EntryGroup.TRACKS, included = false)
+        advanceUntilIdle()
+
+        val expected = mapOf(
+            "track-1" to false, "wp-start" to false, "wp-end" to false, "wp-dropped" to false,
+            "wp-loose" to true, "find-1" to true,
+        )
+        assertEquals(expected, keptById(viewModel.uiState.value.editingEntry!!))
+        val stored = RoomCartographyEntryRepository(database.cartographyEntryDao()).getById(id).getOrThrow()!!
+        assertEquals("the draft stored it", expected, keptById(stored))
+
+        viewModel.onSetEntryGroupIncluded(EntryGroup.TRACKS, included = true)
+        advanceUntilIdle()
+        assertEquals("and turning it back on includes them all again", expected.mapValues { true }, keptById(viewModel.uiState.value.editingEntry!!))
+    }
+
+    /** A saved entry's changes wait for Save (the device-check patch's policy), group switches included. */
+    @Test
+    fun `a group switch on a saved entry marks it unsaved and stores nothing until Save`() = runTest(dispatcher) {
+        seedWalkDay()
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        viewModel.onFinishEntry()
+        advanceUntilIdle()
+        val id = viewModel.uiState.value.editingEntry!!.id
+        assertFalse(viewModel.uiState.value.editingEntry!!.isDraft)
+
+        viewModel.onSetEntryGroupIncluded(EntryGroup.FINDS, included = false)
+        advanceUntilIdle()
+
+        assertTrue(viewModel.uiState.value.hasUnsavedChanges)
+        assertEquals(false, viewModel.uiState.value.editingEntry!!.findDecisions.single().kept)
+        val repository = RoomCartographyEntryRepository(database.cartographyEntryDao())
+        assertEquals("not stored yet", true, repository.getById(id).getOrThrow()!!.findDecisions.single().kept)
+
+        viewModel.onSaveEntry()
+        advanceUntilIdle()
+        assertEquals("stored on Save", false, repository.getById(id).getOrThrow()!!.findDecisions.single().kept)
+    }
+
+    /**
+     * A switch set to the state its group is already in writes nothing, so it can not mark a saved entry
+     * unsaved. Fails if the setter moves the decision to the end of its list the way the per-item setters
+     * do, since the reordered entry no longer equals the stored one.
+     */
+    @Test
+    fun `a group switch already in the asked-for state changes nothing`() = runTest(dispatcher) {
+        seedWalkDay()
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        viewModel.onFinishEntry()
+        advanceUntilIdle()
+        val before = viewModel.uiState.value.editingEntry!!
+
+        viewModel.onSetEntryGroupIncluded(EntryGroup.TRACKS, included = true)
+        advanceUntilIdle()
+
+        assertFalse(viewModel.uiState.value.hasUnsavedChanges)
+        assertEquals(before, viewModel.uiState.value.editingEntry)
+    }
+
+    /**
+     * A waypoint added to the day after the entry was started is new (no decision). The Waypoints switch
+     * settles it with the rest of its group: it gets a decision, left out, beside the loose waypoint
+     * already there. The walk's own waypoints are in Tracks and keep theirs.
+     */
+    @Test
+    fun `a group switch settles the group's new items too`() = runTest(dispatcher) {
+        seedWalkDay()
+        viewModel.onStartEntry(DAY)
+        advanceUntilIdle()
+        val id = viewModel.uiState.value.editingEntry!!.id
+        RoomWaypointRepository(database.waypointDao()).save(
+            Waypoint(id = "wp-later", lat = 45.3, lng = -122.3, altitude = null, name = "Later pin", note = "", createdAtEpochMillis = dayStartMillis() + 15 * 3_600_000L),
+        ).getOrThrow()
+        viewModel.onCloseEntry()
+        viewModel.onOpenEntry(id)
+        advanceUntilIdle()
+        assertTrue("wp-later starts with no decision", viewModel.uiState.value.editingEntry!!.waypointDecisions.none { it.waypointId == "wp-later" })
+
+        viewModel.onSetEntryGroupIncluded(EntryGroup.WAYPOINTS, included = false)
+        advanceUntilIdle()
+
+        val decisions = viewModel.uiState.value.editingEntry!!.waypointDecisions.associate { it.waypointId to it.kept }
+        assertEquals(mapOf("wp-start" to true, "wp-end" to true, "wp-dropped" to true, "wp-loose" to false, "wp-later" to false), decisions)
     }
 
 }

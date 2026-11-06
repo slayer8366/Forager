@@ -1,10 +1,10 @@
 package com.zynergylabs.forager.app.data.repository
 
+import com.zynergylabs.forager.app.domain.SettingsResetListener
 import android.content.Context
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import androidx.datastore.preferences.preferencesDataStoreFile
 import com.zynergylabs.forager.app.domain.CameraGridModeRepository
 import com.zynergylabs.forager.app.domain.GridMode
 import kotlinx.coroutines.flow.first
@@ -14,11 +14,13 @@ import kotlinx.coroutines.flow.first
  * [PreferenceDataStoreFactory.create] rather than the process-wide delegate, for the Robolectric
  * isolation reason [DataStoreMapPreferencesRepository] records. The mode is stored by name.
  */
-class DataStoreCameraGridModeRepository(context: Context) : CameraGridModeRepository {
+class DataStoreCameraGridModeRepository(
+    context: Context,
+    /** Told when this file was corrupt and has been reset (RECORD -660); `AppContainer` passes its notice. */
+    settingsReset: SettingsResetListener = SettingsResetListener.None,
+) : CameraGridModeRepository {
 
-    private val dataStore = PreferenceDataStoreFactory.create(
-        produceFile = { context.applicationContext.preferencesDataStoreFile(DATA_STORE_NAME) },
-    )
+    private val dataStore = settingsDataStore(context, DATA_STORE_NAME, settingsReset)
 
     override suspend fun getGridMode(): Result<GridMode> = runCatchingCancellable {
         dataStore.data.first()[KEY_GRID_MODE]
@@ -36,13 +38,12 @@ class DataStoreCameraGridModeRepository(context: Context) : CameraGridModeReposi
 
 /**
  * A stored name as a [GridMode]: never set is the default, and a name this build does not know (a
- * later build's mode, read after a downgrade) is a failure carrying the name, not a silent Off.
+ * later build's mode, read after a downgrade) is logged and is the default too (RECORD -660, the
+ * owner: "Fall back and log"; it was a failure carrying the name before). Still a [Result], always a
+ * success now; `DataStoreCameraGridModeRepositoryTest` asserts the fallback and the log line (RECORD -661).
  */
-internal fun gridModeFromStored(stored: String?): Result<GridMode> {
-    if (stored == null) return Result.success(GridMode.valueOf(DEFAULT_CAMERA_GRID_MODE_NAME))
-    return GridMode.entries.firstOrNull { it.name == stored }?.let { Result.success(it) }
-        ?: Result.failure(IllegalStateException("Stored camera grid mode '$stored' is not one this build knows."))
-}
+internal fun gridModeFromStored(stored: String?): Result<GridMode> =
+    Result.success(decodeStoredName(stored, GridMode.entries, GridMode.valueOf(DEFAULT_CAMERA_GRID_MODE_NAME), "camera grid mode"))
 
 /** Off, so an install that predates the grid sees the preview it had — see [CameraGridModeRepository]. */
 const val DEFAULT_CAMERA_GRID_MODE_NAME = "Off"

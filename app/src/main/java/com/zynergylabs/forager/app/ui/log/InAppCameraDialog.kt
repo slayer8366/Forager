@@ -1,21 +1,17 @@
 package com.zynergylabs.forager.app.ui.log
 
+// UI split Phase 1, PR 10f (dispatch 2026-10-19-23): the shutter moved to CameraShutter.kt; the tags, the RAW shot step and the strip chips to InAppCameraParts.kt.
+
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import android.content.res.Configuration
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.getValue
@@ -27,21 +23,22 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.CameraFormat
 import com.zynergylabs.forager.app.domain.GridMode
+import com.zynergylabs.forager.app.domain.rawCaptureSize
 import com.zynergylabs.forager.app.domain.LevelProvider
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureFiles
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.photo.CameraCaptureSession
 import com.zynergylabs.forager.app.photo.CameraSessionState
+import com.zynergylabs.forager.app.photo.RawShotSaver
+import com.zynergylabs.forager.app.photo.rawShotSaverFor
 import com.zynergylabs.forager.app.photo.CaptureCountdown
 import com.zynergylabs.forager.app.photo.TimerMode
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -95,9 +92,9 @@ import kotlinx.coroutines.launch
  *
  * ## Three arrangements, re-derived as the window turns; a region model with two bands
  *
- * The window follows the device with the setting off and is forced portrait with it on
- * ([RequestWindowOrientation]: `FULL_SENSOR` off, `PORTRAIT` on), and the arrangement is derived
- * from the setting, the window's shape and its rotation ([cameraArrangement]) and re-derived on
+ * The window follows the device ([RequestWindowOrientation]: `SENSOR`; until dispatch 2026-10-13-03
+ * "Lock camera to portrait" could force `PORTRAIT` instead), and the arrangement is derived
+ * from the window's shape and its rotation ([cameraArrangement]) and re-derived on
  * every change of those — the keyed `remember` below. The turn carries no animation, because the
  * Activity's window asks for seamless rotation while the camera is open ([RequestSeamlessRotation]):
  * it is re-laid out in the new rotation and the next frame is simply the new layout. *Superseded (2026-09-19):* this paragraph read
@@ -136,29 +133,35 @@ import kotlinx.coroutines.launch
 internal fun InAppCameraDialog(
     session: CameraCaptureSession,
     cameraCaptureFiles: CameraCaptureFiles,
-    /** Settings' "Lock camera to portrait": decides the window lock and, with the window's shape at open, the arrangement. */
-    lockToPortrait: Boolean,
     onPhotoCaptured: (PhotoSource) -> Unit,
     onDismiss: () -> Unit,
     /** The grid chip's mode, persisted by `CameraGridModeViewModel`; the grid and level draw from it. */
     gridMode: GridMode,
     /** Asks for a new grid mode; the chip shows it once it is stored, not before. */
     onGridModeChanged: (GridMode) -> Unit,
-    /** Settings' "Automatically Save Location to Photos", from `AvailabilityUiState`; the Location chip shows it. */
+    /** "Automatically Save Location to Photos", from `AvailabilityUiState`; the Location chip shows it. */
     autoSaveLocationToPhotos: Boolean,
-    /** Settings' own handler for that value; the Location chip calls it with the toggle. */
+    /** The screen's handler for that value; the Location chip calls it. */
     onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
     /** The level line's roll; collected only while the level is shown. */
     levelProvider: LevelProvider,
     modifier: Modifier = Modifier,
     /** Hides the status bar on the Activity's window and puts it back on leaving; a test injects a fake to see which window was asked, and that it was restored. */
     statusBarHider: StatusBarHider = SystemStatusBarHider,
+    /** The format chip's remembered choice, from `CameraFormatViewModel` (RECORD -1005); JPG where nothing passes one. */
+    cameraFormat: CameraFormat = CameraFormat.Jpg,
+    /** Asks for a new format; the chip shows it once the camera is taking shots in it. */
+    onCameraFormatChanged: (CameraFormat) -> Unit = {},
+    /** The RAW shot step (dispatch 2026-10-15-01); the production one unless a test passes its own. */
+    rawShotSaver: RawShotSaver? = null,
     viewfinder: @Composable (Modifier) -> Unit,
 ) {
     // rememberSaveable: a rotation mid-session must not reset the user's sense of how many they
     // have taken. The photos themselves are already handed over and safe either way.
     var photosTaken by rememberSaveable { mutableIntStateOf(0) }
     var captureError by rememberSaveable { mutableStateOf<String?>(null) }
+    // A RAW shot kept as JPG says so in the same slot, in the normal message colour: the photo was saved (RECORD -1019).
+    var captureNotice by rememberSaveable { mutableStateOf<String?>(null) }
     var isCapturing by rememberSaveable { mutableStateOf(false) }
     val scope = rememberCoroutineScope()
     // The self-timer (decision B8 / Closed decision C): the setting lasts this camera session,
@@ -167,22 +170,33 @@ internal fun InAppCameraDialog(
     var timerMode by rememberSaveable { mutableStateOf(TimerMode.Off) }
     val countdown = remember(scope) { CaptureCountdown(scope) }
     val countdownSeconds by countdown.remainingSeconds.collectAsState()
+    // The gear panel (dispatch 2026-09-28-707): closed when the camera opens, and kept across a
+    // rotation like the count, since turning the phone to read it must not close it.
+    var showCameraSettings by rememberSaveable { mutableStateOf(false) }
+    // The format menu (dispatch 2026-10-15-01): closed when the camera opens, kept across a rotation like the gear panel.
+    var showFormatMenu by rememberSaveable { mutableStateOf(false) }
+    val appContext = LocalContext.current.applicationContext
+    val saver = rawShotSaver ?: remember(cameraCaptureFiles) { rawShotSaverFor(appContext, cameraCaptureFiles) }
 
     // The screen opens the session, not the viewfinder — the deadlock fix of 2026-09-15, see
     // CameraCaptureSession.open. Enter opens, leave closes; the `when` below never changes.
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(session, lifecycleOwner) {
+        // Before opening, so a remembered RAW binds once (Amendment 1, item 1).
+        session.requestOutputFormat(cameraFormat)
         session.open(lifecycleOwner)
         onDispose { session.close() }
     }
+    // A choice made while the camera is open is applied in this same session (never a new one; InAppCameraHost.kt).
+    LaunchedEffect(session, cameraFormat) { session.requestOutputFormat(cameraFormat) }
 
-    // The window follows the device, or is forced portrait, by the setting; reasoning on
-    // RequestWindowOrientation. Outside the Dialog so the context here is the Activity's, not the
-    // dialog window's.
-    RequestWindowOrientation(lockToPortrait)
+    // The window follows the device; reasoning on RequestWindowOrientation. Outside the Dialog so
+    // the context here is the Activity's, not the dialog window's.
+    RequestWindowOrientation()
 
-    // The arrangement follows the window: it is derived from the setting, the window's shape and
-    // the window's rotation, and re-derived whenever any of the three changes (owner, 2026-09-18).
+    // The arrangement follows the window: it is derived from the window's shape and the window's
+    // rotation, and re-derived whenever either changes (owner, 2026-09-18). Until dispatch
+    // 2026-10-13-03 "Lock camera to portrait" was a third input and a third key.
     //
     // Until 2026-09-18 the `remember` was keyed on the setting alone, so the arrangement was
     // computed at first composition and held for the dialog's life, on the reasoning that the lock
@@ -198,15 +212,13 @@ internal fun InAppCameraDialog(
     // hold, and the re-derived layout appears in the same frame as the turned window because the
     // window rotates seamlessly (RequestSeamlessRotation). Do not restore a setting-only key:
     // that is this bug.
-    val windowIsLandscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val windowIsLandscapeInWindow = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE
     // The window's rotation decides which physical edge the shutter goes on, because the two
     // landscapes are mirror images and only one has the charger port on the screen's right — see
     // CameraArrangement. currentDisplayRotation reads LocalConfiguration so it recomposes when the
     // window turns, and the key below carries the new value into the arrangement.
-    val displayRotation = currentDisplayRotation()
-    val arrangement = remember(lockToPortrait, windowIsLandscape, displayRotation) {
-        cameraArrangement(lockToPortrait, windowIsLandscape, displayRotation)
-    }
+    val windowDisplayRotation = currentDisplayRotation()
+    val fullScreen = currentWindowIsFullScreen()
 
     // Back is the only way out, and on the Activity's window it is the Activity's own dispatcher
     // rather than a dialog's — it reaches the same `onDismiss` that `onDismissRequest` used to, so
@@ -247,7 +259,27 @@ internal fun InAppCameraDialog(
             .background(Color.Black)
             .testTag(IN_APP_CAMERA_TAG),
     ) {
-        when (val state = session.state) {
+        // RECORD -981 and -985: the camera never appears to rotate. Where the window turns anyway (Android 17 ignores the
+        // portrait request on displays wider than 600 dp for targetSdk 37), the content is laid out in the device's natural
+        // frame and turned back; inside, windowIsLandscape and displayRotation are the natural frame's. See NaturalOrientationHold.
+        HoldNaturalOrientation(
+            windowIsLandscape = windowIsLandscapeInWindow,
+            displayRotation = windowDisplayRotation,
+            fullScreen = fullScreen,
+        ) { windowIsLandscape, displayRotation ->
+        val arrangement = remember(windowIsLandscape, displayRotation) {
+            cameraArrangement(windowIsLandscape, displayRotation)
+        }
+        // Motion Part 3, Amendment 2 (RECORD -682; scout K2): the opening spinner, the viewfinder and the unavailable message
+        // crossfade instead of swapping in one frame (motion/StateCrossfade.kt), keyed on which of the three, so a reason that
+        // changes updates in place. The camera's own rotation stays the system's, untouched (the owner's exception, RECORD -681).
+        StateCrossfade(
+            targetState = session.state,
+            modifier = Modifier.fillMaxSize(),
+            contentKey = { it::class },
+        ) { shownState ->
+        Box(modifier = Modifier.fillMaxSize()) {
+        when (val state = shownState) {
             is CameraSessionState.Unavailable -> OverlayText(
                 state.reason,
                 style = MaterialTheme.typography.bodyLarge,
@@ -260,6 +292,8 @@ internal fun InAppCameraDialog(
             CameraSessionState.Opening -> OverlayProgress(modifier = Modifier.align(Alignment.Center).testTag(CAMERA_OPENING_TAG))
 
             CameraSessionState.Ready -> viewfinder(Modifier.fillMaxSize())
+        }
+        }
         }
         // Over the preview, under the bands: composed after the viewfinder and before the strip
         // and the shutter band, so both draw above them. Only once there is a preview to divide.
@@ -289,8 +323,27 @@ internal fun InAppCameraDialog(
             if (!isCapturing) {
                 isCapturing = true
                 captureError = null
+                captureNotice = null
                 scope.launch {
                     val capture = cameraCaptureFiles.newCapture()
+                    // A RAW shot is its own path (dispatch 2026-10-15-01; CLAUDE.md, building); the JPG shot below is as it was.
+                    if (session.outputFormat == CameraFormat.Raw) {
+                        takeRawShot(session, saver, capture).let { outcome ->
+                            when (outcome) {
+                                is RawShotScreenOutcome.Saved -> {
+                                    photosTaken += 1
+                                    captureNotice = outcome.notice
+                                    onPhotoCaptured(outcome.source)
+                                }
+                                RawShotScreenOutcome.Failed -> {
+                                    cameraCaptureFiles.deleteCapture(capture)
+                                    captureError = CAPTURE_FAILED_MESSAGE
+                                }
+                            }
+                        }
+                        isCapturing = false
+                        return@launch
+                    }
                     session.capture(capture.file).fold(
                         onSuccess = {
                             photosTaken += 1
@@ -344,6 +397,8 @@ internal fun InAppCameraDialog(
                 onGridModeChanged,
                 autoSaveLocationToPhotos,
                 onAutoSaveLocationToPhotosChanged,
+                onOpenCameraSettings = { showCameraSettings = true },
+                onOpenFormatMenu = { showFormatMenu = true },
             ),
         )
         CameraBand(edge = port, modifier = Modifier.testTag(CAMERA_SHUTTER_BAND_TAG)) {
@@ -352,11 +407,38 @@ internal fun InAppCameraDialog(
                 deviceRotation = session.deviceRotation,
                 displayRotation = displayRotation,
                 captureError = captureError,
+                captureNotice = captureNotice,
                 photosTaken = photosTaken,
                 shutterEnabled = shutterEnabled,
                 shutterDescription = if (countdownSeconds != null) CANCEL_TIMER_DESCRIPTION else SHUTTER_DESCRIPTION,
                 onShutter = onShutter,
             )
+        }
+        // Last, so it draws and takes touches above the strip and the shutter band; its BackHandler,
+        // composed after the one above, closes it before the camera. See CameraSettingsPanelLayer.
+        if (showCameraSettings) {
+            CameraSettingsPanelLayer(
+                stripEdge = punchHoleEdge(arrangement),
+                deviceRotation = session.deviceRotation,
+                displayRotation = displayRotation,
+                onClose = { showCameraSettings = false },
+            )
+        }
+        val rawSize = rawCaptureSize(session.capabilities)
+        if (showFormatMenu && rawSize != null) {
+            FormatMenuLayer(
+                stripEdge = punchHoleEdge(arrangement),
+                deviceRotation = session.deviceRotation,
+                displayRotation = displayRotation,
+                current = session.outputFormat,
+                rawSize = rawSize,
+                onChoose = { chosen ->
+                    showFormatMenu = false
+                    onCameraFormatChanged(chosen)
+                },
+                onClose = { showFormatMenu = false },
+            )
+        }
         }
     }
 }
@@ -380,152 +462,5 @@ private fun Modifier.swallowTouchesBelow(): Modifier = pointerInput(Unit) {
         while (true) {
             awaitPointerEvent().changes.forEach { it.consume() }
         }
-    }
-}
-
-/**
- * The shutter band's contents: the shutter hard against the charger-port edge, the count (and a
- * failure) inboard of it. Along a horizontal edge — portrait, the port edge at the bottom — that is
- * a column with the shutter last; along a vertical edge it is a row with the shutter outermost,
- * mirrored by which side the port is on. One composable for all three, because the difference is
- * an axis and an order, and separate copies are how the halves drift apart.
- *
- * The shutter is always the outermost child, with the count inboard. That ordering is the point:
- * the shutter's distance from the edge the thumb wraps around is what the motor habit is built on.
- * Every glyph turns in place by [rotateWithDevice]; the shutter is a disc and has nothing to turn.
- */
-@Composable
-private fun ShutterCluster(
-    edge: ScreenEdge,
-    deviceRotation: Int?,
-    /** The dialog-level window rotation, not read here — see the CameraStrip call site for why. */
-    displayRotation: Int,
-    captureError: String?,
-    photosTaken: Int,
-    shutterEnabled: Boolean,
-    /** "Take photo", or "Cancel timer" while a countdown runs. */
-    shutterDescription: String,
-    onShutter: () -> Unit,
-) {
-    val readout: @Composable (horizontalAlignment: Alignment.Horizontal) -> Unit = { alignment ->
-        Column(horizontalAlignment = alignment, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            captureError?.let { message ->
-                OverlayText(
-                    message,
-                    fill = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodyMedium,
-                    modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_ERROR_TAG),
-                )
-            }
-            OverlayText(
-                photoCountLabel(photosTaken),
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_COUNT_TAG),
-            )
-        }
-    }
-    if (edge.isHorizontal) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(Spacing.lg),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            readout(Alignment.CenterHorizontally)
-            Row(horizontalArrangement = Arrangement.Center, modifier = Modifier.fillMaxWidth()) {
-                ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
-            }
-        }
-    } else {
-        val portOnRight = edge == ScreenEdge.Right
-        Row(
-            modifier = Modifier.padding(Spacing.lg),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (portOnRight) {
-                readout(Alignment.End)
-                ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
-            } else {
-                ShutterButton(enabled = shutterEnabled, description = shutterDescription, onClick = onShutter)
-                readout(Alignment.Start)
-            }
-        }
-    }
-}
-
-/**
- * The shutter: a plain ringed disc, the shape every camera app has trained people to recognise,
- * with the overlay rule's black ring at its outer edge — drawn inside the same 72 dp, so the disc
- * reads over a white scene without moving.
- */
-@Composable
-private fun ShutterButton(enabled: Boolean, description: String, onClick: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .size(SHUTTER_SIZE_DP.dp)
-            .clip(CircleShape)
-            .background(if (enabled) OverlayFill else OverlayFill.copy(alpha = DISABLED_SHUTTER_ALPHA))
-            .clickable(enabled = enabled, onClick = onClick)
-            .semantics { contentDescription = description }
-            .testTag(CAMERA_SHUTTER_TAG)
-            // Drawing only, after the node is sized, tagged and clickable at its full 72 dp: the
-            // black ring at the outer edge, then the white ring inset by it. The first cut put the
-            // padding before the tag and the tagged node shrank 1.5 dp — the shutter had not moved
-            // and the tests said it had, which is the spec's "lead worth checking" in miniature.
-            .overlayRing()
-            .padding(OVERLAY_OUTLINE_WIDTH / 2)
-            .border(SHUTTER_RING_DP.dp, OverlayFill.copy(alpha = SHUTTER_RING_ALPHA), CircleShape),
-    )
-}
-
-/**
- * "No photos yet" / "1 photo taken" / "4 photos taken". Singular is not decoration: the count is
- * the only feedback a session gives, so it should read like a sentence rather than a counter.
- */
-internal fun photoCountLabel(count: Int): String = when (count) {
-    0 -> "No photos yet"
-    1 -> "1 photo taken"
-    else -> "$count photos taken"
-}
-
-private const val SHUTTER_SIZE_DP = 72
-private const val SHUTTER_RING_DP = 4
-private const val SHUTTER_RING_ALPHA = 0.6f
-private const val DISABLED_SHUTTER_ALPHA = 0.4f
-
-internal const val IN_APP_CAMERA_TAG = "in-app-camera"
-internal const val CAMERA_SHUTTER_TAG = "in-app-camera-shutter"
-internal const val CAMERA_SHUTTER_BAND_TAG = "in-app-camera-shutter-band"
-internal const val CAMERA_COUNT_TAG = "in-app-camera-count"
-internal const val CAMERA_ERROR_TAG = "in-app-camera-error"
-internal const val CAMERA_OPENING_TAG = "in-app-camera-opening"
-internal const val CAMERA_UNAVAILABLE_TAG = "in-app-camera-unavailable"
-internal const val SHUTTER_DESCRIPTION = "Take photo"
-internal const val CANCEL_TIMER_DESCRIPTION = "Cancel timer"
-internal const val CAMERA_COUNTDOWN_TAG = "in-app-camera-countdown"
-internal const val CAPTURE_FAILED_MESSAGE = "That photo didn't save. Try again."
-
-/**
- * The strip's chips for this session, in order along the edge: Flash, Timer, Grid, Location
- * (decision B8, Closed decision A). The flash chip only when the bound camera has a flash unit: it
- * would hide itself anyway, but a chip that composes nothing would still take a slot. Read in
- * composition, so the chip arrives when the bind reports the unit. The Timer chip always
- * (2026-09-26), the grid chip always (2026-09-22), and the Location chip always (2026-09-26):
- * every camera can time a shot, draw a grid and show the photo-location setting.
- */
-private fun stripChips(
-    session: CameraCaptureSession,
-    timerMode: TimerMode,
-    onTimerModeChanged: (TimerMode) -> Unit,
-    gridMode: GridMode,
-    onGridModeChanged: (GridMode) -> Unit,
-    autoSaveLocationToPhotos: Boolean,
-    onAutoSaveLocationToPhotosChanged: (Boolean) -> Unit,
-): List<StripChip> = buildList {
-    if (session.hasFlashUnit) add { deviceRotation, displayRotation -> FlashChip(session, deviceRotation, displayRotation) }
-    add { deviceRotation, displayRotation -> TimerChip(timerMode, onTimerModeChanged, deviceRotation, displayRotation) }
-    add { deviceRotation, displayRotation -> GridChip(gridMode, onGridModeChanged, deviceRotation, displayRotation) }
-    add { deviceRotation, displayRotation ->
-        LocationChip(autoSaveLocationToPhotos, onAutoSaveLocationToPhotosChanged, deviceRotation, displayRotation)
     }
 }

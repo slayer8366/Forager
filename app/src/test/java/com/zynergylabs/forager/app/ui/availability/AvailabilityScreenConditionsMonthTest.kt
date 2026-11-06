@@ -10,6 +10,9 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -19,6 +22,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -48,6 +52,7 @@ import com.zynergylabs.forager.app.domain.TripPlanningWeatherProvider
 import com.zynergylabs.forager.app.domain.WeatherProvider
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
+import com.zynergylabs.forager.app.domain.model.DailyRain
 import com.zynergylabs.forager.app.domain.model.DailyWeather
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.UnitSystem
@@ -150,36 +155,43 @@ class AvailabilityScreenConditionsMonthTest {
             unitSystemPreferenceRepository = FakeUnitSystemPreferenceRepository,
             appThemePreferenceRepository = FakeAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(tripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
             val uiState by viewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = viewModel::useCurrentLocation,
-                onManualLatChanged = viewModel::onManualLatChanged,
-                onManualLngChanged = viewModel::onManualLngChanged,
-                onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                onRadiusChanged = viewModel::onRadiusChanged,
-                onMonthSelected = viewModel::onMonthSelected,
-                onMapTabSelected = viewModel::onMapTabSelected,
-                onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                onPlaceTripPin = viewModel::onPlaceTripPin,
-                onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
-                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
-                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
-                onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
-                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                onThemeModeChanged = viewModel::onThemeModeChanged,
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = viewModel::useCurrentLocation,
+                    onManualLatChanged = viewModel::onManualLatChanged,
+                    onManualLngChanged = viewModel::onManualLngChanged,
+                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                    onRadiusChanged = viewModel::onRadiusChanged,
+                    onMonthSelected = viewModel::onMonthSelected,
+                    onMapTabSelected = viewModel::onMapTabSelected,
+                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = viewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
+                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = viewModel::onThemeModeChanged,
+                ),
                 mapSlot = StubMapSlot,
             )
         }
@@ -199,18 +211,15 @@ class AvailabilityScreenConditionsMonthTest {
     }
 
     /**
-     * Opens the dropdown, which the bar's tap opens with "Advanced search" already expanded (owner,
-     * continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
+     * Opens the dropdown. Its Month and coordinates show with no fold to expand (dispatch
+     * 2026-09-28-697 removed "Advanced search" and "Enter coordinates manually"), so no header is
+     * tapped here; the two names are kept so the callers read as before.
      */
     private fun openSearchDropdownToAdvancedSearch() {
         openSearchDropdown()
     }
 
-    /**
-     * Opens the dropdown to the manual coordinates. The bar's tap expands both "Advanced search" and
-     * "Enter coordinates manually" once (continuation 2026-09-28-40); the dropdown is removed from
-     * composition when closed (`AnimatedVisibility` disposes it), so every open starts that way.
-     */
+    /** Opens the dropdown to the manual coordinates, its first row since dispatch 2026-09-28-697. */
     private fun openSearchDropdownToManualCoordinates() {
         openSearchDropdownToAdvancedSearch()
     }
@@ -218,14 +227,13 @@ class AvailabilityScreenConditionsMonthTest {
     /** Types coordinates into the dropdown and searches, exactly as a user would. */
     private fun searchAReferenceRegion() {
         openSearchDropdownToManualCoordinates()
-        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        // performScrollTo(): radius and month, promoted to SearchDropdown's own top level ahead of
-        // this section (map/navigation redesign dispatch D), push "Search this location" below the
-        // dropdown's own bounded, scrolled viewport — without this the tap lands on the node's own
-        // (correct but currently off-screen) bounds, which reaches nothing actually rendered there.
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.3736")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
+        // "Search coordinates", under the fields (RECORD -700), runs the typed-coordinates search.
+        // performScrollTo() kept: harmless where it is already in view, and the tap would otherwise
+        // land on off-screen bounds if it ever is not.
         // Closes the dropdown itself, which is why nothing closes it here.
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
@@ -245,8 +253,31 @@ class AvailabilityScreenConditionsMonthTest {
         composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
-        composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertIsDisplayed()
-        composeRule.onNodeWithText("2 days since last rain.").assertIsDisplayed()
+        // Data part C (dispatch -668): labelled rows, each one merged node. 2 days before yesterday,
+        // the newest observed day, is 3 days ago.
+        composeRule.onNode(hasText("Rain, last 14 days") and hasText("12.4mm")).assertIsDisplayed()
+        composeRule.onNode(hasText("Last rainy day") and hasText("3 days ago")).assertIsDisplayed()
+    }
+
+    /**
+     * Data part C (dispatch -668): the 14 observed days the provider returns reach the screen as the
+     * daily rain chart, through the real ViewModel. The chart's canvas is not rendered under
+     * Robolectric, so its content description, built from the same days, is what is read; its x-axis
+     * ends are real text.
+     */
+    @Test
+    fun `the daily rain chart shows the observed days, from the first to the last`() {
+        setScreen()
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNodeWithText("Daily rain, last 14 days").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(
+            "Daily rain from Sep 23, 2026 to Oct 6, 2026. Wettest day Oct 1, 2026, 6.0mm.",
+        ).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Sep 23, 2026").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Oct 6, 2026").performScrollTo().assertIsDisplayed()
     }
 
     @Test
@@ -260,7 +291,7 @@ class AvailabilityScreenConditionsMonthTest {
         selectMonth(aMonthOtherThanThisOne())
 
         composeRule.onNodeWithText("Current Conditions").assertDoesNotExist()
-        composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertDoesNotExist()
+        composeRule.onNodeWithText("Rain, last 14 days").assertDoesNotExist()
     }
 
     /** January, unless it is January now, in which case February. */
@@ -310,8 +341,35 @@ class AvailabilityScreenConditionsMonthTest {
         searchAReferenceRegion()
         composeRule.onNodeWithText("Seasonal").performClick()
 
-        composeRule.onNodeWithText("Today's Forecast").assertIsDisplayed()
-        composeRule.onNodeWithText("3.2mm of rain forecast today.").assertIsDisplayed()
+        // Data part C: the "Today's Forecast" heading became this labelled row.
+        composeRule.onNode(hasText("Rain forecast today") and hasText("3.2mm")).assertIsDisplayed()
+    }
+
+    /**
+     * Amendment 1 to -668 (RECORD -669): today's soil moisture is a row of the conditions table, on
+     * the plain scale. 0.27 m³/m³ is Moist (Dry below 0.15, Wet from 0.30). Driven from the forecast
+     * provider through the real ViewModel; the scale reads to TalkBack as one phrase, which is what
+     * is asserted.
+     */
+    @Test
+    fun `today's soil moisture shows on the plain scale in the conditions table`() {
+        setScreen(tripPlanningWeatherProvider = FakeSuccessfulTripPlanningWeatherProvider)
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNode(hasText("Soil moisture") and hasContentDescription("Moist, 0.27 m³/m³")).performScrollTo().assertIsDisplayed()
+    }
+
+    /** No reading from the forecast, no row: the default provider here fails the forecast fetch. */
+    @Test
+    fun `with no soil moisture reading there is no soil moisture row`() {
+        setScreen()
+
+        searchAReferenceRegion()
+        composeRule.onNodeWithText("Seasonal").performClick()
+
+        composeRule.onNodeWithText("Soil moisture").assertDoesNotExist()
     }
 
     @Test
@@ -321,8 +379,7 @@ class AvailabilityScreenConditionsMonthTest {
         searchAReferenceRegion()
         composeRule.onNodeWithText("Seasonal").performClick()
 
-        composeRule.onNodeWithText("Today's Forecast").assertIsDisplayed()
-        composeRule.onNodeWithText("Forecast unavailable.").assertIsDisplayed()
+        composeRule.onNode(hasText("Rain forecast today") and hasText("Forecast unavailable.")).assertIsDisplayed()
     }
 }
 
@@ -370,6 +427,13 @@ private object FakeWeatherProvider : WeatherProvider {
             region = region,
             totalPrecipitationMm = 12.4,
             daysSinceSignificantRain = 2,
+            // 14 observed days, Sep 23 to Oct 6: 2.4mm on Sep 30, 6.0mm on Oct 1 and 4.0mm on Oct 4
+            // (12.4mm in all; Oct 4 is the last day at or over the 2mm rain-day threshold, 2 days
+            // before Oct 6, matching daysSinceSignificantRain above).
+            dailyRain = (0..13).map { offset ->
+                val date = LocalDate.of(2026, 9, 23).plusDays(offset.toLong())
+                DailyRain(date, mapOf(7 to 2.4, 8 to 6.0, 11 to 4.0)[offset] ?: 0.0)
+            },
         ),
     )
 }
@@ -415,7 +479,7 @@ private object FakeSuccessfulTripPlanningWeatherProvider : TripPlanningWeatherPr
                         isForecast = true,
                         precipitationMm = 3.2,
                         evapotranspirationMm = null,
-                        shallowSoilMoistureM3M3 = null,
+                        shallowSoilMoistureM3M3 = 0.27,
                         deeperSoilMoistureM3M3 = null,
                         soilTemperatureMeanC = null,
                         soilTemperatureMinC = null,

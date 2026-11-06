@@ -24,15 +24,6 @@ private val NotoSans = FontFamily(
 )
 
 /**
- * Noto Serif, bundled — `app/src/main/res/font/notoserif_regular.ttf`, same source and reasoning
- * as [NotoSans]. Regular weight only: [LongFormSerifTextStyle] is unwired scaffolding (see its own
- * doc comment) with no call site yet to demand a bold cut.
- */
-private val NotoSerif = FontFamily(
-    Font(R.font.notoserif_regular, FontWeight.Normal),
-)
-
-/**
  * `ForagerTheme`'s type scale (understory-design-system.md, step 2). `Theme.kt` previously passed
  * no `typography` to `MaterialTheme` at all — tag 01's read of "148 `MaterialTheme.typography`
  * reads across the app" resolved through whatever `MaterialTheme`'s own bare default was, not
@@ -43,10 +34,10 @@ private val NotoSerif = FontFamily(
  * Checked against the real Compose text API before writing anything: genuine variation-axis control
  * needs the variable font bundled as an app resource — there is no documented, asset-free way to
  * reach Roboto Flex's width axis through the platform's generic `sans-serif` alias. Once bundling a
- * font asset was back on the table, Noto Sans (and, for long-form reading content, Noto Serif —
- * see [LongFormSerifTextStyle]) was the owner's specific choice: a deliberately-picked family for
- * the whole app, not the width-axis mechanism the original plan wanted. Both are `Typography`'s
- * `fontFamily` constructor parameter, which — verified against `TypographyTokens.kt`'s real
+ * font asset was back on the table, Noto Sans (and, for long-form reading content, Noto Serif)
+ * was the owner's specific choice: a deliberately-picked family for the whole app, not the
+ * width-axis mechanism the original plan wanted. Noto Sans is `Typography`'s `fontFamily`
+ * constructor parameter, which — verified against `TypographyTokens.kt`'s real
  * implementation — swaps only the family per role; each role's own weight, size, line height and
  * letter spacing still come from the stock tokens.
  *
@@ -71,20 +62,13 @@ val ForagerTypography: Typography = Typography(fontFamily = NotoSans)
  * digits included, equal width with no further asset — which is what "fixed width for a given
  * format" actually needs. Derived from [ForagerTypography]'s own `bodyMedium` rather than a size
  * invented here, so it stays in step with the scale it belongs to.
+ *
+ * Kept, unused, for the design system (dispatch 2026-09-28-658; the owner: "Remove what costs, keep
+ * plans"): it costs nothing in the APK.
  */
 val CompassCoordinateTextStyle: TextStyle = ForagerTypography.bodyMedium.copy(fontFamily = FontFamily.Monospace)
 
-/**
- * For longer descriptive text blocks read like a printed page — the owner's own examples: a
- * sidebar paragraph on a plant's uses, a booklet-style report layout. Not a general body role:
- * `bodyLarge`/`bodyMedium`/`bodySmall` stay [NotoSans] and keep that family everywhere else,
- * map-drawn labels included, per the owner's explicit "even then, keep the actual map labels in
- * Noto Sans."
- *
- * Unwired scaffolding, the same status as [CompassCoordinateTextStyle]: nothing in this codebase
- * is a long-form reading surface yet (`AvailabilityScreen.kt`'s content is search results, forms
- * and map chrome, not prose), so there is no real call site to point this at today. Derived from
- * [ForagerTypography]'s own `bodyLarge` — the M3 role whose own doc comment already recommends "a
- * serif or sans serif typeface" for long-form writing — rather than a size invented here.
- */
-val LongFormSerifTextStyle: TextStyle = ForagerTypography.bodyLarge.copy(fontFamily = NotoSerif)
+// Removed (dispatch 2026-09-28-658; the owner: "Remove what costs, keep plans"): LongFormSerifTextStyle
+// and its Noto Serif family. Unwired since it was written, and the only reason
+// res/font/notoserif_regular.ttf (444,064 bytes) shipped in every APK, release builds being unshrunk.
+// A long-form reading surface that wants a serif brings the font back with its first call site.

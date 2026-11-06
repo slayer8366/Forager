@@ -42,6 +42,12 @@ fun relativeBearingDegrees(bearingDegrees: Double, headingDegrees: Float): Float
  * -498): the owner chose "Start marker changes shape + HUD says Arrived", by its own rule,
  * [hasArrived]. No record holds "never arrived" as an owner ruling; this function and "Approaching"
  * are unchanged.
+ *
+ * **Since dispatch 2026-09-28-578 (Amendment 1, RECORD -579) this no longer decides the word
+ * "Approaching".** Arrival's radius always held this one, so the word never showed without "Arrived";
+ * it now has its own zone, [isInApproachingZone]. This function still withholds the HUD's needle and
+ * blanks its target column, and still decides the approximate HUD's "far" (`ApproximatePositionHud`);
+ * the name is kept because those readers and their tests use it.
  */
 fun isApproaching(distanceMeters: Double, accuracyMeters: Float?): Boolean {
     if (accuracyMeters == null) return false
@@ -63,6 +69,23 @@ fun hasArrived(distanceMeters: Double, accuracyMeters: Float?): Boolean =
 
 /** The least distance arrival counts within, however good the fix claims to be. **Provisional**: tuned on a walk, here and nowhere else. */
 const val ARRIVAL_MIN_RADIUS_METERS = 15.0
+
+/**
+ * Whether the walker is inside "Approaching"'s own zone, [APPROACHING_ZONE_METERS] of the target,
+ * straight line (dispatch 2026-09-28-578, Amendment 1, RECORD -579). The HUD shows "Approaching" only
+ * here and only when the target has **not** arrived ([hasArrived]); arrived, "Arrived" stands alone.
+ * A fixed distance, so it needs no accuracy, unlike [isApproaching], which since this dispatch gates
+ * only the needle and the target column, never the word.
+ */
+fun isInApproachingZone(distanceMeters: Double): Boolean = distanceMeters <= APPROACHING_ZONE_METERS
+
+/**
+ * Where "Approaching" starts. The owner, asked first whether to drop the word when arrived, chose
+ * "Give Approaching its own zone" once told it would otherwise leave the app, since arrival's radius
+ * always held the old twice-accuracy test; then, asked where it starts, "100 m / 330 ft
+ * (Recommended)" (the other options were 50 m, and the arrival zone + 50 m). RECORD -579.
+ */
+const val APPROACHING_ZONE_METERS = 100.0
 
 /**
  * How the HUD treats the fix's age — HUD only, by the foundations dispatch's own rule that no

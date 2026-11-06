@@ -2,9 +2,8 @@ package com.zynergylabs.forager.app.ui.theme
 
 /**
  * The colours the map overlay draws its markers with, as `android.graphics` ARGB ints, in a day and a
- * night variant. `SightingsMap.kt` reads [forMode] for the Night Maps toggle, on every basemap,
- * Satellite included: over Satellite the basemap stays day and only the markers switch (owner ruling,
- * colour build C2).
+ * night variant. `SightingsMap.kt` reads [forMode] for the Night Maps toggle, on every basemap
+ * (colour build C2).
  *
  * ## One role per marker
  *

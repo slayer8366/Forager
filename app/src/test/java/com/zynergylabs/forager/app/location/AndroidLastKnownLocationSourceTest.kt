@@ -5,6 +5,7 @@ import android.app.Application
 import android.location.Location
 import android.location.LocationManager
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -54,7 +55,7 @@ class AndroidLastKnownLocationSourceTest {
         val known = AndroidLastKnownLocationSource(context).lastKnown()
 
         assertEquals(
-            LocationFix.Update(lat = 45.51, lng = -122.61, altitude = null, accuracyMeters = 120f, timestampEpochMillis = 1_700_000_000_123L),
+            LocationFix.Update(lat = 45.51, lng = -122.61, altitude = null, accuracyMeters = 120f, timestampEpochMillis = 1_700_000_000_123L, provider = FixProvider.NETWORK),
             known,
         )
     }
@@ -72,5 +73,23 @@ class AndroidLastKnownLocationSourceTest {
         shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
 
         assertNull(AndroidLastKnownLocationSource(context).lastKnown())
+    }
+
+    /**
+     * Dispatch 2026-09-28-527: the one real path a provider other than GPS or network can arrive by. The
+     * passive provider holds whatever any app on the phone last received, here a fused fix; it is carried as
+     * unknown, never as one of the two it might have been.
+     */
+    @Test
+    fun `a fused fix held by the passive provider is carried as unknown`() {
+        shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
+        shadowLocationManager.setLastKnownLocation(LocationManager.PASSIVE_PROVIDER, location(LocationManager.FUSED_PROVIDER, 45.52, -122.68, 1_700_000_000_000L, 15f))
+
+        val known = AndroidLastKnownLocationSource(context).lastKnown()
+
+        assertEquals(
+            LocationFix.Update(lat = 45.52, lng = -122.68, altitude = null, accuracyMeters = 15f, timestampEpochMillis = 1_700_000_000_000L, provider = FixProvider.UNKNOWN),
+            known,
+        )
     }
 }

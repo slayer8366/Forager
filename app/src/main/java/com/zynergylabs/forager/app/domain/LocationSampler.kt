@@ -25,6 +25,12 @@ class LocationSampler(private val mode: TrackRecordingMode) {
      * `docs/audits/2026-09-07-fix-log-walk-findings.md`), below every mode's ceiling. It still
      * rejects that device's network fixes, whose accuracy genuinely varies to 70 m and more. One
      * device so far; see [LIVE_FIX_MAX_ACCURACY_METERS]'s doc for the other readers of the field.
+     *
+     * **A fix with no accuracy (`null`, not reported) passes the ceiling.** A missing number is not
+     * a bad one, the same rule `LiveFixGate` records for the live fix; the fix then goes on to the
+     * interval and distance checks like any other. (Stated here by dispatch 2026-09-28-658, scout
+     * item R8, which found the three accuracy gates each applied a null rule and only one said so.
+     * The rule itself is unchanged.)
      */
     fun shouldAccept(lastAccepted: TrackPoint?, candidate: TrackPoint): Boolean {
         val accuracy = candidate.accuracyMeters

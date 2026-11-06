@@ -21,6 +21,14 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.onChildAt
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.unit.dp
+import org.junit.Assert.assertTrue
+import androidx.compose.ui.semantics.getOrNull
 import androidx.test.core.app.ApplicationProvider
 import org.robolectric.shadows.ShadowToast
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
@@ -41,6 +49,9 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.assertCountEquals
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * [JournalTab]'s own navigation state — which of [LogGalleryScreen]/[LogEntryReportScreen]/
@@ -76,11 +87,14 @@ class JournalTabTest {
     // starting point for this file's report/edit navigation tests (Workstream L4b-R).
     private val existingEntry = MushroomLogEntry.draft(
         id = "existing-1",
-        location = LatLng(45.326, -122.634),
+        location = LatLng(45.3736, -121.6959),
         date = LocalDate.of(2026, 8, 1),
     ).copy(isDraft = false)
 
     private var startedEntryAt: LatLng? = null
+
+    /** RECORD -751: how many new finds the screen started (onStartEntry), whatever started them. */
+    private var startedEntries = 0
 
     /**
      * The device's live fix as `AvailabilityCompactScaffold` hands it to [JournalTab]
@@ -103,12 +117,13 @@ class JournalTabTest {
                 onOpenCameraForAlbum = {},
                 onOpenCameraForCartographyEntry = {},
                 mapSlot = mapSlot,
-                pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
                 deviceLocation = deviceLocation.value,
                 basemap = Basemap.DEFAULT,
                 onOpenEntry = { id -> uiState = uiState.copy(editingEntry = uiState.entries.first { it.id == id }) },
                 onCloseEntry = { uiState = uiState.copy(editingEntry = null) },
                 onStartEntry = { location, date ->
+                    startedEntries++
                     startedEntryAt = location
                     // Workstream L4b: a brand-new entry is a draft, never added to entries at
                     // creation (owner decision #6) — see MushroomLogViewModel.onStartNewEntry's own
@@ -232,7 +247,7 @@ class JournalTabTest {
     fun `opening an existing entry from the gallery shows its report, not the edit form`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
 
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).performClick()
 
         // The report's own overflow menu is present; the edit form's own "Photos" section is not.
         composeRule.onNodeWithContentDescription("Entry options").assertIsDisplayed()
@@ -242,7 +257,7 @@ class JournalTabTest {
     @Test
     fun `choosing Edit entry from the report switches to the edit form`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).performClick()
 
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
@@ -261,13 +276,13 @@ class JournalTabTest {
     @Test
     fun `backing out of the edit form auto-saves and returns to the gallery, not the report`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
         composeRule.onNodeWithContentDescription("Back to your log").performClick()
 
-        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
     }
 
@@ -275,7 +290,7 @@ class JournalTabTest {
     @Test
     fun `tapping Save on the edit form commits and returns to the report`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -288,12 +303,15 @@ class JournalTabTest {
     @Test
     fun `tapping Cancel on a brand-new entry's edit form discards it and returns to the gallery`() {
         setScreen(MushroomLogUiState())
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
 
         composeRule.onNodeWithText("Cancel").performClick()
 
-        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
-        composeRule.onNodeWithText("Find on", substring = true).assertDoesNotExist()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
+        // No tile and no day heading for the discarded entry (data part D, RECORD -702 and -703: a tile shows a name, the time
+        // found, or nothing with a "Find, <date>" label; "Find on" no longer appears on a tile, so its absence would prove nothing).
+        composeRule.onAllNodesWithContentDescription("Find, ${displayDate(LocalDate.now())}").assertCountEquals(0)
+        composeRule.onAllNodesWithTag(findsDayHeaderTag(LocalDate.now())).assertCountEquals(0)
     }
 
     /**
@@ -302,10 +320,10 @@ class JournalTabTest {
      * itself was invoked with `null`, not just that some form appeared.
      */
     @Test
-    fun `starting a brand-new entry from the gallery's plus tile goes straight to the edit form with no location`() {
+    fun `starting a brand-new entry from the gallery's New find button goes straight to the edit form with no location`() {
         setScreen(MushroomLogUiState())
 
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
 
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Entry options").assertDoesNotExist()
@@ -321,7 +339,7 @@ class JournalTabTest {
     @Test
     fun `Add Location on the edit form opens the centre-pin picker and sets the entry's location on confirm`() {
         setScreen(MushroomLogUiState())
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
 
         composeRule.onNodeWithText("Add Location").performClick()
         composeRule.onNodeWithTag("picker-map").assertIsDisplayed()
@@ -343,7 +361,7 @@ class JournalTabTest {
     @Test
     fun `Change Location on an already-located entry opens the centre-pin picker and updates the entry's location on confirm`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").performClick()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).performClick()
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
 
@@ -371,7 +389,7 @@ class JournalTabTest {
         val map = PanRecordingMapSlot(panTo = PANNED_LOCATION)
         deviceLocation.value = FIRST_FIX
         setScreen(MushroomLogUiState(), mapSlot = map.slot)
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Add Location").performClick()
         composeRule.onNodeWithText(pinText(FIRST_FIX)).assertExists()
 
@@ -401,9 +419,9 @@ class JournalTabTest {
     fun `before any pan, the first device fix arriving after the find picker opened moves it there`() {
         val map = PanRecordingMapSlot(panTo = PANNED_LOCATION)
         setScreen(MushroomLogUiState(), mapSlot = map.slot)
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Add Location").performClick()
-        composeRule.onNodeWithText("Pin at: 45.3260, -122.6340").assertExists()
+        composeRule.onNodeWithText("Pin at: 45.3736, -121.6959").assertExists()
 
         composeRule.runOnIdle { deviceLocation.value = FIRST_FIX }
         composeRule.waitForIdle()
@@ -421,7 +439,7 @@ class JournalTabTest {
     fun `a pan made before the first device fix is kept when that fix arrives`() {
         val map = PanRecordingMapSlot(panTo = PANNED_LOCATION)
         setScreen(MushroomLogUiState(), mapSlot = map.slot)
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Add Location").performClick()
         composeRule.onNodeWithTag(PAN_RECORDING_MAP_TAG).performTouchInput { swipe(center, center - Offset(120f, 60f), 300) }
         composeRule.onNodeWithText(pinText(PANNED_LOCATION)).assertExists()
@@ -476,7 +494,7 @@ class JournalTabTest {
             referencingEntryIds = emptyList(),
         )
         setScreen(MushroomLogUiState(galleryPhotos = listOf(galleryPhoto)))
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
 
         composeRule.onNodeWithText("From Album").performClick()
         composeRule.waitUntil(timeoutMillis = 5_000) {
@@ -531,7 +549,7 @@ class JournalTabTest {
     fun `a set loadErrorMessage does not hide entries already showing`() {
         setScreen(MushroomLogUiState(entries = listOf(existingEntry), loadErrorMessage = "Log entries unavailable."))
 
-        composeRule.onNodeWithText("Find on ${existingEntry.foundOn}").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription(findBlankTitleLabel(existingEntry)).assertIsDisplayed()
         composeRule.onNodeWithText("Log entries unavailable.").assertDoesNotExist()
     }
 
@@ -559,6 +577,74 @@ class JournalTabTest {
 
         assertEquals(null, ShadowToast.getTextOfLatestToast())
     }
+
+    // ── RECORD -751: "New find" replaces the "+" tile ──
+
+    private fun boundsOf(tag: String) = composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+
+    private fun touchAt(x: androidx.compose.ui.unit.Dp, y: androidx.compose.ui.unit.Dp) {
+        val p = with(composeRule.density) { Offset(x.toPx(), y.toPx()) }
+        composeRule.onRoot().performTouchInput { click(p) }
+        composeRule.waitForIdle()
+    }
+
+    /**
+     * The owner: "can we use a New Find button instead of the + tile". Five real touches across the button's own bounds (a
+     * finger is not a point) each start a new find and open its form, as the tile did; Cancel brings the grid back between.
+     */
+    @Test
+    fun `real touches across the New find button each start a new find`() {
+        setScreen(MushroomLogUiState(entries = listOf(existingEntry)))
+        val fab = boundsOf(FINDS_FAB_TAG)
+        composeRule.onNodeWithText("New find").assertIsDisplayed()
+        val inset = 6.dp
+        val points = listOf(
+            (fab.left + fab.right) / 2 to (fab.top + fab.bottom) / 2,
+            fab.left + inset to fab.top + inset,
+            fab.right - inset to fab.top + inset,
+            fab.left + inset to fab.bottom - inset,
+            fab.right - inset to fab.bottom - inset,
+        )
+        points.forEachIndexed { i, (x, y) ->
+            touchAt(x, y)
+            assertEquals("the touch at (${x.value}, ${y.value}) started a new find", i + 1, startedEntries)
+            composeRule.onNodeWithText("Photos").assertIsDisplayed()
+            composeRule.onNodeWithText("Cancel").performClick()
+            composeRule.waitForIdle()
+            composeRule.onNodeWithTag(FINDS_FAB_TAG).assertIsDisplayed()
+        }
+    }
+
+    /** No "+" tile: the grid's first item is the newest day's heading, and nothing in it reads "New log entry". */
+    @Test
+    fun `the Finds grid has no plus tile and starts at its first date heading`() {
+        val older = existingEntry.copy(id = "older", foundOn = LocalDate.of(2026, 7, 2))
+        setScreen(MushroomLogUiState(entries = listOf(older, existingEntry)))
+        composeRule.onAllNodesWithContentDescription("New log entry").assertCountEquals(0)
+        val first = composeRule.onNodeWithTag(FINDS_GRID_TAG).onChildAt(0).fetchSemanticsNode()
+        val firstTag = first.config.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.TestTag)
+        assertEquals("the grid's first item is the newest day's heading", findsDayHeaderTag(LocalDate.of(2026, 8, 1)), firstTag)
+        assertTrue("positive control: the older day's heading is in the grid too", composeRule.onAllNodesWithTag(findsDayHeaderTag(LocalDate.of(2026, 7, 2))).fetchSemanticsNodes().isNotEmpty())
+    }
+
+    /** The button does not cover the last row: scrolled to its end, the grid's last tile ends above the button's top. */
+    @Test
+    fun `scrolled to its end, the Finds grid's last tile ends above the New find button`() {
+        val finds = (1..12).map { n -> existingEntry.copy(id = "find-$n", foundOn = LocalDate.of(2026, 8, n)) }
+        setScreen(MushroomLogUiState(entries = finds))
+        repeat(8) {
+            composeRule.onNodeWithTag(FINDS_GRID_TAG).performTouchInput { swipeUp() }
+            composeRule.waitForIdle()
+        }
+        val fab = boundsOf(FINDS_FAB_TAG)
+        // The oldest find is the grid's last tile (newest day first).
+        val lastTile = composeRule.onNodeWithContentDescription(findBlankTitleLabel(finds.first())).getUnclippedBoundsInRoot()
+        val grid = boundsOf(FINDS_GRID_TAG)
+        println("MEASURED -751: grid $grid, last tile $lastTile, button $fab")
+        assertTrue("positive control: the grid scrolled (the last tile is inside it)", lastTile.bottom <= grid.bottom)
+        assertTrue("the last tile's bottom ${lastTile.bottom} is above the button's top ${fab.top}", lastTile.bottom <= fab.top)
+    }
+
 }
 
 private val PICKED_LOCATION = LatLng(45.5, -122.5)

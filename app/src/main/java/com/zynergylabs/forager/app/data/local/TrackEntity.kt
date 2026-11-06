@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.data.local
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -20,6 +21,12 @@ import androidx.room.PrimaryKey
  * (none in this database), and deliberately no index: the only reader looks a track up by its own
  * primary key and follows the pointer outward, never the reverse, so an index here would have no
  * query to serve.
+ *
+ * [importedAtEpochMillis] and [importedWithoutTimes] are columns as of [MIGRATION_17_18], plan T16's GPX
+ * import: see [com.zynergylabs.forager.app.domain.model.Track]'s fields of the same names. Neither is
+ * indexed: the one query that filters on [importedAtEpochMillis] ([TrackDao.getTracksForDay]) already
+ * narrows by the two indexed time columns first. [importedWithoutTimes] is `NOT NULL DEFAULT 0`, so a
+ * recorded walk, and every row from before the migration, reads `false`.
  */
 @Entity(tableName = "tracks", indices = [Index("startedAtEpochMillis"), Index("endedAtEpochMillis")])
 data class TrackEntity(
@@ -28,4 +35,7 @@ data class TrackEntity(
     val startedAtEpochMillis: Long,
     val endedAtEpochMillis: Long?,
     val originWaypointId: String? = null,
+    val importedAtEpochMillis: Long? = null,
+    @ColumnInfo(defaultValue = "0")
+    val importedWithoutTimes: Boolean = false,
 )

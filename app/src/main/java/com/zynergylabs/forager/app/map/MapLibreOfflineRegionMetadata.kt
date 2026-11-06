@@ -41,27 +41,63 @@ internal fun RegionMetadata.toBytes(): ByteArray {
     return out.toByteArray()
 }
 
-/** `null` for anything unparseable — a foreign or corrupt metadata blob reads as "no region", never a crash or a guessed value. */
-internal fun ByteArray.toRegionMetadata(): RegionMetadata? = try {
-    val properties = Properties().apply { load(inputStream()) }
-    RegionMetadata(
-        name = properties.getProperty(KEY_NAME)!!,
-        region = Region(
-            lat = properties.getProperty(KEY_LAT)!!.toDouble(),
-            lng = properties.getProperty(KEY_LNG)!!.toDouble(),
-            radiusKm = properties.getProperty(KEY_RADIUS_KM)!!.toInt(),
-        ),
-        minZoom = properties.getProperty(KEY_MIN_ZOOM)!!.toDouble(),
-        maxZoom = properties.getProperty(KEY_MAX_ZOOM)!!.toDouble(),
-        downloadedAtEpochMillis = properties.getProperty(KEY_DOWNLOADED_AT)!!.toLong(),
-    )
-} catch (e: NullPointerException) {
-    null
-} catch (e: NumberFormatException) {
-    null
-} catch (e: IllegalArgumentException) {
-    null
+/** `null` for anything unparseable — a foreign or corrupt metadata blob reads as "no region", never a crash or a guessed value. [readRegionMetadata] says why. */
+internal fun ByteArray.toRegionMetadata(): RegionMetadata? = (readRegionMetadata() as? RegionMetadataRead.Parsed)?.metadata
+
+/** What reading a region's metadata blob found: the metadata, or why it could not be read (dispatch 2026-09-28-658, M1). */
+internal sealed interface RegionMetadataRead {
+    data class Parsed(val metadata: RegionMetadata) : RegionMetadataRead
+
+    /** [reason] is for the log: which key was missing or which value would not parse. */
+    data class Unreadable(val reason: String) : RegionMetadataRead
 }
+
+/**
+ * Reads the blob [toBytes] wrote. Never throws for bad input: a missing key, a value that is not a
+ * number, or bytes that are not a properties file come back as [RegionMetadataRead.Unreadable]
+ * naming what was wrong, so a caller that logs can say why a region was not rebuilt.
+ */
+internal fun ByteArray.readRegionMetadata(): RegionMetadataRead {
+    val properties = try {
+        Properties().apply { load(inputStream()) }
+    } catch (e: IllegalArgumentException) {
+        return RegionMetadataRead.Unreadable("not a properties file (${e.message})")
+    }
+    fun text(key: String): String = properties.getProperty(key) ?: throw MissingKey(key)
+    fun <T> number(key: String, parse: (String) -> T): T {
+        val raw = text(key)
+        return try {
+            parse(raw)
+        } catch (e: NumberFormatException) {
+            throw BadValue(key, raw)
+        }
+    }
+    return try {
+        RegionMetadataRead.Parsed(
+            RegionMetadata(
+                name = text(KEY_NAME),
+                region = Region(
+                    lat = number(KEY_LAT, { it.toDouble() }),
+                    lng = number(KEY_LNG, { it.toDouble() }),
+                    radiusKm = number(KEY_RADIUS_KM, { it.toInt() }),
+                ),
+                minZoom = number(KEY_MIN_ZOOM, { it.toDouble() }),
+                maxZoom = number(KEY_MAX_ZOOM, { it.toDouble() }),
+                downloadedAtEpochMillis = number(KEY_DOWNLOADED_AT, { it.toLong() }),
+            ),
+        )
+    } catch (e: MissingKey) {
+        RegionMetadataRead.Unreadable("no ${e.key}")
+    } catch (e: BadValue) {
+        RegionMetadataRead.Unreadable("${e.key} is not a number: '${e.raw}'")
+    } catch (e: IllegalArgumentException) {
+        RegionMetadataRead.Unreadable("the values do not make a region (${e.message})")
+    }
+}
+
+private class MissingKey(val key: String) : Exception()
+
+private class BadValue(val key: String, val raw: String) : Exception()
 
 private const val KEY_NAME = "region.name"
 private const val KEY_LAT = "region.lat"

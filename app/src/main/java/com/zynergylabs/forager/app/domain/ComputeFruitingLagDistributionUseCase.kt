@@ -3,6 +3,8 @@ package com.zynergylabs.forager.app.domain
 import com.zynergylabs.forager.app.domain.model.DailyWeather
 import com.zynergylabs.forager.app.domain.model.FruitingLagBucket
 import com.zynergylabs.forager.app.domain.model.FruitingLagDistribution
+import com.zynergylabs.forager.app.domain.model.FruitingLagHistogram
+import com.zynergylabs.forager.app.domain.model.LagSpan
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
@@ -34,6 +36,7 @@ class ComputeFruitingLagDistributionUseCase {
 
         val rangeCounts = IntArray(BUCKET_RANGES.size)
         var noPrecedingEventCount = 0
+        val lags = mutableListOf<Int>()
 
         for (sighting in dated) {
             val date = requireNotNull(sighting.observedOn)
@@ -50,6 +53,7 @@ class ComputeFruitingLagDistributionUseCase {
             // BUCKET_RANGES' last range ends at Int.MAX_VALUE, so a non-negative lag always
             // matches one of them; lag is non-negative by construction (nearest.endDate <= date).
             rangeCounts[bucketIndex]++
+            lags += lag
         }
 
         val buckets = BUCKET_RANGES.mapIndexed { index, range ->
@@ -74,6 +78,7 @@ class ComputeFruitingLagDistributionUseCase {
             observationsExcludedForMissingDate = excludedForMissingDate,
             sightingsConsidered = sightings.size,
             totalResultsOnServer = totalResultsOnServer,
+            histogram = equalSpanHistogram(lags, HISTOGRAM_SPAN_DAYS, HISTOGRAM_SPAN_COUNT),
         )
     }
 
@@ -91,6 +96,34 @@ class ComputeFruitingLagDistributionUseCase {
             22..35,
             36..Int.MAX_VALUE,
         )
+
+        /**
+         * Labelled, adjustable: the chart's span width, a week, and how many spans it draws (six, so
+         * days 0 to 41). A proposal awaiting the owner (data part C report, RECORD -668): the rule
+         * of thumb's 7–21 days is 15 days wide, so no equal width other than 1, 3, 5 or 15 days lines
+         * its edges up with span edges; the chart shades the rule's own days behind the bars instead.
+         */
+        const val HISTOGRAM_SPAN_DAYS = 7
+        const val HISTOGRAM_SPAN_COUNT = 6
+
+        /**
+         * Counts [lags] into [spanCount] spans of [spanDays] days from day 0; a lag past the last span
+         * goes to [FruitingLagHistogram.beyondCount]. Pure, so the bucketing is tested headless.
+         */
+        fun equalSpanHistogram(lags: List<Int>, spanDays: Int, spanCount: Int): FruitingLagHistogram {
+            require(spanDays > 0 && spanCount > 0) { "spanDays and spanCount must be positive: $spanDays, $spanCount" }
+            val counts = IntArray(spanCount)
+            var beyond = 0
+            lags.forEach { lag ->
+                require(lag >= 0) { "A lag is days after a preceding event, never negative: $lag" }
+                val index = lag / spanDays
+                if (index < spanCount) counts[index]++ else beyond++
+            }
+            val spans = counts.mapIndexed { index, count ->
+                LagSpan(firstDay = index * spanDays, lastDay = index * spanDays + spanDays - 1, count = count)
+            }
+            return FruitingLagHistogram(spanDays = spanDays, spans = spans, beyondCount = beyond)
+        }
 
         private fun labelFor(range: IntRange): String =
             if (range.last == Int.MAX_VALUE) "${range.first}+ days" else "${range.first}–${range.last} days"

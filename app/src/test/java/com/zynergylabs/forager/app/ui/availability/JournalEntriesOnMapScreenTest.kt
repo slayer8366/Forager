@@ -92,7 +92,7 @@ import com.zynergylabs.forager.app.ui.map.FEATURE_ID_PROPERTY
 import com.zynergylabs.forager.app.ui.map.journalHighlightFeatureCollections
 import com.zynergylabs.forager.app.ui.map.layers.JOURNAL_ENTRIES_SWITCH_LAYER_ID
 import com.zynergylabs.forager.app.ui.map.layers.MapSourceIds
-import com.zynergylabs.forager.app.ui.track.formatRecordTimestamp
+import com.zynergylabs.forager.app.ui.format.displayDateTime
 import java.time.LocalDate
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -115,7 +115,7 @@ private typealias EntriesOnMapRule = AndroidComposeTestRule<ActivityScenarioRule
 private val FIND_AT = LatLng(45.51, -122.61)
 private val FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = FIND_AT, date = LocalDate.of(2026, 9, 12))
     .copy(isDraft = false, ownIdentification = "Golden chanterelle")
-private val WAYPOINT = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
+private val WAYPOINT = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
 private val RECORDS = MapRecords(
     findMarkers = listOf(RecordPoint(FIND.id, FIND_AT)),
     photoMarkers = emptyList(),
@@ -159,7 +159,7 @@ private object EntriesOnMapNoOfflineMaps : OfflineMapRepository {
 /**
  * J8, Journal entries on the main map, through the real [AvailabilityScreen] (`prompts/preserved/2026-09-28-52.md`
  * J8-3 and J8-4, with the owner's rulings in `2026-09-28-53` and the planner's in `-64` and `-65`): the
- * report menu's toggle, the Maps-tab chip and its list, the Layers sheet's "Journal entries" switch,
+ * report menu's toggle, the Maps-tab chip and its list, Tools > Map Layers' "Journal Entries" switch,
  * a highlighted record's bubble lines and "Open entry" with the owner's prompt-first rule.
  *
  * The day entries go through the real [CartographyViewModel] over an in-memory [ForagerDatabase], and
@@ -255,58 +255,72 @@ internal abstract class JournalEntriesOnMapHarness {
             val cartographyUiState by cartographyViewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = uiState,
-                logUiState = screenLog,
-                onUseCurrentLocation = availabilityViewModel::useCurrentLocation,
-                onManualLatChanged = availabilityViewModel::onManualLatChanged,
-                onManualLngChanged = availabilityViewModel::onManualLngChanged,
-                onSearchManualCoordinates = availabilityViewModel::searchManualCoordinates,
-                onRadiusChanged = availabilityViewModel::onRadiusChanged,
-                onMonthSelected = availabilityViewModel::onMonthSelected,
-                onMapTabSelected = availabilityViewModel::onMapTabSelected,
-                onSeasonalTabSelected = availabilityViewModel::onSeasonalTabSelected,
-                onTaxonSearchQueryChanged = availabilityViewModel::onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = availabilityViewModel::onTaxonSearchResultSelected,
-                onDismissTaxonSuggestions = availabilityViewModel::onDismissTaxonSuggestions,
-                onReopenTaxonSuggestions = availabilityViewModel::onReopenTaxonSuggestions,
-                onPlaceTripPin = availabilityViewModel::onPlaceTripPin,
-                onDeletePlannedTrip = availabilityViewModel::onDeletePlannedTrip,
-                onRecentSearchSelected = availabilityViewModel::onRecentSearchSelected,
-                onOfflineMapLatChanged = availabilityViewModel::onOfflineMapLatChanged,
-                onOfflineMapLngChanged = availabilityViewModel::onOfflineMapLngChanged,
-                onOfflineMapRadiusChanged = availabilityViewModel::onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = availabilityViewModel::onOfflineMapNameChanged,
-                onOfflineMapsOpened = availabilityViewModel::onOfflineMapsOpened,
-                onDownloadOfflineMaps = availabilityViewModel::onDownloadOfflineMaps,
-                onDeleteOfflineRegion = availabilityViewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
-                onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
-                onMapFullscreenChanged = availabilityViewModel::onMapFullscreenChanged,
+                findsLog = AvailabilityScreenFindsLog(
+                    logUiState = screenLog,
+                ),
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = availabilityViewModel::useCurrentLocation,
+                    onManualLatChanged = availabilityViewModel::onManualLatChanged,
+                    onManualLngChanged = availabilityViewModel::onManualLngChanged,
+                    onSearchManualCoordinates = availabilityViewModel::searchManualCoordinates,
+                    onRadiusChanged = availabilityViewModel::onRadiusChanged,
+                    onMonthSelected = availabilityViewModel::onMonthSelected,
+                    onMapTabSelected = availabilityViewModel::onMapTabSelected,
+                    onSeasonalTabSelected = availabilityViewModel::onSeasonalTabSelected,
+                    onTaxonSearchQueryChanged = availabilityViewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = availabilityViewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = availabilityViewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = availabilityViewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = availabilityViewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = availabilityViewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = availabilityViewModel::onRecentSearchSelected,
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = availabilityViewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = availabilityViewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = availabilityViewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = availabilityViewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = availabilityViewModel::onOfflineMapsOpened,
+                    onDownloadOfflineMaps = availabilityViewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = availabilityViewModel::onDeleteOfflineRegion,
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
+                ),
                 mapSlot = map.slot,
-                onMapShown = availabilityViewModel::onMapShown,
-                onMapLayerVisibilityChanged = availabilityViewModel::onMapLayerVisibilityChanged,
-                onMapLayerOpacityChanged = availabilityViewModel::onMapLayerOpacityChanged,
-                onColourFieldMoved = availabilityViewModel::onColourFieldMoved,
-                waypoints = screenWaypoints,
-                // What MainActivity passes for the day entries.
-                cartographyUiState = cartographyUiState.hidingPendingDelete(),
-                onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
-                onStartCartographyEntry = cartographyViewModel::onStartEntry,
-                onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
-                onCartographyTextChanged = cartographyViewModel::onTextChanged,
-                onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
-                onSetFindDecision = cartographyViewModel::onSetFindDecision,
-                onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
-                onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
-                onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
-                onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
-                onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
-                onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
-                onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
-                onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
-                onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
-                onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
-                onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
-                onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
+                mapControls = AvailabilityScreenMapControls(
+                    onMapFullscreenChanged = availabilityViewModel::onMapFullscreenChanged,
+                    onMapShown = availabilityViewModel::onMapShown,
+                    onMapLayerVisibilityChanged = availabilityViewModel::onMapLayerVisibilityChanged,
+                    onMapLayerOpacityChanged = availabilityViewModel::onMapLayerOpacityChanged,
+                    onColourFieldMoved = availabilityViewModel::onColourFieldMoved,
+                ),
+                records = AvailabilityScreenRecords(
+                    waypoints = screenWaypoints,
+                ),
+                journalEntries = AvailabilityScreenJournalEntries(
+                    // What MainActivity passes for the day entries.
+                    cartographyUiState = cartographyUiState.hidingPendingDelete(),
+                    onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
+                    onStartCartographyEntry = cartographyViewModel::onStartEntry,
+                    onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
+                    onCartographyTextChanged = cartographyViewModel::onTextChanged,
+                    onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
+                    onSetFindDecision = cartographyViewModel::onSetFindDecision,
+                    onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
+                    onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
+                    onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
+                    onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
+                    onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
+                    onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
+                    onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
+                    onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
+                    onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                    onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
+                    onSetCartographyEntryShownOnMap = cartographyViewModel::onSetShownOnMap,
+                    onCartographyShownOnMapErrorDismissed = cartographyViewModel::onShownOnMapErrorDismissed,
+                ),
             )
         }
         composeRule.waitForIdle()
@@ -499,8 +513,8 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
 
         touchCentreOf(JOURNAL_ENTRIES_CHIP_TAG)
         composeRule.onNodeWithTag(journalEntriesListRowTag("entry-a")).assertIsDisplayed()
-        composeRule.onNodeWithText("2026-09-12").assertIsDisplayed()
-        composeRule.onNodeWithText("2026-09-05").assertIsDisplayed()
+        composeRule.onNodeWithText("Sep 12, 2026").assertIsDisplayed()
+        composeRule.onNodeWithText("Sep 5, 2026").assertIsDisplayed()
         touchCentreOf(journalEntriesListRowTag("entry-b"))
 
         assertEquals(false, stored("entry-b").shownOnMap)
@@ -568,8 +582,8 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
         assertEquals("and the kept waypoint", listOf(WAYPOINT.id), highlights.waypointMarkers.map { it.recordId })
         halos.forEach { assertTrue("$it drawn by default", haloVisible(it)) }
 
-        touchCentreOf(composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION))
-        touchCentreOf(composeRule.onNodeWithText("Journal entries").performScrollTo())
+        composeRule.openToolsMapLayers()
+        touchCentreOf(composeRule.onNodeWithText("Journal Entries").performScrollTo())
 
         halos.forEach { assertEquals("$it hidden", false, haloVisible(it)) }
         assertTrue("the find itself is still drawn", layerPaintFor(MAP_LAYER_REGISTRY.single { it.id == MapLayerIds.FINDS }, map.renderMode!!.layers).visible)
@@ -586,7 +600,7 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
         touchNavItem("Maps")
         touchCentreOf(glyphTag(FIND.id))
         composeRule.onNodeWithTag(mapBubbleEntryLineTag("entry-a")).assertIsDisplayed()
-        composeRule.onNodeWithText("2026-09-12", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Sep 12, 2026", useUnmergedTree = true).assertIsDisplayed()
 
         touchCentreOf(mapBubbleEntryLineTag("entry-a"))
 
@@ -606,7 +620,7 @@ internal abstract class JournalEntriesOnMapCompactTests : JournalEntriesOnMapHar
         )
         touchNavItem("Maps")
         touchCentreOf(glyphTag(FIND.id))
-        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertTextEquals("Kept in 4 journal entries")
+        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertTextEquals("In 4 journal entries")
 
         touchCentreOf(MAP_BUBBLE_ENTRY_COUNT_TAG)
         touchCentreOf(mapBubbleEntryLineTag("entry-3"))
@@ -840,7 +854,7 @@ private fun entryKeepingPhoto(id: String, date: LocalDate, text: String, shown: 
  * S22 Ultra's size:
  * - item 1 (`-70`; the owner, "Option B"): while a photo's bubble shows J8's keeping-entry lines, its
  *   attachment line leaves out its "Kept in" part, and is left out when nothing else is left; with no
- *   highlight, or the "Journal entries" switch off, the line is as it was;
+ *   highlight, or the "Journal Entries" switch off, the line is as it was;
  * - item 2 (`-87`): the rings are computed from the waypoints the map draws, so an ORIGIN or END
  *   waypoint the map does not draw gets none.
  *
@@ -856,7 +870,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
     override val glyphY: Dp = 380.dp
     override val extraGlyphs: List<StubGlyph> get() = listOf(StubGlyph(MapLayerIds.PHOTOS, BUBBLE_PHOTO.photo.id, glyphX, glyphY + 96.dp, KEPT_PHOTO_AT))
 
-    private val photoDate = formatRecordTimestamp(BUBBLE_PHOTO.photo.createdAtEpochMillis!!)
+    private val photoDate = displayDateTime(BUBBLE_PHOTO.photo.createdAtEpochMillis!!, is24HourClock = false)
     private val day = LocalDate.of(2026, 9, 12)
 
     /** The Maps tab draws the photo, which [findIds] use and [entryCount] saved entries keep in all. */
@@ -911,7 +925,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
 
         openPhotoBubble()
 
-        assertEquals(listOf(photoDate, "In Golden chanterelle", "2026-09-12", "View photo"), bubbleTexts())
+        assertEquals(listOf(photoDate, "In Golden chanterelle", "Sep 12, 2026", "View photo"), bubbleTexts())
     }
 
     @Test
@@ -928,9 +942,9 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
         openPhotoBubble()
 
         val texts = bubbleTexts()
-        assertEquals("one Kept in line on the bubble: $texts", listOf("Kept in 4 journal entries"), texts.filter { "Kept in" in it })
-        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertTextEquals("Kept in 4 journal entries")
-        assertEquals(listOf(photoDate, "In Golden chanterelle", "Kept in 4 journal entries", "View photo"), texts)
+        assertEquals("one Kept in line on the bubble: $texts", listOf("In 4 journal entries"), texts.filter { "journal entr" in it })
+        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertTextEquals("In 4 journal entries")
+        assertEquals(listOf(photoDate, "In Golden chanterelle", "In 4 journal entries", "View photo"), texts)
     }
 
     @Test
@@ -942,7 +956,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
 
         val texts = bubbleTexts()
         assertEquals("never the not-attached line: $texts", emptyList<String>(), texts.filter { it == "Not in a find or a journal entry" })
-        assertEquals(listOf(photoDate, "2026-09-12", "View photo"), texts)
+        assertEquals(listOf(photoDate, "Sep 12, 2026", "View photo"), texts)
     }
 
     /**
@@ -955,7 +969,7 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
         drawThePhoto(findIds = listOf(FIND.id), entryCount = 1)
         setScreen(entryKeepingPhoto("entry-a", day, "Shown later.", shown = false))
         openPhotoBubble()
-        assertEquals("not highlighted: as it was", listOf(photoDate, "In Golden chanterelle · Kept in 1 journal entry", "View photo"), bubbleTexts())
+        assertEquals("not highlighted: as it was", listOf(photoDate, "Golden chanterelle · 1 journal entry", "View photo"), bubbleTexts())
 
         // Shown on the map from its report, as a user does it (J8-3).
         openEntryReport("entry-a", "Shown later.")
@@ -964,13 +978,13 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
         assertEquals(true, stored("entry-a").shownOnMap)
         openPhotoBubble()
 
-        assertEquals("highlighted", listOf(photoDate, "In Golden chanterelle", "2026-09-12", "View photo"), bubbleTexts())
+        assertEquals("highlighted", listOf(photoDate, "In Golden chanterelle", "Sep 12, 2026", "View photo"), bubbleTexts())
     }
 
     /**
      * "Switch off: exactly as today", pinned on the way to the switch being turned on, for the reason the
      * test above gives. The switch starts off as a stored choice, restored as every overlay switch is,
-     * and is turned on in the Layers sheet with the bubble open, which re-reads its lines.
+     * and is turned on in Tools > Map Layers with the bubble open, which re-reads its lines.
      */
     @Test
     fun `with the Journal entries switch off the photo keeps its whole line, and turned on the line drops its Kept in`() {
@@ -981,13 +995,13 @@ internal class JournalEntriesOnMapFollowUpsTest : JournalEntriesOnMapHarness() {
             entryKeepingPhoto("entry-b", day.minusDays(7), "Not shown.", shown = false),
         )
         openPhotoBubble()
-        assertEquals("switch off: as it was", listOf(photoDate, "In Golden chanterelle · Kept in 2 journal entries", "View photo"), bubbleTexts())
+        assertEquals("switch off: as it was", listOf(photoDate, "Golden chanterelle · 2 journal entries", "View photo"), bubbleTexts())
 
-        touchCentreOf(composeRule.onNodeWithContentDescription(LAYERS_ROW_DESCRIPTION))
-        touchCentreOf(composeRule.onNodeWithText("Journal entries").performScrollTo())
+        composeRule.openToolsMapLayers()
+        touchCentreOf(composeRule.onNodeWithText("Journal Entries").performScrollTo())
 
         assertTrue("the switch is on", "visible $JOURNAL_ENTRIES_SWITCH_LAYER_ID true" in layerPreferences.writes)
-        assertEquals("switch on", listOf(photoDate, "In Golden chanterelle", "2026-09-12", "View photo"), bubbleTexts())
+        assertEquals("switch on", listOf(photoDate, "In Golden chanterelle", "Sep 12, 2026", "View photo"), bubbleTexts())
     }
 
     // ── Item 2: no ring on a waypoint the map does not draw ──

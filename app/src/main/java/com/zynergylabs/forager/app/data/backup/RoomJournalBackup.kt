@@ -110,9 +110,7 @@ class RoomJournalBackup(
             leaveOutExcludedTables(snapshot)
             val (schemaVersion, photoPaths) = SQLiteDatabase.openDatabase(snapshot.path, null, SQLiteDatabase.OPEN_READONLY).use { db ->
                 requireIntegrity(db, "the snapshot")
-                val paths = db.rawQuery("SELECT relativePath FROM log_photos", null).use { c ->
-                    buildList { while (c.moveToNext()) add(c.getString(0)) }
-                }
+                val paths = photoFilePaths(db)
                 db.version to paths
             }
             val photos = LinkedHashMap<String, File>()
@@ -245,8 +243,8 @@ class RoomJournalBackup(
     private fun replace(staged: StagedBackup, backupDb: SQLiteDatabase): RestoreReport {
         val photos = PhotoFileJournal(filesDir, errorLog)
         val sql = database.openHelper.writableDatabase
-        val oldPhotoPaths = sql.query("SELECT relativePath FROM log_photos").use { c -> buildSet { while (c.moveToNext()) add(c.getString(0)) } }
-        val newPhotoPaths = backupDb.rawQuery("SELECT relativePath FROM log_photos", null).use { c -> buildSet { while (c.moveToNext()) add(c.getString(0)) } }
+        val oldPhotoPaths = sql.query(PHOTO_FILES_QUERY).use { c -> buildSet { while (c.moveToNext()) addPhotoFiles(c) } }
+        val newPhotoPaths = photoFilePaths(backupDb).toSet()
         var inserted = 0
         var skipped = 0
         var dropped = 0
@@ -324,11 +322,11 @@ class RoomJournalBackup(
         var dropped = 0
         // Photo files first, and only for photo rows the phone lacks.
         val photoSpec = JournalTables.journal.first { it.name == "log_photos" }
-        val candidatePhotos = backupDb.rawQuery("SELECT id, relativePath FROM log_photos", null).use { c ->
-            buildList { while (c.moveToNext()) add(c.getString(0) to c.getString(1)) }
+        val candidatePhotos = backupDb.rawQuery("SELECT id, relativePath, rawRelativePath FROM log_photos", null).use { c ->
+            buildList { while (c.moveToNext()) add(c.getString(0) to listOfNotNull(c.getString(1), c.getString(2))) }
         }.filter { (id, _) -> !existsIn(sql, photoSpec.name, "id", id) }
         try {
-            for ((_, path) in candidatePhotos) staged.photoFiles[path]?.let { photos.place(path, it) }
+            for ((_, paths) in candidatePhotos) for (path in paths) staged.photoFiles[path]?.let { photos.place(path, it) }
             hooks.afterPhotosCopied()
             database.runInTransaction(Runnable {
                 val insertedKeys = HashMap<String, MutableSet<String>>()
@@ -422,7 +420,7 @@ class RoomJournalBackup(
         }
         photos.commit()
         // A photo file was copied ahead of its row; if the row did not get inserted after all, the file goes.
-        for ((id, path) in candidatePhotos) if (!existsIn(sql, photoSpec.name, "id", id)) photos.deleteOld(path)
+        for ((id, paths) in candidatePhotos) if (!existsIn(sql, photoSpec.name, "id", id)) paths.forEach { photos.deleteOld(it) }
         return RestoreReport(RestoreMode.MERGE, rowsInserted = inserted, recordsSkipped = skipped, rowsDropped = dropped, photoFilesAdded = photos.placedCount)
     }
 
@@ -515,3 +513,19 @@ class RoomJournalBackup(
         const val TAG = "RoomJournalBackup"
     }
 }
+
+/**
+ * Every photo file a `log_photos` table names: each row's photo, and a RAW shot's DNG beside it (`rawRelativePath`,
+ * `MIGRATION_21_22`, dispatch 2026-10-15-01). Backup copies, and restore places and removes, exactly these files, so a RAW
+ * shot travels whole. A database older than version 22 never reaches here without the column: the snapshot is the live
+ * database, and a restore migrates the backup's copy first (`migrateOnScratchCopy`).
+ */
+internal const val PHOTO_FILES_QUERY = "SELECT relativePath, rawRelativePath FROM log_photos"
+
+private fun MutableCollection<String>.addPhotoFiles(c: android.database.Cursor) {
+    add(c.getString(0))
+    if (!c.isNull(1)) add(c.getString(1))
+}
+
+private fun photoFilePaths(db: SQLiteDatabase): List<String> =
+    db.rawQuery(PHOTO_FILES_QUERY, null).use { c -> buildList { while (c.moveToNext()) addPhotoFiles(c) } }

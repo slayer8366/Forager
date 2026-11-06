@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.absolutePadding
 import androidx.compose.foundation.layout.WindowInsetsSides
 import androidx.compose.foundation.layout.displayCutout
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -89,10 +90,21 @@ internal fun BoxScope.CameraBand(
         ScreenEdge.Left -> Alignment.CenterStart
         ScreenEdge.Right -> Alignment.CenterEnd
     }
+    // Held in the device's natural frame (NaturalOrientationHold, RECORD -985), the window's sides are not this band's: the
+    // hold hands the insets already turned into the natural frame, and the band pads by its own edge of those.
+    val held = LocalCameraBandInsets.current
+    val insetPadding = if (held == null) {
+        Modifier.windowInsetsPadding(WindowInsets.displayCutout.union(WindowInsets.navigationBars).only(sides))
+    } else when (edge) {
+        ScreenEdge.Top -> Modifier.absolutePadding(top = held.top)
+        ScreenEdge.Bottom -> Modifier.absolutePadding(bottom = held.bottom)
+        ScreenEdge.Left -> Modifier.absolutePadding(left = held.left)
+        ScreenEdge.Right -> Modifier.absolutePadding(right = held.right)
+    }
     Box(
         modifier = modifier
             .align(alignment)
-            .windowInsetsPadding(WindowInsets.displayCutout.union(WindowInsets.navigationBars).only(sides))
+            .then(insetPadding)
             .then(if (edge.isHorizontal) Modifier.fillMaxWidth().heightIn(min = thickness) else Modifier.fillMaxHeight().widthIn(min = thickness)),
         contentAlignment = alignment,
         content = content,

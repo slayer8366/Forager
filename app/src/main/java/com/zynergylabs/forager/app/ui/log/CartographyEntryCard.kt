@@ -141,7 +141,7 @@ internal fun CartographyEntryCard(
 
 /**
  * The short row an entry with no hero photo, no text and no kept track collapses to (plan J5): its
- * day and weekday and its stats on one line, or "Nothing kept" when it keeps nothing. Tags are left
+ * day and weekday and its stats on one line, or "Nothing included" (was "Nothing kept"; the owner, RECORD -671) when it includes nothing. Tags are left
  * out to keep it one line; the entry's report shows them.
  */
 @Composable
@@ -164,7 +164,7 @@ internal fun CollapsedEntryRow(
         ) {
             EntryDay(entry.date, large = false)
             if (stats.isEmpty()) {
-                Text("Nothing kept", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("Nothing included", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                     stats.forEach { EntryStat(it) }

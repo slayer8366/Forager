@@ -19,19 +19,19 @@ class TrackExportSubtitleTest {
 
     @Test
     fun `an ordinary track, including one the rule quietly cleaned, reads as before`() {
-        assertEquals("9 points", trackSubtitle(track(points = 9, excluded = 8)))
-        assertEquals("1 point", trackSubtitle(track(points = 1, excluded = 0)))
-        assertEquals("0 points · recording", trackSubtitle(track(points = 0, excluded = 0, ended = false)))
+        assertEquals("9 points", trackSubtitle(track(points = 9, excluded = 8), is24HourClock = false))
+        assertEquals("1 point", trackSubtitle(track(points = 1, excluded = 0), is24HourClock = false))
+        assertEquals("0 points · recording", trackSubtitle(track(points = 0, excluded = 0, ended = false), is24HourClock = false))
     }
 
     @Test
     fun `a large exclusion appends what was not shown`() {
-        assertEquals("1 point · 12 more not shown (network fixes)", trackSubtitle(track(points = 1, excluded = 12)))
-        assertEquals("6 points · 19 more not shown (network fixes) · recording", trackSubtitle(track(points = 6, excluded = 19, ended = false)))
+        assertEquals("1 point · 12 more not shown (network fixes)", trackSubtitle(track(points = 1, excluded = 12), is24HourClock = false))
+        assertEquals("6 points · 19 more not shown (network fixes) · recording", trackSubtitle(track(points = 6, excluded = 19, ended = false), is24HourClock = false))
     }
 
     @Test
     fun `an emptied track says so instead of counting zero`() {
-        assertEquals("No usable points — all 12 fixes were from the network provider", trackSubtitle(track(points = 0, excluded = 12)))
+        assertEquals("No usable points — all 12 fixes were from the network provider", trackSubtitle(track(points = 0, excluded = 12), is24HourClock = false))
     }
 }

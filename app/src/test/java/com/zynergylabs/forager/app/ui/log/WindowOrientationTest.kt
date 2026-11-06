@@ -24,7 +24,6 @@ import com.zynergylabs.forager.app.photo.FakeCameraCaptureSession
 import com.zynergylabs.forager.app.photo.FileProviderCacheReset
 import com.zynergylabs.forager.app.sensor.FakeLevelProvider
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotEquals
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.ExternalResource
@@ -64,7 +63,7 @@ class WindowOrientationTest {
     private var setShown: (Boolean) -> Unit = {}
     private val session = FakeCameraCaptureSession()
 
-    private fun setDialog(lockToPortrait: Boolean) {
+    private fun setDialog() {
         composeRule.setContent {
             var shown by remember { mutableStateOf(true) }
             setShown = { shown = it }
@@ -72,7 +71,6 @@ class WindowOrientationTest {
                 InAppCameraDialog(
                     session = session,
                     cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                    lockToPortrait = lockToPortrait,
                     onPhotoCaptured = {},
                     onDismiss = {},
                     gridMode = GridMode.Off,
@@ -86,44 +84,28 @@ class WindowOrientationTest {
         }
     }
 
+    /**
+     * RECORD -980 and -981 (the owner: "The camera is to never, ever, rotate like this. This is a cardinal sin"): the camera's
+     * window is held portrait while it is open, always, with no setting. Was `setting off, the window follows the device but
+     * never into reverse portrait, SENSOR, ...`, asserting SENSOR and not FULL_SENSOR; before dispatch 2026-10-13-03 the
+     * setting-on test asserted this same PORTRAIT. The controls turning in place in that held window is
+     * `the count keeps its centre when the device turns, and turns its bounds in place`, below.
+     */
     @Test
-    fun `setting on, the window is forced portrait while the camera is open and the previous request is put back after`() {
+    fun `the window is held portrait while the camera is open, and the previous request is put back after`() {
         // A non-default previous value, so "restored" is distinguishable from "reset to unspecified".
         composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
-        setDialog(lockToPortrait = true)
-
-        assertEquals("forced portrait is the point of the setting", ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, composeRule.activity.requestedOrientation)
-
-        setShown(false)
-        composeRule.waitForIdle()
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_USER, composeRule.activity.requestedOrientation)
-    }
-
-    @Test
-    fun `setting off, the window follows the device but never into reverse portrait, SENSOR, and the previous request is put back after`() {
-        composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_USER
-        setDialog(lockToPortrait = false)
+        setDialog()
 
         assertEquals(
-            "setting off: SENSOR, so the window takes portrait and both landscapes and the platform will not resolve it to reverse portrait on a phone — a half turn leaves the window, and the status bar, where they were",
-            ActivityInfo.SCREEN_ORIENTATION_SENSOR,
-            composeRule.activity.requestedOrientation,
-        )
-        assertNotEquals(
-            "FULL_SENSOR is what would admit reverse portrait, and it is what this replaced; putting it back reintroduces the inverted-bands arrangement (CameraArrangement)",
-            ActivityInfo.SCREEN_ORIENTATION_FULL_SENSOR,
+            "PORTRAIT: the camera's window never turns on a phone; not SENSOR, which turned it with the device",
+            ActivityInfo.SCREEN_ORIENTATION_PORTRAIT,
             composeRule.activity.requestedOrientation,
         )
 
         setShown(false)
         composeRule.waitForIdle()
         assertEquals(ActivityInfo.SCREEN_ORIENTATION_USER, composeRule.activity.requestedOrientation)
-    }
-
-    @Test
-    fun `the requested orientation is a pure function of the setting`() {
-        assertEquals(ActivityInfo.SCREEN_ORIENTATION_PORTRAIT, windowOrientationFor(lockToPortrait = true))
-        assertEquals("portrait and both landscapes, never reverse portrait", ActivityInfo.SCREEN_ORIENTATION_SENSOR, windowOrientationFor(lockToPortrait = false))
     }
 
     @Test
@@ -131,7 +113,7 @@ class WindowOrientationTest {
         val app = ApplicationProvider.getApplicationContext<Application>()
         composeRule.activity.requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED
         composeRule.setContent {
-            CompositionLocalProvider(LocalContext provides app) { RequestWindowOrientation(lockToPortrait = true) }
+            CompositionLocalProvider(LocalContext provides app) { RequestWindowOrientation() }
         }
         composeRule.waitForIdle()
         assertEquals(ActivityInfo.SCREEN_ORIENTATION_UNSPECIFIED, composeRule.activity.requestedOrientation)
@@ -141,7 +123,7 @@ class WindowOrientationTest {
     fun `the count keeps its centre when the device turns, and turns its bounds in place`() {
         // A portrait window (the class's qualifiers) with the setting off: the portrait arrangement,
         // whose controls turn. The landscape arrangement's controls do not; InAppCameraDialogLandscapeTest.
-        setDialog(lockToPortrait = false)
+        setDialog()
         val countBefore = composeRule.onNodeWithTag(CAMERA_COUNT_TAG).getBoundsInRoot()
 
         session.deviceRotation = Surface.ROTATION_90

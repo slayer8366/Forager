@@ -28,12 +28,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Every registered migration from 4→5 through 16→17, asserted against the schema files Room exports
+ * Every registered migration from 4→5 through 22→23, asserted against the schema files Room exports
  * to `app/schemas/` — not against a hand-written fixture. For each: the database is created at
  * version N **from `N.json`**, every table is seeded with a row that satisfies every NOT NULL column
  * *as `N.json` declares them*, the migration runs, [MigrationTestHelper.runMigrationsAndValidate]
  * validates the result against `N+1.json`, and the rows are asserted to have survived with the
- * specific values each migration carries or transforms. The last test runs the whole chain 4→17.
+ * specific values each migration carries or transforms. The last test runs the whole chain 4→23.
  *
  * **3→4 is not here and cannot be**: there is no `3.json` — versions 1–3 predate `exportSchema`
  * (see `ForagerDatabase`'s own history comment). `MushroomLogMigrationTest`'s `LegacyForagerDatabaseV3`
@@ -142,15 +142,98 @@ class SchemaMigrationTest {
             assertEquals("the trackId index the delete-time copy and any 'who keeps this track' lookup use", 1L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_cartography_entry_track_paths_trackId'"))
         }
 
+    // Plan T16 (GPX import, RECORD -636): the tracks rebuild. Every seeded column is carried
+    // (assertEverySeededValueSurvived compares them all by name, originWaypointId included), both indexes
+    // come back (Room validates them against 18.json), and the pre-existing row reads as a recorded walk:
+    // importedAtEpochMillis NULL and importedWithoutTimes 0. The new columns then take an imported track's
+    // values, and a row inserted without importedWithoutTimes gets the column's default 0.
+    @Test fun `17 to 18 - the tracks rebuild adds importedAtEpochMillis null and importedWithoutTimes 0, every value carried`() =
+        migrate(17, 18, MIGRATION_17_18, overrides = mapOf("tracks" to mapOf("name" to "Morning loop", "endedAtEpochMillis" to 1_758_000_000_000L, "originWaypointId" to "w-1"))) { db ->
+            assertEquals("Morning loop", db.scalar("SELECT name FROM tracks"))
+            assertEquals("w-1", db.scalar("SELECT originWaypointId FROM tracks"))
+            assertNull("a recorded walk is not imported", db.scalar("SELECT importedAtEpochMillis FROM tracks"))
+            assertEquals("a recorded walk has its times", 0L, db.scalar("SELECT importedWithoutTimes FROM tracks"))
+            db.execSQL("INSERT INTO tracks (id, name, startedAtEpochMillis, endedAtEpochMillis, importedAtEpochMillis, importedWithoutTimes) VALUES ('t-imp', 'Imported', 1, 2, 1759800000000, 1)")
+            assertEquals(1_759_800_000_000L, db.scalar("SELECT importedAtEpochMillis FROM tracks WHERE id = 't-imp'"))
+            assertEquals(1L, db.scalar("SELECT importedWithoutTimes FROM tracks WHERE id = 't-imp'"))
+            db.execSQL("INSERT INTO tracks (id, name, startedAtEpochMillis) VALUES ('t-default', NULL, 3)")
+            assertEquals("the column's own default", 0L, db.scalar("SELECT importedWithoutTimes FROM tracks WHERE id = 't-default'"))
+            assertEquals("both time indexes are back", 2L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND tbl_name = 'tracks' AND name IN ('index_tracks_startedAtEpochMillis', 'index_tracks_endedAtEpochMillis')"))
+        }
+
+    // Dispatch 2026-09-28-695, amendment 1 (RECORD -696): the cached_searches rebuild. Every seeded column is
+    // carried (assertEverySeededValueSurvived compares them all by name, filterIconicTaxonName included, which
+    // still tells a category row from a species row), and the pre-existing row's new speciesIconicTaxonName is
+    // NULL: no backfill, since nothing stored says which group an old species row belongs to. The column then
+    // takes a species row's group.
+    @Test fun `18 to 19 - the cached_searches rebuild adds speciesIconicTaxonName null, every value carried`() =
+        migrate(18, 19, MIGRATION_18_19, overrides = mapOf("cached_searches" to mapOf("key" to "k-species", "filterLabel" to "Fly Agaric", "filterIconicTaxonName" to null, "filterTaxonId" to 48715L, "filterExcludedTaxonId" to null))) { db ->
+            assertEquals("Fly Agaric", db.scalar("SELECT filterLabel FROM cached_searches"))
+            assertEquals(48715L, db.scalar("SELECT filterTaxonId FROM cached_searches"))
+            assertNull("an old row is not given a group", db.scalar("SELECT speciesIconicTaxonName FROM cached_searches"))
+            db.execSQL("UPDATE cached_searches SET speciesIconicTaxonName = 'Fungi' WHERE `key` = 'k-species'")
+            assertEquals("Fungi", db.scalar("SELECT speciesIconicTaxonName FROM cached_searches"))
+            assertNull("the category discriminant is a separate column", db.scalar("SELECT filterIconicTaxonName FROM cached_searches"))
+        }
+
+    // Data part D, dispatch -697 Amendment 4 (RECORD -703): the mushroom_log_entries rebuild. Every seeded column is carried
+    // (assertEverySeededValueSurvived compares them all by name) and the old row's new foundAtEpochMillis is NULL: no time of
+    // day is known for a find saved before this column. Both indexes are back, and the column takes a value.
+    @Test fun `19 to 20 - the mushroom_log_entries rebuild adds foundAtEpochMillis null, every value carried`() =
+        migrate(19, 20, MIGRATION_19_20, overrides = mapOf("mushroom_log_entries" to mapOf("ownIdentification" to "Morel", "foundOn" to "2026-10-07", "lat" to 45.43, "lng" to -122.29, "draftOfEntryId" to null))) { db ->
+            assertEquals("Morel", db.scalar("SELECT ownIdentification FROM mushroom_log_entries"))
+            assertEquals("2026-10-07", db.scalar("SELECT foundOn FROM mushroom_log_entries"))
+            assertNull("an old find has no time of day", db.scalar("SELECT foundAtEpochMillis FROM mushroom_log_entries"))
+            db.execSQL("UPDATE mushroom_log_entries SET foundAtEpochMillis = 1791403440000")
+            assertEquals(1_791_403_440_000L, db.scalar("SELECT foundAtEpochMillis FROM mushroom_log_entries"))
+            assertEquals("both indexes are back", 2L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND tbl_name = 'mushroom_log_entries' AND name IN ('index_mushroom_log_entries_offlineRegionId', 'index_mushroom_log_entries_foundOn')"))
+        }
+
+    // The barometer (RECORD -864, -867): the track_points rebuild. Every seeded column is carried, speed included
+    // (assertEverySeededValueSurvived compares them all by name), the old point's new pressureHpa is NULL, the index is
+    // back, and the column takes a value.
+    @Test fun `20 to 21 - the track_points rebuild adds pressureHpa null, every value carried`() =
+        migrate(20, 21, MIGRATION_20_21, overrides = mapOf("track_points" to mapOf("timestampEpochMillis" to 1_791_403_440_000L, "speedMetersPerSecond" to 1.25, "altitude" to 112.5))) { db ->
+            assertEquals(1_791_403_440_000L, db.scalar("SELECT timestampEpochMillis FROM track_points"))
+            assertEquals(1.25, db.scalar("SELECT speedMetersPerSecond FROM track_points"))
+            assertEquals("GPS height is not touched", 112.5, db.scalar("SELECT altitude FROM track_points"))
+            assertNull("an old point has no pressure", db.scalar("SELECT pressureHpa FROM track_points"))
+            db.execSQL("UPDATE track_points SET pressureHpa = 1001.5")
+            assertEquals(1001.5, db.scalar("SELECT pressureHpa FROM track_points"))
+            assertEquals("the index is back", 1L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = 'index_track_points_trackId'"))
+        }
+
+    // RAW stage 2 (dispatch 2026-10-15-01): the log_photos rebuild. Every seeded column is carried, the location included
+    // (assertEverySeededValueSurvived compares them all by name), an old photo's new rawRelativePath is NULL (nothing before
+    // this version saved a DNG), and the column takes a value.
+    @Test fun `21 to 22 - the log_photos rebuild adds rawRelativePath null, every value carried`() =
+        migrate(21, 22, MIGRATION_21_22, overrides = mapOf("log_photos" to mapOf("relativePath" to "photos/p1.jpg", "latitude" to 45.43, "longitude" to -122.29))) { db ->
+            assertEquals("photos/p1.jpg", db.scalar("SELECT relativePath FROM log_photos"))
+            assertEquals(45.43, db.scalar("SELECT latitude FROM log_photos"))
+            assertNull("an old photo has no DNG", db.scalar("SELECT rawRelativePath FROM log_photos"))
+            db.execSQL("UPDATE log_photos SET rawRelativePath = 'photos/p1.dng'")
+            assertEquals("photos/p1.dng", db.scalar("SELECT rawRelativePath FROM log_photos"))
+        }
+
+    // Route plotting step 1 (dispatch 2026-10-30-02): the planned_trips rebuild. Every seeded column is carried, the date
+    // included (assertEverySeededValueSurvived compares them by name), the two route tables appear empty (migrate's own
+    // check), and the date now takes NULL.
+    @Test fun `22 to 23 - the planned_trips rebuild makes date nullable, every value carried, route tables empty`() =
+        migrate(22, 23, MIGRATION_22_23, overrides = mapOf("planned_trips" to mapOf("date" to "2026-11-14", "lat" to 45.43, "lng" to -122.29))) { db ->
+            assertEquals("2026-11-14", db.scalar("SELECT date FROM planned_trips"))
+            db.execSQL("INSERT INTO planned_trips (id, name, lat, lng, date) VALUES ('undated', 'Ridge run', 45.2, -122.5, NULL)")
+            assertNull("a trip can now have no date", db.scalar("SELECT date FROM planned_trips WHERE id = 'undated'"))
+        }
+
     // ---- the whole chain ----------------------------------------------------------------------
 
-    // F3: the chain now ends at 17, the current version (it ended at 16 before MIGRATION_16_17).
-    @Test fun `4 to 17 - the full chain, validated against 17_json, every seeded value survives`() {
+    // The chain now ends at 23, the current version (dispatch 2026-10-30-02; it ended at 22 before MIGRATION_22_23).
+    @Test fun `4 to 23 - the full chain, validated against 23_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 17, true, *ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 23, true, *ForagerDatabase.ALL_MIGRATIONS)
         try {
-            assertEverySeededValueSurvived(db, seeded, 4, 17)
+            assertEverySeededValueSurvived(db, seeded, 4, 23)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }
@@ -190,7 +273,9 @@ class SchemaMigrationTest {
             val columns = columnsAt[table] ?: throw AssertionError("table $table exists at v$from and not at v$to")
             assertEquals("rows in $table after $from->$to", 1L, db.scalar("SELECT COUNT(*) FROM `$table`"))
             for (col in row.keys intersect columns) {
-                assertEquals("$table.$col after $from->$to", row.getValue(col), db.scalar("SELECT `$col` FROM `$table`"))
+                val expected = row.getValue(col).let { if (it is ByteArray) it.toList() else it }
+                val actual = db.scalar("SELECT `$col` FROM `$table`").let { if (it is ByteArray) it.toList() else it }
+                assertEquals("$table.$col after $from->$to", expected, actual)
             }
         }
     }
@@ -213,11 +298,13 @@ class SchemaMigrationTest {
                     col == "id" -> "$table-1"
                     affinity == "REAL" -> 1.5
                     affinity == "TEXT" -> "$col-1"
+                    // T16: 17.json is the first starting point with a BLOB column (cartography_entry_track_paths.path).
+                    affinity == "BLOB" -> byteArrayOf(1, 2, 3)
                     else -> error("no seed rule for affinity $affinity at $table.$col in $version.json")
                 }
                 when (v) {
                     null -> cv.putNull(col)
-                    is String -> cv.put(col, v); is Long -> cv.put(col, v); is Int -> cv.put(col, v); is Double -> cv.put(col, v)
+                    is String -> cv.put(col, v); is Long -> cv.put(col, v); is Int -> cv.put(col, v); is Double -> cv.put(col, v); is ByteArray -> cv.put(col, v)
                     else -> error("unsupported seed value for $table.$col: $v")
                 }
                 col to v
@@ -228,11 +315,7 @@ class SchemaMigrationTest {
 
     private fun SupportSQLiteDatabase.scalar(sql: String): Any? = query(sql).use { c ->
         check(c.moveToFirst()) { "no row for: $sql" }
-        when (c.getType(0)) { android.database.Cursor.FIELD_TYPE_NULL -> null; android.database.Cursor.FIELD_TYPE_INTEGER -> c.getLong(0); android.database.Cursor.FIELD_TYPE_FLOAT -> c.getDouble(0); else -> c.getString(0) }
-    }
-
-    private companion object {
-        val ALL_MIGRATIONS = arrayOf(MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15, MIGRATION_15_16, MIGRATION_16_17)
+        when (c.getType(0)) { android.database.Cursor.FIELD_TYPE_NULL -> null; android.database.Cursor.FIELD_TYPE_INTEGER -> c.getLong(0); android.database.Cursor.FIELD_TYPE_FLOAT -> c.getDouble(0); android.database.Cursor.FIELD_TYPE_BLOB -> c.getBlob(0); else -> c.getString(0) }
     }
 }
 

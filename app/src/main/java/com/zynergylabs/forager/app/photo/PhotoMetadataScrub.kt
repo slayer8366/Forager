@@ -87,7 +87,12 @@ internal fun scrubPhotoMetadata(file: File): ScrubOutcome {
     // not interpret it, so a value this build does not recognise survives unchanged.
     val orientation = runCatching {
         ExifInterface(file.absolutePath).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_UNDEFINED)
-    }.getOrElse { ExifInterface.ORIENTATION_UNDEFINED }
+    }.getOrElse { error ->
+        // Logged (dispatch 2026-09-28-658, J5): a read error otherwise looks the same as "no tag",
+        // and the photo is then saved with no orientation put back.
+        Log.w(TAG, "Couldn't read '${file.name}''s orientation before scrubbing; none is put back.", error)
+        ExifInterface.ORIENTATION_UNDEFINED
+    }
 
     val temp = File(file.parentFile, "${file.name}.scrub")
     val replaced = runCatching {

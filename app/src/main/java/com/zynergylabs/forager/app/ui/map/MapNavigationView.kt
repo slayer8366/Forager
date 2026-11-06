@@ -1,0 +1,97 @@
+package com.zynergylabs.forager.app.ui.map
+
+import android.content.Context
+import android.util.Log
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
+
+/**
+ * The navigation view's effect, moved whole from [SightingsMap] by UI split Phase 2.2 (dispatch 2026-10-19-29), called
+ * from the place it stood there and keyed exactly as it was. [navigationView], [basemap], [trackLiveLocation] and
+ * [context] are the values [SightingsMap] already had, captured when the effect launches, as before; the latest look is
+ * read through [state], as `currentPositionLook` was, and the map's height through [SightingsMapState.navigationMapHeightPx].
+ * The comment inside is the effect's own.
+ */
+@Composable
+internal fun MapNavigationView(
+    state: SightingsMapState,
+    navigationView: NavigationViewRequest?,
+    basemap: Basemap,
+    trackLiveLocation: Boolean,
+    context: Context,
+) {
+    // Dispatch 2026-09-28-430 (plan task T22): the navigation view. Applied while navigating and
+    // following: on Return, on "Return to Route" or locate (restoreRequestId), when the facing
+    // changes (a stuck compass), after a style load or a tab's camera restore (loadedStyle), and when
+    // the map's height changes (the padding that puts the walker below the centre). Not while the
+    // user has moved away from it: the camera stays where they put it. When navigation stops, the
+    // map goes back to flat and north-up, still following if it was. Everything here is the SDK's
+    // tracking API, not a camera move: an API camera move ends MapLibre's tracking. What MapLibre
+    // then draws is device-only: a real MapView cannot run under Robolectric.
+    val sideInsets = navigationView?.sideInsetsPx ?: NavigationSideInsets.NONE
+    val currentSideInsets by rememberUpdatedState(sideInsets)
+    LaunchedEffect(state.mapLibreMap, state.loadedStyle, navigationView != null, navigationView?.following, navigationView?.facing, navigationView?.restoreRequestId, navigationView?.zoomOnStart, state.navigationMapHeightPx) {
+        // Navigating is the user's ask whether or not the camera moves (dispatch 2026-10-27-14 Amendment 2, Q2; RECORD -1757,
+        // -1758): a crowded stack's camera returns end here, before every early return below, so Back never restores the
+        // pre-zoom camera over the navigation view. While navigating no return can be pushed, so a re-run clears nothing new.
+        if (navigationView != null) state.tapHandlerRef.crowdedHost?.onNavigationViewRequested()
+        val map = state.mapLibreMap ?: return@LaunchedEffect
+        // Dispatch 2026-10-25-02 (RECORD -1634): not on a style being replaced (skipped, logged); the new style's load runs
+        // this again (loadedStyle is a key).
+        if (!trackLiveLocation || currentStyle(state.loadedStyle, "The navigation view") == null) return@LaunchedEffect
+        val component = map.locationComponent
+        if (!component.isLocationComponentActivated) return@LaunchedEffect
+        val view = navigationView
+        if (view == null) {
+            if (state.navigationModeChange.gestureProtection) {
+                // Dispatch 2026-10-19-37: back to the options the map holds outside navigation (the nudge's, on a map with the spring-back).
+                component.applyStyle(ordinaryLocationOptions(context, state.positionLook, state.nudgeSpringBack))
+                state.navigationModeChange.gestureProtection = false
+            }
+            if (state.navigationModeChange.active) {
+                state.cameraMoveClassifier.markAppMove()
+                Log.i(NAVIGATION_VIEW_LOG_TAG, "leaving navigation: nudge spring running=${state.nudgeElastic.springing}") // dispatch -470, Part A
+                state.navigationModeChange.leaveNavigation(map, navigationMaxZoom(basemap, navigating = false, ownTrail = OWN_TRAIL_FALLBACK.ownTrail()))
+            }
+            return@LaunchedEffect
+        }
+        // Dispatch -457, Parts B and C: nudge and pinch protection, on while navigating. Every
+        // activation (a style load, locate) applies the ordinary options and resets this.
+        if (!state.navigationModeChange.gestureProtection) {
+            component.applyStyle(liveLocationComponentOptions(context, navigating = true, look = state.positionLook))
+            state.navigationModeChange.gestureProtection = true
+        }
+        // Dispatch -440, Amendment 1: the camera may reach the start zoom on every basemap while
+        // navigating. Set on every run, since a style load (line above, setMaxZoomPreference) puts
+        // the basemap's own cap back.
+        map.setMaxZoomPreference(navigationMaxZoom(basemap, navigating = true, ownTrail = OWN_TRAIL_FALLBACK.ownTrail()))
+        if (!view.following) return@LaunchedEffect
+        // Navigation's view, at its start and at Return to Route: the user's ask (dispatch 2026-10-27-07 Amendment 1, S1).
+        state.cameraMoveClassifier.markUserAskedMove()
+        state.navigationModeChange.applyView(
+            map,
+            view.facing,
+            navigationViewTopPaddingPx(state.navigationMapHeightPx),
+            startZoom = if (view.zoomOnStart) NAVIGATION_VIEW_ZOOM else null,
+            onStartZoomApplied = view.onStartZoomApplied,
+            sideInsetsPx = { currentSideInsets },
+        )
+    }
+    // D29 (dispatch 2026-10-30-08, RECORD -1979, -1980; the owner: "Keep the dot clear of the card (Recommended)"): while following,
+    // a change in the side padding (the route card expanded or collapsed beside the landscape navigation card) moves the walker's
+    // dot into the open map beside the card and back, on the camera's own linear padding animation over the view's
+    // NAVIGATION_VIEW_TRANSITION_MILLIS, the duration of the view's other padding moves; at once under Reduce Motion. Not while the
+    // user has moved away or a mode transition runs: the next applyView lands the side padding as it is then.
+    val reduceMotion = LocalReduceMotion.current
+    LaunchedEffect(state.mapLibreMap, sideInsets) {
+        val map = state.mapLibreMap ?: return@LaunchedEffect
+        val view = navigationView ?: return@LaunchedEffect
+        if (!view.following || !map.locationComponent.isLocationComponentActivated) return@LaunchedEffect
+        val padding = navigationViewPaddingPx(state.navigationMapHeightPx, sideInsets)
+        val shifted = state.navigationModeChange.shiftPadding(map, padding, if (reduceMotion) 0L else NAVIGATION_VIEW_TRANSITION_MILLIS)
+        Log.i(NAVIGATION_VIEW_LOG_TAG, "side padding $sideInsets: ${if (shifted) "applied" else "not applied now (a transition or not following); the next view applies it"}")
+    }
+}

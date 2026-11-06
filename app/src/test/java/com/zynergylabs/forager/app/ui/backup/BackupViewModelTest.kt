@@ -4,6 +4,8 @@ import com.zynergylabs.forager.app.domain.BackupFrequency
 import com.zynergylabs.forager.app.domain.BackupScheduleSettings
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.RestoreMode
+import androidx.lifecycle.viewmodel.initializer
+import androidx.lifecycle.viewmodel.viewModelFactory
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -608,4 +610,51 @@ class BackupViewModelTest {
         assertFalse(vm.state().askNotificationPermission)
         assertFalse("still unspent", prefs.notificationAsked)
     }
+
+    /**
+     * Dispatch 2026-09-28-658 (D1): the screen ending mid-backup cancels the run, and a cancel is not a failed write.
+     * The ViewModel is held in a store, as `MainActivity` holds it, so `clear()` reaches the real `onCleared` that
+     * cancels its scope. With the cancel caught as a failure (the bug), this sees the file removed, the write-failed
+     * prompt and "backup failed" in the log.
+     */
+    @Test
+    fun `a backup cancelled by the screen ending is not a failure and keeps the file`() {
+        backup.hold = kotlinx.coroutines.CompletableDeferred()
+        val store = androidx.lifecycle.ViewModelStore()
+        val vm = heldIn(store)
+        vm.controls(vm.state()).onBackUpNow("content://docs/new.zip")
+        assertTrue("precondition: the backup is under way", vm.state().busy)
+        assertEquals("precondition: it has begun writing", 1, backup.backUps)
+
+        store.clear()
+
+        assertTrue("the file is not removed as a failed write: ${files.deleted}", files.deleted.isEmpty())
+        assertNull("no write-failed prompt", vm.state().prompt)
+        assertNull("no message", vm.state().message)
+        assertTrue("nothing logged as a failed backup: $logged", logged.none { "backup failed" in it })
+    }
+
+    /** Dispatch 2026-09-28-658 (D1), the restore side: a cancel is never "Couldn't restore that backup." */
+    @Test
+    fun `a restore cancelled by the screen ending is not shown as failed`() {
+        backup.hold = kotlinx.coroutines.CompletableDeferred()
+        files.contents["content://docs/b.zip"] = "PK".toByteArray()
+        val store = androidx.lifecycle.ViewModelStore()
+        val vm = heldIn(store)
+        vm.controls(vm.state()).onRestoreFileChosen("content://docs/b.zip")
+        vm.controls(vm.state()).onRestoreConfirmed(RestoreMode.MERGE)
+        assertEquals("precondition: the restore has begun", 1, backup.restored.size)
+        assertTrue("precondition: and is under way", vm.state().busy)
+
+        store.clear()
+
+        assertTrue("never shown as failed: ${vm.state().message}", vm.state().message != BackupMessage.RESTORE_FAILED)
+        assertTrue("nothing logged as a failed restore: $logged", logged.none { "restore failed" in it })
+    }
+
+    private fun heldIn(store: androidx.lifecycle.ViewModelStore): BackupViewModel =
+        androidx.lifecycle.ViewModelProvider(
+            store,
+            viewModelFactory { initializer { viewModel() } },
+        )[BackupViewModel::class.java]
 }

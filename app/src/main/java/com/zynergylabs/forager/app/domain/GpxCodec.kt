@@ -13,7 +13,7 @@ import org.w3c.dom.Element
 
 /**
  * Encodes/decodes a [GpxDocument] as GPX 1.1 XML — the standard track-interchange format, so a
- * recorded track can leave this app (into a widely used backcountry map app, a topographic mapping app, a GPS unit) and a GPX file from elsewhere
+ * recorded track can leave this app (into a backcountry map app, a topographic mapping app, a GPS unit) and a GPX file from elsewhere
  * can come in. Pure Kotlin, no Android imports: `javax.xml.parsers`/`org.w3c.dom` are JDK APIs, not
  * `android.*`, and Android's runtime bundles a working JAXP implementation of them the same way a
  * plain JVM does — this is genuinely headless-testable, not Android code masquerading as domain.

@@ -41,14 +41,17 @@ import kotlin.math.max
  * rotation the capture session's orientation listener already snaps to
  * ([CameraCaptureSession.deviceRotation]), so the controls and the photo's own rotation tag agree
  * by construction. The display term is the window's own rotation, and it is what makes the
- * expression right whether or not the window moved: with the setting on the window is forced
- * portrait and the sensor term is pinned, so nothing turns; with it off the window follows the
+ * expression right whether or not the window moved: since RECORD -980 the window is held portrait,
+ * so the display term is `ROTATION_0` on a phone and the controls turn by the sensor alone; before
+ * that the window followed the
  * device ([RequestWindowOrientation], since 2026-09-19 — before that it was locked and this branch
  * was written for the large screens where the platform ignores a lock), the two terms cancel in
  * every settled hold, and the controls stay put because the window carried them. Between the
  * device turning and the window catching up, the difference is what the controls turn by. No
  * branch, no capability check, no large-screen path; the owner's design. [uprightRotationDegrees] is the
- * mapping, pure and unit-tested at both display rotations. The animation takes the short way
+ * mapping, pure and unit-tested at both display rotations. (Until dispatch 2026-10-13-03 "Lock camera to portrait"
+ * was the other case: the window forced portrait and the sensor term pinned, so nothing turned. It
+ * was removed, RECORD -968.) The animation takes the short way
  * round: 0° to 270° is a quarter turn back, not three quarters forward, which
  * [shortestRotationTarget] decides, also pure. `null` (no reading yet, or no sensor) means
  * upright, whatever the window is doing, which is where the controls already are.

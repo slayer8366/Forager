@@ -48,27 +48,38 @@ package com.zynergylabs.forager.app.domain
  * A future Kalman filter, if one is ever built, goes **behind** this gate, never in front of it: a
  * filter fed rejected fixes would smooth a bad position into a confident one.
  *
- * ## What the accuracy field carries on the owner's device (instrument walk, 2026-09-07)
+ * ## Only a GPS fix passes (dispatch 2026-09-28-527)
  *
- * On the owner's phone every GPS-provider fix reports the same horizontal accuracy, `3.7900925`,
- * 289 times out of 289 in a 4.8-minute walk under a 1 Hz cadence — identical to seven decimal
- * places, not clustered. That is a placeholder, not a measurement: the field carries no signal
- * on that device's GPS path. **So on that device this gate never rejects a GPS fix**, whatever
- * the sky, and it is not doing for GPS the work the sections above describe. It still does real
- * work on network-provider fixes, whose accuracy there genuinely varies (12.5–71.7 m on the
- * same walk), which is why it stays. The same field feeds `formatDistanceWithAccuracy`'s
- * "within" circle and `LocationSampler`'s recording ceiling, which like this gate show or keep a
- * wrong number, and `isApproaching`'s threshold, which *decides* from it — the serious one of
- * the four (owner's ranking), noted on its own. Confirmed on one device only; whether it is the
- * chipset, the vendor's GNSS stack or that build is the beta's question (the trip report asks
- * it). Do not tune this threshold, or build an uncertainty calibration on reported accuracy,
- * until a device is known to report a varying value. Record:
- * `docs/audits/2026-09-07-fix-log-walk-findings.md`.
+ * The gate tested accuracy alone until -527, so a network fix of 50 m or better became the live fix:
+ * "Arrived", the waypoint's line and a new find's location all read it. The S22 gave network fixes as
+ * good as 15.2 m at a desk. Now a fix passes only if its [LocationFix.Update.provider] is GPS
+ * ([mayAct]) **and** its accuracy clears the threshold; a network or unknown fix is refused whatever its
+ * accuracy, and is shown as -510's approximate position, never acted on. The owner (RECORD -519):
+ * "removing reliance on network data, but not total removal of collection at all." The threshold's
+ * value is unchanged. Judging GPS fixes by satellite status is not here (RECORD -526).
+ *
+ * ## What the accuracy field carries on the owner's device
+ *
+ * **Superseded in part.** The instrument walk of 2026-09-07 found every GPS fix reporting `3.7900925`,
+ * 289 of 289 (`docs/audits/2026-09-07-fix-log-walk-findings.md`), and this comment then said the field
+ * "carries no signal on that device's GPS path" and that "this gate never rejects a GPS fix". Both are
+ * wrong indoors. Counted from the S22's own `ForagerFix` logs (distinct fixes, not log lines; the
+ * counts are `docs/navigation/2026-10-05-fix-provider-report.md`, item 5):
+ * - **Outdoors**, three walks on 2026-10-03: 1,735 GPS fixes, 1,615 of them at exactly 3.79 m, the rest
+ *   up to 20.1 m. So 3.79 m is that device's best case outdoors, not a constant.
+ * - **Indoors**, one desk session on 2026-10-04: 1,514 GPS fixes from 18.7 m to 267.7 m, 1,292 of them
+ *   worse than 50 m, so this gate refuses most GPS fixes there. 252 network fixes, 15.2 m to 100 m.
+ *
+ * The limits: one phone, one desk, three walks. The field does vary on the GPS path, but whether it is
+ * calibrated (a fix claiming 20 m being within 20 m) is not known, so the advice stands not to build an
+ * uncertainty calibration on it. The same field feeds `formatDistanceWithAccuracy`'s "within" circle,
+ * `LocationSampler`'s recording ceiling and `isApproaching`'s threshold, which *decides* from it.
  */
 const val LIVE_FIX_MAX_ACCURACY_METERS = 50f
 
 /** `true` if [candidate] may become the live fix — see the file's doc comment for every rule and the reasoning. */
 fun acceptLiveFix(candidate: LocationFix.Update, maxAccuracyMeters: Float = LIVE_FIX_MAX_ACCURACY_METERS): Boolean {
+    if (!candidate.provider.mayAct) return false
     val accuracy = candidate.accuracyMeters ?: return true
     return accuracy <= maxAccuracyMeters
 }

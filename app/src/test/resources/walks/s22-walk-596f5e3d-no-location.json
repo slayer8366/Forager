@@ -1,0 +1,350 @@
+{
+ "source": "S22 (SM-S908U) test-phone recording 2026-10-11 14:10:52-14:19:12 PDT, build 1.0.3222+g69309a18; locations and absolute times removed; times relative to the first point",
+ "points": [
+  {
+   "tMs": 0,
+   "gpsAltitudeM": 115.0396728515625,
+   "pressureHpa": 994.6813354492188
+  },
+  {
+   "tMs": 8000,
+   "gpsAltitudeM": 115.25604248046875,
+   "pressureHpa": 994.5676879882812
+  },
+  {
+   "tMs": 14000,
+   "gpsAltitudeM": 113.09130859375,
+   "pressureHpa": 994.6012573242188
+  },
+  {
+   "tMs": 21000,
+   "gpsAltitudeM": 112.10833740234375,
+   "pressureHpa": 994.6181030273438
+  },
+  {
+   "tMs": 26000,
+   "gpsAltitudeM": 111.9910888671875,
+   "pressureHpa": 994.6266479492188
+  },
+  {
+   "tMs": 32000,
+   "gpsAltitudeM": 110.84112548828125,
+   "pressureHpa": 994.6117553710938
+  },
+  {
+   "tMs": 37000,
+   "gpsAltitudeM": 112.05517578125,
+   "pressureHpa": 994.6041870117188
+  },
+  {
+   "tMs": 44000,
+   "gpsAltitudeM": 111.941650390625,
+   "pressureHpa": 994.6026000976562
+  },
+  {
+   "tMs": 50000,
+   "gpsAltitudeM": 111.93701171875,
+   "pressureHpa": 994.5984497070312
+  },
+  {
+   "tMs": 55000,
+   "gpsAltitudeM": 108.7755126953125,
+   "pressureHpa": 994.6508178710938
+  },
+  {
+   "tMs": 60000,
+   "gpsAltitudeM": 108.3358154296875,
+   "pressureHpa": 994.6190795898438
+  },
+  {
+   "tMs": 66000,
+   "gpsAltitudeM": 109.19873046875,
+   "pressureHpa": 994.6279907226562
+  },
+  {
+   "tMs": 72000,
+   "gpsAltitudeM": 108.30950927734375,
+   "pressureHpa": 994.6898803710938
+  },
+  {
+   "tMs": 77000,
+   "gpsAltitudeM": 108.80389404296875,
+   "pressureHpa": 995.4357299804688
+  },
+  {
+   "tMs": 82000,
+   "gpsAltitudeM": 108.06854248046875,
+   "pressureHpa": 994.3092651367188
+  },
+  {
+   "tMs": 87000,
+   "gpsAltitudeM": 110.46270751953125,
+   "pressureHpa": 994.7299194335938
+  },
+  {
+   "tMs": 92000,
+   "gpsAltitudeM": 110.3677978515625,
+   "pressureHpa": 994.3876342773438
+  },
+  {
+   "tMs": 99527,
+   "gpsAltitudeM": 111.4000015258789,
+   "pressureHpa": 994.7338256835938
+  },
+  {
+   "tMs": 105000,
+   "gpsAltitudeM": 106.969482421875,
+   "pressureHpa": 994.2421264648438
+  },
+  {
+   "tMs": 110000,
+   "gpsAltitudeM": 107.96148681640625,
+   "pressureHpa": 995.0520629882812
+  },
+  {
+   "tMs": 116000,
+   "gpsAltitudeM": 109.6041259765625,
+   "pressureHpa": 994.9955444335938
+  },
+  {
+   "tMs": 121000,
+   "gpsAltitudeM": 108.34039306640625,
+   "pressureHpa": 994.4144897460938
+  },
+  {
+   "tMs": 127000,
+   "gpsAltitudeM": 107.480224609375,
+   "pressureHpa": 994.8543090820312
+  },
+  {
+   "tMs": 133000,
+   "gpsAltitudeM": 106.800537109375,
+   "pressureHpa": 994.7118530273438
+  },
+  {
+   "tMs": 138000,
+   "gpsAltitudeM": 106.2152099609375,
+   "pressureHpa": 994.2453002929688
+  },
+  {
+   "tMs": 153000,
+   "gpsAltitudeM": 102.89422607421875,
+   "pressureHpa": 994.7306518554688
+  },
+  {
+   "tMs": 158000,
+   "gpsAltitudeM": 98.53857421875,
+   "pressureHpa": 994.2092895507812
+  },
+  {
+   "tMs": 169000,
+   "gpsAltitudeM": 90.50201416015625,
+   "pressureHpa": 995.1830444335938
+  },
+  {
+   "tMs": 182065,
+   "gpsAltitudeM": 111.4000015258789,
+   "pressureHpa": 994.2973022460938
+  },
+  {
+   "tMs": 188000,
+   "gpsAltitudeM": 105.0089111328125,
+   "pressureHpa": 994.6705932617188
+  },
+  {
+   "tMs": 202701,
+   "gpsAltitudeM": 111.4000015258789,
+   "pressureHpa": 995.0040893554688
+  },
+  {
+   "tMs": 208000,
+   "gpsAltitudeM": 100.567626953125,
+   "pressureHpa": 994.6254272460938
+  },
+  {
+   "tMs": 219000,
+   "gpsAltitudeM": 101.5953369140625,
+   "pressureHpa": 994.1682739257812
+  },
+  {
+   "tMs": 226000,
+   "gpsAltitudeM": 100.97900390625,
+   "pressureHpa": 994.9296264648438
+  },
+  {
+   "tMs": 235000,
+   "gpsAltitudeM": 95.53350830078125,
+   "pressureHpa": 995.1283569335938
+  },
+  {
+   "tMs": 247000,
+   "gpsAltitudeM": 104.030517578125,
+   "pressureHpa": 994.5346069335938
+  },
+  {
+   "tMs": 252000,
+   "gpsAltitudeM": 97.605712890625,
+   "pressureHpa": 994.6122436523438
+  },
+  {
+   "tMs": 258611,
+   "gpsAltitudeM": 111.5,
+   "pressureHpa": 994.9672241210938
+  },
+  {
+   "tMs": 264000,
+   "gpsAltitudeM": 82.7381591796875,
+   "pressureHpa": 994.2968139648438
+  },
+  {
+   "tMs": 272868,
+   "gpsAltitudeM": 111.5,
+   "pressureHpa": 994.6151733398438
+  },
+  {
+   "tMs": 278000,
+   "gpsAltitudeM": 78.97442626953125,
+   "pressureHpa": 994.2384643554688
+  },
+  {
+   "tMs": 287009,
+   "gpsAltitudeM": 111.4000015258789,
+   "pressureHpa": 995.2492065429688
+  },
+  {
+   "tMs": 293000,
+   "gpsAltitudeM": 87.85638427734375,
+   "pressureHpa": 995.0602416992188
+  },
+  {
+   "tMs": 301196,
+   "gpsAltitudeM": 111.4000015258789,
+   "pressureHpa": 994.1747436523438
+  },
+  {
+   "tMs": 307000,
+   "gpsAltitudeM": 93.57830810546875,
+   "pressureHpa": 995.2677612304688
+  },
+  {
+   "tMs": 317000,
+   "gpsAltitudeM": 87.92987060546875,
+   "pressureHpa": 994.5643920898438
+  },
+  {
+   "tMs": 324800,
+   "gpsAltitudeM": 111.5,
+   "pressureHpa": 994.4572143554688
+  },
+  {
+   "tMs": 330000,
+   "gpsAltitudeM": 97.86871337890625,
+   "pressureHpa": 994.9657592773438
+  },
+  {
+   "tMs": 340000,
+   "gpsAltitudeM": 106.10986328125,
+   "pressureHpa": 994.4369506835938
+  },
+  {
+   "tMs": 357916,
+   "gpsAltitudeM": 111.4000015258789,
+   "pressureHpa": 994.4318237304688
+  },
+  {
+   "tMs": 363000,
+   "gpsAltitudeM": 106.09912109375,
+   "pressureHpa": 994.2758178710938
+  },
+  {
+   "tMs": 373000,
+   "gpsAltitudeM": 107.85186767578125,
+   "pressureHpa": 994.7160034179688
+  },
+  {
+   "tMs": 380000,
+   "gpsAltitudeM": 108.0908203125,
+   "pressureHpa": 994.7985229492188
+  },
+  {
+   "tMs": 386432,
+   "gpsAltitudeM": 111.5,
+   "pressureHpa": 995.0973510742188
+  },
+  {
+   "tMs": 392000,
+   "gpsAltitudeM": 108.62799072265625,
+   "pressureHpa": 994.2228393554688
+  },
+  {
+   "tMs": 400000,
+   "gpsAltitudeM": 108.141845703125,
+   "pressureHpa": 994.4376831054688
+  },
+  {
+   "tMs": 407000,
+   "gpsAltitudeM": 107.035888671875,
+   "pressureHpa": 995.0726928710938
+  },
+  {
+   "tMs": 418000,
+   "gpsAltitudeM": 108.2037353515625,
+   "pressureHpa": 994.4496459960938
+  },
+  {
+   "tMs": 424000,
+   "gpsAltitudeM": 108.264404296875,
+   "pressureHpa": 994.1364135742188
+  },
+  {
+   "tMs": 433000,
+   "gpsAltitudeM": 106.32415771484375,
+   "pressureHpa": 994.3214721679688
+  },
+  {
+   "tMs": 438295,
+   "gpsAltitudeM": 111.4000015258789,
+   "pressureHpa": 994.3224487304688
+  },
+  {
+   "tMs": 447000,
+   "gpsAltitudeM": 106.1470947265625,
+   "pressureHpa": 994.4545288085938
+  },
+  {
+   "tMs": 455000,
+   "gpsAltitudeM": 106.0096435546875,
+   "pressureHpa": 994.8219604492188
+  },
+  {
+   "tMs": 461000,
+   "gpsAltitudeM": 106.49505615234375,
+   "pressureHpa": 994.3146362304688
+  },
+  {
+   "tMs": 466000,
+   "gpsAltitudeM": 107.79193115234375,
+   "pressureHpa": 995.2587280273438
+  },
+  {
+   "tMs": 472000,
+   "gpsAltitudeM": 106.951416015625,
+   "pressureHpa": 995.5365600585938
+  },
+  {
+   "tMs": 480746,
+   "gpsAltitudeM": 111.5,
+   "pressureHpa": 995.3285522460938
+  },
+  {
+   "tMs": 486000,
+   "gpsAltitudeM": 105.19683837890625,
+   "pressureHpa": 994.7062377929688
+  },
+  {
+   "tMs": 494000,
+   "gpsAltitudeM": 105.393798828125,
+   "pressureHpa": 995.7186889648438
+  }
+ ]
+}

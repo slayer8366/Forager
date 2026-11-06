@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.track
 
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
+import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
+import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.viewmodel.initializer
@@ -16,6 +19,8 @@ import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.EndAbandonedTracksUseCase
+import com.zynergylabs.forager.app.domain.FixProvider
+import com.zynergylabs.forager.app.domain.toTrackPoint
 import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
@@ -165,6 +170,7 @@ class TrackRecordingSwipeAwayTest {
         getTrackOriginWaypoint = GetTrackOriginWaypointUseCase(tracks, waypoints),
         alreadyRecordingMessage = ALREADY_RECORDING,
         abandonedTrackSweepOnce = sweepOnce,
+        entryReferenceCounts = NoEntryReferenceCounts,
     ).also(createdViewModels::add)
 
     /** A ViewModel held the way an Activity holds one, so [ViewModelStore.clear] reaches its `onCleared`. */
@@ -185,8 +191,8 @@ class TrackRecordingSwipeAwayTest {
 
     /** One fix from the platform: to the service's listener (so to the watch) and to the ViewModel's own. */
     private suspend fun TestScope.fixArrives(lat: Double, t: Long) {
-        val fix = LocationFix.Update(lat = lat, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t)
-        if (serviceRecording) returnWatch.onFix(TrackPoint(fix.lat, fix.lng, fix.altitude, fix.accuracyMeters, fix.timestampEpochMillis))
+        val fix = LocationFix.Update(lat = lat, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
+        if (serviceRecording) returnWatch.onFix(TrackPoint(fix.lat, fix.lng, fix.altitude, fix.accuracyMeters, fix.timestampEpochMillis), fix.provider)
         fixes.emit(fix)
         runCurrent()
     }
@@ -290,7 +296,7 @@ class TrackRecordingSwipeAwayTest {
         // To the watch only, as the service feeds it. Nothing is emitted on the ViewModel's own stream.
         // Dispatch 2026-09-28-425: four readings over 15 s (was three over 10 s), the new rule's hold.
         listOf(45.001 to 7_000L, 45.002 to 12_000L, 45.003 to 17_000L, 45.004 to 22_000L).forEach { (lat, t) ->
-            returnWatch.onFix(TrackPoint(lat, -122.0, null, 5f, t))
+            returnWatch.onFix(TrackPoint(lat, -122.0, null, 5f, t), FixProvider.GPS)
         }
         runCurrent()
 
@@ -340,12 +346,12 @@ class TrackRecordingSwipeAwayTest {
         advanceTimeBy(POLL_INTERVAL_MILLIS)
         runCurrent()
 
-        returnWatch.onFix(TrackPoint(45.002, -122.0, null, 5f, 2_000L))
+        returnWatch.onFix(TrackPoint(45.002, -122.0, null, 5f, 2_000L), FixProvider.GPS)
         assertEquals("to the first breadcrumb at 45.000", 222.4, returnWatch.state.value.returnToStart!!.distanceMeters, 1.0)
 
         fixArrives(lat = 45.001, t = 3_000L) // the first gated fix: the origin waypoint, at 45.001
         assertEquals(45.001, vm.uiState.value.originWaypoint?.lat)
-        returnWatch.onFix(TrackPoint(45.002, -122.0, null, 5f, 4_000L))
+        returnWatch.onFix(TrackPoint(45.002, -122.0, null, 5f, 4_000L), FixProvider.GPS)
         assertEquals("to the origin at 45.001", 111.2, returnWatch.state.value.returnToStart!!.distanceMeters, 1.0)
         vm.stopRecording()
     }
@@ -649,6 +655,113 @@ class TrackRecordingSwipeAwayTest {
         reopened.stopRecording()
     }
 
+    // ---- Where the Return control's start height comes from (RECORD -2024) ---------------------
+    //
+    // The Return control's height difference falls back to raw start minus raw live when there is no sea-level height
+    // (ReturnToStartInfo.withLiveHeight). That is right only while the start's stored height is a raw GPS height: the
+    // stored height records no kind (TrackPointEntity.altitude, WaypointEntity.altitude), and a GPX import writes its file's
+    // <ele>, a sea-level height, into the same columns. So each route to the start is driven here through its real entry
+    // point, and each asserts the start height is the raw altitude of the fix it came from. A future route that brings an
+    // imported or converted height into the start fails here. The service's write is stood in for, as in the rest of this
+    // class, by storing the fix the way TrackRecordingService does (`fix.toTrackPoint()`).
+
+    /** A GPS fix with a raw [altitude], to the service (which keeps it, when [serviceKeeps]) and, when [toViewModel], to the ViewModel. */
+    private suspend fun TestScope.fixWithHeightArrives(
+        lat: Double,
+        t: Long,
+        altitude: Double,
+        trackId: String = "track-1",
+        toViewModel: Boolean = true,
+        serviceKeeps: Boolean = true,
+    ) {
+        val fix = LocationFix.Update(lat = lat, lng = -122.0, altitude = altitude, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
+        val point = fix.toTrackPoint()
+        if (serviceRecording) {
+            returnWatch.onFix(point, fix.provider)
+            if (serviceKeeps) tracks.appendForTest(trackId, point)
+        }
+        if (toViewModel) fixes.emit(fix)
+        runCurrent()
+    }
+
+    private fun startHeight(vm: TrackRecordingViewModel): Double? =
+        requireNotNull(vm.uiState.value.returnToStart) { "the Return control has no start" }.startAltitudeMeters
+
+    @Test
+    fun `the start height - the origin waypoint made from a live fix carries that fix's raw altitude`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        fixWithHeightArrives(lat = 45.000, t = 2_123L, altitude = 87.25)
+        assertEquals("precondition: the origin waypoint was made", WaypointDesignation.ORIGIN, vm.uiState.value.originWaypoint?.designation)
+
+        fixWithHeightArrives(lat = 45.001, t = 7_456L, altitude = 93.5)
+        assertEquals("the origin waypoint's height", 87.25, vm.uiState.value.originWaypoint!!.altitude)
+        assertEquals("the Return control's start height", 87.25, startHeight(vm))
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `the start height - the first recorded point, while no origin waypoint could be saved, carries its fix's raw altitude`() = runRecordingTest {
+        waypoints.failSaves = true
+        val vm = viewModelIn(ViewModelStore())
+        vm.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        fixWithHeightArrives(lat = 45.000, t = 2_123L, altitude = 64.75)
+        advanceTimeBy(POLL_INTERVAL_MILLIS)
+        runCurrent()
+        assertNull("precondition: the origin waypoint could not be saved", vm.uiState.value.originWaypoint)
+        assertEquals("precondition: the first recorded point is on the screen", 45.000, vm.uiState.value.breadcrumbPoints.firstOrNull()?.lat)
+
+        fixWithHeightArrives(lat = 45.001, t = 7_456L, altitude = 70.0, serviceKeeps = false)
+        assertEquals("the Return control's start height", 64.75, startHeight(vm))
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `the start height - a recording taken up with its start marker carries the marker's fix's raw altitude`() = runRecordingTest {
+        val firstStore = ViewModelStore()
+        val first = viewModelIn(firstStore)
+        first.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        fixWithHeightArrives(lat = 45.000, t = 2_123L, altitude = 87.25)
+        assertEquals("precondition: the start marker was made before the swipe", "waypoint-1", first.uiState.value.originWaypoint?.id)
+        firstStore.clear()
+        runCurrent()
+
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+        assertEquals("precondition: the reopened screen found the start marker", "waypoint-1", reopened.uiState.value.originWaypoint?.id)
+        fixWithHeightArrives(lat = 45.001, t = 7_456L, altitude = 93.5)
+        assertEquals("the Return control's start height", 87.25, startHeight(reopened))
+        reopened.stopRecording()
+    }
+
+    @Test
+    fun `the start height - a recording taken up without a start marker carries its first recorded point's raw altitude`() = runRecordingTest {
+        val firstStore = ViewModelStore()
+        val first = viewModelIn(firstStore)
+        first.startRecording(TrackRecordingMode.HIGH_ACCURACY)
+        runCurrent()
+        serviceBegins("track-1")
+        // The service keeps this fix; the screen never saw it, so it made no start marker.
+        fixWithHeightArrives(lat = 45.000, t = 2_123L, altitude = 120.5, toViewModel = false)
+        assertNull("precondition: no start marker before the swipe", first.uiState.value.originWaypoint)
+        firstStore.clear()
+        runCurrent()
+
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+        assertEquals("precondition: the marker is made at the first recorded point", 45.000, reopened.uiState.value.originWaypoint?.lat)
+        fixWithHeightArrives(lat = 45.010, t = 60_789L, altitude = 99.0)
+        assertEquals("the marker's height", 120.5, reopened.uiState.value.originWaypoint!!.altitude)
+        assertEquals("the Return control's start height", 120.5, startHeight(reopened))
+        reopened.stopRecording()
+    }
+
     // ---- The window after Stop (found by the planner's review of Part 3a) ------------------------
     //
     // stopRecording() clears this screen's recording at once. The service is stopped a moment
@@ -872,6 +985,100 @@ class TrackRecordingSwipeAwayTest {
         assertTrue(vm.uiState.value.waypointsLoaded)
     }
 
+    // ---- Return ends on arrival (RECORD -844, -845) -------------------------------------------------
+    //
+    // The ViewModel half: the screen's state while and after the watch ends a return at the start. The
+    // watch's own decision is ReturnWatchArrivalTest's; the real service feeding it,
+    // TrackRecordingServiceReturnArrivalTest's. The hold runs on this class's virtual clock.
+
+    /** [recordAndStartReturning] (left the start at 45.001), then the walker back at the start: the watch ends the return. */
+    private suspend fun TestScope.recordReturnAndArrive(vm: TrackRecordingViewModel) {
+        recordAndStartReturning(vm)
+        fixArrives(lat = 45.000, t = 12_000L)
+        runCurrent()
+    }
+
+    @Test
+    fun `a return that ends on arrival holds Arrived for 10 s, held through a drive-off, then the display closes and the recording goes on`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        recordReturnAndArrive(vm)
+
+        assertFalse("the return ended at the start", vm.uiState.value.isReturning)
+        assertTrue("the display holds Arrived", vm.uiState.value.isArrivalHeld)
+
+        // Driving away inside the hold, a fix a second, 333 m apart.
+        (1..8).forEach { s -> fixArrives(lat = 45.000 + s * 0.003, t = 12_000L + s * 1_000L) }
+        assertTrue("held, not live: the drive-off does not end it", vm.uiState.value.isArrivalHeld)
+        assertFalse("no off-track on the drive-off", vm.uiState.value.isOffTrack)
+        assertEquals("nothing delivered", emptyList<Alert>(), delivered)
+
+        advanceTimeBy(ARRIVAL_HOLD_MILLIS - 1)
+        runCurrent()
+        assertTrue("still held just before 10 s", vm.uiState.value.isArrivalHeld)
+
+        advanceTimeBy(2)
+        runCurrent()
+        assertFalse("the display closed by itself after 10 s", vm.uiState.value.isArrivalHeld)
+        assertFalse(vm.uiState.value.isReturning)
+        assertEquals("the recording goes on", "track-1", vm.uiState.value.activeTrack?.trackId)
+        assertTrue("and the service's watch is still begun", returnWatch.state.value.isBegun)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `the display's exit during the hold closes it at once and starts no new return`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        recordReturnAndArrive(vm)
+        assertTrue("precondition: held", vm.uiState.value.isArrivalHeld)
+
+        vm.stopReturn()
+        runCurrent()
+
+        assertFalse(vm.uiState.value.isArrivalHeld)
+        assertFalse(vm.uiState.value.isReturning)
+        assertFalse(returnWatch.state.value.isReturning)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `stopping the recording during the hold ends it`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        recordReturnAndArrive(vm)
+        assertTrue("precondition: held", vm.uiState.value.isArrivalHeld)
+
+        vm.stopRecording()
+        runCurrent()
+
+        assertFalse(vm.uiState.value.isArrivalHeld)
+    }
+
+    @Test
+    fun `a return the walker ends before arriving is not held`() = runRecordingTest {
+        val vm = viewModelIn(ViewModelStore())
+        recordAndStartReturning(vm)
+
+        vm.stopReturn()
+        runCurrent()
+
+        assertFalse(vm.uiState.value.isArrivalHeld)
+        vm.stopRecording()
+    }
+
+    @Test
+    fun `a screen opened after the arrival shows the plain map, not the hold`() = runRecordingTest {
+        val first = viewModelIn(ViewModelStore())
+        recordReturnAndArrive(first)
+        assertTrue("precondition: the first screen holds it", first.uiState.value.isArrivalHeld)
+
+        val reopened = viewModelIn(ViewModelStore())
+        runCurrent()
+
+        assertEquals("precondition: the reopened screen took the recording up", "track-1", reopened.uiState.value.activeTrack?.trackId)
+        assertFalse(reopened.uiState.value.isArrivalHeld)
+        assertFalse(reopened.uiState.value.isReturning)
+        first.stopRecording()
+    }
+
     private companion object {
         const val POLL_INTERVAL_MILLIS = 15_000L
 
@@ -947,6 +1154,9 @@ private class SwipeAwayWaypoints : WaypointRepository {
     override suspend fun getForTrack(trackId: String): Result<List<Waypoint>> = Result.success(saved.values.filter { it.trackId == trackId })
     override suspend fun detachFromTrack(trackId: String): Result<Unit> =
         Result.failure(UnsupportedOperationException("detachFromTrack is not part of this test's path"))
-    override suspend fun save(waypoint: Waypoint): Result<Unit> = Result.success(Unit).also { saved[waypoint.id] = waypoint }
+    /** While true, every save fails, as a database error would. */
+    var failSaves = false
+    override suspend fun save(waypoint: Waypoint): Result<Unit> =
+        if (failSaves) Result.failure(IllegalStateException("the waypoint could not be saved")) else Result.success(Unit).also { saved[waypoint.id] = waypoint }
     override suspend fun delete(id: String): Result<Unit> = Result.success(Unit).also { saved.remove(id) }
 }

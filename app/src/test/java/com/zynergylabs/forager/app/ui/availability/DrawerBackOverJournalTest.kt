@@ -17,6 +17,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasSetTextAction
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -80,6 +81,7 @@ import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PlannedTripRepository
@@ -240,6 +242,7 @@ class DrawerBackOverJournalTest {
             deleteGalleryPhoto = DeleteGalleryPhotoUseCase(logRepository, photoStore),
             locationProvider = DrawerBackUnavailableLocationProvider,
             updatePhotoLocation = UpdatePhotoLocationUseCase(logRepository),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         cartographyViewModel = CartographyViewModel(
             getEntries = GetCartographyEntriesUseCase(cartographyRepository),
@@ -283,6 +286,7 @@ class DrawerBackOverJournalTest {
             unitSystemPreferenceRepository = DrawerBackStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = DrawerBackStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(DrawerBackStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by availabilityViewModel.uiState.collectAsState()
@@ -290,68 +294,78 @@ class DrawerBackOverJournalTest {
             val cartographyUiState by cartographyViewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = availabilityViewModel::useCurrentLocation,
-                onManualLatChanged = availabilityViewModel::onManualLatChanged,
-                onManualLngChanged = availabilityViewModel::onManualLngChanged,
-                onSearchManualCoordinates = availabilityViewModel::searchManualCoordinates,
-                onRadiusChanged = availabilityViewModel::onRadiusChanged,
-                onMonthSelected = availabilityViewModel::onMonthSelected,
-                onMapTabSelected = availabilityViewModel::onMapTabSelected,
-                onSeasonalTabSelected = availabilityViewModel::onSeasonalTabSelected,
-                onTaxonSearchQueryChanged = availabilityViewModel::onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = availabilityViewModel::onTaxonSearchResultSelected,
-                onDismissTaxonSuggestions = availabilityViewModel::onDismissTaxonSuggestions,
-                onReopenTaxonSuggestions = availabilityViewModel::onReopenTaxonSuggestions,
-                onPlaceTripPin = availabilityViewModel::onPlaceTripPin,
-                onDeletePlannedTrip = availabilityViewModel::onDeletePlannedTrip,
-                onRecentSearchSelected = availabilityViewModel::onRecentSearchSelected,
-                onOfflineMapLatChanged = availabilityViewModel::onOfflineMapLatChanged,
-                onOfflineMapLngChanged = availabilityViewModel::onOfflineMapLngChanged,
-                onOfflineMapRadiusChanged = availabilityViewModel::onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = availabilityViewModel::onOfflineMapNameChanged,
-                onOfflineMapsOpened = availabilityViewModel::onOfflineMapsOpened,
-                onDownloadOfflineMaps = availabilityViewModel::onDownloadOfflineMaps,
-                onDeleteOfflineRegion = availabilityViewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
-                onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
-                // What MainActivity passes for the finds.
-                logUiState = logUiState.hidingPendingDelete(),
-                onStartLogEntry = logViewModel::onStartNewEntry,
-                onOpenLogEntry = logViewModel::onOpenEntry,
-                onCloseLogEntry = logViewModel::onCloseEntry,
-                onLogEntryChanged = logViewModel::onEntryEdited,
-                onStartEditingLogEntry = logViewModel::onStartEditingEntry,
-                onOpenLogEntryForEditing = logViewModel::onOpenEntryForEditing,
-                onSaveLogEntry = logViewModel::onSaveEntry,
-                onCancelLogEntryEditing = logViewModel::onCancelEditing,
-                onLeaveLogEntryEditingIncidentally = logViewModel::onLeaveEditingIncidentally,
-                onDiscardLogDraft = logViewModel::onDeleteEntry,
-                onAddLogPhoto = logViewModel::onAddPhoto,
-                onRemoveLogPhoto = logViewModel::onRemovePhoto,
-                onPullLogPhoto = logViewModel::onPullPhoto,
-                onDeleteLogEntry = logViewModel::requestDeleteEntry,
-                onDeleteGalleryPhoto = logViewModel::onDeleteGalleryPhoto,
-                onAddGalleryPhoto = logViewModel::onAddGalleryPhoto,
-                onSaveLogErrorDismissed = logViewModel::onSaveErrorDismissed,
-                // What MainActivity passes for the day entries.
-                cartographyUiState = cartographyUiState.hidingPendingDelete(),
-                onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
-                onStartCartographyEntry = cartographyViewModel::onStartEntry,
-                onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
-                onCartographyTextChanged = cartographyViewModel::onTextChanged,
-                onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
-                onSetFindDecision = cartographyViewModel::onSetFindDecision,
-                onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
-                onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
-                onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
-                onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
-                onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
-                onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
-                onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
-                onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
-                onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
-                onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
-                onRequestDeleteGalleryPhoto = logViewModel::requestDeleteGalleryPhoto,
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = availabilityViewModel::useCurrentLocation,
+                    onManualLatChanged = availabilityViewModel::onManualLatChanged,
+                    onManualLngChanged = availabilityViewModel::onManualLngChanged,
+                    onSearchManualCoordinates = availabilityViewModel::searchManualCoordinates,
+                    onRadiusChanged = availabilityViewModel::onRadiusChanged,
+                    onMonthSelected = availabilityViewModel::onMonthSelected,
+                    onMapTabSelected = availabilityViewModel::onMapTabSelected,
+                    onSeasonalTabSelected = availabilityViewModel::onSeasonalTabSelected,
+                    onTaxonSearchQueryChanged = availabilityViewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = availabilityViewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = availabilityViewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = availabilityViewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = availabilityViewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = availabilityViewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = availabilityViewModel::onRecentSearchSelected,
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = availabilityViewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = availabilityViewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = availabilityViewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = availabilityViewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = availabilityViewModel::onOfflineMapsOpened,
+                    onDownloadOfflineMaps = availabilityViewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = availabilityViewModel::onDeleteOfflineRegion,
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
+                ),
+                journalEntries = AvailabilityScreenJournalEntries(
+                    // What MainActivity passes for the day entries.
+                    cartographyUiState = cartographyUiState.hidingPendingDelete(),
+                    onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
+                    onStartCartographyEntry = cartographyViewModel::onStartEntry,
+                    onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
+                    onCartographyTextChanged = cartographyViewModel::onTextChanged,
+                    onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
+                    onSetFindDecision = cartographyViewModel::onSetFindDecision,
+                    onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
+                    onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
+                    onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
+                    onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
+                    onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
+                    onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
+                    onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
+                    onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
+                    onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                    onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
+                ),
+                findsLog = AvailabilityScreenFindsLog(
+                    // What MainActivity passes for the finds.
+                    logUiState = logUiState.hidingPendingDelete(),
+                    onStartLogEntry = logViewModel::onStartNewEntry,
+                    onOpenLogEntry = logViewModel::onOpenEntry,
+                    onCloseLogEntry = logViewModel::onCloseEntry,
+                    onLogEntryChanged = logViewModel::onEntryEdited,
+                    onStartEditingLogEntry = logViewModel::onStartEditingEntry,
+                    onOpenLogEntryForEditing = logViewModel::onOpenEntryForEditing,
+                    onSaveLogEntry = logViewModel::onSaveEntry,
+                    onCancelLogEntryEditing = logViewModel::onCancelEditing,
+                    onLeaveLogEntryEditingIncidentally = logViewModel::onLeaveEditingIncidentally,
+                    onDiscardLogDraft = logViewModel::onDeleteEntry,
+                    onAddLogPhoto = logViewModel::onAddPhoto,
+                    onRemoveLogPhoto = logViewModel::onRemovePhoto,
+                    onPullLogPhoto = logViewModel::onPullPhoto,
+                    onDeleteLogEntry = logViewModel::requestDeleteEntry,
+                    onDeleteGalleryPhoto = logViewModel::onDeleteGalleryPhoto,
+                    onAddGalleryPhoto = logViewModel::onAddGalleryPhoto,
+                    onSaveLogErrorDismissed = logViewModel::onSaveErrorDismissed,
+                    onRequestDeleteGalleryPhoto = logViewModel::requestDeleteGalleryPhoto,
+                ),
                 compassProvider = DrawerBackFakeCompassProvider,
                 mapSlot = DrawerBackStubMapSlot,
             )
@@ -542,23 +556,145 @@ class DrawerBackOverJournalTest {
         assertDrawerClosedAnd(albumViewShowing(), "the Entries album view")
     }
 
+    // ── RECORD -868 and -871: the Tools drawer's "Offline maps" row, and Back from where it leads ──
+
+    /** A real touch at [fraction] of the Tools drawer's "Offline maps" row's own bounds. */
+    private fun touchOfflineMapsRow(fraction: Offset = Offset(0.5f, 0.5f)) {
+        val row = composeRule.onNodeWithTag(TOOLS_OFFLINE_MAPS_ROW_TAG).getUnclippedBoundsInRoot()
+        val x = row.left.value + (row.right.value - row.left.value) * fraction.x
+        val y = row.top.value + (row.bottom.value - row.top.value) * fraction.y
+        composeRule.onRoot().performTouchInput { click(Offset(x * density, y * density)) }
+        composeRule.waitForIdle()
+    }
+
+    private fun chipSelected(filter: RecordsSubTab): Boolean =
+        runCatching { composeRule.onNodeWithTag(recordsFilterChipTestTag(filter)).assertIsSelected() }.isSuccess
+
+    private fun navSelected(label: String): Boolean =
+        runCatching { composeRule.onNode(hasText(label) and hasAnyAncestor(hasTestTag(COMPACT_BOTTOM_NAV_TAG))).assertIsSelected() }.isSuccess
+
+    /** Journal > Records on the Offline maps chip, with the drawer closed: where the row leads. */
+    private fun assertOnOfflineMapsWithDrawerClosed(after: String) {
+        val drawerOpen = drawerIsOpen()
+        val journal = navSelected("Journal")
+        val records = runCatching { composeRule.onNodeWithText("Records").assertIsSelected() }.isSuccess
+        val offlineMaps = chipSelected(RecordsSubTab.OFFLINE_MAPS)
+        assertTrue(
+            "after $after: expected the drawer closed on Journal > Records > Offline maps; " +
+                "drawer open = $drawerOpen, Journal = $journal, Records = $records, Offline maps chip = $offlineMaps",
+            !drawerOpen && journal && records && offlineMaps,
+        )
+    }
+
+    /** Samples real touches across the row (CLAUDE.md: a finger is not a point), from the Maps tab each time. */
+    @Test
+    fun `portrait, real touches across the Tools drawer's Offline maps row open Records on the Offline maps chip, drawer closed`() {
+        setScreen()
+        for (fraction in listOf(Offset(0.1f, 0.25f), Offset(0.5f, 0.5f), Offset(0.9f, 0.75f))) {
+            assertTrue("precondition: on the Maps tab", navSelected("Maps"))
+            touchTools()
+            touchOfflineMapsRow(fraction)
+            assertOnOfflineMapsWithDrawerClosed("a touch at $fraction of the row")
+            // Back twice retraces the way in (the next test's claim), which puts this loop back on the Maps tab.
+            pressBack()
+            pressBack()
+        }
+    }
+
+    @Test
+    fun `portrait, from Maps, Back from Offline maps reopens Tools over Maps, and the next Back closes it on Maps`() {
+        setScreen()
+        touchTools()
+        touchOfflineMapsRow()
+        assertOnOfflineMapsWithDrawerClosed("the row")
+
+        pressBack()
+        assertTrue("the first Back reopens Tools", drawerIsOpen())
+        assertTrue("over the Maps tab", navSelected("Maps"))
+
+        pressBack()
+        assertTrue("the second Back closes Tools", !drawerIsOpen())
+        assertTrue("on the Maps tab", navSelected("Maps"))
+        composeRule.onNodeWithTag("map-slot").assertExists()
+    }
+
+    @Test
+    fun `portrait, from Seasonal, Back from Offline maps reopens Tools over Seasonal, and the next Back closes it on Seasonal`() {
+        setScreen()
+        touchNavItem("Seasonal")
+        touchTools()
+        touchOfflineMapsRow()
+        assertOnOfflineMapsWithDrawerClosed("the row, from Seasonal")
+
+        pressBack()
+        assertTrue("the first Back reopens Tools", drawerIsOpen())
+        assertTrue("over Seasonal, the page the row was tapped from", navSelected("Seasonal"))
+
+        pressBack()
+        assertTrue("the second Back closes Tools", !drawerIsOpen())
+        assertTrue("on Seasonal", navSelected("Seasonal"))
+    }
+
+    @Test
+    fun `portrait, from Records on the Waypoints chip, Back from Offline maps reopens Tools there, and the next Back closes it on Waypoints`() {
+        setScreen()
+        touchNavItem("Journal")
+        composeRule.onNodeWithText("Records").performClick()
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.WAYPOINTS)).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertTrue("precondition: Records on the Waypoints chip", chipSelected(RecordsSubTab.WAYPOINTS))
+        touchTools()
+        touchOfflineMapsRow()
+        assertOnOfflineMapsWithDrawerClosed("the row, from the Waypoints chip")
+
+        pressBack()
+        assertTrue("the first Back reopens Tools", drawerIsOpen())
+        assertTrue("over Records on the Waypoints chip", navSelected("Journal") && chipSelected(RecordsSubTab.WAYPOINTS))
+
+        pressBack()
+        assertTrue("the second Back closes Tools", !drawerIsOpen())
+        assertTrue("on Records' Waypoints chip", chipSelected(RecordsSubTab.WAYPOINTS))
+    }
+
+    @Test
+    fun `portrait, once the user moves to another chip after Offline maps, Back works normally from there`() {
+        setScreen()
+        touchNavItem("Seasonal")
+        touchTools()
+        touchOfflineMapsRow()
+        assertOnOfflineMapsWithDrawerClosed("the row")
+
+        composeRule.onNodeWithTag(recordsFilterChipTestTag(RecordsSubTab.RECORDED_TRACKS)).performScrollTo().performClick()
+        composeRule.waitForIdle()
+        assertTrue("precondition: moved on to the Tracks chip", chipSelected(RecordsSubTab.RECORDED_TRACKS))
+
+        pressBack()
+        assertTrue("Back does not reopen Tools any more", !drawerIsOpen())
+        assertTrue("it steps to Finds, as from any other chip", chipSelected(RecordsSubTab.FINDS) && navSelected("Journal"))
+
+        pressBack()
+        assertTrue("then out of Records to Entries, still no drawer", !drawerIsOpen())
+        composeRule.onNodeWithTag(ENTRIES_HOME_TAG).assertIsDisplayed()
+    }
+
     private companion object {
         val FIND_DATE: LocalDate = LocalDate.of(2026, 8, 2)
         val DAY_DATE: LocalDate = LocalDate.of(2026, 8, 1)
         const val DRAFT_OF_FIND_ID = "draft-of-find-1"
         const val NEW_DAY_ENTRY_ID = "day-new"
         const val TYPED_TEXT = "Typed on the trail, not saved."
-        val FIND_TILE_TEXT = "Find on $FIND_DATE"
+        // A find tile shows the name the user gave the find (data part D, RECORD -702), COMMITTED_FIND's own identification.
+        val FIND_TILE_TEXT = "Chanterelle"
 
         val PHOTO = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 1_000L)
 
-        val COMMITTED_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.33, -122.63), date = FIND_DATE)
+        val COMMITTED_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.38, -121.69), date = FIND_DATE)
             .copy(isDraft = false, ownIdentification = "Chanterelle", photos = listOf(PHOTO))
 
         val DAY_WAYPOINT = Waypoint(
             id = "wp-1",
-            lat = 45.32,
-            lng = -122.64,
+            lat = 45.37,
+            lng = -121.70,
             altitude = null,
             name = "Creek pin",
             note = "",
@@ -569,14 +705,14 @@ class DrawerBackOverJournalTest {
             .copy(
                 isDraft = false,
                 text = "The original account.",
-                waypointDecisions = listOf(WaypointDecision(waypointId = "wp-1", name = "Creek pin", lat = 45.32, lng = -122.64, kept = true)),
+                waypointDecisions = listOf(WaypointDecision(waypointId = "wp-1", name = "Creek pin", lat = 45.37, lng = -121.70, kept = true)),
             )
     }
 }
 
 private val DrawerBackStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Button(onClick = { onCameraIdle(LatLng(45.326, -122.634)) }) { Text("Simulate pan to test location") }
+        Button(onClick = { onCameraIdle(LatLng(45.3736, -121.6959)) }) { Text("Simulate pan to test location") }
     }
 }
 

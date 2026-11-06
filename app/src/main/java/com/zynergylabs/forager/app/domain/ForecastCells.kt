@@ -230,7 +230,7 @@ interface ForecastCellStore {
 /**
  * The store with no forecast data: every question answered with the explicit "no forecast data", never
  * an empty list passed off as success (the dispatch, B5; CLAUDE.md, Errors: an unsupported capability
- * says so). The release build's only store (`forecastCellStore` in `src/release`), and what a map with
+ * says so). The app's only store (`AppContainer.forecastCellStore`), and what a map with
  * no store is treated as having.
  */
 object AbsentForecastCellStore : ForecastCellStore {

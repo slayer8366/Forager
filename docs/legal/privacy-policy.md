@@ -1,7 +1,6 @@
 # Forager — privacy policy
 
-**Last updated: 2026-09-09.** Applies to the Forager Android app (package `com.zynergylabs.forager.app`),
-including its Google Play closed test.
+**Last updated: 2026-10-23.** Applies to the Forager Android app (`com.zynergylabs.forager.app`) on Google Play.
 
 This is the document Play's Data safety declaration points at. It is written to match what the code
 actually does; where a claim comes from a particular file, that file is named so the claim can be
@@ -13,7 +12,8 @@ Forager has no account, no sign-in, no sync and no analytics. Nothing you record
 entries, photos, offline map regions, settings — is uploaded to the developer or to anyone else.
 
 What is transmitted, while the phone is online, is **where you are looking**: the coordinates a
-search runs on, and the map tiles for the area on screen. Those go to iNaturalist, Open-Meteo, the
+search runs on, the map tiles for the area on screen, and the edges of any area you download for
+offline use. Those go to iNaturalist, Open-Meteo, the
 map tile providers, and a Cloudflare Worker run by the developer. They carry a location and your IP
 address, and they are logged by the services that receive them.
 
@@ -31,8 +31,6 @@ Stored in the app's own private storage, readable by no other app:
 - Photos taken in the app or imported from the gallery (`filesDir/photos/`, `FilePhotoStore.kt`).
 - Downloaded offline map regions.
 - Preferences (units, map mode, and similar).
-- Crash traces, written locally when the app crashes (`CrashFileStore.kt`). They stay on the phone
-  and are only ever shared if you choose to share one from the app's crash screen.
 
 None of this is transmitted by the app. It is deleted when you uninstall the app or clear its data.
 
@@ -40,15 +38,13 @@ None of this is transmitted by the app. It is deleted when you uninstall the app
 `android:allowBackup="false"` (`app/src/main/AndroidManifest.xml`), which turns off both Android
 Auto Backup and the device-to-device transfer that runs during a new phone's setup. Your phone
 therefore does not copy Forager's data to your Google account, and does not hand it to another
-device on your behalf. This is a permanent decision, not a setting for the closed test: moving your
-data belongs to the app rather than to the operating system. The design is an export you trigger
-inside Forager, writing a single file that goes only where you send it — a cable, Bluetooth, a
-folder or cloud drive you pick — and an import that reads that file and rebuilds tracks, entries,
-waypoints and photos from it. Nothing sends that file anywhere on its own.
-
-**That export and import are not built yet**, and this policy will not describe them as if they
-were. As of the date at the top of this document, data recorded in Forager stays on the device that
-recorded it until you have an app version that can export it.
+device on your behalf. Moving your data belongs to the app rather than to the operating system, so
+Forager has its own **Backup**, in Tools, then Settings (`BackupSection.kt`). "Back up now" writes a
+single file, containing your tracks, journal entries, waypoints and photos, to a place you choose with
+Android's own file picker. "Automatic backup" can repeat this daily, weekly or monthly into a folder you
+choose. The file is not encrypted and goes only where you put it: if you choose a cloud folder, that
+service's own terms apply to it. "Restore from backup" reads a file you pick and either replaces what is
+on the phone or merges it in. Forager never sends a backup anywhere on its own.
 
 ## What is transmitted, to whom, and why
 
@@ -61,9 +57,8 @@ send.
 | iNaturalist (`api.inaturalist.org`) | Latitude and longitude of the searched area, a radius, a month, taxon filters (`INaturalistApi.kt`) | Which species have been observed near that place at that time of year |
 | Open-Meteo (`api.open-meteo.com`) | Latitude and longitude, forecast/past day counts (`OpenMeteoApi.kt`) | Rain, soil moisture and soil temperature for the trip window |
 | Open-Meteo archive (`archive-api.open-meteo.com`) | Latitude and longitude, a date range (`OpenMeteoArchiveApi.kt`) | Historical rainfall, for the fruiting-lag calculation |
-| OpenStreetMap (`tile.openstreetmap.org`), OpenTopoMap (`a.tile.opentopomap.org`), USGS (`basemap.nationalmap.gov`) | Map tile coordinates — `z/x/y`, i.e. the map area being viewed (`Basemap.kt`) | Drawing the map |
-| MapLibre demo tiles (`demotiles.maplibre.org`) | Font glyph ranges for map labels (`BasemapStyles.kt`) | Map label rendering |
-| `forager-pmtiles.brandonlee1-894.workers.dev` — a Cloudflare Worker operated by the developer | The offline map style, and vector map tiles by `z/x/y` (`OfflineStyle.kt`, `server/pmtiles-worker/`) | The offline basemap, and downloading an offline region |
+| OpenStreetMap (`tile.openstreetmap.org`), OpenTopoMap (`a.tile.opentopomap.org`) | Map tile coordinates — `z/x/y`, i.e. the map area being viewed (`Basemap.kt`) | Drawing the map when you choose OSM or Topo under "Map type" in Layers (the default is Trail, Forager Trail Map, below), and OpenStreetMap's map in place of Forager Trail Map if Trail Map's style fails to load (`MapMode.kt`, `OwnStreetFallback.kt`) |
+| `forager-pmtiles.brandonlee1-894.workers.dev` — a Cloudflare Worker operated by the developer | Forager Trail Map's style, its vector map tiles by `z/x/y`, and its fonts and icons (`StreetStyle.kt`, `OfflineStyle.kt`, `server/pmtiles-worker/`). For trail routes: the four edges of an area you download (south, west, north and east, to six decimal places), and a key that is the same in every copy of the app, so it identifies the app, not you (`RouteAreaClient.kt`, `server/pmtiles-worker/src/routing/`) | Drawing the map, which is Forager Trail Map unless you choose another, online and offline; downloading an offline region; and the trail routes stored with each downloaded region |
 
 As with any HTTP request, each of these also reveals your IP address and ordinary request metadata
 to the recipient. Each recipient's own privacy policy governs what it then does with that.
@@ -74,34 +69,67 @@ One thing the app does not request itself: tapping an observation to open it on 
 app, under its own terms, not a request Forager makes.
 
 Downloading an offline region issues a large number of tile requests to the Cloudflare Worker in a
-short time, covering the whole region — that is the download. Once a region is downloaded, viewing
-the map inside it makes no tile requests at all. Searching still does.
+short time, covering the whole region — that is the download. The app then asks the Worker for that
+region's trail routes: one request carrying the region's edges, then one request per route file, each
+carrying the same edges. Every one of these route requests carries the app key (`RouteAreaClient.kt`).
+If the Worker's route data is replaced between the first request and the files, the app asks once more,
+the same way (`RouteAreaFetch.kt`). It asks again for a region whose routes are missing when you open
+Offline maps with signal, when the signal returns while Offline maps is on screen, or when you tap "Try
+again" (`AvailabilityViewModelOfflineMaps.kt`). Once a region
+is downloaded, the map inside it can be drawn with no connection at all. Searching still makes
+requests.
 
 ## The Cloudflare Worker
 
-The map tile endpoint above is operated by the developer of this app, on Cloudflare's platform,
-serving tiles out of a Cloudflare R2 bucket.
+The Worker above is operated by the developer of this app, on Cloudflare's platform, serving the
+map and the trail route data out of a Cloudflare R2 bucket.
 
-**We keep no request logs.** The Worker's own code writes no log lines
-(`server/pmtiles-worker/src/`), and Workers Logs is explicitly disabled rather than left to the
-platform default: `wrangler.toml` sets `[observability] enabled = false`. Verified in the Cloudflare
-dashboard on 2026-09-09, where the Worker's Logs tab reported observability disabled.
+**We keep no request logs.** Workers Logs is explicitly disabled rather than left to the platform
+default: `wrangler.toml` sets `[observability] enabled = false`. Verified in the Cloudflare dashboard
+on 2026-09-09, where the Worker's Logs tab reported observability disabled.
+
+The Worker's own code writes a few warning and error lines, when its own data is missing, damaged
+or misconfigured (`console.warn` and `console.error` in `server/pmtiles-worker/src/index.ts` and
+`server/pmtiles-worker/src/routing/handler.ts`). What they can carry is about the Worker's own data:
+the names of its data files, their sizes and positions inside them, the build of the route data, and
+route squares of five degrees, such as `W125_N45`, with, for a damaged route file, the one-degree cell
+inside it. None of them carries an IP address, the app key, a tile or an area's edges. With observability off,
+these lines are not stored anywhere. Only the developer can see them, live, in a tail session
+(`wrangler tail`) while one is open; Cloudflare documents that a tail session also shows each request
+as it arrives. Nothing from a tail session is kept.
 
 The setting is pinned deliberately. Cloudflare documents `observability.enabled` as defaulting to
 `true` for newly created Workers, so an absent block would have left this claim resting on a default
 that can move.
 
-No per-request log is available to us by any other route either. Logpush and Logpull are
-Enterprise-only, Workers Trace Events Logpush requires the Workers Paid plan, and the zone-level
+No per-request log is kept by any other route either. Logpush and Logpull for HTTP requests are
+Enterprise-only. The Worker's account is on the Workers Paid plan, where Workers Trace Events Logpush
+is available. It is not set up for this Worker: `wrangler.toml` does not set `logpush = true`, and no
+Logpush job sends this Worker's events anywhere. The zone-level
 `httpRequestsAdaptive` dataset that retains 7 days on the Free plan covers `zynergy-labs.com`, not
 `*.workers.dev`. Workers metrics show aggregate request counts, not individual requests.
 
+To limit route requests, the Worker counts them in Cloudflare's rate-limiting counters, over a
+one-minute period: 30 a minute from one IP address, and 600 a minute in all on the one app key that
+every copy of the app shares, which counts the app's traffic, not any person's (`wrangler.toml`,
+`[[ratelimits]]`; `server/pmtiles-worker/src/routing/handler.ts`). The counts are how the limits work;
+they are not a list of requests.
+
 Cloudflare, as the host, processes these requests under its own privacy policy. **No retention
-figure is published here, because no setting of ours produces one.** That is the answer to the
+figure for request records is published here, because no setting of ours produces one.** That is the answer to the
 retention question rather than a number, and it is the only accurate one available while Cloudflare
 documents no figure for host-level records. This section previously carried an open question asking for a
 retention figure, with an instruction not to guess one. The resolution turned out to be that no
 figure applies.
+
+What our settings do keep for a set time is content, not records of requests. The Worker keeps
+copies of what it serves in Cloudflare's cache, at the location that served them, so the same thing
+asked for again is not read or cut again: map tiles and the map's tile descriptions for up to a day,
+under their tile address (`max-age=86400`, `server/pmtiles-worker/src/index.ts:509`, `:516`); the
+map's fonts and icons for up to seven days (`max-age=604800`, `index.ts:392`, `:447`); and a
+trail-route file cut for an area for up to 30 days, under an address that includes the area's edges
+(`max-age=2592000`, `server/pmtiles-worker/src/routing/handler.ts:47`, `:128`). Each copy is kept
+under its own address, and none records who asked for it or when.
 
 Nothing about these requests is linked to any account, because the app has none. Nothing is sold,
 shared with anyone else, or used for advertising or profiling.
@@ -111,15 +139,24 @@ shared with anyone else, or used for advertising or profiling.
 Photos stay on the phone. What the app does with the location metadata embedded in a photo file is
 narrower than it may sound, and is stated here as it actually is (`FilePhotoStore.kt`):
 
-- Forager does not run an EXIF-stripping step over the photo it stores.
-- For a **gallery import** on Android 10 (API 29) and later, the platform itself redacts GPS tags
+- For a **photo taken inside Forager**, the app's own camera writes it into Forager's private
+  storage and attaches no location to it (`CameraXCaptureSession.kt`). Before the photo is stored,
+  Forager removes its embedded metadata, including GPS tags, timestamps, camera make and model, and
+  thumbnails, keeping only its orientation, its colour profile and what is needed to display it
+  (`PhotoMetadataScrub.kt`). If that step cannot complete, the photo is stored as it was, with its
+  metadata, rather than lost.
+- When the camera is set to **RAW**, Forager also stores the sensor's raw image as a DNG file beside
+  the photo. Forager writes that file itself, and writes no location, time, or camera make or model
+  into it. It keeps the sensor's calibration data, which describes how the sensor records colour. If
+  Forager cannot confirm the file is clean of those details, the RAW file is deleted and the photo is
+  kept as a JPG (`RawShotSaver.kt`, `ForagerDngWriter.kt`). RAW files are included in backup, restore,
+  export and delete, like the photo they belong to.
+- For a **gallery import**, Forager does not run a metadata-stripping step over the copy it stores.
+  On Android 10 (API 29) and later, the platform itself redacts GPS tags
   from the copy the app reads, because the app does not opt in to the original via
   `MediaStore.setRequireOriginal` for that read. On Android 9 and earlier (the app supports back to
   Android 8.0) there is no such redaction, and an imported photo's copy can keep its embedded GPS
   tags.
-- For a **photo taken inside Forager**, the camera app writes into a file in Forager's own directory
-  (`CameraCaptureFiles.kt`). That is not a MediaStore read, so the platform redaction above does not
-  apply to it; whatever GPS tags the camera app wrote are in the stored file.
 
 This matters only if you export or share a photo yourself — the app never transmits one. A find's
 coordinate, when the app records one, is stored in the app's own database, not read out of a camera
@@ -139,9 +176,11 @@ capture's EXIF.
   notification, not because the app holds background location access. Outside those two states,
   the app in the foreground or a recording running in the foreground service, the app receives no
   location at all.
-- **Photos** — you can attach a photo to a journal entry, taken with your device's camera app or
-  chosen from your gallery. The photo is stored on your device. Forager does not request camera
-  permission.
+- **Camera** (`CAMERA`) — Forager's own camera, for taking photos to attach to a journal entry.
+  The app asks for it when you first open the camera, not at launch; if you decline, the camera
+  does not open, and you can still attach photos from your gallery (`PhotoAcquisitionLaunchers.kt`).
+  Photos it takes are stored on your device, as described under "Photos and location metadata"
+  above. Choosing a photo from your gallery needs no permission: it uses Android's photo picker.
 - **`ACCESS_MEDIA_LOCATION`** — reading the capture date and coordinate of a photo you import, so a
   find can be dated and placed. Read separately from the stored copy's bytes.
 - **Notifications, vibrate, foreground service** — the off-track alert, the sundown alerts
@@ -166,8 +205,9 @@ what is described above.
 
 Everything Forager stores is on your device and can be deleted from inside the app, item by item —
 journal entries, photos, recorded tracks, waypoints, offline map regions and planned trips.
-Uninstalling removes all of it, including the database, the photo files and any crash reports; with
-`allowBackup="false"` there is no cloud copy to survive and reappear. Nothing is held on a server, so
+Uninstalling removes all of it, including the database and the photo files; with
+`allowBackup="false"` there is no Android cloud copy to survive and reappear. A backup file you made with
+Forager's Backup is yours: it stays wherever you saved it, and you delete it there. Nothing is held on a server, so
 there is no deletion request to make. Full detail is at <https://www.zynergy-labs.com/delete-data/>,
 generated from `docs/legal/delete-data.md`, and that page is the URL given in the Play Data safety
 declaration.

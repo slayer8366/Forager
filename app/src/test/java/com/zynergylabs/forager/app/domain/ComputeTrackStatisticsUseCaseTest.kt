@@ -170,6 +170,22 @@ class ComputeTrackStatisticsUseCaseTest {
         assertEquals(0.0, stats.elevationCoverage!!, 1e-9)
     }
 
+    /**
+     * RECORD -867, part 4: Climb and Descent read smoothed heights ([trackHeights]). A flat walk with one sharp 25 m
+     * spike, a point every 5 s, banked 25 m of climb and 25 m of descent on raw GPS; read smoothed, the spike is gone
+     * and so are both. The owner's Oct 7 chart had such a drop on a flat walk.
+     */
+    @Test
+    fun `a lone height spike on a flat walk banks no climb or descent`() {
+        val heights = List(30) { 100.0 }.toMutableList().also { it[15] = 125.0 }
+        val points = heights.mapIndexed { i, h -> point(lat = 0.0, lng = i * 0.0001, altitude = h, t = i * 5_000L) }
+
+        val stats = useCase(points)
+
+        assertEquals("climb", 0.0, stats.elevationGainMeters!!, 1e-9)
+        assertEquals("descent", 0.0, stats.elevationLossMeters!!, 1e-9)
+    }
+
     @Test
     fun `average speed is null for a zero-duration track`() {
         val points = listOf(point(lat = 0.0, lng = 0.0, altitude = null, t = 5_000L))

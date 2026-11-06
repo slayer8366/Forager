@@ -24,8 +24,11 @@ data class MapLayerPreferences(
  * Where the map's layer choices persist across restarts (map layers L0b, B3; owner: "Across app
  * restarts (Recommended)"). Flat settings with no relations, so DataStore, not Room (CLAUDE.md); the
  * real implementation is `DataStoreMapPreferencesRepository`, in the existing `map_preferences` file
- * under `map.layer` keys. The basemap is deliberately not here: it stays session-only
- * (`AvailabilityScreen`'s `mapMode`).
+ * under `map.layer` keys. The basemap is not here, though it now persists too: it is not a layer, so
+ * it has its own sibling, [BasemapPreferenceRepository], in the same file. Until dispatch
+ * 2026-09-28-708 this comment said the basemap "stays session-only"; the owner then asked for the
+ * app to "remember which map modes you had it on last so we don't have to keep switching to the
+ * favorite".
  */
 interface MapLayerPreferencesRepository {
     suspend fun getMapLayerPreferences(): Result<MapLayerPreferences>

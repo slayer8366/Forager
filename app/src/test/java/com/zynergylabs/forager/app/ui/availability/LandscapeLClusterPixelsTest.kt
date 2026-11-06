@@ -120,5 +120,6 @@ class LandscapeLClusterPixelsTest {
 
     @Test fun `L5 at ROTATION_90 the corner and the gap show the map, and the bar and the pill are one layer at 0_8`() = check(Surface.ROTATION_90, clusterOnLeft = true)
 
-    @Test fun `L5 at ROTATION_270 the corner and the gap show the map, and the bar and the pill are one layer at 0_8`() = check(Surface.ROTATION_270, clusterOnLeft = false)
+    // RECORD -956 (the owner: "One should look exactly line the other"): the L defaults to the screen's left at 270 too. Was `clusterOnLeft = false`.
+    @Test fun `L5 at ROTATION_270 the corner and the gap show the map, and the bar and the pill are one layer at 0_8`() = check(Surface.ROTATION_270, clusterOnLeft = true)
 }

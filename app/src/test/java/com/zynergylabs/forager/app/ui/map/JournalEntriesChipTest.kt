@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import androidx.compose.runtime.remember
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -97,7 +98,7 @@ class JournalEntriesChipTest {
                 Box(Modifier.fillMaxSize()) {
                     MapFeatureBubble(
                         content = MapBubbleContent.Find(findId = "find-1", title = "Golden chanterelle", date = "Sep 12, 2026", coverPhotoPath = null, keptIn = keptIn),
-                        tipInBubble = mutableStateOf(null),
+                        tipInBubble = remember { mutableStateOf(null) },
                         onDismiss = {},
                         openFindLabel = OPEN_FIND_LABEL,
                         onOpenFind = null,
@@ -163,9 +164,9 @@ class JournalEntriesChipTest {
     fun `up to three keeping entries are each a date line labelled Open entry and its date, and a touch opens that entry`() {
         setBubble(keptIn = entries.take(2))
 
-        composeRule.onNodeWithTag(mapBubbleEntryLineTag("a")).assertIsDisplayed().assertContentDescriptionEquals("Open entry 2026-09-12")
-        composeRule.onNodeWithTag(mapBubbleEntryLineTag("b")).assertIsDisplayed().assertContentDescriptionEquals("Open entry 2026-09-05")
-        composeRule.onNodeWithText("2026-09-05", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithTag(mapBubbleEntryLineTag("a")).assertIsDisplayed().assertContentDescriptionEquals("Open entry Sep 12, 2026")
+        composeRule.onNodeWithTag(mapBubbleEntryLineTag("b")).assertIsDisplayed().assertContentDescriptionEquals("Open entry Sep 5, 2026")
+        composeRule.onNodeWithText("Sep 5, 2026", useUnmergedTree = true).assertIsDisplayed()
         assertEquals("no count line for two", 0, composeRule.onAllNodesWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).fetchSemanticsNodes().size)
 
         touchCentreOf(mapBubbleEntryLineTag("b"))
@@ -176,7 +177,7 @@ class JournalEntriesChipTest {
     fun `more than three keeping entries are one line, Kept in 4 journal entries, whose list of dates is a menu at the map chrome's opacity`() {
         setBubble(keptIn = entries)
 
-        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertIsDisplayed().assertTextEquals("Kept in 4 journal entries")
+        composeRule.onNodeWithTag(MAP_BUBBLE_ENTRY_COUNT_TAG).assertIsDisplayed().assertTextEquals("In 4 journal entries")
         assertEquals("no date lines past three", 0, composeRule.onAllNodesWithTag(mapBubbleEntryLineTag("a")).fetchSemanticsNodes().size)
 
         touchCentreOf(MAP_BUBBLE_ENTRY_COUNT_TAG)
@@ -185,7 +186,7 @@ class JournalEntriesChipTest {
         assertEquals("container alpha", MAP_CHROME_OVER_MAP_ALPHA, container.alpha, 0.001f)
         assertEquals("container colour, alpha aside", menuRole.copy(alpha = 1f), container.copy(alpha = 1f))
         assertEquals("content colour", menuRoleContent, content)
-        composeRule.onNode(SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.ContentDescription, listOf("Open entry 2026-09-03")))
+        composeRule.onNode(SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.ContentDescription, listOf("Open entry Sep 3, 2026")))
             .assertExists()
 
         touchCentreOf(mapBubbleEntryLineTag("c"))

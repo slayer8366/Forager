@@ -32,9 +32,16 @@ internal class FakeJournalBackup : JournalBackup {
     val policies = mutableListOf<UnreadablePhotoPolicy>()
     var backUps = 0
 
+    /** When set, a backup writes a few bytes and then waits on it, and a restore waits on it after reading: a run still going when the screen ends. */
+    var hold: kotlinx.coroutines.CompletableDeferred<Unit>? = null
+
     override suspend fun backUp(sink: OutputStream, unreadablePhotos: UnreadablePhotoPolicy): Result<BackupReport> {
         backUps++
         policies += unreadablePhotos
+        hold?.let {
+            sink.write(BACKUP_BYTES, 0, 3)
+            it.await()
+        }
         if (failBackUp) return Result.failure(BackupException("fake: backup failed"))
         if (this.unreadablePhotos > 0 && unreadablePhotos == UnreadablePhotoPolicy.ASK) return Result.failure(UnreadablePhotosException(this.unreadablePhotos))
         if (failWrite) {
@@ -48,6 +55,7 @@ internal class FakeJournalBackup : JournalBackup {
 
     override suspend fun restore(source: InputStream, mode: RestoreMode): Result<RestoreReport> {
         restored += mode to source.readBytes()
+        hold?.await()
         if (failRestore) return Result.failure(BackupException("fake: restore failed"))
         return Result.success(RestoreReport(mode, rowsInserted = 1, recordsSkipped = 0, rowsDropped = 0, photoFilesAdded = 0))
     }

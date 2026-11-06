@@ -5,7 +5,11 @@ import android.hardware.Sensor
 import android.hardware.SensorEvent
 import android.hardware.SensorEventListener
 import android.hardware.SensorManager
+import android.hardware.display.DisplayManager
 import android.os.SystemClock
+import android.util.Log
+import android.view.Display
+import android.view.Surface
 import androidx.core.content.getSystemService
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.CompassReading
@@ -50,6 +54,22 @@ import kotlinx.coroutines.flow.conflate
  * too. **A device that always reports zero is, in effect, on the status-level path** — the first
  * thing the owner's device list checks.
  *
+ * ## The heading is the screen's top, not the phone's (dispatch 2026-10-12-09, RECORD -960)
+ *
+ * The owner, on PR #221's build: "When holding the phone in landscape while navigating, it does turn the map sideways as if
+ * it's still measuring portrait orientation." Every reader of this heading draws in the screen's frame (the facing-up map, the
+ * puck's cone, the navigation display's heading, north arrow and needle, the compass strip), so the heading is the direction
+ * the top of the *screen* faces. Each event's rotation matrix is remapped for the display's current rotation
+ * ([displayRemapAxes]) before `getOrientation`, on both paths. The rotation is read per event, not once, because
+ * `MainActivity` handles rotation itself (`configChanges`) and is not recreated, and it is read from [DisplayManager]'s default
+ * display because this provider holds the application context.
+ *
+ * Until `f94f29ff` (2026-10-03) the puck ran on the map library's own compass engine, which does this remap (read from its bytecode in
+ * the pinned 13.5.0 artifact: `Display.getRotation`, then `remapCoordinateSystem`). Replacing it with the app's true heading
+ * dropped the remap, and nothing recorded that; this puts it back here, where every reader gets it. The remap rather than
+ * adding the rotation's degrees to the azimuth (the planner's call, (a)): identical for a phone held flat, and the remap is what
+ * the replaced engine and the platform both do when the phone is tilted.
+ *
  * ## The callback re-emits
  *
  * `onAccuracyChanged` updates the status *and*, when the last emitted reading was itself
@@ -73,7 +93,9 @@ class AndroidCompassProvider(private val context: Context) : CompassProvider {
         }
 
         val rotationMatrix = FloatArray(9)
+        val remappedMatrix = FloatArray(9)
         val orientation = FloatArray(3)
+        val defaultDisplay: Display? = context.getSystemService<DisplayManager>()?.getDisplay(Display.DEFAULT_DISPLAY)
         var lastAccelerometer: FloatArray? = null
         var lastMagnetometer: FloatArray? = null
         // The status that gates the heading: the rotation-vector sensor's on that path, the
@@ -98,19 +120,18 @@ class AndroidCompassProvider(private val context: Context) : CompassProvider {
                     Sensor.TYPE_ROTATION_VECTOR -> {
                         gatingStatus = compassStatus(event.accuracy)
                         SensorManager.getRotationMatrixFromVector(rotationMatrix, event.values)
-                        SensorManager.getOrientation(rotationMatrix, orientation)
                         val uncertainty = estimatedHeadingUncertainty(event.values) ?: HeadingUncertainty.Status(gatingStatus)
-                        emit(headingDegrees(orientation[0]), uncertainty, timestampMillis)
+                        emit(screenHeading(rotationMatrix, remappedMatrix, orientation, defaultDisplay), uncertainty, timestampMillis)
                     }
                     Sensor.TYPE_ACCELEROMETER -> {
                         lastAccelerometer = event.values.clone()
-                        combinedHeading(lastAccelerometer, lastMagnetometer, rotationMatrix, orientation)
+                        combinedHeading(lastAccelerometer, lastMagnetometer, rotationMatrix, remappedMatrix, orientation, defaultDisplay)
                             ?.let { emit(it, HeadingUncertainty.Status(gatingStatus), timestampMillis) }
                     }
                     Sensor.TYPE_MAGNETIC_FIELD -> {
                         gatingStatus = compassStatus(event.accuracy)
                         lastMagnetometer = event.values.clone()
-                        combinedHeading(lastAccelerometer, lastMagnetometer, rotationMatrix, orientation)
+                        combinedHeading(lastAccelerometer, lastMagnetometer, rotationMatrix, remappedMatrix, orientation, defaultDisplay)
                             ?.let { emit(it, HeadingUncertainty.Status(gatingStatus), timestampMillis) }
                     }
                 }
@@ -140,21 +161,62 @@ class AndroidCompassProvider(private val context: Context) : CompassProvider {
         accelerometer: FloatArray?,
         magnetometer: FloatArray?,
         rotationMatrix: FloatArray,
+        remappedMatrix: FloatArray,
         orientation: FloatArray,
+        display: Display?,
     ): Float? {
         if (accelerometer == null || magnetometer == null) return null
         if (!SensorManager.getRotationMatrix(rotationMatrix, null, accelerometer, magnetometer)) return null
-        SensorManager.getOrientation(rotationMatrix, orientation)
+        return screenHeading(rotationMatrix, remappedMatrix, orientation, display)
+    }
+
+    /**
+     * The heading of the screen's top: [rotationMatrix] remapped for the display's rotation now, then its azimuth. With no
+     * display (none has been seen to be missing), the natural frame stands, as before this dispatch, and that is logged.
+     */
+    private fun screenHeading(rotationMatrix: FloatArray, remappedMatrix: FloatArray, orientation: FloatArray, display: Display?): Float {
+        val axes = if (display != null) {
+            displayRemapAxes(display.rotation)
+        } else {
+            if (!loggedNoDisplay) {
+                loggedNoDisplay = true
+                Log.w(LOG_TAG, "No default display: the heading stays in the phone's natural frame")
+            }
+            null
+        }
+        val matrix = if (axes != null && SensorManager.remapCoordinateSystem(rotationMatrix, axes.first, axes.second, remappedMatrix)) {
+            remappedMatrix
+        } else {
+            rotationMatrix
+        }
+        SensorManager.getOrientation(matrix, orientation)
         return headingDegrees(orientation[0])
     }
+
+    private var loggedNoDisplay = false
 
     private fun headingDegrees(azimuthRadians: Float): Float =
         (Math.toDegrees(azimuthRadians.toDouble()).toFloat() + 360f) % 360f
 
     private companion object {
+        const val LOG_TAG = "ForagerCompass"
         const val NANOS_PER_MILLI = 1_000_000L
         const val HEADING_ACCURACY_INDEX = 4
     }
+}
+
+/**
+ * The `remapCoordinateSystem` axis pair that turns the phone's natural frame into the screen's for a display at [rotation]
+ * (a `Surface.ROTATION_*`), or `null` at `ROTATION_0`, where the two frames are the same and no remap is done. The pairs are
+ * the platform's documented ones and the ones the map library's own compass engine uses: at `ROTATION_90` the screen's top is the
+ * phone's right edge (x), so the new y is x and the new x is −y; at `ROTATION_270` its left edge (−x). An unknown value is
+ * treated as `ROTATION_0`. `internal` so the four cases are a pinned-literal test.
+ */
+internal fun displayRemapAxes(rotation: Int): Pair<Int, Int>? = when (rotation) {
+    Surface.ROTATION_90 -> SensorManager.AXIS_Y to SensorManager.AXIS_MINUS_X
+    Surface.ROTATION_180 -> SensorManager.AXIS_MINUS_X to SensorManager.AXIS_MINUS_Y
+    Surface.ROTATION_270 -> SensorManager.AXIS_MINUS_Y to SensorManager.AXIS_X
+    else -> null
 }
 
 /**

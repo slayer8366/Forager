@@ -1,7 +1,19 @@
 package com.zynergylabs.forager.app.photo
 
 import android.content.Context
+import android.graphics.ImageFormat
+import androidx.camera.core.CameraState
+import androidx.camera.core.ImageProxy
+import androidx.exifinterface.media.ExifInterface
+import androidx.lifecycle.Observer
+import com.zynergylabs.forager.app.domain.CameraFormat
+import com.zynergylabs.forager.app.domain.RawFrameMapping
+import com.zynergylabs.forager.app.domain.mapRawFrame
+import com.zynergylabs.forager.app.domain.rawCaptureSize
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.Executors
 import android.util.Log
+import android.util.Size
 import android.view.OrientationEventListener
 import android.view.Surface
 import androidx.camera.core.Camera
@@ -12,6 +24,8 @@ import androidx.camera.core.ImageCaptureException
 import androidx.camera.core.Preview
 import androidx.camera.core.TorchState
 import androidx.camera.core.UseCase
+import androidx.camera.core.resolutionselector.ResolutionSelector
+import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.lifecycle.ProcessCameraProvider
 import androidx.camera.view.PreviewView
 import androidx.compose.runtime.Composable
@@ -21,21 +35,49 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.LifecycleOwner
-import com.zynergylabs.forager.app.ForagerApplication
-import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
+import com.zynergylabs.forager.app.domain.CameraCapabilities
+import com.zynergylabs.forager.app.domain.CameraFacing
+import com.zynergylabs.forager.app.domain.EncoderCapabilities
+import com.zynergylabs.forager.app.domain.mapCameraCapabilities
+import com.zynergylabs.forager.app.domain.mapEncoderCapabilities
+import com.zynergylabs.forager.app.domain.toLogLine
+import com.zynergylabs.forager.app.domain.toLogLines
+import com.zynergylabs.forager.app.ui.log.currentWindowIsFullScreen
+import com.zynergylabs.forager.app.ui.log.viewfinderInNaturalFrame
 import java.io.File
+import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.resume
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Deferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.MainScope
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.async
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.withContext
 
 /**
- * The [CameraCaptureSession] backed by CameraX — the **only** file in this project that imports
- * `androidx.camera`. Everything else talks to the interface.
+ * The [CameraCaptureSession] backed by CameraX — one of the **two** files in this project that
+ * import `androidx.camera`, with `CameraXCapabilityReader.kt` beside it (since dispatch
+ * 2026-10-13-04, which keeps the RAW probe's reads and its experimental opt-in out of this file).
+ * Everything else talks to the interface.
+ *
+ * ## The capability probe (RAW pipeline stage 1, dispatch 2026-10-13-04)
+ *
+ * After the bind reaches `Ready`, [probeCapabilities] reads what the bound camera can do, logs it
+ * under [CAMERA_PROBE_LOG_TAG] and exposes it as [capabilities]; the front camera, when the bound
+ * one is the back, is read unbound and only logged; and the encoders are read once per process
+ * on a background dispatcher and logged when they land, with the same probe id and facing so the
+ * lines can be matched (planner, 2026-10-14). The probe runs after `Ready` and inside its own
+ * catch, so nothing it does can stop the camera opening. Nothing a user sees reads its result.
  *
  * ## Nothing here is exercised by any test, and that is structural
  *
@@ -157,8 +199,6 @@ import kotlinx.coroutines.withContext
  */
 internal class CameraXCaptureSession(
     private val appContext: Context,
-    /** Settings' "Lock camera to portrait": the one gate, see [effectiveDeviceRotation]. */
-    private val lockToPortrait: Boolean = false,
 ) : CameraCaptureSession {
 
     override var state: CameraSessionState by mutableStateOf(CameraSessionState.Opening)
@@ -183,44 +223,13 @@ internal class CameraXCaptureSession(
     private var sensorRotation: Int? by mutableStateOf(null)
 
     /**
-     * **The one gate.** Both the screen's control angle and this class's own [capture] read this,
-     * never [sensorRotation] directly, so "Lock camera to portrait" pins one value and both
-     * effects — nothing turns, a sideways photo saves portrait — fall out of that one place.
+     * The sensor's reading, as the screen's control angle and this class's own [capture] both read it.
+     * Until dispatch 2026-10-13-03 this went through a gate, `effectiveDeviceRotation`, that pinned it
+     * to `ROTATION_0` with "Lock camera to portrait" on; the option and the gate were removed together
+     * (RECORD -968), and the off branch was already this pass-through.
      */
-    override val deviceRotation: Int? get() = effectiveDeviceRotation(lockToPortrait, sensorRotation)
+    override val deviceRotation: Int? get() = sensorRotation
     private var loggedDisplayFallback = false
-
-    /**
-     * The diagnostics store, or null when there is none to reach. Resolved once — `by lazy`, so the
-     * reason is logged at most once per session rather than once per shot, which is the failure mode
-     * a per-capture recorder has.
-     *
-     * A safe cast, deliberately unlike `MainActivity:43` and `TrackRecordingService:110`, which hard-cast
-     * `application` to [ForagerApplication]. Those run inside components the platform built from this
-     * app's manifest; this runs behind a [Context] handed in by a caller. Today there is one caller and
-     * it passes `LocalContext.current.applicationContext` (`InAppCameraHost.kt:49`), so the cast
-     * succeeds; a second caller passing something else must degrade to no diagnostics, never take the
-     * camera down. Diagnostics are an observation surface, and an observation surface that can break
-     * the thing it observes is worse than none.
-     *
-     * [ForagerApplication.diagnostics] is a `lateinit` assigned in `onCreate` before the container is
-     * built, so any session — created by a user action inside a composed screen — necessarily comes
-     * after it. Read rather than trusted: the access is guarded, so an ordering this reasoning did not
-     * foresee costs the entries, not the shot.
-     */
-    private val diagnostics: DebugDiagnostics? by lazy { resolveDiagnostics() }
-
-    private fun resolveDiagnostics(): DebugDiagnostics? {
-        val application = appContext as? ForagerApplication
-        if (application == null) {
-            Log.i(TAG, "This session's context is not backed by ForagerApplication; capture entries go to logcat only.")
-            return null
-        }
-        return runCatching { application.diagnostics }.getOrElse { error ->
-            Log.i(TAG, "Diagnostics were not installed when this session resolved them; capture entries go to logcat only.", error)
-            null
-        }
-    }
 
     /** Bumped by every [open] and [close]; a provider callback whose captured epoch has moved on does nothing. */
     private var openEpoch = 0
@@ -234,6 +243,7 @@ internal class CameraXCaptureSession(
         isOpen = true
         val epoch = ++openEpoch
         state = CameraSessionState.Opening
+        probeScope = MainScope()
 
         val listener = object : OrientationEventListener(appContext) {
             override fun onOrientationChanged(orientation: Int) = onDeviceOrientation(orientation)
@@ -266,25 +276,39 @@ internal class CameraXCaptureSession(
                     state = CameraSessionState.Unavailable("This device has no camera available.")
                     return@addListener
                 }
+                val facing = if (selector == CameraSelector.DEFAULT_FRONT_CAMERA) CameraFacing.Front else CameraFacing.Back
+                // RAW stage 2 (Amendment 1, item 1): a remembered RAW is checked against the camera before the first
+                // bind, in its own catch, so it binds once; anything short of a yes binds JPG, logged.
+                val wantRaw = requestedFormat == CameraFormat.Raw && rawBindableBeforeBind(provider, selector, facing)
+                val newPreview = runCatching { Preview.Builder().build() }
                 runCatching {
-                    val newPreview = Preview.Builder().build()
-                    val capture = ImageCapture.Builder()
-                        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
-                        .build()
-                    provider.unbindAll()
-                    val boundCamera = provider.bindToLifecycle(lifecycleOwner, selector, newPreview, capture)
-                    Triple(newPreview, capture, boundCamera)
+                    val previewUseCase = newPreview.getOrThrow()
+                    runCatching { bindWithCapture(provider, lifecycleOwner, selector, previewUseCase, raw = wantRaw) }
+                        .recoverCatching { error ->
+                            if (!wantRaw) throw error
+                            // Never a dead camera (dispatch abort condition): a RAW+JPEG capture that will not bind beside
+                            // the preview gives way to today's JPG capture.
+                            Log.w(TAG, "RAW+JPEG would not bind beside the preview; binding JPG instead.", error)
+                            bindWithCapture(provider, lifecycleOwner, selector, previewUseCase, raw = false)
+                        }.getOrThrow()
                 }.fold(
-                    onSuccess = { (newPreview, capture, boundCamera) ->
-                        preview = newPreview
+                    onSuccess = { (capture, boundCamera, boundFormat) ->
+                        preview = newPreview.getOrThrow()
                         installImageCapture(capture)
                         camera = boundCamera
+                        boundLifecycleOwner = lifecycleOwner
+                        boundSelector = selector
+                        outputFormat = boundFormat
+                        watchForStreamConfigErrors(boundCamera, lifecycleOwner)
                         installFlash(boundCamera.cameraInfo.hasFlashUnit()) { on -> enableTorch(boundCamera, on) }
                         boundProvider = provider
                         // The screen composes the viewfinder only once Ready, so normally there is
                         // no view yet and the attachment happens in Viewfinder. If one exists, attach now.
-                        previewView?.let { newPreview.setSurfaceProvider(it.surfaceProvider) }
+                        previewView?.let { view -> preview?.setSurfaceProvider(view.surfaceProvider) }
                         state = CameraSessionState.Ready
+                        runCatching { probeCapabilities(provider, boundCamera, facing) }.onFailure { error ->
+                            Log.w(CAMERA_PROBE_LOG_TAG, "The capability probe failed; the camera is unaffected and nothing is reported.", error)
+                        }
                     },
                     onFailure = { error ->
                         Log.w(TAG, "Binding the camera failed.", error)
@@ -305,9 +329,17 @@ internal class CameraXCaptureSession(
         torch = null
         boundHasFlashUnit = false
         currentFlashMode = FlashMode.Off
+        capabilities = null
+        encoderCapabilities = null
+        probeScope?.cancel()
+        probeScope = null
         if (!isOpen) return // never opened, never completed, or already closed: nothing to release
         isOpen = false
         openEpoch++
+        stopWatchingStreamConfig()
+        outputFormat = CameraFormat.Jpg
+        boundLifecycleOwner = null
+        boundSelector = null
         orientationListener?.disable()
         orientationListener = null
         sensorRotation = null
@@ -340,11 +372,32 @@ internal class CameraXCaptureSession(
         imageCapture = capture
     }
 
+    /**
+     * Installs a [Preview] as [open]'s bind would. For the viewfinder-turn test (dispatch 2026-10-17-08), which needs a
+     * real, unbound [Preview] for [Viewfinder] to attach its surface provider to; CameraX's camera does not run under
+     * Robolectric.
+     */
+    internal fun installPreview(preview: Preview) {
+        this.preview = preview
+    }
+
+    /**
+     * How many times [Viewfinder] has attached its surface provider to the bound [Preview] in this session's life. On a
+     * device each attachment after the first is a new surface request, and the camera rebuilds its session (the black
+     * flash of dispatch 2026-10-17-08), so a turn must not add one. Read by tests only.
+     */
+    internal var viewfinderSurfaceAttachments: Int = 0
+        private set
+
+    /** The viewfinder's `PreviewView` mode while composed, `null` otherwise. Read by tests only. */
+    internal val viewfinderImplementationMode: PreviewView.ImplementationMode?
+        get() = previewView?.implementationMode
+
     override suspend fun capture(destination: File): Result<Unit> {
         val capture = imageCapture
             ?: return Result.failure(IllegalStateException("The camera is not ready yet."))
         // Per shot, from the device's own orientation — see the class doc for why not the display.
-        // Read through the gate (deviceRotation), not the field: see effectiveDeviceRotation.
+        // Read through deviceRotation, the one value the controls' angle reads too.
         val rotation = deviceRotation ?: previewView?.display?.rotation?.also {
             if (!loggedDisplayFallback) {
                 loggedDisplayFallback = true
@@ -367,13 +420,6 @@ internal class CameraXCaptureSession(
             "Shot: deviceRotation=$rotation displayRotation=$displayRotation targetRotation=${capture.targetRotation} " +
                 "requestDegrees=${intended?.rotationDegrees} resolution=${intended?.resolution}",
         )
-        diagnostics?.recordCaptureShot(
-            deviceRotation = rotation,
-            displayRotation = displayRotation,
-            targetRotation = capture.targetRotation,
-            requestDegrees = intended?.rotationDegrees,
-            resolution = intended?.resolution?.toString(),
-        )
 
         val saved = suspendCancellableCoroutine { continuation ->
             capture.takePicture(
@@ -391,50 +437,246 @@ internal class CameraXCaptureSession(
                 },
             )
         }
-        if (saved.isFailure) {
-            // The second entry this shot owes. Without it a failed capture leaves a lone Shot: line,
-            // which reads as a dropped record rather than as the distinct path it is.
-            diagnostics?.recordCaptureOrientation(
-                fileName = destination.name,
-                branch = "not attempted",
-                reason = "the capture failed and no file was written",
-                error = saved.exceptionOrNull(),
-            )
-            return saved
-        }
+        if (saved.isFailure) return saved
 
         // The file's tag is the HAL's, not the request's — see the class doc. Put the request's
         // tag on it, when the pixels are the unrotated capture frame. Off the main thread: it reads
-        // and may rewrite the file, and debug builds run StrictMode.
+        // and may rewrite the file.
         if (intended == null) {
             Log.w(TAG, "No resolution info for this shot; '${destination.name}' keeps the HAL's orientation tag.")
-            diagnostics?.recordCaptureOrientation(
-                fileName = destination.name,
-                branch = "not attempted",
-                reason = "no resolution info for this shot; it keeps the HAL's tag",
-            )
             return saved
         }
         val degrees = intended.rotationDegrees
         when (val outcome = withContext(Dispatchers.IO) { reapplyIntendedOrientation(destination, degrees, intended.resolution) }) {
             is OrientationReapplyOutcome.Rewritten -> {
                 Log.i(TAG, "Orientation tag of '${destination.name}' rewritten: the HAL wrote ${outcome.fromTag}, the shot asked for ${outcome.toTag} ($degrees°).")
-                diagnostics?.recordCaptureOrientation(destination.name, "rewritten", fromTag = outcome.fromTag, toTag = outcome.toTag, degrees = degrees)
             }
             is OrientationReapplyOutcome.Kept -> {
                 Log.i(TAG, "Orientation tag of '${destination.name}' is ${outcome.tag}, already the shot's $degrees°.")
-                diagnostics?.recordCaptureOrientation(destination.name, "kept", fromTag = outcome.tag, degrees = degrees)
             }
             is OrientationReapplyOutcome.Declined -> {
                 Log.i(TAG, "Orientation tag of '${destination.name}' left as CameraX wrote it (${outcome.tag}): ${outcome.reason}.")
-                diagnostics?.recordCaptureOrientation(destination.name, "declined", fromTag = outcome.tag, degrees = degrees, reason = outcome.reason)
             }
             is OrientationReapplyOutcome.Failed -> {
                 Log.w(TAG, "Couldn't reapply the orientation tag to '${destination.name}'; it keeps the HAL's.", outcome.error)
-                diagnostics?.recordCaptureOrientation(destination.name, "failed", degrees = degrees, error = outcome.error)
             }
         }
         return saved
+    }
+
+    // ── RAW stage 2 (dispatch 2026-10-15-01, as amended by RECORD -1009 and -1011) ───────────────────────────────────
+
+    /** What the next bind, or a rebind now, should use; see [CameraCaptureSession.requestOutputFormat]. Not stored: the chip's choice is (RECORD -1005). */
+    private var requestedFormat: CameraFormat = CameraFormat.Jpg
+
+    override var outputFormat: CameraFormat by mutableStateOf(CameraFormat.Jpg)
+        private set
+
+    private var boundLifecycleOwner: LifecycleOwner? = null
+    private var boundSelector: CameraSelector? = null
+
+    /** The capture results the RAW frames are matched with; one per RAW capture use case. */
+    private var rawResults: CaptureResultCollector? = null
+
+    /** The in-memory RAW callback copies a 12 MP frame; off the main thread, one shot at a time. */
+    private val rawCallbackExecutor: ExecutorService by lazy { Executors.newSingleThreadExecutor() }
+
+    private var cameraStateObserver: Observer<CameraState>? = null
+    private var observedCamera: Camera? = null
+
+    override fun requestOutputFormat(format: CameraFormat) {
+        requestedFormat = format
+        val provider = boundProvider ?: return // not bound yet: the next bind uses it
+        if (format == outputFormat) return
+        val raw = format == CameraFormat.Raw && rawCaptureSize(capabilities) != null
+        if (format == CameraFormat.Raw && !raw) {
+            Log.w(TAG, "RAW asked for, but this camera's probe does not offer it within the operating limit; staying on JPG.")
+            return
+        }
+        rebindCapture(provider, raw)
+    }
+
+    /**
+     * Swaps the capture use case in this same session: the preview stays bound and attached, which is why the owner's
+     * accepted cost is a single blink, not a new camera (Amendment 1, item 2). A RAW rebind that fails gives way to JPG; a
+     * JPG rebind that fails leaves the camera unavailable with its reason, never silently capture-less.
+     */
+    private fun rebindCapture(provider: ProcessCameraProvider, raw: Boolean) {
+        val owner = boundLifecycleOwner ?: return
+        val selector = boundSelector ?: return
+        imageCapture?.let { old -> runCatching { provider.unbind(old) }.onFailure { Log.w(TAG, "Unbinding the old capture failed.", it) } }
+        imageCapture = null
+        val bound = runCatching { bindCaptureOnly(provider, owner, selector, raw) }
+            .recoverCatching { error ->
+                if (!raw) throw error
+                Log.w(TAG, "RAW+JPEG would not bind beside the preview; back to JPG.", error)
+                bindCaptureOnly(provider, owner, selector, raw = false)
+            }
+        bound.fold(
+            onSuccess = { (capture, format) ->
+                installImageCapture(capture)
+                capture.flashMode = currentFlashMode.imageCaptureFlashMode()
+                outputFormat = format
+                Log.i(TAG, "Capture rebound as $format.")
+            },
+            onFailure = { error ->
+                Log.w(TAG, "Rebinding the capture failed; the camera cannot take photos.", error)
+                outputFormat = CameraFormat.Jpg
+                state = CameraSessionState.Unavailable("The camera is in use by another app, or could not be bound.")
+            },
+        )
+    }
+
+    /** The first bind: the preview and one capture, RAW+JPEG or today's JPG. Returns the capture, the camera and the format bound. */
+    private fun bindWithCapture(
+        provider: ProcessCameraProvider,
+        owner: LifecycleOwner,
+        selector: CameraSelector,
+        preview: Preview,
+        raw: Boolean,
+    ): Triple<ImageCapture, Camera, CameraFormat> {
+        val (capture, format) = newCaptureUseCase(raw)
+        provider.unbindAll()
+        val boundCamera = provider.bindToLifecycle(owner, selector, preview, capture)
+        return Triple(capture, boundCamera, format)
+    }
+
+    /** A capture alone, beside the preview that is already bound. */
+    private fun bindCaptureOnly(provider: ProcessCameraProvider, owner: LifecycleOwner, selector: CameraSelector, raw: Boolean): Pair<ImageCapture, CameraFormat> {
+        val (capture, format) = newCaptureUseCase(raw)
+        provider.bindToLifecycle(owner, selector, capture)
+        return capture to format
+    }
+
+    private fun newCaptureUseCase(raw: Boolean): Pair<ImageCapture, CameraFormat> =
+        if (raw) {
+            val results = CaptureResultCollector()
+            rawResults = results
+            buildRawJpegImageCapture(results) to CameraFormat.Raw
+        } else {
+            rawResults = null
+            jpegImageCapture() to CameraFormat.Jpg
+        }
+
+    /** Whether the camera [selector] names offers RAW within the operating limit, read before binding. Any failure is a no, logged. */
+    private fun rawBindableBeforeBind(provider: ProcessCameraProvider, selector: CameraSelector, facing: CameraFacing): Boolean =
+        runCatching { rawCaptureSize(mapCameraCapabilities(readCameraCapabilities(provider.getCameraInfo(selector), facing))) != null }
+            .onFailure { Log.w(TAG, "Couldn't read the camera's RAW support before binding; binding JPG.", it) }
+            .getOrDefault(false)
+            .also { ok -> if (!ok) Log.i(TAG, "RAW was asked for but this camera does not offer it within the operating limit; binding JPG.") }
+
+    /**
+     * A camera that cannot configure the RAW+JPEG streams reports it after the bind has returned
+     * (`CameraState.ERROR_STREAM_CONFIG`, read from the 1.6.2 artifact). Then the capture goes back to JPG, logged: never a
+     * dead camera. Whether a phone ever does this is device-only.
+     */
+    private fun watchForStreamConfigErrors(boundCamera: Camera, owner: LifecycleOwner) {
+        stopWatchingStreamConfig()
+        val observer = Observer<CameraState> { cameraState ->
+            if (cameraState.error?.code == CameraState.ERROR_STREAM_CONFIG && outputFormat == CameraFormat.Raw) {
+                Log.w(TAG, "The camera could not configure the RAW+JPEG streams; back to JPG.")
+                boundProvider?.let { rebindCapture(it, raw = false) }
+            }
+        }
+        boundCamera.cameraInfo.cameraState.observe(owner, observer)
+        cameraStateObserver = observer
+        observedCamera = boundCamera
+    }
+
+    private fun stopWatchingStreamConfig() {
+        val observer = cameraStateObserver ?: return
+        observedCamera?.cameraInfo?.cameraState?.removeObserver(observer)
+        cameraStateObserver = null
+        observedCamera = null
+    }
+
+    override suspend fun captureRaw(jpegDestination: File): Result<RawShot> {
+        val capture = imageCapture
+            ?: return Result.failure(IllegalStateException("The camera is not ready yet."))
+        val results = rawResults
+        val boundCamera = camera
+        if (outputFormat != CameraFormat.Raw || results == null || boundCamera == null) {
+            return Result.failure(IllegalStateException("The camera is not set up for RAW."))
+        }
+        // The shot's rotation, exactly as capture() sets it: the device's own orientation, the display only as a fallback.
+        val rotation = deviceRotation ?: previewView?.display?.rotation?.also {
+            if (!loggedDisplayFallback) {
+                loggedDisplayFallback = true
+                Log.i(TAG, "No orientation reading yet; this shot's rotation comes from the display, which is wrong if auto-rotate is off.")
+            }
+        }
+        rotation?.let { capture.targetRotation = it }
+        val intended = capture.resolutionInfo
+        Log.i(TAG, "RAW shot: deviceRotation=$rotation targetRotation=${capture.targetRotation} requestDegrees=${intended?.rotationDegrees} resolution=${intended?.resolution}")
+
+        val plane = suspendCancellableCoroutine<Result<RawPlane>> { continuation ->
+            var raw: RawPlane? = null
+            var jpegWritten = false
+            var finished = false
+            fun finish(result: Result<RawPlane>) {
+                if (finished) return
+                finished = true
+                if (continuation.isActive) continuation.resume(result)
+            }
+            capture.takePicture(
+                rawCallbackExecutor,
+                object : ImageCapture.OnImageCapturedCallback() {
+                    override fun onCaptureSuccess(image: ImageProxy) {
+                        try {
+                            when (image.format) {
+                                ImageFormat.RAW_SENSOR -> raw = copyRawPlane(image)
+                                ImageFormat.JPEG -> {
+                                    writeJpegImage(image, jpegDestination)
+                                    jpegWritten = true
+                                }
+                                else -> error("an image of format ${image.format} in a RAW+JPEG shot")
+                            }
+                        } catch (error: Exception) {
+                            Log.w(TAG, "A RAW+JPEG shot's image could not be kept.", error)
+                            finish(Result.failure(error))
+                        } finally {
+                            image.close()
+                        }
+                        val frame = raw
+                        if (frame != null && jpegWritten) finish(Result.success(frame))
+                    }
+
+                    override fun onError(exception: ImageCaptureException) {
+                        Log.w(TAG, "A RAW+JPEG capture failed; no photo was kept for it.", exception)
+                        finish(Result.failure(exception))
+                    }
+                },
+            )
+        }
+        val frame = plane.getOrElse { return Result.failure(it) }
+
+        // The JPG gets the shot's intended orientation exactly as capture()'s does, and the DNG gets the JPG's final tag
+        // (Amendment 1, item 4), when the JPG's pixels are the unrotated frame the RAW is in.
+        val dngOrientation = withContext(Dispatchers.IO) {
+            if (intended == null) {
+                Log.w(TAG, "No resolution info for this RAW shot; the JPG keeps the HAL's tag and the DNG is written upright.")
+                ExifInterface.ORIENTATION_NORMAL
+            } else {
+                rawOrientationFor(reapplyIntendedOrientation(jpegDestination, intended.rotationDegrees, intended.resolution), intended.rotationDegrees)
+            }
+        }
+
+        val result = results.await(frame.timestampNanos)
+        if (result == null) {
+            return Result.success(RawShot(dng = null, dngUnavailable = "no capture result arrived for the RAW frame at ${frame.timestampNanos}"))
+        }
+        val mapping = withContext(Dispatchers.Default) {
+            runCatching { mapRawFrame(readRawFrame(boundCamera.cameraInfo, frame, result, dngOrientation)) }
+        }.getOrElse { error -> RawFrameMapping.Unsupported("reading the frame's metadata threw ${error::class.java.simpleName}: ${error.message}") }
+        return Result.success(
+            when (mapping) {
+                is RawFrameMapping.Mapped -> {
+                    if (mapping.notes.isNotEmpty()) Log.i(TAG, "RAW shot's DNG input: ${mapping.notes.joinToString("; ")}.")
+                    RawShot(dng = mapping.image, dngUnavailable = null)
+                }
+                is RawFrameMapping.Unsupported -> RawShot(dng = null, dngUnavailable = mapping.reason)
+            },
+        )
     }
 
     private var boundHasFlashUnit: Boolean by mutableStateOf(false)
@@ -520,6 +762,65 @@ internal class CameraXCaptureSession(
         currentFlashMode = resynced
     }
 
+    override var capabilities: CameraCapabilities? by mutableStateOf(null)
+        private set
+
+    override var encoderCapabilities: EncoderCapabilities? by mutableStateOf(null)
+        private set
+
+    /** Created by [open], cancelled by [close]: the wait for the encoder line, so a closed session logs nothing more. */
+    private var probeScope: CoroutineScope? = null
+
+    /**
+     * The probe at bind (class doc). The bound camera first, then the front camera unbound when the
+     * bound one is the back and a front camera exists, then the wait for the encoders.
+     */
+    private fun probeCapabilities(provider: ProcessCameraProvider, boundCamera: Camera, facing: CameraFacing) {
+        val probeId = nextProbeId.incrementAndGet()
+        installCapabilities(probeId, mapCameraCapabilities(readCameraCapabilities(boundCamera.cameraInfo, facing)))
+        if (facing == CameraFacing.Back) {
+            runCatching {
+                if (provider.hasCamera(CameraSelector.DEFAULT_FRONT_CAMERA)) {
+                    val front = mapCameraCapabilities(readCameraCapabilities(provider.getCameraInfo(CameraSelector.DEFAULT_FRONT_CAMERA), CameraFacing.Front))
+                    front.toLogLines(probeId, bound = false).forEach { Log.i(CAMERA_PROBE_LOG_TAG, it) }
+                } else {
+                    Log.i(CAMERA_PROBE_LOG_TAG, "probe=$probeId facing=front unbound: no front camera")
+                }
+            }.onFailure { error ->
+                Log.i(CAMERA_PROBE_LOG_TAG, "probe=$probeId facing=front unbound: unknown(the front camera could not be read: ${error::class.java.simpleName}: ${error.message})")
+            }
+        }
+        probeScope?.launch {
+            // Every read inside is already caught, so this should not throw; if it ever does, it is
+            // logged here rather than reaching the uncaught-exception handler from a launch.
+            val encoders = try {
+                processEncoderProbe.await()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                Log.w(CAMERA_PROBE_LOG_TAG, "probe=$probeId facing=${facing.name.lowercase()} encoders: unknown(the encoder probe failed)", error)
+                return@launch
+            }
+            installEncoders(probeId, facing, encoders)
+        }
+    }
+
+    /**
+     * The one place a camera's probe result is installed and logged: [probeCapabilities] calls it
+     * at bind, and `CameraXCaptureSessionCapabilitiesTest` calls it directly, since Robolectric has no
+     * camera to bind. A function for the same reason as [installFlash].
+     */
+    internal fun installCapabilities(probeId: Int, probed: CameraCapabilities) {
+        capabilities = probed
+        probed.toLogLines(probeId, bound = true).forEach { Log.i(CAMERA_PROBE_LOG_TAG, it) }
+    }
+
+    /** As [installCapabilities], for the encoder result that lands later from the once-per-process read. */
+    internal fun installEncoders(probeId: Int, facing: CameraFacing, probed: EncoderCapabilities) {
+        encoderCapabilities = probed
+        Log.i(CAMERA_PROBE_LOG_TAG, probed.toLogLine(probeId, facing))
+    }
+
     /**
      * The viewfinder: a [PreviewView], and the attachment of its surface provider to the [Preview]
      * that [open] bound. Nothing else — no fetching, no binding, no listener — since the deadlock
@@ -528,11 +829,38 @@ internal class CameraXCaptureSession(
      * viewfinder as a slot precisely so a test can pass a plain `Box`.
      */
     @Composable
-    fun Viewfinder(modifier: Modifier = Modifier) {
+    fun Viewfinder(
+        modifier: Modifier = Modifier,
+        /**
+         * The camera's content is held in the device's natural frame inside a turned window (`NaturalOrientationHold`,
+         * RECORD -985). Then the picture must turn with that layer, and must be laid out for the natural frame:
+         *
+         * - **`COMPATIBLE` mode, a `TextureView`**, because a `SurfaceView` is its own surface and does not follow a
+         *   Compose layer's turn.
+         * - **`Preview.targetRotation` = `ROTATION_0`**, the natural frame. Read in camera-view 1.6.2 (sources jar):
+         *   with a target rotation specified and a `TextureView`, `PreviewView` does **not** substitute the display's
+         *   rotation (`PreviewView.java:231-239`, `mUseDisplayRotation` false), and its `TextureView` correction is
+         *   `-target` (`PreviewTransformation.java:182-193`), here 0. So it does not correct for the turned display a
+         *   second time; the layer's turn is the only one.
+         *
+         * Not held (every phone, and split screen), nothing here changes: `PERFORMANCE`, and CameraX's own target
+         * rotation. Leaving the hold puts back `PERFORMANCE` and the display's rotation. Whether the picture is the
+         * right way up on a tablet is device-only: CameraX does not run under Robolectric.
+         */
+        held: Boolean = false,
+    ) {
         val context = LocalContext.current
         val view = remember { PreviewView(context) }
+        // Keyed on whether this window could be held, not on whether it is held right now: the second flips on every
+        // portrait-landscape turn of a tablet, and each flip swapped the PreviewView's surface and restarted the camera
+        // (dispatch 2026-10-17-08). See viewfinderInNaturalFrame.
+        val naturalFrame = viewfinderInNaturalFrame(
+            held = held,
+            fullScreen = currentWindowIsFullScreen(),
+            smallestScreenWidthDp = LocalConfiguration.current.smallestScreenWidthDp,
+        )
 
-        DisposableEffect(view) {
+        DisposableEffect(view, naturalFrame) {
             previewView = view
             val bound = preview
             if (bound == null) {
@@ -540,10 +868,21 @@ internal class CameraXCaptureSession(
                 // assumed: if it ever happens, this is where the spinner-forever bug would hide.
                 Log.w(TAG, "Viewfinder composed before the camera was bound; nothing to draw into it yet.")
             } else {
+                if (naturalFrame) {
+                    // Before the surface provider: the mode is read when the next surface is requested.
+                    view.implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                    bound.targetRotation = Surface.ROTATION_0
+                    Log.i(TAG, "Viewfinder in the natural frame: COMPATIBLE, Preview targetRotation=ROTATION_0, held=$held, display=${view.display?.rotation}.")
+                }
                 bound.setSurfaceProvider(view.surfaceProvider)
+                viewfinderSurfaceAttachments++
             }
             onDispose {
                 preview?.setSurfaceProvider(null)
+                if (naturalFrame) {
+                    view.implementationMode = PreviewView.ImplementationMode.PERFORMANCE
+                    preview?.targetRotation = view.display?.rotation ?: Surface.ROTATION_0
+                }
                 previewView = null
             }
         }
@@ -557,11 +896,50 @@ internal class CameraXCaptureSession(
 }
 
 /**
- * The device rotation the camera acts on — for the controls' angle and for each shot's
- * `targetRotation` alike. With "Lock camera to portrait" off it is the sensor's reading (`null`
- * until there is one); on, it is `Surface.ROTATION_0` and the sensor is ignored. One function so
- * the setting is one gate: there is no second place where either effect could be decided
- * differently. Pure, and tested as such.
+ * The photo size the in-app camera captures at: the phone's standard size, about 12 MP, never its
+ * largest mode. The owner chose "Phone's standard size (Recommended)" (dispatch 2026-09-28-658, RECORD
+ * -655), against keeping the device's largest mode: the device reports what it can do, which is not
+ * a safe operating size (CLAUDE.md), and a 50 MP or 200 MP capture costs storage, backup size and
+ * decode memory with nothing a forager can see on a phone screen.
+ *
+ * 4032×3024 is the 12 MP 4:3 size phone cameras save by default. It is a bound, in the sensor's
+ * landscape frame as CameraX states sizes: CameraX picks the closest supported size at or below it
+ * (a phone whose standard mode is 4000×3000 gets that), and only on a camera with nothing that small
+ * the closest above it. Which size a given phone then picks is device-only and not checked here.
  */
-internal fun effectiveDeviceRotation(lockToPortrait: Boolean, sensorRotation: Int?): Int? =
-    if (lockToPortrait) Surface.ROTATION_0 else sensorRotation
+internal val STANDARD_PHOTO_SIZE = Size(4032, 3024)
+
+/** The capability probe's log tag (dispatch 2026-10-13-04): `adb logcat -s CameraProbe` shows every probe line and nothing else. */
+internal const val CAMERA_PROBE_LOG_TAG = "CameraProbe"
+
+/** Numbers each bind's probe within the process, so its lines, the front camera's and the later encoder line can be matched. */
+private val nextProbeId = AtomicInteger(0)
+
+/**
+ * The encoders, read once per process off the main thread (planner, 2026-10-14: listing the
+ * codecs is a platform query whose cost on a phone is unmeasured). Started by the first probe that
+ * asks; every later probe awaits the same result.
+ */
+private val processEncoderProbe: Deferred<EncoderCapabilities> by lazy {
+    CoroutineScope(SupervisorJob() + Dispatchers.IO).async { mapEncoderCapabilities(readEncoders()) }
+}
+
+/**
+ * Today's JPG capture, exactly as it has been built since dispatch 2026-09-28-658: minimise latency, the phone's standard
+ * photo size, never its largest mode (see [STANDARD_PHOTO_SIZE]). Moved out of [CameraXCaptureSession.open] unchanged when
+ * the RAW capture arrived beside it (dispatch 2026-10-15-01), so the JPG path's builder is one function that nothing else
+ * edits; its output is unchanged by construction.
+ */
+internal fun jpegImageCapture(): ImageCapture =
+    ImageCapture.Builder()
+        .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+        // Dispatch 2026-09-28-658: the phone's standard photo size, never its
+        // largest mode. See STANDARD_PHOTO_SIZE.
+        .setResolutionSelector(standardPhotoSizeSelector())
+        .build()
+
+/** The capture's [ResolutionSelector]: [STANDARD_PHOTO_SIZE] as the bound, the default 4:3 aspect kept. */
+internal fun standardPhotoSizeSelector(): ResolutionSelector =
+    ResolutionSelector.Builder()
+        .setResolutionStrategy(ResolutionStrategy(STANDARD_PHOTO_SIZE, ResolutionStrategy.FALLBACK_RULE_CLOSEST_LOWER_THEN_HIGHER))
+        .build()

@@ -23,11 +23,30 @@ class RecordDetailsTargetSaverTest {
     fun `every target, and no target, comes back as itself`() {
         val targets = listOf(
             RecordDetailsTarget.WaypointDetails("wp-creek"),
+            // Dispatch -616: a waypoint opened from its walk keeps the walk, colons and all.
+            RecordDetailsTarget.WaypointDetails("wp-creek", fromTrackId = "track:with:colons"),
             RecordDetailsTarget.TrackDetails("track:with:colons"),
             RecordDetailsTarget.OfflineRegionDetails(7L),
+            // Dispatch 2026-11-05-05 (A4, A9): a planned trip's card, colons and all.
+            RecordDetailsTarget.TripDetails("trip:with:colons"),
             null,
         )
         for (target in targets) assertEquals(target, roundTrip(target))
+    }
+
+    @Test
+    fun `Back from a waypoint opened from its walk returns to the walk, and from anything else closes`() {
+        assertEquals(RecordDetailsTarget.TrackDetails("t1"), RecordDetailsTarget.WaypointDetails("w1", fromTrackId = "t1").returnsTo())
+        assertEquals(null, RecordDetailsTarget.WaypointDetails("w1").returnsTo())
+        assertEquals(null, RecordDetailsTarget.TrackDetails("t1").returnsTo())
+        assertEquals(null, RecordDetailsTarget.OfflineRegionDetails(7L).returnsTo())
+        assertEquals(null, RecordDetailsTarget.TripDetails("trip-1").returnsTo())
+    }
+
+    @Test
+    fun `a saved walk waypoint with no separator fails loudly`() {
+        val error = assertThrows(IllegalStateException::class.java) { RecordDetailsTargetSaver.restore("walk-waypoint:abc") }
+        assertEquals("Not a saved record-details target: 'walk-waypoint:abc'", error.message)
     }
 
     @Test

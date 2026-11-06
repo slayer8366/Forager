@@ -16,6 +16,8 @@ package com.zynergylabs.forager.app.ui.availability
 // reached from here. Seam F (the wide layout) was released by the owner for this split, as recorded
 // in the Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -38,7 +40,6 @@ import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -72,11 +73,13 @@ import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Sighting
+import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapBubbleShell
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
@@ -87,10 +90,10 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 import kotlin.math.cos
 import kotlin.math.roundToInt
 import kotlin.math.sin
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * The map tab: the map itself takes the whole content area apart from the foraging-areas toggle
@@ -141,7 +144,7 @@ internal fun TripDatePickerDialog(
     // dialog's; it is left clear, so the dialog's one fill is what the map shows through (CLAUDE.md,
     // UX defaults: layered fills composite to the map chrome's value, they do not each carry it). The
     // dialog gives its surface `contentColorFor` of its container, which matches a colour-scheme role
-    // exactly (see `MapLayersSheet`), so the content colour is pinned to the default container's own.
+    // exactly (see `mapChromeFill`'s doc, MapChrome.kt:103-109), so the content colour is pinned to the default container's own.
     val dialogColors = DatePickerDefaults.colors(
         containerColor = mapChromeFill(navigationBarContainerColor(), overMap = true),
     )
@@ -213,13 +216,15 @@ internal fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit
     // through this exact same scaffold, is fine). The one structural difference from
     // TripDatePickerDialog left once AlertDialog vs. plain Dialog was ruled out is this property.
     // Raised only after a centre-pin pick on a map (compact and wide): always over a map. The fill at the
-    // map chrome's alpha, and its content colour pinned to the fill's own role (see `MapLayersSheet`).
+    // map chrome's alpha, and its content colour pinned to the fill's own role (see `mapChromeFill`'s doc, MapChrome.kt:103-109).
     val dialogColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val dialogContentColor = contentColorFor(navigationBarContainerColor())
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
             shape = RoundedCornerShape(Spacing.md),
-            shadowElevation = 4.dp,
+            // No shadow (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"): under the 0.8 fill it
+            // showed as a band darker than the fill inside the edges. It had 4 dp. The map-chrome hairline in its place.
+            border = mapChromeOutline(),
             color = dialogColor,
             contentColor = dialogContentColor,
             modifier = Modifier.testTag(WAYPOINT_NAME_DIALOG_TAG).mapChromeContainerColor(dialogColor),
@@ -248,8 +253,6 @@ internal fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit
     }
 }
 
-private val OBSERVATION_DATE_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("MMM d, yyyy")
-
 /**
  * Tapping a sighting dot's own detail — species name and observed date, the two facts
  * [SightingsMap]'s doc comment describes this as rebuilding from the vendor-native
@@ -277,6 +280,8 @@ internal fun ObservationBubble(
     onViewOnINaturalist: () -> Unit,
     onDismiss: () -> Unit,
     tipInBubble: State<Offset?>,
+    /** Dispatch 2026-09-28-549 (Amendment 1, RECORD -557): the Units setting, which the accuracy note follows. */
+    unitSystem: UnitSystem,
     modifier: Modifier = Modifier,
 ) {
     MapBubbleShell(
@@ -300,7 +305,7 @@ internal fun ObservationBubble(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(
-                sighting.observedOn?.format(OBSERVATION_DATE_FORMAT) ?: "Observation date unknown",
+                sighting.observedOn?.let(::displayDate) ?: "Observation date unknown",
                 style = MaterialTheme.typography.bodySmall,
             )
             Text(
@@ -308,12 +313,12 @@ internal fun ObservationBubble(
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier
-                    .clickable(onClick = onViewOnINaturalist)
+                    .clickableWithShapedPress(onClick = onViewOnINaturalist)
                     .testTag("observation-bubble-view-on-inaturalist"),
             )
         }
         Text(
-            accuracyLabel(sighting.positionalAccuracyMeters),
+            accuracyLabel(sighting.positionalAccuracyMeters, unitSystem),
             style = MaterialTheme.typography.bodySmall,
             color = LocalContentColor.current.copy(alpha = 0.7f),
             modifier = Modifier.testTag("observation-bubble-accuracy"),
@@ -327,7 +332,7 @@ internal fun ObservationBubble(
  * render identically to the unfiltered view. [label] is `"<species> (<count>)"`, computed by each
  * caller from the same [Sighting] list the map actually draws (see [MapTab]'s own doc comment on
  * `mapTaxonFilterLabel` for why it isn't read from [AvailabilityForecast] directly). Same
- * theme-aware, 80%-opacity fill as [ObservationBubble]/`MapIconBar`/`MapModePicker` — one visual
+ * theme-aware, 80%-opacity fill as [ObservationBubble]/`MapIconBar`/`MapModePicker` (removed 2026-10-19, RECORD -1392) — one visual
  * language for every control floating over the map.
  *
  * No shadow (J8 follow-ups, continuation `2026-09-28-87`, item 3; the planner's ruling, "Layered fills
@@ -359,7 +364,7 @@ internal fun TaxonMapFilterChip(label: String, onClear: () -> Unit, modifier: Mo
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false),
             )
-            IconButton(
+            BouncingIconButton(
                 onClick = onClear,
                 modifier = Modifier.size(24.dp).testTag("map-taxon-filter-clear"),
             ) {

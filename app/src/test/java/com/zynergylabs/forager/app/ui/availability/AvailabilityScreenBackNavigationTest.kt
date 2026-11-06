@@ -36,6 +36,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -184,6 +185,7 @@ class AvailabilityScreenBackNavigationTest {
             unitSystemPreferenceRepository = BackNavStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = BackNavStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(BackNavStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -195,137 +197,151 @@ class AvailabilityScreenBackNavigationTest {
             var cartographyState by remember { mutableStateOf(cartographyUiState) }
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = viewModel::useCurrentLocation,
-                onManualLatChanged = viewModel::onManualLatChanged,
-                onManualLngChanged = viewModel::onManualLngChanged,
-                onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                onRadiusChanged = viewModel::onRadiusChanged,
-                onMonthSelected = viewModel::onMonthSelected,
-                onMapTabSelected = viewModel::onMapTabSelected,
-                onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                onPlaceTripPin = viewModel::onPlaceTripPin,
-                onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
-                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
-                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
-                onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
-                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                onThemeModeChanged = viewModel::onThemeModeChanged,
-                isRecording = isReturning,
-                isReturning = isReturning,
-                onToggleReturning = onToggleReturning,
-                navigationTarget = if (isReturning) {
-                    com.zynergylabs.forager.app.domain.model.Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1L, trackId = "t1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.ORIGIN)
-                } else {
-                    null
-                },
-                logUiState = logState,
-                onStartLogEntry = { location, date ->
-                    // Workstream L4b: a brand-new entry is a draft, never added to entries at
-                    // creation (owner decision #6) — see MushroomLogViewModel.onStartNewEntry's own
-                    // doc comment.
-                    logState = logState.copy(
-                        editingEntry = com.zynergylabs.forager.app.domain.model.MushroomLogEntry.draft(
-                            id = "started-entry",
-                            location = location,
-                            date = date,
-                        ),
-                    )
-                },
-                onOpenLogEntry = { id -> logState = logState.copy(editingEntry = logState.entries.first { it.id == id }) },
-                onCloseLogEntry = { logState = logState.copy(editingEntry = null) },
-                onLeaveLogEntryEditingIncidentally = {
-                    // Workstream L4b: leaving without answering (the back arrow, here) auto-saves
-                    // and closes the entry — see MushroomLogViewModel.onLeaveEditingIncidentally's
-                    // own doc comment.
-                    logState.editingEntry?.let { current ->
-                        val committed = current.copy(isDraft = false)
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = viewModel::useCurrentLocation,
+                    onManualLatChanged = viewModel::onManualLatChanged,
+                    onManualLngChanged = viewModel::onManualLngChanged,
+                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                    onRadiusChanged = viewModel::onRadiusChanged,
+                    onMonthSelected = viewModel::onMonthSelected,
+                    onMapTabSelected = viewModel::onMapTabSelected,
+                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = viewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
+                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = viewModel::onThemeModeChanged,
+                ),
+                recording = AvailabilityScreenRecording(
+                    isRecording = isReturning,
+                ),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = isReturning,
+                    onToggleReturning = onToggleReturning,
+                    navigationTarget = if (isReturning) {
+                        com.zynergylabs.forager.app.domain.model.Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1L, trackId = "t1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.ORIGIN)
+                    } else {
+                        null
+                    },
+                ),
+                findsLog = AvailabilityScreenFindsLog(
+                    logUiState = logState,
+                    onStartLogEntry = { location, date ->
+                        // Workstream L4b: a brand-new entry is a draft, never added to entries at
+                        // creation (owner decision #6) — see MushroomLogViewModel.onStartNewEntry's own
+                        // doc comment.
                         logState = logState.copy(
-                            entries = if (logState.entries.any { it.id == committed.id }) {
-                                logState.entries.map { if (it.id == committed.id) committed else it }
-                            } else {
-                                logState.entries + committed
-                            },
+                            editingEntry = com.zynergylabs.forager.app.domain.model.MushroomLogEntry.draft(
+                                id = "started-entry",
+                                location = location,
+                                date = date,
+                            ),
+                        )
+                    },
+                    onOpenLogEntry = { id -> logState = logState.copy(editingEntry = logState.entries.first { it.id == id }) },
+                    onCloseLogEntry = { logState = logState.copy(editingEntry = null) },
+                    onLeaveLogEntryEditingIncidentally = {
+                        // Workstream L4b: leaving without answering (the back arrow, here) auto-saves
+                        // and closes the entry — see MushroomLogViewModel.onLeaveEditingIncidentally's
+                        // own doc comment.
+                        logState.editingEntry?.let { current ->
+                            val committed = current.copy(isDraft = false)
+                            logState = logState.copy(
+                                entries = if (logState.entries.any { it.id == committed.id }) {
+                                    logState.entries.map { if (it.id == committed.id) committed else it }
+                                } else {
+                                    logState.entries + committed
+                                },
+                                editingEntry = null,
+                            )
+                        }
+                    },
+                ),
+                journalEntries = AvailabilityScreenJournalEntries(
+                    cartographyUiState = cartographyState,
+                    onOpenCartographyEntry = { id ->
+                        cartographyState = cartographyState.copy(
+                            editingEntry = cartographyState.entries.firstOrNull { it.id == id } ?: cartographyState.draftEntries.firstOrNull { it.id == id },
+                        )
+                    },
+                    onStartCartographyEntry = { date ->
+                        val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
+                        cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
+                    },
+                    onCloseCartographyEntry = {
+                        cartographyState.editingEntry?.let { current ->
+                            cartographyState = cartographyState.copy(
+                                entries = if (!current.isDraft && cartographyState.entries.any { it.id == current.id }) {
+                                    cartographyState.entries.map { if (it.id == current.id) current else it }
+                                } else {
+                                    cartographyState.entries
+                                },
+                            )
+                        }
+                        cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
+                    },
+                    onCartographyTextChanged = { text ->
+                        cartographyState.editingEntry?.let { current ->
+                            val edited = current.copy(text = text)
+                            cartographyState = cartographyState.copy(editingEntry = edited, hasUnsavedChanges = cartographyState.hasUnsavedChanges || !edited.isDraft)
+                        }
+                    },
+                    onFinishCartographyEntry = {
+                        cartographyState.editingEntry?.let { current ->
+                            val committed = current.copy(isDraft = false)
+                            cartographyState = cartographyState.copy(
+                                entries = cartographyState.entries + committed,
+                                draftEntries = cartographyState.draftEntries.filterNot { it.id == committed.id },
+                                editingEntry = committed,
+                            )
+                        }
+                    },
+                    onSaveCartographyEntry = {
+                        cartographyState.editingEntry?.let { current ->
+                            cartographyState = cartographyState.copy(
+                                entries = if (cartographyState.entries.any { it.id == current.id }) {
+                                    cartographyState.entries.map { if (it.id == current.id) current else it }
+                                } else {
+                                    cartographyState.entries + current
+                                },
+                                hasUnsavedChanges = false,
+                            )
+                        }
+                    },
+                    onDiscardCartographyEntryChanges = { cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false) },
+                    onSaveCartographyEntryAsDraft = {
+                        cartographyState.editingEntry?.let { current ->
+                            val demoted = current.copy(isDraft = true)
+                            cartographyState = cartographyState.copy(
+                                entries = cartographyState.entries.filterNot { it.id == demoted.id },
+                                draftEntries = cartographyState.draftEntries + demoted,
+                            )
+                        }
+                        cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
+                    },
+                    onDeleteCartographyEntry = { id ->
+                        cartographyState = cartographyState.copy(
+                            entries = cartographyState.entries.filterNot { it.id == id },
+                            draftEntries = cartographyState.draftEntries.filterNot { it.id == id },
                             editingEntry = null,
                         )
-                    }
-                },
-                cartographyUiState = cartographyState,
-                onOpenCartographyEntry = { id ->
-                    cartographyState = cartographyState.copy(
-                        editingEntry = cartographyState.entries.firstOrNull { it.id == id } ?: cartographyState.draftEntries.firstOrNull { it.id == id },
-                    )
-                },
-                onStartCartographyEntry = { date ->
-                    val started = CartographyEntry.draft(id = "new-cartography-entry", date = date, updatedAtEpochMillis = 0L)
-                    cartographyState = cartographyState.copy(editingEntry = started, draftEntries = cartographyState.draftEntries + started)
-                },
-                onCloseCartographyEntry = {
-                    cartographyState.editingEntry?.let { current ->
-                        cartographyState = cartographyState.copy(
-                            entries = if (!current.isDraft && cartographyState.entries.any { it.id == current.id }) {
-                                cartographyState.entries.map { if (it.id == current.id) current else it }
-                            } else {
-                                cartographyState.entries
-                            },
-                        )
-                    }
-                    cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
-                },
-                onCartographyTextChanged = { text ->
-                    cartographyState.editingEntry?.let { current ->
-                        val edited = current.copy(text = text)
-                        cartographyState = cartographyState.copy(editingEntry = edited, hasUnsavedChanges = cartographyState.hasUnsavedChanges || !edited.isDraft)
-                    }
-                },
-                onFinishCartographyEntry = {
-                    cartographyState.editingEntry?.let { current ->
-                        val committed = current.copy(isDraft = false)
-                        cartographyState = cartographyState.copy(
-                            entries = cartographyState.entries + committed,
-                            draftEntries = cartographyState.draftEntries.filterNot { it.id == committed.id },
-                            editingEntry = committed,
-                        )
-                    }
-                },
-                onSaveCartographyEntry = {
-                    cartographyState.editingEntry?.let { current ->
-                        cartographyState = cartographyState.copy(
-                            entries = if (cartographyState.entries.any { it.id == current.id }) {
-                                cartographyState.entries.map { if (it.id == current.id) current else it }
-                            } else {
-                                cartographyState.entries + current
-                            },
-                            hasUnsavedChanges = false,
-                        )
-                    }
-                },
-                onDiscardCartographyEntryChanges = { cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false) },
-                onSaveCartographyEntryAsDraft = {
-                    cartographyState.editingEntry?.let { current ->
-                        val demoted = current.copy(isDraft = true)
-                        cartographyState = cartographyState.copy(
-                            entries = cartographyState.entries.filterNot { it.id == demoted.id },
-                            draftEntries = cartographyState.draftEntries + demoted,
-                        )
-                    }
-                    cartographyState = cartographyState.copy(editingEntry = null, hasUnsavedChanges = false)
-                },
-                onDeleteCartographyEntry = { id ->
-                    cartographyState = cartographyState.copy(
-                        entries = cartographyState.entries.filterNot { it.id == id },
-                        draftEntries = cartographyState.draftEntries.filterNot { it.id == id },
-                        editingEntry = null,
-                    )
-                },
+                    },
+                ),
                 compassProvider = BackNavFakeCompassProvider,
                 mapSlot = BackNavStubMapSlot,
             )
@@ -344,12 +360,12 @@ class AvailabilityScreenBackNavigationTest {
      * one call reach the real, live button again.
      */
     private fun searchAReferenceRegion() {
-        // The bar's tap opens "Advanced search" and "Enter coordinates manually" expanded (owner,
-        // continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
+        // Latitude and Longitude are the dropdown's first row, with no fold (dispatch
+        // 2026-09-28-697), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.3736")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
@@ -522,7 +538,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Records").performClick()
         // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab.
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
 
         pressBack()
@@ -530,7 +546,7 @@ class AvailabilityScreenBackNavigationTest {
         // Back on the gallery (JournalTab's `when` mounts only one at a time, so the edit form is
         // fully unmounted, not merely hidden), and still on the Journal tab — not bounced to Maps.
         composeRule.onNodeWithText("Photos").assertDoesNotExist()
-        composeRule.onNodeWithContentDescription("New log entry").assertIsDisplayed()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.FINDS_FAB_TAG).assertIsDisplayed()
     }
 
     // --- Back-nav-and-save-flow dispatch, Items 1-3: Cartography's own back-navigation gap -------
@@ -604,30 +620,38 @@ class AvailabilityScreenBackNavigationTest {
      * `AvailabilityViewModel`, which reaches a real `LocationProvider` this fixture deliberately
      * stubs to error (see [BackNavUnusedLocationProvider]) — unrelated to what this test is proving,
      * so it picks the chip that doesn't touch it.
+     *
+     * Retargeted by RECORD -871 (the owner: "Back to Finds, then out (Recommended)"): the fixed target is Finds, the
+     * default since RECORD -868. Rewritten for it: the test was "… steps to All before leaving Records" and asserted
+     * the All chip selected after Back; it now asserts the Finds chip.
      */
     @Test
-    fun `back on a single-type Records chip steps to All before leaving Records`() {
+    fun `back on another Records chip steps to Finds before leaving Records`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performClick()
-        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertIsDisplayed()
 
         pressBack()
 
-        // Still on Records, now on All — not bounced out to Cartography or Maps.
-        composeRule.onNodeWithText("No recorded tracks yet.").assertDoesNotExist()
-        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
+        // Still on Records, now on Finds — not bounced out to Cartography or Maps.
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertDoesNotExist()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).assertIsSelected()
         composeRule.onNodeWithText("Records").assertIsSelected()
     }
 
-    /** The top-tab layer: back from Records' own default chip, All (nothing left within Records to unwind), steps to Cartography — still inside the Journal, not out to Maps. */
+    /**
+     * The top-tab layer: back from Records' own default chip (nothing left within Records to unwind) steps to
+     * Cartography — still inside the Journal, not out to Maps. The default is Finds since RECORD -868; rewritten for
+     * it: the precondition asserted the All chip selected on opening Records, and now asserts Finds.
+     */
     @Test
     fun `back on Records' default chip steps to Cartography before leaving the Journal`() {
         setScreen()
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
-        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.ALL)).assertIsSelected()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).assertIsSelected()
 
         pressBack()
 
@@ -1050,7 +1074,7 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Records").performClick()
         // J1 S3: the Finds filter chip replaced the "Logged Finds" sub-tab.
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).performClick()
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).assertDoesNotExist()
 
@@ -1147,7 +1171,7 @@ class AvailabilityScreenBackNavigationTest {
 
 private val BackNavStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Button(onClick = { onCameraIdle(LatLng(45.326, -122.634)) }) { Text("Simulate pan to test location") }
+        Button(onClick = { onCameraIdle(LatLng(45.3736, -121.6959)) }) { Text("Simulate pan to test location") }
     }
 }
 

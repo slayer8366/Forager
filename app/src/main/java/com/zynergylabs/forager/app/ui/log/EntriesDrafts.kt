@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -9,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -80,6 +80,7 @@ internal fun DraftsListScreen(
     /** The user's distance unit, for a card's track stat (J3, C1: the shared list's cards need it). */
     distanceUnit: DistanceUnit,
     columns: Int,
+    modifier: Modifier = Modifier,
     /** For a draft card's hero photo (J3, C2), as on the timeline. */
     galleryPhotos: List<GalleryPhoto> = emptyList(),
     /** For a draft card's track thumbnail (J3, C3), as on the timeline. */
@@ -92,14 +93,13 @@ internal fun DraftsListScreen(
     onEditDraft: ((String) -> Unit)? = null,
     /** J5, L4: sideways cards with the long-press menu, in a short window. See [CartographyEntryListScreen]. */
     sideways: Boolean = false,
-    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.testTag(DRAFTS_LIST_TAG)) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onBack, modifier = Modifier.testTag(DRAFTS_LIST_BACK_TAG)) {
+            BouncingIconButton(onClick = onBack, modifier = Modifier.testTag(DRAFTS_LIST_BACK_TAG)) {
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Entries")
             }
             Text("Unfinished entries", style = MaterialTheme.typography.titleMedium)

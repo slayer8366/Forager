@@ -1,18 +1,15 @@
 package com.zynergylabs.forager.app
 
 import android.app.Application
-import android.os.Build
 import android.util.Log
-import com.zynergylabs.forager.app.crash.CrashUncaughtExceptionHandler
+import com.zynergylabs.forager.app.alert.cancelRecordingAlerts
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependencies
 import com.zynergylabs.forager.app.data.backup.ScheduledBackupDependenciesProvider
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.RunScheduledBackupUseCase
 import com.zynergylabs.forager.app.domain.ScheduledBackupReporter
-import com.zynergylabs.forager.app.diagnostics.DebugDiagnostics
 import com.zynergylabs.forager.app.export.TrackGpxExporter
 import com.zynergylabs.forager.app.map.initializeMapLibre
-import com.zynergylabs.forager.app.map.installMapHttpClient
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -20,15 +17,6 @@ import kotlinx.coroutines.launch
 
 class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
     lateinit var container: AppContainer
-        private set
-
-    /**
-     * The debug build's observation surface (StrictMode into a file, the sweep's count); a no-op
-     * object in release, by build-type source set rather than by branch — see the two
-     * [DebugDiagnostics] classes. Installed first, before [container] is built, so what it observes
-     * is the whole process from the first line of this method, not the part after startup.
-     */
-    lateinit var diagnostics: DebugDiagnostics
         private set
 
     /**
@@ -50,17 +38,30 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
     override fun onCreate() {
         super.onCreate()
         val startedAt = System.currentTimeMillis()
-        diagnostics = DebugDiagnostics.install(this)
         // The start time goes to the container for the abandoned-track sweep's cut-off (dispatch
         // 2026-09-28-400, Amendment 3, Part 3b). Taken above, before anything else runs. The sweep
         // itself is not launched here: nothing in onCreate queries the database. See
         // AbandonedTrackSweepOnce for what launches it and why.
         container = AppContainer(this, processStartedAtEpochMillis = startedAt)
-        installCrashHandler()
         initializeMapLibreAtStart()
-        installMapHttpClientAtStart()
         sweepOrphanedCaptures(startedAt)
         deleteStaleGpxExports()
+        clearStaleRecordingAlerts()
+    }
+
+    /**
+     * A process killed mid-recording never runs the service's `onDestroy`, so its sundown, back-by or
+     * off-track alert can stay in the shade (RECORD -800: the owner, on clearing on kill, "Yes, add it now
+     * (Recommended)"). A new process has no recording, so any such alert here is left from one that has
+     * ended. Chosen over the service's next start, which a killed recording may never get: every way back
+     * into the app (the screen, a sticky restart, an alarm, a notification action) starts the process.
+     */
+    private fun clearStaleRecordingAlerts() {
+        try {
+            cancelRecordingAlerts(this)
+        } catch (e: Exception) {
+            Log.w(TAG, "Alerts left from an ended recording could not be taken down at start.", e)
+        }
     }
 
     /**
@@ -70,6 +71,8 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
      * retries on the next call, so it is caught here only so a device where it fails still starts;
      * under Robolectric the native library cannot load, so every unit test that boots this class
      * logs that failure once (an earlier attempt at this call was reverted for throwing there).
+     * The map's HTTP client is installed inside [initializeMapLibre], only once MapLibre is ready
+     * (dispatch 2026-10-18-04); it is no longer a separate start-up step that could run first.
      */
     private fun initializeMapLibreAtStart() {
         try {
@@ -80,34 +83,6 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
             // The native library did not load (always, under Robolectric). Already logged by the initializer.
             Log.w(TAG, "MapLibre was not initialised at application start; later callers will retry.")
         }
-    }
-
-    /**
-     * Gives MapLibre the client that identifies the app to tile servers (dispatch 2026-09-28-325),
-     * after [initializeMapLibreAtStart] because installing it loads a class that needs MapLibre's
-     * application context. A failure is logged here, not swallowed, and leaves MapLibre on its
-     * default client (the library's own User-Agent), so the map still works.
-     */
-    private fun installMapHttpClientAtStart() {
-        try {
-            installMapHttpClient()
-        } catch (e: Exception) {
-            Log.w(TAG, "The map's HTTP client was not installed; tiles go out with MapLibre's default User-Agent.", e)
-        } catch (e: LinkageError) {
-            Log.w(TAG, "The map's HTTP client was not installed; tiles go out with MapLibre's default User-Agent.", e)
-        }
-    }
-
-    /**
-     * See [CrashUncaughtExceptionHandler]'s own doc comment for why this exists. Captures the
-     * platform's current default handler before replacing it, so this one can chain to it after
-     * writing a trace — process-death behavior is unchanged from before this method existed.
-     */
-    private fun installCrashHandler() {
-        val previousHandler = Thread.getDefaultUncaughtExceptionHandler()
-        Thread.setDefaultUncaughtExceptionHandler(
-            CrashUncaughtExceptionHandler(container.crashFileStore, Build.VERSION.SDK_INT, previousHandler),
-        )
     }
 
     /**
@@ -122,8 +97,6 @@ class ForagerApplication : Application(), ScheduledBackupDependenciesProvider {
         applicationScope.launch {
             val deleted = container.cameraCaptureFiles.sweepOrphans(processStartedAtMillis)
             if (deleted > 0) Log.i(TAG, "Deleted $deleted orphaned capture file(s) left by an earlier process.")
-            // The same number, somewhere a phone with no logcat can read it (debug builds only).
-            diagnostics.recordSweep(deleted)
         }
     }
 

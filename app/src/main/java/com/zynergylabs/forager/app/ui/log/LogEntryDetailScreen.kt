@@ -1,5 +1,11 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.pressBounce
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.ListRowShape
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
+import androidx.compose.runtime.key
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.indication
@@ -51,6 +57,10 @@ import com.zynergylabs.forager.app.domain.model.LogPhoto
 import com.zynergylabs.forager.app.domain.model.MushroomLogEntry
 import com.zynergylabs.forager.app.domain.model.PhotoSource
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.platform.testTag
+import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
  * The entry's detail/edit form — one screen for both, since [entry] is already persisted by the
@@ -110,6 +120,7 @@ internal fun LogEntryDetailScreen(
     onCancel: () -> Unit,
     onDeleteEntry: () -> Unit,
     onBack: () -> Unit,
+    modifier: Modifier = Modifier,
     /**
      * Reports [PhotoAcquisitionLaunchers.isAcquisitionInFlight] up whenever it changes — device-check
      * patch, Items 2/3 — so a caller several layers up (`AvailabilityScreen`'s own ON_STOP hook) can
@@ -119,7 +130,6 @@ internal fun LogEntryDetailScreen(
      * don't need to pass one just to compile.
      */
     onPhotoAcquisitionInFlightChanged: (Boolean) -> Unit = {},
-    modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
         Row(
@@ -142,21 +152,26 @@ internal fun LogEntryDetailScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                IconButton(onClick = onBack) {
+                BouncingIconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
                 }
+                // Data part D (RECORD -703, "Match the tile"): the find's title by the tile's rule ([findTitle]), blank when it has
+                // none, with the tile's screen-reader label.
+                val title = findTitle(entry, is24HourClock())
+                val blankLabel = findBlankTitleLabel(entry)
                 Text(
-                    "Find on ${entry.foundOn}",
+                    title ?: "",
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f, fill = false),
+                    modifier = Modifier.weight(1f, fill = false).testTag(FIND_PAGE_TITLE_TAG)
+                        .then(if (title == null) Modifier.semantics { contentDescription = blankLabel } else Modifier),
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextButton(onClick = onCancel) { Text("Cancel") }
                 Button(onClick = onSave) { Text("Save", maxLines = 1, softWrap = false) }
-                IconButton(onClick = onDeleteEntry) {
+                BouncingIconButton(onClick = onDeleteEntry) {
                     Icon(Icons.Filled.Delete, contentDescription = "Delete this entry")
                 }
             }
@@ -260,7 +275,11 @@ private fun PhotosSection(
             // bottom nav before landing here.
             Button(onClick = onPullPhoto) { Text("From Album") }
         }
-        if (photos.isNotEmpty()) {
+        // Motion Part 3, Amendment 1 (RECORD -681: "Every list's rows close up and grow in"; scout F7): a removed photo fades and
+        // shrinks in place and an added one fades and grows in (motion/ListMotion.kt). The row then reflows at once: a FlowRow has no
+        // placement glide, so the others jump to their new places after the removed one has gone (reported as a stop).
+        val photoRows = rememberListRows(photos, key = { it.id })
+        if (photoRows.isNotEmpty()) {
             // fillMaxWidth is load-bearing here, not decorative: without it this FlowRow sizes to
             // wrap its own content (the thumbnails plus their spacing) with no leftover width for
             // horizontalArrangement's Alignment.CenterHorizontally to center within, so the group
@@ -269,12 +288,16 @@ private fun PhotosSection(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
             ) {
-                photos.forEach { photo ->
-                    LogPhotoThumbnail(
-                        photo = photo,
-                        onOpen = { viewingPhotoId = photo.id },
-                        onRemove = { onRemovePhoto(photo) },
-                    )
+                photoRows.forEach { row ->
+                    key(row.key) {
+                        ListRowMotion(row, shape = ListRowShape.TILE) { photo ->
+                            LogPhotoThumbnail(
+                                photo = photo,
+                                onOpen = { viewingPhotoId = photo.id },
+                                onRemove = { onRemovePhoto(photo) },
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -353,6 +376,8 @@ private fun LogPhotoThumbnail(photo: LogPhoto, onOpen: () -> Unit, onRemove: () 
             Box(
                 modifier = Modifier
                     .size(REMOVE_GLYPH_SCRIM_SIZE_DP.dp)
+                    // Amendment 1 to dispatch -652 (RECORD -657, "Every icon button"): the glyph bounces; the square touch box does not move.
+                    .pressBounce(removeInteraction)
                     .clip(CircleShape)
                     .indication(removeInteraction, ripple())
                     .background(MaterialTheme.colorScheme.scrim.copy(alpha = REMOVE_GLYPH_SCRIM_ALPHA)),

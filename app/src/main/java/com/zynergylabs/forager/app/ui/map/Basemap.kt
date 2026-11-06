@@ -1,27 +1,11 @@
 package com.zynergylabs.forager.app.ui.map
 
 /**
- * Where a basemap has tiles, and what to tell the user when the answer isn't "everywhere".
- *
- * [note] is non-null only for a limited-coverage basemap, so the UI has nothing to say — and says
- * nothing — about one that works anywhere. The limit is stated rather than detected: see
- * [Basemap]'s doc comment for why blank-tile detection was rejected.
- */
-enum class BasemapCoverage(val note: String?) {
-    WORLDWIDE(null),
-
-    UNITED_STATES_ONLY(
-        "United States only. Outside the US this basemap has no tiles and the map will come up " +
-            "empty — switch to OpenStreetMap or OpenTopoMap there.",
-    ),
-}
-
-/**
  * The basemaps the map can draw its tiles from, as this project's own type rather than a vendor's.
  *
  * This is the [MapSlot] idea one level down: the choice a user makes is described here in pure
  * Kotlin — no MapLibre, no Compose, no Android — and [styleJsonFor] (in `BasemapStyles.kt`) is the
- * single place that turns it into a MapLibre `Style`. So the coverage notes and the zoom ceilings
+ * single place that turns it into a MapLibre `Style`. So the zoom ceilings and credits
  * are all unit-testable headless (see `BasemapTest`); the vendor type stays behind one function
  * (`BasemapStyleTest` checks the style each entry actually produces).
  *
@@ -51,27 +35,23 @@ enum class BasemapCoverage(val note: String?) {
  *
  * ## How a basemap actually gets chosen
  *
- * Not from this enum directly. [MapMode] names exactly three — Street and Topographical (both
- * OpenStreetMap-derived), Satellite (USGS) — picked from the map's own quick-fire "Map Mode"
- * control, [MapModePicker]. See [MapMode]'s own doc comment for the full picture, including what
- * this superseded (a two-tier service/mode split, and PR #13's original USGS Topo default).
+ * Not from this enum directly. [MapMode] names three since dispatch 2026-10-22-01 (RECORD -1554, -1556): Trail
+ * ([FORAGER_TRAIL], the app's own vector map), Topo and Street, picked from the map type panel the Layers button opens (`MapTypePanel`; the Layers sheet's "Map type" row until 2026-10-28) or the
+ * map's own quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392). See [MapMode]'s own doc comment for the full picture,
+ * including what this superseded (a two-tier service/mode split, and PR #13's original USGS Topo
+ * default), and for how the choice persists across restarts.
  *
- * **USGS National Map covers the United States only**, which is why it cannot be a hardcoded
- * default regardless of which type resolves it: that would break the map outright for any user
- * outside the US. Two alternatives to stating the limit outright were rejected:
+ * ## Satellite was removed (dispatch 2026-09-28-708)
  *
- * - **Auto-detecting coverage and falling back to OpenStreetMap.** Blank-tile detection is
- *   unreliable, and CLAUDE.md forbids an unlogged silent fallback. Worse, the failure here is not
- *   even blank tiles: the service answers **HTTP 404** outside the US (measured — see
- *   `scripts/verify-usgs-basemap.sh`), which a raster loader reports as a missing tile
- *   indistinguishable from a network failure or a not-yet-loaded tile. A heuristic on top of that
- *   would be invented, not derived.
- * - **Picking by device locale or GPS position.** Both guess at the answer, and both switch the map
- *   out from under the user without being asked. The user chooses; nothing switches behind their
- *   back.
- *
- * So the coverage limit is carried as [BasemapCoverage] text shown next to the choice, which is
- * what the app can honestly say: it knows the documented limit, it cannot detect the boundary.
+ * `USGS_IMAGERY_ONLY` (USGS The National Map's orthoimagery, shown as "Satellite") was deleted with
+ * everything that existed only for it: its night-paint exemption in `BasemapStyles.kt`, its credit,
+ * its chip, and the United-States-only coverage note it was the last user of. The owner: "I'm also
+ * wondering about what would be lost if I removed satellite view from the maps and leave it at Topo
+ * + street view. Satellite loses quality fast and is less useful when zoomed in", then "Remove now,
+ * revisit later (Recommended)". **To be revisited once the forecast's habitat layers are on the
+ * map.** Anyone who had Satellite chosen is moved to Topographical ("Topo (Recommended)"); see
+ * [MapMode.forStoredKey]. Its service facts (real tiles through z16, 404 from z17 and outside the
+ * US) are in git history and in `scripts/verify-usgs-basemap.sh`, for whoever revisits it.
  *
  * ## [maxZoom] is an operating limit, not a reported range
  *
@@ -84,7 +64,8 @@ enum class BasemapCoverage(val note: String?) {
  * `setTileSource` + `setMaxZoomLevel` did for osmdroid, now split the same way MapLibre's own API
  * splits it (declared-in-source vs. camera-preference).
  *
- * The USGS figure is a case study in why the rule exists. Three sources disagree:
+ * The USGS figure is a case study in why the rule exists (USGS left the app with Satellite, see above;
+ * the case is kept as the reason the rule is applied to the two that remain). Three sources disagree:
  *
  * - The service's own metadata (`MapServer?f=json`) advertises `tileInfo.lods` up to level **23**.
  * - Requesting tiles directly returns 200 with a JPEG body through **z16** and **404 from z17** —
@@ -106,73 +87,99 @@ enum class BasemapCoverage(val note: String?) {
  * crediting neither The National Map nor the public-domain status, which is why [attribution] here
  * carries the fuller line instead of trusting that string. MapLibre has its own on-map affordance
  * (`UiSettings.isAttributionEnabled`, an "i" icon that opens a dialog built from each source's own
- * `attribution` field in the style JSON — `BasemapStyles.kt` sets it to this same [attribution]
- * string) but that is tap-to-reveal, not always-drawn the way `CopyrightOverlay` was. [SightingsMap]
+ * `attribution` field in the style JSON — `BasemapStyles.kt` sets it to [fullAttribution], which is
+ * this same [attribution] string except where the full form would wrap the caption) but that is tap-to-reveal, not always-drawn the way `CopyrightOverlay` was. [SightingsMap]
  * therefore also renders [attribution] as a small always-visible Compose caption over the map,
  * so the always-drawn guarantee this app relied on for USGS/ODbL credit doesn't quietly become
  * tap-to-reveal-only as a side effect of the renderer swap.
  */
-enum class Basemap(
+class Basemap internal constructor(
+    /** A stable name for logs and test tags, as an enum's `name` was before dispatch 2026-11-03-05 D7. */
+    val name: String,
     val label: String,
     val description: String,
-    val coverage: BasemapCoverage,
     /** The highest zoom this app will let the user reach on this basemap. See the class doc. */
     val maxZoom: Int,
     val attribution: String,
     /**
      * The raw `{z}`/`{x}`/`{y}` tile URL template MapLibre substitutes into, per basemap.
      *
-     * The USGS pair use ArcGIS's `tile/{z}/{y}/{x}` — row before column — not the `{z}/{x}/{y}` the
-     * other two use. Getting that backwards is the failure mode worth naming: transposed
-     * coordinates return a perfectly valid tile from the wrong place on Earth, so the map looks
-     * like it works. `BasemapStyleTest` pins the built URL for a known tile the same way
-     * `BasemapTileSourceTest` did for osmdroid, and `scripts/verify-usgs-basemap.sh` is the live
-     * check that this exact shape serves a real JPEG.
+     * Both remaining basemaps use `{z}/{x}/{y}`. The removed USGS basemaps used ArcGIS's
+     * `tile/{z}/{y}/{x}` — row before column — which is the failure mode worth naming for any
+     * basemap added back: transposed coordinates return a perfectly valid tile from the wrong place
+     * on Earth, so the map looks like it works. `BasemapStyleTest` pins the built URL for a known
+     * tile.
      */
     internal val tileUrlTemplate: String,
-) {
     /**
-     * Pure aerial orthoimagery, no topo labels drawn over it — the "other one," per the project
-     * owner's own distinction from [USGS_IMAGERY_TOPO]'s look (deleted alongside [USGS_TOPO]; see
-     * [MapMode]'s own doc comment for why neither is reachable any more). Confirmed live: real
-     * JPEGs through z16, 404 from z17, 404 outside the US — the same behaviour this project already
-     * verified for its USGS siblings before they were removed, via the same three-part check
-     * `scripts/verify-usgs-basemap.sh` runs.
+     * The credit as its source asks for it, for MapLibre's tap-to-reveal attribution: `BasemapStyles.kt` writes it
+     * into each style source's `attribution`, which is what that dialog lists. [attribution] is the always-visible
+     * caption's line. They differ only where the full form would wrap the caption (dispatch 2026-10-18-04, item 3,
+     * the owner's "option c"); otherwise this is [attribution].
      */
-    USGS_IMAGERY_ONLY(
-        label = "USGS Satellite",
-        description = "Aerial orthoimagery, no labels. Public domain.",
-        coverage = BasemapCoverage.UNITED_STATES_ONLY,
-        maxZoom = 15,
-        attribution = "USGS The National Map, orthoimagery — public domain",
-        tileUrlTemplate = "https://basemap.nationalmap.gov/arcgis/rest/services/USGSImageryOnly/MapServer/tile/{z}/{y}/{x}",
-    ),
-
-    OPEN_TOPO_MAP(
-        label = "OpenTopoMap",
-        description = "Topographic contours and hillshading, worldwide.",
-        coverage = BasemapCoverage.WORLDWIDE,
-        maxZoom = 17,
-        // Shortened from "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)" -- the
-        // full form wrapped to two lines over the always-visible caption (see SightingsMap.kt),
-        // covering more of the map than a credit line should. Still names all three required
-        // credits (OpenStreetMap, SRTM, OpenTopoMap's CC-BY-SA), just without the "contributors"
-        // qualifier and the " | " separator.
-        attribution = "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
-        tileUrlTemplate = "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
-    ),
-
-    OSM_STANDARD(
-        label = "OpenStreetMap",
-        description = "The standard street map: roads, paths and buildings.",
-        coverage = BasemapCoverage.WORLDWIDE,
-        maxZoom = 19,
-        attribution = "© OpenStreetMap contributors",
-        tileUrlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    ),
-    ;
+    val fullAttribution: String = attribution,
+    /**
+     * Whether this basemap is a raster tile service, drawn from [tileUrlTemplate] by `styleJsonFor`. Every entry is,
+     * except [FORAGER_TRAIL], which is a vector style loaded by URL; where a raster stands in for it (the -1513
+     * fallback), `BasemapStyles.kt`'s `rasterDrawn` names which.
+     */
+    val isRaster: Boolean = true,
+) {
+    override fun toString(): String = name
 
     companion object {
+        /**
+         * Forager Trail Map: the app's own vector map, the style the owner's mapping Worker serves at
+         * `TRAIL_STYLE_URL` (dispatch 2026-10-22-01, RECORD -1554, -1556). The default map type, and the only one
+         * offline downloads are made in.
+         *
+         * **Why it is a [Basemap] entry at all** (Amendment 2 left the model to the coder). Every map in the app is
+         * handed a [Basemap], and [MapMode] and [Basemap] are one to one ([MapMode.forBasemap], used by the Journal's map;
+         * [DEFAULT], used by every map that is given none). Trail Map and OpenStreetMap are now both always offered, so
+         * they cannot share one entry as the two "Street" maps did behind the release switch; an entry of its own keeps
+         * that one-to-one and needs no new parameter through the 26 places a [Basemap] is passed. Rejected: passing
+         * [MapMode] down instead, which would change every one of those signatures, `MapRenderMode` included, for the
+         * same information. The cost of this choice is that this entry is not a raster ([isRaster] `false`): the raster
+         * style builders never draw it directly, and its [tileUrlTemplate] is the Worker's vector tile URL, recorded as
+         * the fact it is, never put in a raster source.
+         *
+         * [maxZoom] is the owner's 18 (-1289); [attribution] is the Protomaps credit the offline style carries.
+         */
+        val FORAGER_TRAIL = Basemap(
+            name = "FORAGER_TRAIL",
+            label = "Forager Trail Map",
+            description = "Forager's own trail map, and the one offline areas are downloaded in.",
+            maxZoom = com.zynergylabs.forager.app.map.TRAIL_STYLE_MAX_ZOOM,
+            attribution = com.zynergylabs.forager.app.map.TRAIL_STYLE_ATTRIBUTION,
+            tileUrlTemplate = "https://forager-pmtiles.brandonlee1-894.workers.dev/us/{z}/{x}/{y}.mvt",
+            isRaster = false,
+        )
+
+        val OPEN_TOPO_MAP = Basemap(
+            name = "OPEN_TOPO_MAP",
+            label = "OpenTopoMap",
+            description = "Topographic contours and hillshading, worldwide.",
+            maxZoom = 17,
+            // The caption's line is shortened from the full credit below -- the full form wrapped to two
+            // lines over the always-visible caption (see SightingsMap.kt), covering more of the map than
+            // a credit line should. It still names all three required credits (OpenStreetMap, SRTM,
+            // OpenTopoMap's CC-BY-SA), without the "contributors" qualifier and the " | " separator.
+            attribution = "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
+            tileUrlTemplate = "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+            // OpenTopoMap's page asks for "Kartendaten: © OpenStreetMap-Mitwirkende, SRTM | Kartendarstellung:
+            // © OpenTopoMap (CC-BY-SA)" (docs/audits/2026-10-18-map-services-policy-and-cost-research.md, Q2). This
+            // English form goes in the tap-to-reveal attribution and the caption keeps the short line: the owner's
+            // "option c" (dispatch 2026-10-18-04, item 3), chosen over a two-line caption or a smaller one.
+            fullAttribution = "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)",
+        )
+
+        /**
+         * Every basemap: the app's own two, then each [AddedMapType]'s (dispatch 2026-11-03-05 D7, RECORD -2001: the Street
+         * map lives in `ui/map/street/` and is registered in [ADDED_MAP_TYPES]). A list rather than an enum's entries so a
+         * map type can be added, and deleted, in a place of its own.
+         */
+        val entries: List<Basemap> by lazy { listOf(FORAGER_TRAIL, OPEN_TOPO_MAP) + ADDED_MAP_TYPES.map { it.mapMode.basemap } }
+
         /**
          * What the map opens on. Derives from [MapMode.DEFAULT] rather than naming a [Basemap]
          * directly, so there is exactly one place that decides the app's opening basemap — see

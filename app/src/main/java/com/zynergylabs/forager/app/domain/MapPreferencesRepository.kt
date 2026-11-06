@@ -50,7 +50,9 @@ interface MapPreferencesRepository {
      * closing the app. *Only* fullscreen persists — the cluster's minimised flag, drag position
      * and side stay session-only, because a cold launch showing a bare map with nothing but a
      * peeking handle is the least oriented the app can be, and that is not what persisting
-     * fullscreen is for. This store, not a new one: a flat boolean with no relations belongs in
+     * fullscreen is for. (Superseded in part by RECORD -711: the cluster's side and drag position now
+     * persist too, at the owner's request for left-handed users, `MapIconClusterPlacementRepository`;
+     * the minimised flag still does not, for the reason above.) This store, not a new one: a flat boolean with no relations belongs in
      * DataStore under the Room/DataStore split, and this repository already holds the map's other
      * flat preferences under the prescribed pattern.
      */

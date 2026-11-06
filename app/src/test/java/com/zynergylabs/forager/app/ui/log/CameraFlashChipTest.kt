@@ -4,10 +4,10 @@ import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FlashAuto
-import androidx.compose.material.icons.filled.FlashOff
-import androidx.compose.material.icons.filled.FlashOn
-import androidx.compose.material.icons.filled.FlashlightOn
+import androidx.compose.material.icons.outlined.FlashAuto
+import androidx.compose.material.icons.outlined.FlashOff
+import androidx.compose.material.icons.outlined.FlashOn
+import androidx.compose.material.icons.outlined.FlashlightOn
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -79,10 +79,11 @@ class CameraFlashChipTest {
 
     @Test
     fun `each mode has its own glyph and label`() {
-        assertEquals(FlashGlyph(Icons.Filled.FlashOff, "Flash off"), flashGlyph(FlashMode.Off))
-        assertEquals(FlashGlyph(Icons.Filled.FlashAuto, "Flash auto"), flashGlyph(FlashMode.Auto))
-        assertEquals(FlashGlyph(Icons.Filled.FlashOn, "Flash on"), flashGlyph(FlashMode.On))
-        assertEquals(FlashGlyph(Icons.Filled.FlashlightOn, "Torch on"), flashGlyph(FlashMode.Torch))
+        // RECORD -970 (the owner, on the strip icons: "C both"): the thin-line (Outlined) style of the same symbols. Was Icons.Filled.*, same names.
+        assertEquals(FlashGlyph(Icons.Outlined.FlashOff, "Flash off"), flashGlyph(FlashMode.Off))
+        assertEquals(FlashGlyph(Icons.Outlined.FlashAuto, "Flash auto"), flashGlyph(FlashMode.Auto))
+        assertEquals(FlashGlyph(Icons.Outlined.FlashOn, "Flash on"), flashGlyph(FlashMode.On))
+        assertEquals(FlashGlyph(Icons.Outlined.FlashlightOn, "Torch on"), flashGlyph(FlashMode.Torch))
     }
 
     @Test

@@ -88,7 +88,7 @@ class AvailabilityScreenJournalEntriesStateTest {
 
     @Test
     fun `the album view survives leaving the Journal tab and returning`() {
-        composeRule.setContent { entriesStateScreen() }
+        composeRule.setContent { EntriesStateScreenUnderTest() }
         chooseAlbum()
 
         openBottomTab("List")
@@ -100,7 +100,7 @@ class AvailabilityScreenJournalEntriesStateTest {
     @Test
     fun `the album view survives a saved-instance-state round trip`() {
         val restorationTester = StateRestorationTester(composeRule)
-        restorationTester.setContent { entriesStateScreen() }
+        restorationTester.setContent { EntriesStateScreenUnderTest() }
         chooseAlbum()
 
         restorationTester.emulateSavedInstanceStateRestore()
@@ -114,7 +114,7 @@ class AvailabilityScreenJournalEntriesStateTest {
 
     @Test
     fun `Back from the album returns to the timeline, and Back again leaves the Journal`() {
-        composeRule.setContent { entriesStateScreen() }
+        composeRule.setContent { EntriesStateScreenUnderTest() }
         chooseAlbum()
 
         pressBack()
@@ -134,7 +134,7 @@ class AvailabilityScreenJournalEntriesStateTest {
     @Test
     fun `the Journal bottom tab survives a saved-instance-state round trip without being tapped again`() {
         val restorationTester = StateRestorationTester(composeRule)
-        restorationTester.setContent { entriesStateScreen() }
+        restorationTester.setContent { EntriesStateScreenUnderTest() }
         openBottomTab("Journal")
         composeRule.onNodeWithText("Journal").assertIsSelected()
 
@@ -150,7 +150,7 @@ class AvailabilityScreenJournalEntriesStateTest {
     @Test
     fun `the List bottom tab survives a saved-instance-state round trip`() {
         val restorationTester = StateRestorationTester(composeRule)
-        restorationTester.setContent { entriesStateScreen() }
+        restorationTester.setContent { EntriesStateScreenUnderTest() }
         openBottomTab("List")
         composeRule.onNodeWithText("List").assertIsSelected()
 
@@ -175,7 +175,7 @@ class AvailabilityScreenJournalEntriesStateTest {
     private fun restoreOnSeasonal(uiState: androidx.compose.runtime.MutableState<AvailabilityUiState>) {
         val restorationTester = StateRestorationTester(composeRule)
         restorationTester.setContent {
-            entriesStateScreen(
+            EntriesStateScreenUnderTest(
                 uiState = uiState.value,
                 onMapTabSelected = { mapTabSelectedCalls++ },
                 onSeasonalTabSelected = { seasonalTabSelectedCalls++ },
@@ -215,7 +215,7 @@ class AvailabilityScreenJournalEntriesStateTest {
     }
 }
 
-private val RESULTS_REGION_A = com.zynergylabs.forager.app.domain.model.Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val RESULTS_REGION_A = com.zynergylabs.forager.app.domain.model.Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 private val RESULTS_REGION_B = com.zynergylabs.forager.app.domain.model.Region(lat = 44.0, lng = -121.0, radiusKm = 15)
 
 private const val VIEW_TIMELINE = "entries-view-timeline"
@@ -227,37 +227,43 @@ private const val ENTRIES_STATE_MAP_TAG = "entries-state-map-slot"
 private val ENTRIES_STATE_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.testTag(ENTRIES_STATE_MAP_TAG)) }
 
 @androidx.compose.runtime.Composable
-private fun entriesStateScreen(
+private fun EntriesStateScreenUnderTest(
     uiState: AvailabilityUiState = AvailabilityUiState(),
     onMapTabSelected: () -> Unit = {},
     onSeasonalTabSelected: () -> Unit = {},
 ) {
     AvailabilityScreen(
         uiState = uiState,
-        onUseCurrentLocation = {},
-        onManualLatChanged = {},
-        onManualLngChanged = {},
-        onSearchManualCoordinates = {},
-        onRadiusChanged = {},
-        onMonthSelected = {},
-        onMapTabSelected = onMapTabSelected,
-        onSeasonalTabSelected = onSeasonalTabSelected,
-        onTaxonSearchQueryChanged = {},
-        onTaxonSearchResultSelected = {},
-        onDismissTaxonSuggestions = {},
-        onReopenTaxonSuggestions = {},
-        onPlaceTripPin = { _, _, _ -> },
-        onDeletePlannedTrip = {},
-        onRecentSearchSelected = {},
-        onOfflineMapLatChanged = {},
-        onOfflineMapLngChanged = {},
-        onOfflineMapRadiusChanged = {},
-        onOfflineMapNameChanged = {},
-        onOfflineMapsOpened = {},
-        onDownloadOfflineMaps = {},
-        onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        searchInputs = AvailabilityScreenSearchInputs(
+            onUseCurrentLocation = {},
+            onManualLatChanged = {},
+            onManualLngChanged = {},
+            onSearchManualCoordinates = {},
+            onRadiusChanged = {},
+            onMonthSelected = {},
+            onMapTabSelected = onMapTabSelected,
+            onSeasonalTabSelected = onSeasonalTabSelected,
+            onTaxonSearchQueryChanged = {},
+            onTaxonSearchResultSelected = {},
+            onDismissTaxonSuggestions = {},
+            onReopenTaxonSuggestions = {},
+            onPlaceTripPin = { _, _, _ -> },
+            onDeletePlannedTrip = {},
+            onRecentSearchSelected = {},
+        ),
+        offlineMaps = AvailabilityScreenOfflineMaps(
+            onOfflineMapLatChanged = {},
+            onOfflineMapLngChanged = {},
+            onOfflineMapRadiusChanged = {},
+            onOfflineMapNameChanged = {},
+            onOfflineMapsOpened = {},
+            onDownloadOfflineMaps = {},
+            onDeleteOfflineRegion = {},
+        ),
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = ENTRIES_STATE_STUB_MAP,
     )
 }

@@ -97,7 +97,7 @@ class LandscapeLRulingsTest {
     private fun layersRow(): DpRect = composeRule.onNode(hasContentDescription("Layers:", substring = true)).getUnclippedBoundsInRoot()
     private fun handleCentre(): Pair<Dp, Dp> = handle().let { (it.left + it.right) / 2 to (it.top + it.bottom) / 2 }
 
-    /** The cluster's side of the screen: left at ROTATION_90 by default, right at ROTATION_270. */
+    /** The cluster's side of the screen: left by default at both rotations since RECORD -956 (was right at ROTATION_270). */
     private fun snapTo(left: Boolean) {
         val (x, y) = handleCentre()
         val isLeft = (cluster().left + cluster().right) / 2 < (tag(LAYOUT_FIXES_MAP_TAG).left + tag(LAYOUT_FIXES_MAP_TAG).right) / 2
@@ -143,7 +143,9 @@ class LandscapeLRulingsTest {
 
     @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `A2 at ROTATION_90 the L at the top of the rail side is clear of the compass strip`() = assertClearOfTheCompassStrip(Surface.ROTATION_90, railSideIsLeft = false)
 
-    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `A2 at ROTATION_270 the L at the top of the rail side is clear of the compass strip`() = assertClearOfTheCompassStrip(Surface.ROTATION_270, railSideIsLeft = true)
+    // RECORD -956 (the owner: "One should look exactly line the other"): the rail side is the right at 270 too. Was `railSideIsLeft = true`, which
+    // under -956 snapped the L to the search side and passed without the L ever meeting the strip's side.
+    @Test @GraphicsMode(GraphicsMode.Mode.NATIVE) fun `A2 at ROTATION_270 the L at the top of the rail side is clear of the compass strip`() = assertClearOfTheCompassStrip(Surface.ROTATION_270, railSideIsLeft = false)
 
     // ── (b) The notice makes room for the L; the L stays put ──
 
@@ -293,5 +295,7 @@ class LandscapeLRulingsTest {
 
     @Test fun `D4 at ROTATION_90 a real touch 2 dp outside any button's square reaches the map`() = assertJustOutsideReachesTheMap(Surface.ROTATION_90, clusterOnLeft = true)
 
-    @Test fun `D4 at ROTATION_270 a real touch 2 dp outside any button's square reaches the map`() = assertJustOutsideReachesTheMap(Surface.ROTATION_270, clusterOnLeft = false)
+    // RECORD -956 (the owner: "One should look exactly line the other"): the L defaults to the left at 270 too. Was `clusterOnLeft = false`, which under
+    // -956 still passed with each probe's outer and inboard labels swapped.
+    @Test fun `D4 at ROTATION_270 a real touch 2 dp outside any button's square reaches the map`() = assertJustOutsideReachesTheMap(Surface.ROTATION_270, clusterOnLeft = true)
 }

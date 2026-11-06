@@ -34,12 +34,17 @@ abstract class TrackDao {
      * dispatch's own explicit requirement ("a track crossing midnight appears in both days'
      * reports") — and a still-recording track (`endedAtEpochMillis IS NULL`) matches every day from
      * its start until it actually ends, not just the day it began.
+     *
+     * Leaves out imported tracks (`importedAtEpochMillis IS NOT NULL`): plan T16, the owner's "Records
+     * and map only" (-636). An imported track was not a walk on that day in this app's sense, and this
+     * read is only the Journal's.
      */
     @Query(
         """
         SELECT * FROM tracks
         WHERE startedAtEpochMillis < :dayEndExclusive
         AND (endedAtEpochMillis IS NULL OR endedAtEpochMillis >= :dayStartInclusive)
+        AND importedAtEpochMillis IS NULL
         """,
     )
     abstract suspend fun getTracksForDay(dayStartInclusive: Long, dayEndExclusive: Long): List<TrackEntity>
@@ -53,6 +58,17 @@ abstract class TrackDao {
     /** Batched: the caller hands over every point sampled since the last call in one list, not one `@Insert` per point. */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     abstract suspend fun insertPoints(points: List<TrackPointEntity>)
+
+    /**
+     * A whole track, its row and its points, in one transaction: plan T16's GPX import, so an import can
+     * never leave a track row with only some of its points (see
+     * [com.zynergylabs.forager.app.domain.TrackRepository.createWithPoints]).
+     */
+    @Transaction
+    open suspend fun insertTrackWithPoints(entity: TrackEntity, points: List<TrackPointEntity>) {
+        insertTrack(entity)
+        insertPoints(points)
+    }
 
     @Query("UPDATE tracks SET endedAtEpochMillis = :endedAtEpochMillis WHERE id = :id")
     abstract suspend fun updateEndedAt(id: String, endedAtEpochMillis: Long)

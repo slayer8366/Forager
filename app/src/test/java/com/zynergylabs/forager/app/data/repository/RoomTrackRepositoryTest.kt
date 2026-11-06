@@ -179,6 +179,19 @@ class RoomTrackRepositoryTest {
         assertEquals(listOf(0.694f, null), stored.map { it.speedAccuracyMetersPerSecond })
     }
 
+    /** RECORD -867: the barometer's pressure round-trips through the entity mapping, and a point without one reads back `null`. */
+    @Test
+    fun `a point's pressure round-trips, and a point without one reads back null`() = runTest {
+        repository.create(Track(id = "t", name = null, startedAtEpochMillis = 0L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
+        val withPressure = TrackPoint(lat = 45.0, lng = -122.0, altitude = 300.0, accuracyMeters = 3.79f, timestampEpochMillis = 1_000L, pressureHpa = 1001.5f)
+        val without = TrackPoint(lat = 45.001, lng = -122.0, altitude = 301.0, accuracyMeters = 3.79f, timestampEpochMillis = 2_000L)
+        repository.appendPoints("t", listOf(withPressure, without)).getOrThrow()
+
+        val stored = repository.getById("t").getOrThrow()!!.points
+
+        assertEquals(listOf(1001.5f, null), stored.map { it.pressureHpa })
+    }
+
     private fun point(lat: Double, t: Long) = TrackPoint(lat = lat, lng = 0.0, altitude = null, accuracyMeters = null, timestampEpochMillis = t)
 
     private inline fun measureMillis(block: () -> Unit): Long {

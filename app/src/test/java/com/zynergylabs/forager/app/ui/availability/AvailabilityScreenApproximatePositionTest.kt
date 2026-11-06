@@ -19,6 +19,7 @@ import com.zynergylabs.forager.app.domain.CompassReading
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeclinationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.HeadingUncertainty
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
@@ -84,19 +85,19 @@ class AvailabilityScreenApproximatePositionTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private val t = 1_700_000_000_000L
-    private val creek = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
-    private val origin = Waypoint("origin", 45.31, -122.634, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
+    private val origin = Waypoint("origin", 45.36, -121.6959, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     /** Metres per degree of latitude on the sphere GeoDistance uses, as `AvailabilityScreenWaypointNavigateTest` has it. */
     private val metersPerDegree = 111_195.08
 
     /** A network reading [metersSouth] due south of [of], 120 m accuracy, stamped 123 ms past the second, [ageMillis] old. */
     private fun network(metersSouth: Double, of: Waypoint = creek, ageMillis: Long = 1_000L) =
-        LocationFix.Update(lat = of.lat - metersSouth / metersPerDegree, lng = of.lng, altitude = null, accuracyMeters = 120f, timestampEpochMillis = t - ageMillis + 123)
+        LocationFix.Update(lat = of.lat - metersSouth / metersPerDegree, lng = of.lng, altitude = null, accuracyMeters = 120f, timestampEpochMillis = t - ageMillis + 123, provider = FixProvider.NETWORK)
 
     /** A GPS fix [metersSouth] due south of the creek pin, the S22's 3.79 m, on the whole second. */
     private fun gps(metersSouth: Double) =
-        LocationFix.Update(lat = creek.lat - metersSouth / metersPerDegree, lng = creek.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t)
+        LocationFix.Update(lat = creek.lat - metersSouth / metersPerDegree, lng = creek.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
 
     private val fixes = MutableSharedFlow<LocationFix>(replay = 1)
     private val tracker = object : LocationTracker {
@@ -117,40 +118,52 @@ class AvailabilityScreenApproximatePositionTest {
             val state by viewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = state,
-                onUseCurrentLocation = {},
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = map.slot,
-                waypoints = listOf(creek),
-                waypointsLoaded = true,
-                isRecording = recording,
-                isReturning = returning,
-                onToggleReturning = { returning = !returning },
-                navigationTarget = if (recording) origin else null,
-                returnRoute = ReturnRoute.Ahead(LatLng(45.32, -122.634), 1_800.0),
-                onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
-                onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
+                records = AvailabilityScreenRecords(
+                    waypoints = listOf(creek),
+                    waypointsLoaded = true,
+                ),
+                recording = AvailabilityScreenRecording(
+                    isRecording = recording,
+                ),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = returning,
+                    onToggleReturning = { returning = !returning },
+                    navigationTarget = if (recording) origin else null,
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.37, -121.6959), 1_800.0),
+                    onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
+                    onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
+                ),
                 compassProvider = FixedCompass(0f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },
@@ -218,7 +231,7 @@ class AvailabilityScreenApproximatePositionTest {
 
     @Test
     fun `with no live reading the last known position shows, greyed, with its age, until anything newer arrives`() {
-        lastKnown = LocationFix.Update(45.40, -122.70, null, 30f, t + 1_000L - 2L * 60L * 60L * 1_000L)
+        lastKnown = LocationFix.Update(45.40, -122.70, null, 30f, t + 1_000L - 2L * 60L * 60L * 1_000L, provider = FixProvider.GPS)
         setScreen()
 
         assertEquals(ShownPosition.LastKnown(lastKnown!!), shownPosition())
@@ -237,6 +250,18 @@ class AvailabilityScreenApproximatePositionTest {
 
     // ── The HUD ──
 
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -951, option (a)): what the position is (approximate, last seen) shows once, on the strip,
+     * which stays while navigating; the navigation info's status line leaves it out.
+     */
+    private fun assertPositionMessageOnStripOnly(stripNote: String) {
+        assertEquals("the strip's note", stripNote, text(COMPASS_STRIP_POSITION_NOTE_TAG))
+        assertEquals("the card's status line leaves it out", "", text(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("the message shows once", 1, composeRule.onAllNodesWithText(stripNote).fetchSemanticsNodes().size)
+        assertEquals("and the card's own wording does not show", 0, composeRule.onAllNodesWithText(APPROXIMATE_HUD_TEXT).fetchSemanticsNodes().size)
+    }
+
+
     @Test
     fun `navigating to a far waypoint, the HUD shows the approximate distance and the needle`() {
         setScreen()
@@ -246,11 +271,14 @@ class AvailabilityScreenApproximatePositionTest {
 
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
         assertEquals("≈ 3.2 km", text(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("the needle: the creek is due north of a walker facing north", "Turn 0°", text(NAVIGATION_HUD_TARGET_TAG))
-        assertEquals(APPROXIMATE_HUD_TEXT, text(NAVIGATION_HUD_STATUS_TAG))
-        assertFalse("no coordinates row for a reading known to 120 m", shown(NAVIGATION_HUD_COORDINATES_TAG))
-        // Dispatch 2026-09-28-535: the HUD carries the words while navigating, and the strip is not composed.
-        assertFalse("the strip gives way to the HUD", shown(COMPASS_STRIP_POSITION_NOTE_TAG))
+        assertEquals("the needle: the creek is due north of a walker facing north", "ahead 0°", text(NAVIGATION_HUD_TARGET_TAG))
+        // Dispatch 2026-09-28-677: from an approximate reading the figure is the straight line, and says so.
+        assertEquals("straight", text(NAVIGATION_HUD_DISTANCE_KIND_TAG))
+        // Dispatch 2026-10-12-08 (RECORD -951, option (a): GPS status messages show on the strip only): the strip stays while
+        // navigating and carries the note, once; the card's status line leaves it out. Was: `assertEquals(APPROXIMATE_HUD_TEXT,
+        // text(NAVIGATION_HUD_STATUS_TAG))` and `assertFalse("the strip gives way to the HUD", shown(COMPASS_STRIP_POSITION_NOTE_TAG))`.
+        assertPositionMessageOnStripOnly("Approximate location, finding GPS…")
+        assertFalse("no coordinates for a reading known to 120 m", shown(COMPASS_STRIP_COORDINATES_TAG))
         assertNoBubble(APPROXIMATE_LOCATION_TEXT)
     }
 
@@ -263,7 +291,8 @@ class AvailabilityScreenApproximatePositionTest {
 
         assertEquals("—", text(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("no needle", "", text(NAVIGATION_HUD_TARGET_TAG))
-        assertEquals(APPROXIMATE_HUD_TEXT, text(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -951 (a): the note on the strip, once; was APPROXIMATE_HUD_TEXT on the card's status line.
+        assertPositionMessageOnStripOnly("Approximate location, finding GPS…")
     }
 
     @Test
@@ -290,19 +319,21 @@ class AvailabilityScreenApproximatePositionTest {
 
         assertEquals("≈ 3.2 km", text(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("no needle while returning (decision D5; the owner's answer)", "", text(NAVIGATION_HUD_TARGET_TAG))
-        assertEquals(APPROXIMATE_HUD_TEXT, text(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -951 (a): the note on the strip, once; was APPROXIMATE_HUD_TEXT on the card's status line.
+        assertPositionMessageOnStripOnly("Approximate location, finding GPS…")
     }
 
     @Test
     fun `navigating with only the last known position, no distance and no needle, and its age`() {
-        lastKnown = LocationFix.Update(45.40, -122.70, null, 30f, t + 1_000L - 2L * 60L * 60L * 1_000L)
+        lastKnown = LocationFix.Update(45.40, -122.70, null, 30f, t + 1_000L - 2L * 60L * 60L * 1_000L, provider = FixProvider.GPS)
         setScreen()
         viewModel.onNavigateToWaypoint(creek.id)
         composeRule.waitForIdle()
 
         assertEquals("—", text(NAVIGATION_HUD_DISTANCE_TAG))
         assertFalse("no needle", text(NAVIGATION_HUD_TARGET_TAG).startsWith("Turn"))
-        assertEquals("Last seen 2 h ago, finding GPS…", text(NAVIGATION_HUD_STATUS_TAG))
+        // RECORD -951 (a): the note on the strip, once; was the same words on the card's status line.
+        assertPositionMessageOnStripOnly("Last seen 2 h ago, finding GPS…")
         assertNoBubble("Last seen 2 h ago")
     }
 
@@ -328,5 +359,59 @@ class AvailabilityScreenApproximatePositionTest {
 
     private companion object {
         const val POSITION_MAP_TAG = "approximate-position-map"
+    }
+
+    // ── Dispatch 2026-09-28-527: a 15 m fix acts only if it is GPS ──
+
+    /** A 15 m fix at the creek pin from [provider], a second old: network stamped off the second, the others on it. */
+    private fun at15m(provider: FixProvider) = LocationFix.Update(
+        lat = creek.lat, lng = creek.lng, altitude = 50.0, accuracyMeters = 15f,
+        timestampEpochMillis = if (provider == FixProvider.NETWORK) t + 123 else t, provider = provider,
+    )
+
+    private fun assertNeverActs(provider: FixProvider) {
+        setScreen()
+        viewModel.onNavigateToWaypoint(creek.id)
+        val reading = at15m(provider)
+
+        arrive(reading)
+
+        assertNull("$provider: never the gated fix", viewModel.uiState.value.liveFix)
+        assertFalse("$provider: never \"Arrived\"", text(NAVIGATION_HUD_DISTANCE_TAG) == ARRIVED_TEXT)
+        val route = map.content!!.route!!
+        assertNull("$provider: no arrival ring", route.arrivedAt)
+        assertNull("$provider: no line to the waypoint", route.straight)
+        assertEquals("$provider: shown as the approximate position", ShownPosition.Approximate(reading), shownPosition())
+        assertEquals(PositionLook.APPROXIMATE, look())
+        // Navigating, the HUD stands where the strip was (as in the -510 tests above): its message, and no
+        // needle, since the waypoint is inside twice the reading's circle.
+        // RECORD -951 (a): the note on the strip, once; was APPROXIMATE_HUD_TEXT on the card's status line.
+        assertEquals("$provider: the strip's approximate note", "Approximate location, finding GPS…", text(COMPASS_STRIP_POSITION_NOTE_TAG))
+        assertEquals("$provider: the card's status line leaves it out", "", text(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("$provider: no needle", "", text(NAVIGATION_HUD_TARGET_TAG))
+    }
+
+    @Test
+    fun `a 15 m network fix at the waypoint never arrives, draws no line, and shows as the approximate position`() =
+        assertNeverActs(FixProvider.NETWORK)
+
+    @Test
+    fun `a 15 m fix from an unknown provider at the waypoint is treated as network`() =
+        assertNeverActs(FixProvider.UNKNOWN)
+
+    /** The control: the same fix from GPS arrives, as it does today, so the two above could have. */
+    @Test
+    fun `a 15 m GPS fix at the waypoint arrives, the precise dot`() {
+        setScreen()
+        viewModel.onNavigateToWaypoint(creek.id)
+        val fix = at15m(FixProvider.GPS)
+
+        arrive(fix)
+
+        assertEquals(fix, viewModel.uiState.value.liveFix)
+        assertEquals(ARRIVED_TEXT, text(NAVIGATION_HUD_DISTANCE_TAG))
+        assertTrue("the arrival ring", map.content!!.route!!.arrivedAt != null)
+        assertEquals(ShownPosition.Precise(fix), shownPosition())
+        assertEquals(PositionLook.PRECISE, look())
     }
 }

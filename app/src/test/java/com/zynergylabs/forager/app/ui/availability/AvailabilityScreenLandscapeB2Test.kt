@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.adaptive.ProvideConfigurationAndWindow
 import android.app.Application
 import android.content.ComponentName
 import android.content.res.Configuration
@@ -39,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.unit.width
 import androidx.test.core.app.ApplicationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.AvailabilityEntry
 import com.zynergylabs.forager.app.domain.model.AvailabilityForecast
@@ -100,7 +102,7 @@ class AvailabilityScreenLandscapeB2Test {
     /** Bumped to hand the screen a new [Configuration] object, so it re-reads the display's rotation (a turn from 90 to 270). */
     private var configurationTick by mutableStateOf(0)
 
-    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = B2_SEARCHED_STATE, isReturning: Boolean = false) {
+    private fun setScreen(rotation: Int, uiState: AvailabilityUiState = B2_SEARCHED_STATE, isReturning: Boolean = false, now: Long = B2_DAY_NOW, compassProvider: com.zynergylabs.forager.app.domain.CompassProvider? = null) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         composeRule.setContent {
             val base = LocalConfiguration.current
@@ -115,7 +117,7 @@ class AvailabilityScreenLandscapeB2Test {
             }
             CompositionLocalProvider(LocalConfiguration provides configuration) {
                 rotationSeenByScreen = LocalView.current.display?.rotation
-                B2Screen(uiState = uiState, mapSlot = map.slot, isReturning = isReturning)
+                B2Screen(uiState = uiState, mapSlot = map.slot, isReturning = isReturning, now = now, compassProvider = compassProvider)
             }
         }
         composeRule.waitForIdle()
@@ -135,12 +137,11 @@ class AvailabilityScreenLandscapeB2Test {
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
         assertEquals("the screen must actually see the turn to $rotation", rotation, rotationSeenByScreen)
+        // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"): the rail is on the right at both rotations,
+        // so the proof that the screen saw the turn is the rotation it read (above), not the rail's side. Was: at 270 "after the turn
+        // to 270 the screen put the rail on the left", `assertEquals(root().left, railSide.left)`.
         val railSide = rail()
-        if (rotation == Surface.ROTATION_270) {
-            assertEquals("after the turn to 270 the screen put the rail on the left", root().left.value, railSide.left.value, 0.5f)
-        } else {
-            assertEquals("after the turn to $rotation the screen put the rail on the right", root().right.value, railSide.right.value, 0.5f)
-        }
+        assertEquals("after the turn to $rotation the rail is on the right", root().right.value, railSide.right.value, 0.5f)
     }
 
     // ── S1: the punch-hole edge comes from punchHoleEdgeFor ──
@@ -152,21 +153,28 @@ class AvailabilityScreenLandscapeB2Test {
      */
     private fun assertPunchHoleSide(rotation: Int) {
         setScreen(rotation)
-        val punchHole = punchHoleEdgeFor(windowIsLandscape = true, displayRotation = rotation)
+        // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"): the search side is mainWindowSearchEdgeFor, the left at
+        // both rotations. Was punchHoleEdgeFor(rotation), which made ROTATION_270's case assert the right.
+        val punchHole = com.zynergylabs.forager.app.ui.adaptive.mainWindowSearchEdgeFor(windowIsLandscape = true)
         val bar = searchBar()
         val c = cluster()
         val r = root()
         val m = mapBounds()
-        val farEdgeClear = 8.dp
+        // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): the bar no longer stops 8 dp short of the
+        // centre; it reaches the compass strip's inner edge, and does not reach the opposite edge. It stopped short of the
+        // centre before -729.
+        val strip = tagBounds(B2_STRIP_TAG)
         when (punchHole) {
             ScreenEdge.Left -> {
                 assertEquals("the search bar is on the punch-hole edge, the left", r.left.value, bar.left.value, 0.5f)
-                assertTrue("the search bar $bar stays clear of the far half of the map $m", bar.right <= (m.left + m.right) / 2 - farEdgeClear + 0.5.dp)
+                assertEquals("the search bar $bar ends at the strip's inner edge $strip", strip.left.value, bar.right.value, 0.5f)
+                assertTrue("the search bar $bar does not reach the far edge ${m.right}", bar.right < m.right)
                 assertTrue("the cluster $c defaults to the punch-hole half, the left", c.centreXv() < r.centreXv())
             }
             ScreenEdge.Right -> {
                 assertEquals("the search bar is on the punch-hole edge, the right", r.right.value, bar.right.value, 0.5f)
-                assertTrue("the search bar $bar stays clear of the far half of the map $m", bar.left >= (m.left + m.right) / 2 + farEdgeClear - 0.5.dp)
+                assertEquals("the search bar $bar starts at the strip's inner edge $strip", strip.right.value, bar.left.value, 0.5f)
+                assertTrue("the search bar $bar does not reach the far edge ${m.left}", bar.left > m.left)
                 assertTrue("the cluster $c defaults to the punch-hole half, the right", c.centreXv() > r.centreXv())
             }
             else -> throw AssertionError("a landscape window's punch-hole edge is left or right, not $punchHole")
@@ -177,7 +185,7 @@ class AvailabilityScreenLandscapeB2Test {
     fun `S1 at ROTATION_90 the punch-hole-side controls are on punchHoleEdgeFor's edge`() = assertPunchHoleSide(Surface.ROTATION_90)
 
     @Test
-    fun `S1 at ROTATION_270 the punch-hole-side controls are on punchHoleEdgeFor's edge`() = assertPunchHoleSide(Surface.ROTATION_270)
+    fun `S1 at ROTATION_270 the search-side controls are on the left, as at ROTATION_90 (RECORD -956)`() = assertPunchHoleSide(Surface.ROTATION_270)
 
     private fun tagBounds(tag: String): DpRect = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
     private fun root(): DpRect = composeRule.onRoot().getUnclippedBoundsInRoot()
@@ -187,40 +195,35 @@ class AvailabilityScreenLandscapeB2Test {
     private fun cluster(): DpRect = tagBounds(MAP_ICON_CLUSTER_TAG)
     private fun railExists(): Boolean = composeRule.onAllNodesWithTag(COMPACT_NAVIGATION_RAIL_TAG).fetchSemanticsNodes().isNotEmpty()
 
-    /** The search bar's expected width: min(384dp, distance from the punch-hole-side controls edge to the map's centre - 8dp). */
-    private fun expectedSearchWidth(punchHoleControlsEdge: Dp): Float {
-        val m = mapBounds()
-        val centre = (m.left + m.right) / 2
-        val distance = if (punchHoleControlsEdge <= centre) centre - punchHoleControlsEdge else punchHoleControlsEdge - centre
-        return minOf(384f, (distance - 8.dp).value)
-    }
-
     // ── S2: search bar ──
 
+    // RECORD -732 (the owner: "Join moves to fit the strip (Recommended)"): S2's "min(384, centre distance - 8)", capped short
+    // of the centre line, is replaced: not navigating, the bar runs from the punch-hole edge to the compass strip's inner edge,
+    // the strip as wide as its readouts need (LandscapeBarStripJoinTest measures that, with native graphics).
     @Test
-    fun `S2 at ROTATION_90 the search bar sits at the top on the punch-hole side, left, capped short of the centre line`() {
+    fun `S2 at ROTATION_90 the search bar sits at the top on the punch-hole side, left, up to the strip's inner edge`() {
         setScreen(Surface.ROTATION_90)
         val bar = searchBar()
         val m = mapBounds()
-        val centre = (m.left + m.right) / 2
+        val strip = tagBounds(B2_STRIP_TAG)
 
         assertEquals("the bar starts at the punch-hole-side (left) edge", root().left.value, bar.left.value, 0.5f)
         assertEquals("the bar is at the top of the map", m.top.value, bar.top.value, 0.5f)
-        assertEquals("the bar's width is min(384, centre distance - 8)", expectedSearchWidth(root().left), bar.width.value, 0.5f)
-        assertTrue("the bar ends before the centre line: right ${bar.right} vs centre $centre", bar.right <= centre - 8.dp + 0.5.dp)
+        assertEquals("the bar ends at the strip's inner edge: bar $bar, strip $strip", strip.left.value, bar.right.value, 0.5f)
     }
 
+    // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"). Was: the bar on the right at 270,
+    // `assertEquals(root().right, bar.right)` and `assertEquals(strip.right, bar.left)`.
     @Test
-    fun `S2 at ROTATION_270 the search bar sits at the top on the punch-hole side, right, capped short of the centre line`() {
+    fun `S2 at ROTATION_270 the search bar sits at the top on the left, as at ROTATION_90, up to the strip's inner edge`() {
         setScreen(Surface.ROTATION_270)
         val bar = searchBar()
         val m = mapBounds()
-        val centre = (m.left + m.right) / 2
+        val strip = tagBounds(B2_STRIP_TAG)
 
-        assertEquals("the bar ends at the punch-hole-side (right) edge", root().right.value, bar.right.value, 0.5f)
+        assertEquals("the bar starts at the left edge", root().left.value, bar.left.value, 0.5f)
         assertEquals("the bar is at the top of the map", m.top.value, bar.top.value, 0.5f)
-        assertEquals("the bar's width is min(384, centre distance - 8)", expectedSearchWidth(root().right), bar.width.value, 0.5f)
-        assertTrue("the bar starts after the centre line: left ${bar.left} vs centre $centre", bar.left >= centre + 8.dp - 0.5.dp)
+        assertEquals("the bar ends at the strip's inner edge: bar $bar, strip $strip", strip.left.value, bar.right.value, 0.5f)
     }
 
     @Test
@@ -298,50 +301,67 @@ class AvailabilityScreenLandscapeB2Test {
         assertTrue("the strip $strip does not reach the search bar $bar", strip.left >= bar.right)
     }
 
+    // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"). Was: the rail on the left at 270, the
+    // strip starting at its inner edge, `assertEquals(rail.right, strip.left)`, and the bar to the strip's right.
     @Test
-    fun `S4 at ROTATION_270 the compass strip is content-width in the top corner on the rail side, not below the search bar`() {
+    fun `S4 at ROTATION_270 the compass strip is content-width in the top corner on the rail side, the right, as at ROTATION_90`() {
         setScreen(Surface.ROTATION_270, B2_FIX_STATE)
         val strip = tagBounds(B2_STRIP_TAG)
         val rail = rail()
         val bar = searchBar()
         val m = mapBounds()
 
-        assertEquals("the strip starts at the rail's inner edge", rail.right.value, strip.left.value, 0.5f)
+        assertEquals("the strip ends at the rail's inner edge", rail.left.value, strip.right.value, 0.5f)
         assertEquals("the strip is at the top of the map, not below the search bar", m.top.value, strip.top.value, 0.5f)
-        assertTrue("the strip $strip is content-width, well short of the space beside the rail", strip.width < (m.right - rail.right) / 2)
-        assertTrue("the strip $strip does not reach the search bar $bar", strip.right <= bar.left)
+        assertTrue("the strip $strip is content-width, well short of the space beside the rail", strip.width < (rail.left - m.left) / 2)
+        assertTrue("the strip $strip does not reach the search bar $bar", strip.left >= bar.right)
     }
 
+    // Dispatch 2026-10-12-08 (RECORD -946, -950, -951, -953; the owner: "The compass strip stays exactly where it is in both modes";
+    // -953: "have the card peak from the botton of the screen instead from the top ... Just flipped upside down"): navigating, the
+    // strip stays in the rail-side top corner and the card sits on the map's bottom edge in the strip's column, at its width. Was
+    // (-951): the card's top the strip's bottom. Was (Landscape B2 S4, RECORD -694): the strip hidden, the HUD at the top of the map in its place, at
+    // most 360 dp wide: `assertTrue(... strip ... isEmpty())`, `assertEquals(m.top, hud.top)`, `hud.width <= 360.dp`.
     @Test
-    fun `S4 at ROTATION_90 the navigation HUD is in the top corner on the rail side, at most 360dp wide`() {
+    fun `S4 at ROTATION_90 navigating, the strip stays in the top corner on the rail side and the card sits on the bottom edge at its width`() {
         setScreen(Surface.ROTATION_90, B2_FIX_STATE, isReturning = true)
         val hud = tagBounds(NAVIGATION_HUD_TAG)
+        val strip = tagBounds(B2_STRIP_TAG)
         val rail = rail()
         val m = mapBounds()
 
-        assertTrue("the strip stays hidden while navigating", composeRule.onAllNodesWithTag(B2_STRIP_TAG).fetchSemanticsNodes().isEmpty())
-        assertEquals("the HUD ends at the rail's inner edge", rail.left.value, hud.right.value, 0.5f)
-        assertEquals("the HUD is at the top of the map", m.top.value, hud.top.value, 0.5f)
-        assertTrue("the HUD $hud is at most 360dp wide", hud.width <= 360.dp + 0.5.dp)
+        assertEquals("the strip ends at the rail's inner edge", rail.left.value, strip.right.value, 0.5f)
+        assertEquals("the strip is at the top of the map", m.top.value, strip.top.value, 0.5f)
+        assertEquals("the card's bottom is the map's bottom: card $hud, map $m", m.bottom.value, hud.bottom.value, 0.5f)
+        assertEquals("the card's left edge is the strip's", strip.left.value, hud.left.value, 0.5f)
+        assertEquals("the card's right edge is the strip's", strip.right.value, hud.right.value, 0.5f)
     }
 
+    // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"). Was: `assertEquals(rail.right, strip.left)`,
+    // the rail on the left at 270.
     @Test
-    fun `S4 at ROTATION_270 the navigation HUD is in the top corner on the rail side, at most 360dp wide`() {
+    fun `S4 at ROTATION_270 navigating, the strip stays in the top corner on the rail side, the right, and the card sits on the bottom edge at its width`() {
         setScreen(Surface.ROTATION_270, B2_FIX_STATE, isReturning = true)
         val hud = tagBounds(NAVIGATION_HUD_TAG)
+        val strip = tagBounds(B2_STRIP_TAG)
         val rail = rail()
         val m = mapBounds()
 
-        assertEquals("the HUD starts at the rail's inner edge", rail.right.value, hud.left.value, 0.5f)
-        assertEquals("the HUD is at the top of the map", m.top.value, hud.top.value, 0.5f)
-        assertTrue("the HUD $hud is at most 360dp wide", hud.width <= 360.dp + 0.5.dp)
+        assertEquals("the strip ends at the rail's inner edge", rail.left.value, strip.right.value, 0.5f)
+        assertEquals("the strip is at the top of the map", m.top.value, strip.top.value, 0.5f)
+        assertEquals("the card's bottom is the map's bottom: card $hud, map $m", m.bottom.value, hud.bottom.value, 0.5f)
+        assertEquals("the card's left edge is the strip's", strip.left.value, hud.left.value, 0.5f)
+        assertEquals("the card's right edge is the strip's", strip.right.value, hud.right.value, 0.5f)
     }
 
     // ── S5: tabular figures (landscape half; the portrait half is AvailabilityScreenPortraitStripTnumTest) ──
 
     @Test
     fun `S5 in landscape the strip's heading, elevation and coordinate text use tabular figures`() {
-        setScreen(Surface.ROTATION_90, B2_FIX_STATE)
+        // RECORD -735: with no compass, the landscape heading slot shows the crossed-out compass, which has no figures, so this
+        // half is given a fixed compass and checks the heading value's figures. The claim is unchanged; only the setup gains a
+        // compass. (The portrait half has none: there the heading reads "Compass unavailable", text in the same style.)
+        setScreen(Surface.ROTATION_90, B2_FIX_STATE, compassProvider = B2FixedCompass)
         assertStripTextUsesTabularFigures(composeRule)
     }
 
@@ -355,33 +375,37 @@ class AvailabilityScreenLandscapeB2Test {
         assertTrue("the cluster $c is on the left half of $r", (c.left + c.right) / 2 < (r.left + r.right) / 2)
     }
 
+    // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"), and the planner's answer 2 (a stored port side reads
+    // as the screen's right, a stored punch-hole side as its left): the three S6 cases below assert the screen side at both
+    // rotations. Was: the side followed the device edge, so at 270 the default was the right, a turn from 90 moved the cluster from
+    // left to right, and a cluster dragged right at 90 went left at 270.
     @Test
-    fun `S6 at ROTATION_270 the cluster defaults to the punch-hole side, right`() {
+    fun `S6 at ROTATION_270 the cluster defaults to the left, as at ROTATION_90`() {
         setScreen(Surface.ROTATION_270)
         val c = cluster()
         val r = root()
-        assertTrue("the cluster $c is on the right half of $r", (c.left + c.right) / 2 > (r.left + r.right) / 2)
+        assertTrue("the cluster $c is on the left half of $r", (c.left + c.right) / 2 < (r.left + r.right) / 2)
     }
 
     @Test
-    fun `S6 turning from ROTATION_90 to ROTATION_270 keeps the cluster on the same device edge, the punch-hole edge`() {
+    fun `S6 turning from ROTATION_90 to ROTATION_270 keeps the cluster on the same screen side, the left`() {
         setScreen(Surface.ROTATION_90)
-        assertTrue("at 90 the cluster starts on the left, the punch-hole side", cluster().centreXv() < root().centreXv())
+        assertTrue("at 90 the cluster starts on the left", cluster().centreXv() < root().centreXv())
 
         turnTo(Surface.ROTATION_270)
 
-        assertTrue("at 270 the punch-hole edge is the right; the cluster follows it", cluster().centreXv() > root().centreXv())
+        assertTrue("at 270 the cluster is still on the left", cluster().centreXv() < root().centreXv())
     }
 
     @Test
-    fun `S6 a cluster dragged to the port side stays on the port edge across a turn from ROTATION_90 to ROTATION_270`() {
+    fun `S6 a cluster dragged to the right stays on the right across a turn from ROTATION_90 to ROTATION_270`() {
         setScreen(Surface.ROTATION_90)
         dragMinimizeHandle(dxDp = 400.dp)
-        assertTrue("at 90 the cluster was dragged to the right, the port side", cluster().centreXv() > root().centreXv())
+        assertTrue("at 90 the cluster was dragged to the right", cluster().centreXv() > root().centreXv())
 
         turnTo(Surface.ROTATION_270)
 
-        assertTrue("at 270 the port edge is the left; the cluster follows it", cluster().centreXv() < root().centreXv())
+        assertTrue("at 270 the cluster is still on the right", cluster().centreXv() > root().centreXv())
     }
 
     private fun dragMinimizeHandle(dxDp: Dp) {
@@ -438,16 +462,18 @@ class AvailabilityScreenLandscapeB2Test {
         assertSameBounds("after the slide", mapBefore, mapBounds())
     }
 
+    // RECORD -956 (the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other"). Was: at 270 the rail slid toward the left,
+    // `it.right < railBefore.right - 0.5.dp && it.right > root().left`.
     @Test
-    fun `S7 entering fullscreen at ROTATION_270 slides the rail toward the port edge, left`() {
+    fun `S7 entering fullscreen at ROTATION_270 slides the rail off to the right, as at ROTATION_90`() {
         setScreen(Surface.ROTATION_270)
         val railBefore = rail()
         val mapBefore = mapBounds()
 
         val frames = railFramesAfter(mapBefore) { composeRule.onNodeWithContentDescription("Fullscreen").performClick() }
 
-        val midSlide = frames.filter { it.right < railBefore.right - 0.5.dp && it.right > root().left }
-        assertTrue("the rail must be seen part-way toward the port edge (left) on some frame; frames seen: $frames", midSlide.isNotEmpty())
+        val midSlide = frames.filter { it.left > railBefore.left + 0.5.dp && it.left < root().right }
+        assertTrue("the rail must be seen part-way toward the right on some frame; frames seen: $frames", midSlide.isNotEmpty())
         assertTrue("after the slide the rail is gone", !railExists())
     }
 
@@ -533,16 +559,65 @@ class AvailabilityScreenLandscapeB2Test {
         assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, B2_STRIP_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
+    // T11 fixes (dispatch 2026-10-09-02, RECORD -766), a recorded exception to S10 for the navigating display only. The owner,
+    // asked about the display growing into the central third (T11 check, P3), answered "Combine lines, allow the rest
+    // (Recommended)": its lines are combined (one evening line, "Try again" beside its message), and whatever still reaches
+    // into the central third while navigating is allowed. So the four navigating cases below no longer hold the display
+    // (NAVIGATION_HUD_TAG) to the central third; every other piece of chrome still is. What the exception does not allow is
+    // held by HudLandscapeT11FixesTest: the display never covers the walker's dot or the needle. Not navigating, nothing
+    // changes (the two cases above).
+    // The navigating cases run at B2_DAY_NOW, when the sundown line (dispatch 2026-09-28-592) is
+    // hidden: the HUD computes that line from the screen's clock, and this class used to read the
+    // real one, so these two failed from 2 h 30 min before the fixture's sunset until sunrise
+    // (RECORD -621). The line-shown cases are the dusk pair below.
     @Test
-    fun `S10 at ROTATION_90 while navigating, the HUD and the rest leave the central third clear`() {
+    fun `S10 at ROTATION_90 while navigating, the chrome other than the HUD leaves the central third clear`() {
         setScreen(Surface.ROTATION_90, B2_FIX_STATE, isReturning = true)
-        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+        assertHudSundownLine(shown = false)
+        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
     @Test
-    fun `S10 at ROTATION_270 while navigating, the HUD and the rest leave the central third clear`() {
+    fun `S10 at ROTATION_270 while navigating, the chrome other than the HUD leaves the central third clear`() {
         setScreen(Surface.ROTATION_270, B2_FIX_STATE, isReturning = true)
-        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, NAVIGATION_HUD_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+        assertHudSundownLine(shown = false)
+        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+    }
+
+    // RECORD -621: S10 with the sundown line in the HUD, at dusk (37 min before the fixture's sunset).
+    // Under NATIVE graphics, as S10's chip case (the owner's "Option B", RECORD -119): the default
+    // graphics mode measures each text row far taller than the phone does (the HUD reads 124 dp
+    // without the line there, 80 dp under NATIVE; the S22's own dump at 90, device evidence
+    // 2026-09-30-part-3 r4, puts it at 80 dp). The central-third assertion is unchanged. Robolectric
+    // reports no status bar, which on the S22 puts the HUD 30 dp lower; that clearance is a device item.
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `S10 at ROTATION_90 while navigating at dusk, the HUD carries its sundown line and the other chrome leaves the central third clear`() {
+        setScreen(Surface.ROTATION_90, b2FixStateAt(B2_DUSK_NOW), isReturning = true, now = B2_DUSK_NOW)
+        assertHudSundownLine(shown = true)
+        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+    }
+
+    @Test
+    @org.robolectric.annotation.GraphicsMode(org.robolectric.annotation.GraphicsMode.Mode.NATIVE)
+    fun `S10 at ROTATION_270 while navigating at dusk, the HUD carries its sundown line and the other chrome leaves the central third clear`() {
+        setScreen(Surface.ROTATION_270, b2FixStateAt(B2_DUSK_NOW), isReturning = true, now = B2_DUSK_NOW)
+        assertHudSundownLine(shown = true)
+        assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
+    }
+
+    /** The HUD's sundown line is drawn (inside the HUD, with the text the dusk instant gives) or absent. */
+    private fun assertHudSundownLine(shown: Boolean) {
+        val nodes = composeRule.onAllNodesWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG, useUnmergedTree = true).fetchSemanticsNodes()
+        if (!shown) {
+            assertTrue("at B2_DAY_NOW the HUD must carry no sundown line; found ${nodes.size}", nodes.isEmpty())
+            return
+        }
+        val text = nodes.singleOrNull()?.config?.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.joinToString()
+        assertTrue("the HUD's sundown line at dusk reads sunset, 37 min and dark; was <$text>", text != null && B2_DUSK_LINE.matches(text))
+        val line = composeRule.onNodeWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val hud = tagBounds(NAVIGATION_HUD_TAG)
+        assertTrue("the sundown line $line is laid out inside the HUD $hud", line.isInside(hud) && line.height > 0.dp)
     }
 
     // Planner message 2026-09-29-05 (the owner's "Option B"): a harness correction, not a weaker assertion. The default
@@ -619,38 +694,46 @@ class AvailabilityScreenLandscapeB2TurnTest {
                 screenWidthDp = 823
                 screenHeightDp = 384
             }
-            CompositionLocalProvider(LocalConfiguration provides configuration) {
+            ProvideConfigurationAndWindow(configuration) {
                 B2Screen(uiState = B2_SEARCHED_STATE, mapSlot = map.slot, isReturning = false)
             }
         }
         composeRule.waitForIdle()
         assertTrue("portrait: the cluster starts on the right", cluster().centreXv() > root().centreXv())
 
-        // Portrait: drag it to the left.
-        val b = composeRule.onNodeWithTag(B2_MINIMIZE_HANDLE_TAG).getUnclippedBoundsInRoot()
-        val start = with(composeRule.density) { Offset(((b.left + b.right) / 2).toPx(), ((b.top + b.bottom) / 2).toPx()) }
-        val delta = with(composeRule.density) { Offset((-300).dp.toPx(), 0f) }
-        composeRule.onRoot().performTouchInput {
-            down(start)
-            advanceEventTime(600)
-            moveTo(start + delta)
-            advanceEventTime(50)
-            up()
+        fun drag(dx: Dp) {
+            val b = composeRule.onNodeWithTag(B2_MINIMIZE_HANDLE_TAG).getUnclippedBoundsInRoot()
+            val start = with(composeRule.density) { Offset(((b.left + b.right) / 2).toPx(), ((b.top + b.bottom) / 2).toPx()) }
+            val delta = with(composeRule.density) { Offset(dx.toPx(), 0f) }
+            composeRule.onRoot().performTouchInput {
+                down(start)
+                advanceEventTime(600)
+                moveTo(start + delta)
+                advanceEventTime(50)
+                up()
+            }
+            composeRule.waitForIdle()
+            composeRule.mainClock.advanceTimeBy(2_000)
+            composeRule.waitForIdle()
         }
-        composeRule.waitForIdle()
-        composeRule.mainClock.advanceTimeBy(2_000)
-        composeRule.waitForIdle()
+
+        // Portrait: drag it to the left.
+        drag((-300).dp)
         assertTrue("portrait: dragged to the left", cluster().centreXv() < root().centreXv())
 
-        // Turn to landscape at ROTATION_270: the port (and rail) is on the left, so the punch-hole
-        // side, the cluster's landscape default, is the right — landscape's own default, not the
-        // portrait drag to the left carried over. 270 is used because there the two differ.
+        // RECORD -956 (the owner: "One should look exactly line the other"): the landscape default is the screen's left at both
+        // rotations, the same side the portrait drag went to, so the default alone can no longer tell the two memories apart. Was:
+        // at ROTATION_270 the default was the right ("270 is used because there the two differ"), asserted right here. Now the
+        // landscape cluster is dragged to the right, and the portrait side read back afterwards: shared memory would carry the
+        // right back to portrait.
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_270)
         landscape = true
         composeRule.waitForIdle()
         composeRule.mainClock.advanceTimeBy(2_000)
         composeRule.waitForIdle()
-        assertTrue("landscape at 270: the cluster defaults to the punch-hole side, the right", cluster().centreXv() > root().centreXv())
+        assertTrue("landscape at 270: the cluster defaults to the left", cluster().centreXv() < root().centreXv())
+        drag(300.dp)
+        assertTrue("landscape: dragged to the right", cluster().centreXv() > root().centreXv())
 
         // Back to portrait: the portrait drag is still remembered.
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_0)
@@ -740,44 +823,117 @@ private class B2RecordingMapSlot {
 }
 
 @Composable
-private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean) {
+private fun B2Screen(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean, now: Long = B2_DAY_NOW, compassProvider: com.zynergylabs.forager.app.domain.CompassProvider? = null) {
+    if (compassProvider != null) {
+        B2ScreenWith(uiState, mapSlot, isReturning, now, compassProvider)
+        return
+    }
     AvailabilityScreen(
+        // A pinned clock: the HUD's sundown line follows it (RECORD -621).
+        currentTime = { now },
         uiState = uiState,
-        isRecording = isReturning,
-        isReturning = isReturning,
-        onUseCurrentLocation = {},
-        onManualLatChanged = {},
-        onManualLngChanged = {},
-        onSearchManualCoordinates = {},
-        onRadiusChanged = {},
-        onMonthSelected = {},
-        onMapTabSelected = {},
-        onSeasonalTabSelected = {},
-        onTaxonSearchQueryChanged = {},
-        onTaxonSearchResultSelected = {},
-        onDismissTaxonSuggestions = {},
-        onReopenTaxonSuggestions = {},
-        onPlaceTripPin = { _, _, _ -> },
-        onDeletePlannedTrip = {},
-        onRecentSearchSelected = {},
-        onOfflineMapLatChanged = {},
-        onOfflineMapLngChanged = {},
-        onOfflineMapRadiusChanged = {},
-        onOfflineMapNameChanged = {},
-        onOfflineMapsOpened = {},
-        onDownloadOfflineMaps = {},
-        onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        recording = AvailabilityScreenRecording(
+            isRecording = isReturning,
+        ),
+        navigation = AvailabilityScreenNavigation(
+            isReturning = isReturning,
+        ),
+        searchInputs = AvailabilityScreenSearchInputs(
+            onUseCurrentLocation = {},
+            onManualLatChanged = {},
+            onManualLngChanged = {},
+            onSearchManualCoordinates = {},
+            onRadiusChanged = {},
+            onMonthSelected = {},
+            onMapTabSelected = {},
+            onSeasonalTabSelected = {},
+            onTaxonSearchQueryChanged = {},
+            onTaxonSearchResultSelected = {},
+            onDismissTaxonSuggestions = {},
+            onReopenTaxonSuggestions = {},
+            onPlaceTripPin = { _, _, _ -> },
+            onDeletePlannedTrip = {},
+            onRecentSearchSelected = {},
+        ),
+        offlineMaps = AvailabilityScreenOfflineMaps(
+            onOfflineMapLatChanged = {},
+            onOfflineMapLngChanged = {},
+            onOfflineMapRadiusChanged = {},
+            onOfflineMapNameChanged = {},
+            onOfflineMapsOpened = {},
+            onDownloadOfflineMaps = {},
+            onDeleteOfflineRegion = {},
+        ),
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = mapSlot,
     )
 }
 
-private val B2_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+/** RECORD -735: a fixed 315 degree compass with tight uncertainty, so the strip shows a heading value. */
+private object B2FixedCompass : com.zynergylabs.forager.app.domain.CompassProvider {
+    override val heading: kotlinx.coroutines.flow.Flow<com.zynergylabs.forager.app.domain.CompassReading?> =
+        kotlinx.coroutines.flow.MutableStateFlow(
+            com.zynergylabs.forager.app.domain.CompassReading(315f, com.zynergylabs.forager.app.domain.HeadingUncertainty.Estimated(2f), 0L),
+        )
+}
 
-private val B2_FIX_LOCATION = LatLng(45.3301, -122.6402)
+/** [B2Screen] with a [compassProvider] (RECORD -735); otherwise the same arguments. */
+@Composable
+private fun B2ScreenWith(uiState: AvailabilityUiState, mapSlot: MapSlot, isReturning: Boolean, now: Long, compassProvider: com.zynergylabs.forager.app.domain.CompassProvider) {
+    AvailabilityScreen(
+        currentTime = { now },
+        uiState = uiState,
+        recording = AvailabilityScreenRecording(
+            isRecording = isReturning,
+        ),
+        navigation = AvailabilityScreenNavigation(
+            isReturning = isReturning,
+        ),
+        compassProvider = compassProvider,
+        searchInputs = AvailabilityScreenSearchInputs(
+            onUseCurrentLocation = {},
+            onManualLatChanged = {},
+            onManualLngChanged = {},
+            onSearchManualCoordinates = {},
+            onRadiusChanged = {},
+            onMonthSelected = {},
+            onMapTabSelected = {},
+            onSeasonalTabSelected = {},
+            onTaxonSearchQueryChanged = {},
+            onTaxonSearchResultSelected = {},
+            onDismissTaxonSuggestions = {},
+            onReopenTaxonSuggestions = {},
+            onPlaceTripPin = { _, _, _ -> },
+            onDeletePlannedTrip = {},
+            onRecentSearchSelected = {},
+        ),
+        offlineMaps = AvailabilityScreenOfflineMaps(
+            onOfflineMapLatChanged = {},
+            onOfflineMapLngChanged = {},
+            onOfflineMapRadiusChanged = {},
+            onOfflineMapNameChanged = {},
+            onOfflineMapsOpened = {},
+            onDownloadOfflineMaps = {},
+            onDeleteOfflineRegion = {},
+        ),
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
+        mapSlot = mapSlot,
+    )
+}
 
-private const val B2_ELEVATION_TEXT = "123 m"
+private val B2_REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+
+private val B2_FIX_LOCATION = LatLng(45.3777, -121.7021)
+
+// In feet: this file's state carries the Imperial default, and the strip's elevation follows Units
+// (dispatch 2026-09-28-549; 123 / 0.3048 = 403.54).
+private const val B2_ELEVATION_TEXT = "404 ft"
 
 private fun b2Sighting(index: Int) = Sighting(
     observationId = index.toLong(),
@@ -795,16 +951,36 @@ private val B2_SEARCHED_STATE = AvailabilityUiState(
     sightings = List(12) { b2Sighting(it) },
 )
 
+/**
+ * The clock every test in this file runs at unless it names another: 11:00 PDT on 2026-10-06 at the
+ * fixture's position, 7 h 37 min before sunset, so the sundown line is hidden (its window opens
+ * 2 h 30 min before sunset). The screen and the fix both read it, so the fix is fresh.
+ */
+private val B2_DAY_NOW: Long = java.time.Instant.parse("2026-10-06T18:00:00Z").toEpochMilli()
+
+/** 18:00 PDT the same day, 37 minutes before the fixture's sunset: the sundown line is shown. */
+private val B2_DUSK_NOW: Long = java.time.Instant.parse("2026-10-07T01:00:00Z").toEpochMilli()
+
+/**
+ * What the HUD says at [B2_DUSK_NOW] with no recording: sunset and dark only (RECORD -593), e.g.
+ * "Sunset 6:37 PM · in 37 min · dark 7:06" in Pacific time. The clock times follow the JVM's zone
+ * (a laptop in PDT, CI in UTC), so only the countdown, which depends on instants alone, is exact.
+ */
+private val B2_DUSK_LINE = Regex("Sunset .+ · in 37 min · dark .+")
+
 /** A live fix, so the strip shows heading, elevation and coordinates rather than its no-fix line. */
-private val B2_FIX_STATE = B2_SEARCHED_STATE.copy(
+private fun b2FixStateAt(now: Long) = B2_SEARCHED_STATE.copy(
     liveFix = LocationFix.Update(
         lat = B2_FIX_LOCATION.lat,
         lng = B2_FIX_LOCATION.lng,
         altitude = 123.0,
         accuracyMeters = 5f,
-        timestampEpochMillis = System.currentTimeMillis(),
+        timestampEpochMillis = now,
+        provider = FixProvider.GPS,
     ),
-)
+).withFixHeight()
+
+private val B2_FIX_STATE = b2FixStateAt(B2_DAY_NOW)
 
 private val B2_FORECAST = AvailabilityForecast(
     region = B2_REGION,

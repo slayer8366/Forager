@@ -1,0 +1,442 @@
+(node:2598729) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✖ the cut holds exactly the rectangle's cells plus a one-cell ring, each byte for byte (4.395478ms)
+✖ the margin is a parameter: margin 0 keeps only the rectangle's own cells (0.450404ms)
+✖ the cut's header, tile indexes and cells carry checksums BRouter accepts (1.9862ms)
+✖ BRouter's own integrity check decodes every cell of the cut (0.574743ms)
+✖ the cut is smaller than the square and its size is reported (0.465041ms)
+✖ an old-format square (no 32-division marker) is refused as unsupported (4.626985ms)
+✖ a square with no footer is refused as unsupported (2.702643ms)
+✖ a damaged header is refused, not cut (0.827422ms)
+✖ a damaged tile index is refused, not cut (2.313092ms)
+✖ a rectangle that misses the square, or a malformed square name, is refused (0.9329ms)
+(node:2598730) [MODULE_TYPELESS_PACKAGE_JSON] Warning: Module type of file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts is not specified and it doesn't parse as CommonJS.
+Reparsing as ES module because module syntax was detected. This incurs a performance overhead.
+To eliminate this warning, add "type": "module" to /home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/package.json.
+(Use `node --trace-warnings ...` to show where the warning was created)
+✔ on the full fixture, every route is found and lies where its category says (3271.960728ms)
+✖ inside route inside-across-the-degree-line is identical on the cut: same points, length and cost (0.688706ms)
+✖ inside route inside-across-the-degree-line is identical on the cut with dynamic range off (0.243483ms)
+✖ inside route inside-short is identical on the cut: same points, length and cost (0.168429ms)
+✖ inside route inside-short is identical on the cut with dynamic range off (0.194536ms)
+✖ inside route inside-long is identical on the cut: same points, length and cost (0.20272ms)
+✖ inside route inside-long is identical on the cut with dynamic range off (0.201167ms)
+✖ edge route edge-north-a is identical on the cut: same points, length and cost (0.155217ms)
+✖ edge route edge-north-a is identical on the cut with dynamic range off (0.201728ms)
+✖ edge route edge-north-b is identical on the cut: same points, length and cost (0.368393ms)
+✖ edge route edge-north-b is identical on the cut with dynamic range off (0.281628ms)
+✖ detour route detour-west: by default BRouter quietly routes a longer way inside the cut (0.279786ms)
+✖ detour route detour-west: dynamic range off does not change that; the detour is still returned (0.177248ms)
+✖ outside route outside-west: by default BRouter moves the far end onto the cut's data and routes (1.069954ms)
+✖ outside route outside-west: with dynamic range off the cut refuses it cleanly (534.103014ms)
+ℹ tests 25
+ℹ suites 0
+ℹ pass 1
+ℹ fail 24
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 4012.31217
+
+✖ failing tests:
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:51:1
+✖ the cut holds exactly the rectangle's cells plus a one-cell ring, each byte for byte (4.395478ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:32:25)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:53:32)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.start (node:internal/test_runner/test:1262:17)
+      at startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:61:1
+✖ the margin is a parameter: margin 0 keeps only the rectangle's own cells (0.450404ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:32:25)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:62:32)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:66:1
+✖ the cut's header, tile indexes and cells carry checksums BRouter accepts (1.9862ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:32:25)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:68:32)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:89:1
+✖ BRouter's own integrity check decodes every cell of the cut (0.574743ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:32:25)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:90:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:103:1
+✖ the cut is smaller than the square and its size is reported (0.465041ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:32:25)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:104:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7)
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:109:1
+✖ an old-format square (no 32-division marker) is refused as unsupported (4.626985ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /unsupported/i. Input:
+  
+  'Error: cutRd5: not implemented'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:114:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: cutRd5: not implemented
+        at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+        at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:114:24)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /unsupported/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:117:1
+✖ a square with no footer is refused as unsupported (2.702643ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /unsupported/i. Input:
+  
+  'Error: cutRd5: not implemented'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:119:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: cutRd5: not implemented
+        at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+        at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:119:24)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /unsupported/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:122:1
+✖ a damaged header is refused, not cut (0.827422ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /checksum/i. Input:
+  
+  'Error: cutRd5: not implemented'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:125:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: cutRd5: not implemented
+        at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+        at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:125:24)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /checksum/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:128:1
+✖ a damaged tile index is refused, not cut (2.313092ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /checksum/i. Input:
+  
+  'Error: cutRd5: not implemented'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:132:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: cutRd5: not implemented
+        at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+        at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:132:24)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /checksum/i,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at server/pmtiles-worker/test/rd5/format.test.mjs:135:1
+✖ a rectangle that misses the square, or a malformed square name, is refused (0.9329ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /does not overlap/. Input:
+  
+  'Error: cutRd5: not implemented'
+  
+      at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+      at async TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:137:3)
+      at async Test.run (node:internal/test_runner/test:1409:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:974:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: cutRd5: not implemented
+        at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+        at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/format.test.mjs:137:24)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1402:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+        at Test.postRun (node:internal/test_runner/test:1542:19)
+        at Test.run (node:internal/test_runner/test:1467:12)
+        at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+        at async Test.processPendingSubtests (node:internal/test_runner/test:974:7),
+    expected: /does not overlap/,
+    operator: 'rejects',
+    diff: 'simple'
+  }
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:83:3
+✖ inside route inside-across-the-degree-line is identical on the cut: same points, length and cost (0.688706ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:89:3
+✖ inside route inside-across-the-degree-line is identical on the cut with dynamic range off (0.243483ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:83:3
+✖ inside route inside-short is identical on the cut: same points, length and cost (0.168429ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:89:3
+✖ inside route inside-short is identical on the cut with dynamic range off (0.194536ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:83:3
+✖ inside route inside-long is identical on the cut: same points, length and cost (0.20272ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:89:3
+✖ inside route inside-long is identical on the cut with dynamic range off (0.201167ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:83:3
+✖ edge route edge-north-a is identical on the cut: same points, length and cost (0.155217ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:89:3
+✖ edge route edge-north-a is identical on the cut with dynamic range off (0.201728ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:83:3
+✖ edge route edge-north-b is identical on the cut: same points, length and cost (0.368393ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:89:3
+✖ edge route edge-north-b is identical on the cut with dynamic range off (0.281628ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:97:3
+✖ detour route detour-west: by default BRouter quietly routes a longer way inside the cut (0.279786ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:108:3
+✖ detour route detour-west: dynamic range off does not change that; the detour is still returned (0.177248ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:116:3
+✖ outside route outside-west: by default BRouter moves the far end onto the cut's data and routes (1.069954ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)
+
+test at server/pmtiles-worker/test/rd5/route-proof.test.mjs:128:3
+✖ outside route outside-west: with dynamic range off the cut refuses it cleanly (534.103014ms)
+  Error: cutRd5: not implemented
+      at cutRd5 (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/src/rd5/cut.ts:22:9)
+      at cutToDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/fixture.mjs:34:23)
+      at cutDir (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:39:41)
+      at onCut (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:46:53)
+      at TestContext.<anonymous> (file:///home/zynergy-labs/.cache/forager-wt/route-cutter/server/pmtiles-worker/test/rd5/route-proof.test.mjs:84:23)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1402:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:974:18)
+      at Test.postRun (node:internal/test_runner/test:1542:19)
+      at Test.run (node:internal/test_runner/test:1467:12)

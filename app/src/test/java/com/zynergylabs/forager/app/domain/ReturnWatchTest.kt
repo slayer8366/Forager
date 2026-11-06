@@ -53,7 +53,7 @@ class ReturnWatchTest {
      * path from the first, and gone off at the fourth, 15 s and four readings in.
      */
     private fun ReturnWatch.walkAway(fromMillis: Long, fromLat: Double = 45.001) {
-        repeat(4) { i -> onFix(point(lat = fromLat + i * 0.001, t = fromMillis + i * 5_000L)) }
+        repeat(4) { i -> onFix(point(lat = fromLat + i * 0.001, t = fromMillis + i * 5_000L), FixProvider.GPS) }
     }
 
     /** The walk out, kept by the service: 45.000 to 45.003 north, every 0.0005° (56 m). */
@@ -92,7 +92,7 @@ class ReturnWatchTest {
         assertEquals(Alert(kind = AlertKind.OFF_TRACK, overridesSilence = false), delivered.single())
 
         // Still off on the next fix: once per stray, not once per fix.
-        watch.onFix(point(lat = 45.005, t = 22_000L))
+        watch.onFix(point(lat = 45.005, t = 22_000L), FixProvider.GPS)
         assertEquals(1, delivered.size)
     }
 
@@ -105,7 +105,7 @@ class ReturnWatchTest {
         assertEquals(1, delivered.size)
 
         // Ten more minutes off the path, a reading every 5 s: no reminder.
-        (1..120).forEach { i -> watch.onFix(point(lat = 45.005, t = 17_000L + i * 5_000L)) }
+        (1..120).forEach { i -> watch.onFix(point(lat = 45.005, t = 17_000L + i * 5_000L), FixProvider.GPS) }
         assertEquals(1, delivered.size)
         assertTrue(watch.state.value.isOffTrack)
     }
@@ -116,11 +116,11 @@ class ReturnWatchTest {
         val watch = begunWatch()
         watch.keptWalkOut()
         watch.startReturn("track-1")
-        repeat(4) { i -> watch.onFix(point(lat = 45.0015, lng = -122.0 + 60.0 / 78_620.0, t = 100_000L + i * 5_000L)) }
+        repeat(4) { i -> watch.onFix(point(lat = 45.0015, lng = -122.0 + 60.0 / 78_620.0, t = 100_000L + i * 5_000L), FixProvider.GPS) }
         assertEquals(1, delivered.size)
-        repeat(3) { i -> watch.onFix(point(lat = 45.0015, t = 120_000L + i * 5_000L)) }
+        repeat(3) { i -> watch.onFix(point(lat = 45.0015, t = 120_000L + i * 5_000L), FixProvider.GPS) }
         assertFalse("back on for 10 s", watch.state.value.isOffTrack)
-        repeat(4) { i -> watch.onFix(point(lat = 45.0015, lng = -122.0 + 60.0 / 78_620.0, t = 140_000L + i * 5_000L)) }
+        repeat(4) { i -> watch.onFix(point(lat = 45.0015, lng = -122.0 + 60.0 / 78_620.0, t = 140_000L + i * 5_000L), FixProvider.GPS) }
         assertEquals(2, delivered.size)
     }
 
@@ -131,7 +131,7 @@ class ReturnWatchTest {
         watch.startReturn("track-1")
 
         // Back along the path walked out, from its far end.
-        listOf(45.003, 45.0025, 45.002, 45.0015, 45.001).forEachIndexed { i, lat -> watch.onFix(point(lat = lat, t = 100_000L + i * 5_000L)) }
+        listOf(45.003, 45.0025, 45.002, 45.0015, 45.001).forEachIndexed { i, lat -> watch.onFix(point(lat = lat, t = 100_000L + i * 5_000L), FixProvider.GPS) }
 
         assertEquals(0, delivered.size)
     }
@@ -158,7 +158,7 @@ class ReturnWatchTest {
         watch.keptWalkOut()
         watch.startReturn("track-1")
 
-        listOf(45.003, 45.002, 45.001).forEachIndexed { i, lat -> watch.onFix(point(lat = lat, t = 100_000L + i * 10_000L)) }
+        listOf(45.003, 45.002, 45.001).forEachIndexed { i, lat -> watch.onFix(point(lat = lat, t = 100_000L + i * 10_000L), FixProvider.GPS) }
 
         assertFalse(watch.state.value.isOffTrack)
     }
@@ -205,7 +205,7 @@ class ReturnWatchTest {
         repeat(4) { i ->
             val detour = point(lat = 45.0015, lng = -122.0 + 100.0 / 78_620.0, t = 100_000L + i * 5_000L)
             watch.onKeptPoint(detour)
-            watch.onFix(detour)
+            watch.onFix(detour, FixProvider.GPS)
         }
         assertEquals("still the path at Return", 7, watch.pathPointCount)
         assertEquals(1, delivered.size)
@@ -218,8 +218,8 @@ class ReturnWatchTest {
         watch.keptWalkOut()
         watch.startReturn("track-1")
         repeat(30) { i ->
-            watch.onFix(point(lat = 45.003 - i * 0.0001, t = 100_000L + i * 1_000L))
-            watch.onFix(TrackPoint(lat = 45.0015, lng = -122.0 + 400.0 / 78_620.0, altitude = null, accuracyMeters = 400f, timestampEpochMillis = 100_000L + i * 1_000L + 567L))
+            watch.onFix(point(lat = 45.003 - i * 0.0001, t = 100_000L + i * 1_000L), FixProvider.GPS)
+            watch.onFix(TrackPoint(lat = 45.0015, lng = -122.0 + 400.0 / 78_620.0, altitude = null, accuracyMeters = 400f, timestampEpochMillis = 100_000L + i * 1_000L + 567L), FixProvider.NETWORK)
         }
         assertEquals(0, delivered.size)
         assertFalse(watch.state.value.isOffTrack)
@@ -280,7 +280,7 @@ class ReturnWatchTest {
 
         assertEquals(before, watch.state.value)
         watch.startReturn("track-1")
-        watch.onFix(point(lat = 45.001, t = 2_000L))
+        watch.onFix(point(lat = 45.001, t = 2_000L), FixProvider.GPS)
         assertEquals("the start is still the one given for track-1", 111.2, watch.state.value.returnToStart!!.distanceMeters, 1.0)
     }
 
@@ -313,12 +313,12 @@ class ReturnWatchTest {
     fun `every fix updates the distance to the start, returning or not`() {
         val watch = begunWatch()
 
-        watch.onFix(point(lat = 45.001, t = 2_000L))
+        watch.onFix(point(lat = 45.001, t = 2_000L), FixProvider.GPS)
         assertEquals(111.2, watch.state.value.returnToStart!!.distanceMeters, 1.0)
         assertEquals(180.0, watch.state.value.returnToStart!!.bearingDegrees, 0.01)
 
         watch.startReturn("track-1")
-        watch.onFix(point(lat = 45.002, t = 3_000L))
+        watch.onFix(point(lat = 45.002, t = 3_000L), FixProvider.GPS)
         assertEquals(222.4, watch.state.value.returnToStart!!.distanceMeters, 1.0)
     }
 
@@ -414,7 +414,7 @@ class ReturnWatchTest {
 
                 val verdict = judge.next(reading)
                 if (verdict.alert) expectedDeliveries++
-                watch.onFix(reading)
+                watch.onFix(reading, if (network) FixProvider.NETWORK else FixProvider.GPS)
 
                 assertEquals("walk $walk, reading $step: off track now", verdict.isOffTrack, watch.state.value.isOffTrack)
                 assertEquals("walk $walk, reading $step: deliveries so far", expectedDeliveries, delivered.size)
@@ -437,8 +437,8 @@ class ReturnWatchTest {
             delivered.clear()
             val watch = begunWatch()
             watch.startReturn("track-1")
-            watch.onFix(point(lat = 45.001, t = 2_000L))
-            watch.onFix(point(lat = 45.002, t = 3_000L))
+            watch.onFix(point(lat = 45.001, t = 2_000L), FixProvider.GPS)
+            watch.onFix(point(lat = 45.002, t = 3_000L), FixProvider.GPS)
 
             val together = CyclicBarrier(2)
             val failure = AtomicReference<Throwable?>(null)
@@ -447,7 +447,7 @@ class ReturnWatchTest {
                 thread {
                     try {
                         together.await()
-                        repeat(50) { i -> watch.onFix(point(lat = 45.003 + (i * 2 + feeder) * 0.001, t = 17_000L + i * 1_000L)) }
+                        repeat(50) { i -> watch.onFix(point(lat = 45.003 + (i * 2 + feeder) * 0.001, t = 17_000L + i * 1_000L), FixProvider.GPS) }
                     } catch (t: Throwable) {
                         failure.compareAndSet(null, t)
                     } finally {
@@ -474,7 +474,7 @@ class ReturnWatchTest {
                 repeat(20_000) { i ->
                     val p = point(lat = 45.0 + (i % 50) * 0.001, t = 2_000L + i * 1_000L)
                     watch.onKeptPoint(p)
-                    watch.onFix(p)
+                    watch.onFix(p, FixProvider.GPS)
                 }
             } catch (t: Throwable) {
                 failure.compareAndSet(null, t)

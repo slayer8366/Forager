@@ -6,9 +6,12 @@ package com.zynergylabs.forager.app.domain.model
  * reason `AvailabilityForecast` is computed rather than cached: a stored copy could drift from the
  * points it was supposedly summarizing.
  *
- * [elevationGainMeters]/[elevationLossMeters] are `null` when no recorded point on the track has an
- * altitude, an explicit "unsupported for this track" rather than reporting a fabricated `0.0` that
- * would be indistinguishable from "recorded, and flat".
+ * [elevationGainMeters]/[elevationLossMeters] are `null` when no two adjacent points on the track both
+ * carry an altitude (which includes every track of fewer than two points), an explicit "unsupported for
+ * this track" rather than reporting a fabricated `0.0` that would be indistinguishable from "recorded,
+ * and flat". (Corrected 2026-10-11, journal-entry-height: this used to say "no recorded point has an
+ * altitude", which is not what `ComputeTrackStatisticsUseCase` does. An entry's Climb leaves out a
+ * track of fewer than two points rather than let its `null` blank the walk; see `entryReportOf`.)
  */
 data class TrackStatistics(
     val distanceMeters: Double,

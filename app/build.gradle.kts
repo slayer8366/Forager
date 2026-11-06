@@ -2,6 +2,9 @@ import java.security.KeyStore
 import java.security.MessageDigest
 import java.util.Properties
 import java.util.zip.ZipFile
+import java.util.zip.ZipInputStream
+import java.io.ByteArrayInputStream
+import org.gradle.api.artifacts.component.ModuleComponentIdentifier
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -108,6 +111,20 @@ fun resolveBuildIdentity(): BuildIdentity {
 }
 
 val buildIdentity = resolveBuildIdentity()
+
+/**
+ * The routing app key (dispatch 2026-10-23-03, the planner's contract): sent as X-Forager-App-Key on every routing
+ * request, through `BuildConfig.ROUTING_APP_KEY`. From the Gradle property `forager.routingAppKey`, else the
+ * environment variable `FORAGER_ROUTING_APP_KEY`, else empty. **Where it lives:** the build machine's own
+ * `~/.gradle/gradle.properties` or the environment, never this repository's tracked `gradle.properties` (the
+ * repository is public). CI's debug APK step gets it from the `FORAGER_ROUTING_APP_KEY` secret; the unit tests and a
+ * fork's builds have none. A debug build without it sends no routing request and records why (`NO_APP_KEY`); a
+ * release build without it does not build ([verifyReleaseHasRoutingAppKey]). Not a secret from anyone who unpacks the
+ * APK (PR #381's report, option B): it keeps the route from anyone who has only the URL.
+ */
+val routingAppKey: String = providers.gradleProperty("forager.routingAppKey")
+    .orElse(providers.environmentVariable("FORAGER_ROUTING_APP_KEY"))
+    .getOrElse("")
 
 /**
  * The beta-and-release signing identity — dedicated-beta-signing-identity dispatch (owner
@@ -249,6 +266,8 @@ android {
         targetSdk = 37
         versionCode = buildIdentity.code
         versionName = buildIdentity.name
+        // The routing app key: see routingAppKey above.
+        buildConfigField("String", "ROUTING_APP_KEY", "\"${routingAppKey.replace("\\", "\\\\").replace("\"", "\\\"")}\"")
     }
 
     // A stable debug signing identity, committed at app/debug.keystore (return-estimate device
@@ -317,6 +336,15 @@ android {
             // Material3 Compose tree does immediately — fails at construction.
             isIncludeAndroidResources = true
         }
+    }
+
+    // Lint on CI (production release T3; dispatch 2026-10-17-03, owner's go RECORD -1195): the lint job in
+    // .github/workflows/ci.yml runs lintDebug, which fails on any error (abortOnError, lint's default), with no
+    // baseline. Three checks are off, each for the reason on its line; every other check runs at lint's own severity.
+    lint {
+        disable += "LogNotTimber" // A library's rule for its own logger; the app logs through Android's Log on purpose.
+        disable += "NewerVersionAvailable" // Answers from what is published online that day, not from the code, so a commit could pass today and fail tomorrow.
+        disable += "GradleDependency" // The same: it reports newer library versions from online indexes, so its result changes without a code change.
     }
 }
 
@@ -445,9 +473,11 @@ tasks.register("verifyReleaseNeverSignsWithDebugKeystore") {
                     "the keystore in use is the wrong one -- check what signing.properties points at.",
             )
         }
+        // No key alias in this line: release.yml tees this log to the public Actions log, and the alias is stored
+        // there as a secret (Sorrel's review of PR #385, L1).
         logger.lifecycle(
             "Verified: the release build type signs with '${releaseSigningConfig.name}' " +
-                "(${storeFile.absolutePath}, alias '$keyAlias'), certificate SHA-256 $fingerprint -- not the debug identity.",
+                "(${storeFile.absolutePath}), certificate SHA-256 $fingerprint -- not the debug identity.",
         )
         logger.lifecycle(
             "Verified: that certificate matches the pinned upload identity " +
@@ -458,6 +488,37 @@ tasks.register("verifyReleaseNeverSignsWithDebugKeystore") {
 
 tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }
     .configureEach { dependsOn("verifyReleaseNeverSignsWithDebugKeystore") }
+
+/**
+ * A release build refuses to build without the routing app key (dispatch 2026-10-23-03 Amendment 1, Sorrel's review of
+ * #383, M2): a keyless Play build would tell every user that no area has trail routes. Wired, like the signing guard
+ * above, to `assembleRelease` and `bundleRelease`, the two tasks that make a shippable artifact. **CI's
+ * release-compile job is exempt by construction, not by a flag:** it runs `packageRelease` and
+ * `packageReleaseBundle`, stopping short of both tasks, exactly as it stops short of the signing guard (its own check
+ * fails if that guard runs). It exists to prove the release variant compiles; giving it the key would put the key in
+ * a second job and fail every fork's pull request, which gets no secrets. Debug builds are untouched.
+ *
+ * **For the next Play build:** on the machine that builds it, put `forager.routingAppKey=<the key>` in
+ * `~/.gradle/gradle.properties` (or export `FORAGER_ROUTING_APP_KEY`) before `./gradlew bundleRelease`; this task
+ * then logs that a key is present, never the key.
+ */
+tasks.register("verifyReleaseHasRoutingAppKey") {
+    val hasKey = routingAppKey.isNotEmpty()
+    doLast {
+        if (!hasKey) {
+            error(
+                "A release build needs the routing app key, and none is set. Put forager.routingAppKey=<key> in " +
+                    "~/.gradle/gradle.properties (never in the repository's gradle.properties) or export " +
+                    "FORAGER_ROUTING_APP_KEY, then build again. Without it every region would say it has no trail " +
+                    "routes. See routingAppKey in app/build.gradle.kts.",
+            )
+        }
+        logger.lifecycle("Verified: a routing app key is set for this release build (its value is not printed).")
+    }
+}
+
+tasks.matching { it.name == "assembleRelease" || it.name == "bundleRelease" }
+    .configureEach { dependsOn("verifyReleaseHasRoutingAppKey") }
 
 // The classic `kotlin-android` plugin (needed for Room's KSP compiler — see gradle.properties)
 // defaults Kotlin's own JVM target to the Gradle daemon's JDK (21 here) rather than reading
@@ -478,6 +539,8 @@ ksp {
 }
 
 dependencies {
+    // BRouter v1.7.10, vendored (third_party/brouter): the trail router behind domain/routing/TrailRouter.
+    implementation(project(":brouter"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -590,6 +653,9 @@ tasks.withType<Test>().configureEach {
     }
 }
 
+// The older-SDK test classes run in their own test JVM, with the check that keeps their list current (dispatch 2026-10-26-08).
+apply(from = rootProject.file("gradle/older-sdk-tests.gradle.kts"))
+
 /**
  * Fails the build if a test-only dependency ends up in the shipped APK.
  *
@@ -678,3 +744,152 @@ fun indexOfBytes(haystack: ByteArray, needle: ByteArray): Int {
 tasks.matching { it.name == "assembleDebug" }
     .configureEach { finalizedBy("verifyNothingTestOnlyReachesTheApk") }
 
+
+/**
+ * Fails the build when Settings > Sources & credits > Open-source software stops describing what
+ * the app actually ships (dispatch 2026-10-13-05; the planner's answer Q1: a hand-kept list, checked
+ * here). The list is `src/main/assets/credits/software.json`, the same file the page reads, so there
+ * is one source and this checks it against the artifact rather than trusting it. Five refusals:
+ *
+ * - a module on `releaseRuntimeClasspath` (what ships, not the debug extras) that no library in the
+ *   list covers: a new dependency arrived without its credit;
+ * - a library whose module patterns match nothing on that classpath: a credit for something that no
+ *   longer ships;
+ * - a library's pinned `versions` entry that differs from the resolved version: its notice text was
+ *   taken from that version's own source, so a version bump means re-taking it;
+ * - a NOTICE file anywhere inside a shipped artifact (nested jars in an AAR included) that the list
+ *   does not reproduce word for word, or a reproduced one no artifact carries any more. Apache 2.0
+ *   section 4(d) obliges a redistributor to pass NOTICE text on, and a NOTICE is not always at
+ *   `META-INF/` (OkHttp's sits beside the Public Suffix List it ships), so every entry whose file
+ *   name starts with NOTICE is read, not only `META-INF/NOTICE*`;
+ * - a licence or notice file the list names that is missing or blank.
+ *
+ * What it cannot see: native code compiled into an AAR, and fonts. Those carry no POM or module of
+ * their own, so MapLibre Native's third-party notices and the two fonts are kept by hand; the
+ * MapLibre version in `gradle/libs.versions.toml` carries the reminder.
+ *
+ * Wired after `assembleDebug`, as [verifyNothingTestOnlyReachesTheApk] is, so CI runs it on every push.
+ */
+val creditsCatalogFile = file("src/main/assets/credits/software.json")
+
+/** [pattern] is `group:name`; a group ending in `.*` covers that group and every group under it, and a name of `*` any name. */
+fun creditPatternMatches(pattern: String, module: String): Boolean {
+    val (patternGroup, patternName) = pattern.split(":", limit = 2).let { it[0] to it.getOrElse(1) { "*" } }
+    val (group, name) = module.split(":", limit = 2).let { it[0] to it[1] }
+    val groupMatches = if (patternGroup.endsWith(".*")) {
+        val stem = patternGroup.removeSuffix(".*")
+        group == stem || group.startsWith("$stem.")
+    } else {
+        group == patternGroup
+    }
+    return groupMatches && (patternName == "*" || patternName == name)
+}
+
+/** Line endings and trailing whitespace are not content; everything else is compared exactly. */
+fun normalisedNoticeText(text: String): String =
+    text.replace("\r\n", "\n").lines().joinToString("\n") { it.trimEnd() }.trimEnd()
+
+/** Every entry in [zip] whose file name starts with NOTICE, keyed by its path; nested jars are opened too, as `outer!inner`. */
+fun noticesIn(zip: ZipInputStream, prefix: String, into: MutableMap<String, String>) {
+    while (true) {
+        val entry = zip.nextEntry ?: break
+        if (entry.isDirectory) continue
+        val fileName = entry.name.substringAfterLast('/')
+        when {
+            fileName.startsWith("NOTICE", ignoreCase = true) ->
+                into[prefix + entry.name] = zip.readBytes().toString(Charsets.UTF_8)
+            fileName.endsWith(".jar") ->
+                noticesIn(ZipInputStream(ByteArrayInputStream(zip.readBytes())), prefix + entry.name + "!", into)
+        }
+    }
+}
+
+tasks.register("verifyCreditsCoverEveryDependency") {
+    inputs.file(creditsCatalogFile)
+    doLast {
+        val creditsDir = creditsCatalogFile.parentFile
+        @Suppress("UNCHECKED_CAST")
+        val catalog = groovy.json.JsonSlurper().parse(creditsCatalogFile) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val licences = catalog["licences"] as List<Map<String, Any?>>
+        @Suppress("UNCHECKED_CAST")
+        val libraries = catalog["libraries"] as List<Map<String, Any?>>
+        val problems = mutableListOf<String>()
+
+        fun requireReadable(relativePath: String, what: String) {
+            val file = File(creditsDir, relativePath)
+            if (!file.isFile || file.readText().isBlank()) problems += "$what names credits/$relativePath, which is missing or blank"
+        }
+        val licenceIds = licences.map { it["id"] as String }.toSet()
+        licences.forEach { requireReadable(it["file"] as String, "Licence ${it["id"]}") }
+
+        val runtime = configurations.getByName("releaseRuntimeClasspath")
+        val resolved: Map<String, String> = runtime.incoming.resolutionResult.allComponents
+            .mapNotNull { it.id as? ModuleComponentIdentifier }
+            .associate { "${it.group}:${it.module}" to it.version }
+
+        @Suppress("UNCHECKED_CAST")
+        fun patternsOf(library: Map<String, Any?>) = (library["modules"] as List<String>?).orEmpty()
+        libraries.forEach { library ->
+            val name = library["name"] as String
+            if ((library["licence"] as String?) !in licenceIds) problems += "Library \"$name\" names licence ${library["licence"]}, which is not in the list's licences"
+            val patterns = patternsOf(library)
+            if (patterns.isNotEmpty() && resolved.keys.none { module -> patterns.any { creditPatternMatches(it, module) } }) {
+                problems += "Library \"$name\" (${patterns.joinToString()}) matches no module on releaseRuntimeClasspath: it no longer ships"
+            }
+            @Suppress("UNCHECKED_CAST")
+            val versions = (library["versions"] as Map<String, String>?).orEmpty()
+            versions.forEach { (module, version) ->
+                val actual = resolved[module]
+                if (actual != version) problems += "Library \"$name\" was credited at $module $version, and $actual resolves now: re-take its notice text from that version"
+            }
+            @Suppress("UNCHECKED_CAST")
+            val notices = (library["notices"] as List<Map<String, Any?>>?).orEmpty()
+            notices.forEach { requireReadable(it["file"] as String, "A notice of \"$name\"") }
+        }
+        resolved.keys.sorted().forEach { module ->
+            if (libraries.none { library -> patternsOf(library).any { creditPatternMatches(it, module) } }) {
+                problems += "$module ${resolved[module]} ships and no library in credits/software.json covers it"
+            }
+        }
+
+        // NOTICE files, read from the artifacts themselves.
+        val found = mutableMapOf<Pair<String, String>, String>()
+        runtime.incoming.artifacts.artifacts.forEach { artifact ->
+            val id = artifact.id.componentIdentifier as? ModuleComponentIdentifier ?: return@forEach
+            val notices = mutableMapOf<String, String>()
+            artifact.file.inputStream().use { noticesIn(ZipInputStream(it), "", notices) }
+            notices.forEach { (path, text) -> found["${id.group}:${id.module}" to path] = text }
+        }
+        @Suppress("UNCHECKED_CAST")
+        val declared: Map<Pair<String, String>, String> = libraries
+            .flatMap { (it["notices"] as List<Map<String, Any?>>?).orEmpty() }
+            .filter { it["module"] != null && it["path"] != null }
+            .associate { (it["module"] as String to it["path"] as String) to (it["file"] as String) }
+        found.forEach { (key, text) ->
+            val file = declared[key]
+            if (file == null) {
+                problems += "${key.first} ships a NOTICE at ${key.second} that credits/software.json does not reproduce:\n" + text.prependIndent("      ")
+            } else {
+                val reproduced = File(creditsDir, file).takeIf { it.isFile }?.readText()
+                if (reproduced == null || normalisedNoticeText(reproduced) != normalisedNoticeText(text)) {
+                    problems += "${key.first}'s NOTICE at ${key.second} differs from credits/$file: copy it from the artifact again"
+                }
+            }
+        }
+        (declared.keys - found.keys).forEach { key ->
+            problems += "credits/software.json reproduces a NOTICE at ${key.second} in ${key.first}, and no shipped artifact carries it now"
+        }
+
+        if (problems.isNotEmpty()) {
+            error("The open-source credits no longer match what ships:\n" + problems.joinToString("\n") { "  - $it" })
+        }
+        logger.lifecycle(
+            "Verified: credits/software.json covers all ${resolved.size} modules on releaseRuntimeClasspath, " +
+                "and reproduces all ${found.size} NOTICE files they carry.",
+        )
+    }
+}
+
+tasks.matching { it.name == "assembleDebug" }
+    .configureEach { finalizedBy("verifyCreditsCoverEveryDependency") }

@@ -46,6 +46,20 @@ data class CachedSearchEntity(
     val filterTaxonId: Long?,
     /** [TaxonFilter.excludedTaxonId], which only an [TaxonFilter.IconicCategory] can carry. */
     val filterExcludedTaxonId: Long?,
+    /**
+     * For a [TaxonFilter.SpecificTaxon] only: the iNaturalist iconic taxon name of the species' group
+     * (e.g. "Fungi"), so a species reopened from a recent search keeps the weather guidance it had
+     * when it was searched by name (dispatch 2026-09-28-695, amendment 1; the owner's choice, "Save
+     * it with the search"). A column as of [MIGRATION_18_19].
+     *
+     * Kept separate from [filterIconicTaxonName], which stays the column that tells a category row
+     * from a species row in `toFilter()`: putting a species' group there would turn every species
+     * row into a category one. Null for every category row, for a species whose group iNaturalist
+     * did not give, for the Lichens chip (deliberately groupless, see
+     * [com.zynergylabs.forager.app.domain.ForagingSelection.forChip]), and for every row written
+     * before version 19, which the migration leaves null rather than guessing.
+     */
+    val speciesIconicTaxonName: String?,
     /** [CachedSearchPayload]-encoded ranked entries. */
     val entriesJson: String,
     /** When the live search behind this row was answered — the age shown on screen. */

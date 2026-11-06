@@ -65,7 +65,6 @@ class CameraGridChipTest {
             InAppCameraDialog(
                 session = session,
                 cameraCaptureFiles = CameraCaptureFiles(ApplicationProvider.getApplicationContext()),
-                lockToPortrait = false,
                 onPhotoCaptured = {},
                 onDismiss = {},
                 gridMode = mode,

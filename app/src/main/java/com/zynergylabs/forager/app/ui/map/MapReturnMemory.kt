@@ -107,7 +107,8 @@ class MapReturnMemory(
         val bubble = entryBubbleRestore ?: return null
         entryBubbleRestore = null
         val target = bubble.target as? MapBubbleTarget.FeatureTarget ?: return null
-        if (mapBubbleContentFor(target, sources) == null) {
+        // Only whether the record is still there is read, never the bubble's text, so the clock setting changes nothing here.
+        if (mapBubbleContentFor(target, sources, is24HourClock = false) == null) {
             warn("${target.layerId}/${target.featureId} is no longer there; its bubble was not reopened.")
             return null
         }

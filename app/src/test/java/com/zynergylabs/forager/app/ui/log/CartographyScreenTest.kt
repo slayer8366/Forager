@@ -15,6 +15,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
@@ -242,13 +243,16 @@ class CartographyScreenTest {
         composeRule.onNodeWithContentDescription("Entry options").performClick()
         composeRule.onNodeWithText("Edit entry").performClick()
     }
+    // Data part A (RECORD -667): the editor's "In this entry" panel sits above Save, which at this
+    // class's default 320 x 470 dp is below the screen (measured: Save's top at 530 dp, the root's
+    // bottom at 470 dp), so the Save tests below scroll to it first. Their assertions are unchanged.
 
     @Test
     fun `a committed entry shows its own Save action, not Finish entry`() {
         setScreen(CartographyUiState(entries = listOf(committedEntry)))
         openCommittedEntryEditor()
 
-        composeRule.onNodeWithText("Save").assertIsDisplayed()
+        composeRule.onNodeWithText("Save").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("Finish entry").assertDoesNotExist()
     }
 
@@ -263,7 +267,7 @@ class CartographyScreenTest {
         openCommittedEntryEditor()
 
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Chanterelles under the big fir.")
-        composeRule.onNodeWithText("Save").performClick()
+        composeRule.onNodeWithText("Save").performScrollTo().performClick()
 
         composeRule.onNodeWithText("Save this entry?").assertIsDisplayed()
         composeRule.onNodeWithTag(SAVE_CONFIRM_TEST_TAG).performClick()
@@ -281,7 +285,7 @@ class CartographyScreenTest {
         openCommittedEntryEditor()
 
         composeRule.onNodeWithText("Your own account (optional)").performTextReplacement("Not yet saved.")
-        composeRule.onNodeWithText("Save").performClick()
+        composeRule.onNodeWithText("Save").performScrollTo().performClick()
         composeRule.onNodeWithText("Save this entry?").assertIsDisplayed()
         composeRule.onNodeWithText("Cancel").performClick()
 

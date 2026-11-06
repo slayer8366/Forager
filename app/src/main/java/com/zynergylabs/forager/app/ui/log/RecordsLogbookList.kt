@@ -31,6 +31,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.ui.motion.ListRowMotion
+import com.zynergylabs.forager.app.ui.motion.ListRowShape
+import com.zynergylabs.forager.app.ui.motion.rememberListRows
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
@@ -40,20 +43,19 @@ import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.availability.OfflineRegionRow
+import com.zynergylabs.forager.app.ui.availability.OfflineRegionRowWithDelete
 import com.zynergylabs.forager.app.ui.availability.WaypointRow
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.TrackExportRow
 import com.zynergylabs.forager.app.ui.track.canBeDeleted
 import com.zynergylabs.forager.app.ui.track.trackTitle
-import java.time.LocalDate
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
+import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
  * Records' **All** view — journal redesign J1, S4 (plan J4; the owner's answers in
- * `prompts/preserved/2026-09-27-17.md`): every record in one list, grouped by day, days newest first,
- * that day's finds first and then its timed records newest first ([buildRecordsLogbook] owns the
- * order).
+ * `prompts/preserved/2026-09-27-17.md`): every record in one list. Since RECORD -868 it is grouped by kind, in chip
+ * order (Finds, Tracks, Waypoints, Offline maps), each section under a header with its count and newest first inside;
+ * a kind with nothing in it is left out. It was grouped by day until then. [buildRecordsLogbook] owns the order.
  *
  * **The rows are the chips' own rows** (owner's answer 2, "Same rows as their chips"): [FindTile],
  * [TrackExportRow], [WaypointRow] and [OfflineRegionRow], each exactly as its single-type chip shows
@@ -64,8 +66,8 @@ import java.time.format.DateTimeFormatter
  * [TwoStageSwipeRow] since J4b L6), and [onDeleteWaypoint]/[onDeleteOfflineRegion] ask for a
  * pending delete with Undo. The regions listed are [AvailabilityUiState.visibleOfflineRegions].
  *
- * **Tapping a find** calls [onOpenFind], which `RecordsTab` turns into "select the Finds chip and open
- * that find's report there", so Back goes report, then the Finds gallery, then All. Waypoint, track
+ * **Tapping a find** calls [onOpenFind]: the find's report slides in over All, which stays the selected chip, and Back
+ * goes report, All, Finds, then out of Records (RECORD -874, the owner: "Find > All > Finds > out"). Waypoint, track
  * and region rows had no row tap until journal redesign J5c: a tap on one now opens its details
  * sheet ([onOpenDetails], [RecordDetailsSheet]).
  *
@@ -86,11 +88,11 @@ internal fun RecordsLogbookList(
     getFullRecord: suspend (String) -> Result<List<TrackPointRecord>>,
     onDeleteWaypoint: (String) -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
+    modifier: Modifier = Modifier,
     /** Part 2 follow-ups F1 item 5: a finished track row's swipe (pending delete with Undo); `null` leaves track rows without one. A recording track never has one. */
     onDeleteTrack: ((String) -> Unit)? = null,
     onDownloadAgain: (Long) -> Unit = {},
     onOpenFind: (String) -> Unit,
-    modifier: Modifier = Modifier,
     /** J4b L1: a find tile's long-press Delete (pending, with Undo); `null` leaves the tiles tap-only. */
     onDeleteFind: ((String) -> Unit)? = null,
     /** J4b L1: a find tile's long-press Edit. */
@@ -104,13 +106,17 @@ internal fun RecordsLogbookList(
     /** Dispatch 2026-09-28-502: a waypoint row's Navigate, given its id; `null` (the default) offers none. */
     onNavigateToWaypoint: ((String) -> Unit)? = null,
 ) {
-    val days = buildRecordsLogbook(
+    val sections = buildRecordsLogbook(
         finds = finds.orEmpty(),
         tracks = tracks,
         waypoints = waypoints,
         offlineRegions = availabilityUiState.visibleOfflineRegions,
-        zone = ZoneId.systemDefault(),
     )
+    // Motion Part 3, item 2 (RECORD -651, Lists: "Slide and close up"; motion/ListMotion.kt): a deleted track, waypoint or
+    // offline map row fades and shrinks while the rows below close up, and Undo brings it back the way it went. A section
+    // whose last record goes leaves the same way, header and all (it was a day until RECORD -868). Find tiles shrink and
+    // grow the same way (Amendment 1, scout R5).
+    val sectionRows = rememberListRows(sections, key = { it.type })
     val now = currentTime.nowEpochMillis()
     // J4b L6: one open row at a time across the logbook; a touch elsewhere or a scroll closes it.
     val swipeGroup = rememberSwipeRevealGroup()
@@ -133,34 +139,46 @@ internal fun RecordsLogbookList(
                 style = MaterialTheme.typography.bodySmall,
             )
         }
-        if (days.isEmpty()) {
-            Text("No records yet.", style = MaterialTheme.typography.bodyMedium)
+        if (sectionRows.isEmpty()) {
+            // Dispatch 2026-10-28-08, Amendment 1 (RECORD -1781), the owner's words; was "No records yet.".
+            Text("No records yet. Record a track, drop a waypoint or download a map, and it shows here.", style = MaterialTheme.typography.bodyMedium)
         }
-        days.forEach { day ->
-            LogbookDayHeader(day)
-            day.finds.chunked(FIND_COLUMNS).forEach { pair ->
+        sectionRows.forEach { sectionRow -> key(sectionRow.key) { ListRowMotion(sectionRow) { section ->
+          // One column per section, with the list's own spacing, so a leaving section shrinks as one block.
+          Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            LogbookSectionHeader(section)
+            // Amendment 1 (RECORD -681: "Every list's rows close up and grow in"; scout R5): a deleted find's tile fades and shrinks in
+            // place, and Undo grows it back; once it has gone the pairs re-pair. That re-pairing is still a jump: these rows are a
+            // plain column, with no placement glide (reported as a stop).
+            val findRows = rememberListRows(section.finds, key = { it.id })
+            findRows.chunked(FIND_COLUMNS).forEach { pair ->
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    pair.forEach { find ->
-                        Box(modifier = Modifier.weight(1f).testTag(logbookRowTag(RecordType.FINDS, find.id))) {
-                            FindTileWithOptions(entry = find, onClick = { onOpenFind(find.id) }, onEdit = onEditFind, onDelete = onDeleteFind)
-                            RecordTypeBadge(
-                                type = RecordType.FINDS,
-                                recordId = find.id,
-                                modifier = Modifier.align(Alignment.TopStart).padding(Spacing.xs),
-                            )
+                    pair.forEach { findRow ->
+                        Box(modifier = Modifier.weight(1f)) {
+                          ListRowMotion(findRow, shape = ListRowShape.TILE) { find ->
+                            Box(modifier = Modifier.testTag(logbookRowTag(RecordType.FINDS, find.id))) {
+                                FindTileWithOptions(entry = find, onClick = { onOpenFind(find.id) }, onEdit = onEditFind, onDelete = onDeleteFind)
+                                RecordTypeBadge(
+                                    type = RecordType.FINDS,
+                                    recordId = find.id,
+                                    modifier = Modifier.align(Alignment.TopStart).padding(Spacing.xs),
+                                )
+                            }
+                          }
                         }
                     }
                     repeat(FIND_COLUMNS - pair.size) { Spacer(modifier = Modifier.weight(1f)) }
                 }
             }
-            day.timed.forEach { record ->
+            val timedRows = rememberListRows(section.timed, key = { it.rowKey() })
+            timedRows.forEach { timedRow -> key(timedRow.key) { ListRowMotion(timedRow) { record ->
                 when (record) {
-                    is TimedRecord.TrackRecord -> key(RecordType.TRACKS, record.track.id) {
+                    is TimedRecord.TrackRecord -> run {
                         val row: @Composable () -> Unit = {
                             BadgedRow(
                                 type = RecordType.TRACKS,
                                 recordId = record.track.id,
-                                detailsName = trackTitle(record.track),
+                                detailsName = trackTitle(record.track, is24HourClock()),
                                 onClick = onOpenDetails?.let { open -> { open(RecordDetailsTarget.TrackDetails(record.track.id)) } },
                             ) {
                                 TrackExportRow(track = record.track, waypoints = waypoints, getFullRecord = getFullRecord)
@@ -179,7 +197,7 @@ internal fun RecordsLogbookList(
                             row()
                         }
                     }
-                    is TimedRecord.WaypointRecord -> key(RecordType.WAYPOINTS, record.waypoint.id) {
+                    is TimedRecord.WaypointRecord -> run {
                         TwoStageSwipeRow(
                             testTag = swipeToDeleteTag(RecordType.WAYPOINTS, record.waypoint.id),
                             rowKey = RecordType.WAYPOINTS to record.waypoint.id,
@@ -197,7 +215,7 @@ internal fun RecordsLogbookList(
                             }
                         }
                     }
-                    is TimedRecord.OfflineRegionRecord -> key(RecordType.OFFLINE_MAPS, record.region.id) {
+                    is TimedRecord.OfflineRegionRecord -> run {
                         TwoStageSwipeRow(
                             testTag = swipeToDeleteTag(RecordType.OFFLINE_MAPS, record.region.id.toString()),
                             rowKey = RecordType.OFFLINE_MAPS to record.region.id,
@@ -211,33 +229,47 @@ internal fun RecordsLogbookList(
                                 detailsName = record.region.name,
                                 onClick = onOpenDetails?.let { open -> { open(RecordDetailsTarget.OfflineRegionDetails(record.region.id)) } },
                             ) {
-                                OfflineRegionRow(
-                                    region = record.region,
-                                    isStale = isOfflineRegionStale(record.region.createdAtEpochMillis, now, availabilityUiState.offlineStaleThresholdDays),
-                                    distanceUnit = distanceUnit,
-                                    nowEpochMillis = now,
-                                    onDownloadAgain = { onDownloadAgain(record.region.id) },
-                                )
+                                // Dispatch 2026-10-29-10 (RECORD -1817, -1818): the same trash button as the Offline maps chip's rows.
+                                OfflineRegionRowWithDelete(region = record.region, onDelete = { onDeleteOfflineRegion(record.region.id) }) {
+                                    OfflineRegionRow(
+                                        region = record.region,
+                                        isStale = isOfflineRegionStale(record.region.createdAtEpochMillis, now, availabilityUiState.offlineStaleThresholdDays),
+                                        distanceUnit = distanceUnit,
+                                        nowEpochMillis = now,
+                                        onDownloadAgain = { onDownloadAgain(record.region.id) },
+                                    )
+                                }
                             }
                         }
                     }
                 }
-            }
-        }
+            } } }
+          }
+        } } }
     }
 
 }
 
+/** A timed record's key in its day's list: its type and id, as the rows were keyed before motion Part 3. */
+private fun TimedRecord.rowKey(): Any = when (this) {
+    is TimedRecord.TrackRecord -> RecordType.TRACKS to track.id
+    is TimedRecord.WaypointRecord -> RecordType.WAYPOINTS to waypoint.id
+    is TimedRecord.OfflineRegionRecord -> RecordType.OFFLINE_MAPS to region.id
+}
+
+/**
+ * A section's header, its kind and its count, "Finds · 9" (RECORD -868), with the kind named as its chip names it. The
+ * count is the section's rows, which are the lists the chips count (regions and waypoints already leave out a pending
+ * delete), so it matches the chip. Replaced the day header ("Sat, Oct 10, 2026 · 8 records") with -868. Motion Part 3,
+ * item 3 (RECORD -651, "Numbers instant, words fade"): with no word that changes, the count changes at once.
+ */
 @Composable
-private fun LogbookDayHeader(day: LogbookDay) {
-    val count = day.recordCount
+private fun LogbookSectionHeader(section: LogbookSection) {
     Text(
-        "${DAY_HEADER_FORMAT.format(day.date)} · $count ${if (count == 1) "record" else "records"}",
+        "${section.type.filter().chipLabel()} · ${section.recordCount}",
         style = MaterialTheme.typography.titleSmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .padding(top = Spacing.sm)
-            .testTag(logbookDayTag(day.date)),
+        modifier = Modifier.padding(top = Spacing.sm).testTag(logbookSectionTag(section.type)),
     )
 }
 
@@ -308,7 +340,7 @@ internal fun RecordType.tagName(): String = when (this) {
     RecordType.OFFLINE_MAPS -> "offline-maps"
 }
 
-internal fun logbookDayTag(date: LocalDate): String = "records-logbook-day-$date"
+internal fun logbookSectionTag(type: RecordType): String = "records-logbook-section-${type.tagName()}"
 internal fun logbookRowTag(type: RecordType, recordId: String): String = "records-logbook-row-${type.tagName()}-$recordId"
 internal fun recordTypeBadgeTag(type: RecordType, recordId: String): String = "records-badge-${type.tagName()}-$recordId"
 
@@ -316,4 +348,3 @@ internal fun recordTypeBadgeTag(type: RecordType, recordId: String): String = "r
 private const val FIND_COLUMNS = 2
 private val BADGE_SIZE = 28.dp
 private val BADGE_ICON_SIZE = 16.dp
-private val DAY_HEADER_FORMAT: DateTimeFormatter = DateTimeFormatter.ofPattern("EEE, MMM d, yyyy")

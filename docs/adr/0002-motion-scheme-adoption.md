@@ -380,3 +380,46 @@ that could not close until step 6 existed.
 close, and on R6's annotation re-check, as "Net: Gate G is not fully
 passed" (`:332-335`) states. Q1, Q2 and Q4's outcomes above stand. This
 amendment changes order, not any motion value or mapping.
+
+## Amendment, 2026-10-07: one timed exception, the navigation view's chrome
+
+Motion Part 2 (dispatch 2026-09-28-666) slides the compass strip out and the navigation display in when navigation starts, and
+the reverse on stop, "timed to the map's tilt" (the owner, RECORD -651: "Move with the map"). The tilt is MapLibre's camera
+changing over a fixed time, `NAVIGATION_VIEW_TRANSITION_MILLIS` (750 ms, `map/NavigationView.kt`). A spring has no duration, so
+no `motionScheme` spec can be made to end with it; the first build used `slowSpatialSpec` as the nearest and reported the
+mismatch. The owner, Amendment 1 (RECORD -672), verbatim: "Allow one exception (Recommended)".
+
+So `MotionTokens.navigationViewChromeSpec` is a `tween` of exactly that constant, read from the map's own file so the two cannot
+drift, with Material's standard easing (chosen: MapLibre's camera curve was not read). It is the only tween in `ui/`'s motion,
+and it carries both the slide and the fade of those two panels.
+
+**Why this does not reopen the tween-only question.** The reasons this ADR moved every category onto springs (interruption that
+keeps velocity, one source of motion, no magic durations at call sites) are about the app's own motion. This animation exists
+to match motion the app does not own, of a length fixed elsewhere; matching it is the requirement, and a spring cannot meet it.
+Interrupting it (Stop during the start) retargets a tween, which restarts its timing: accepted, since the camera's own change is
+restarted the same way.
+
+**Kept narrow.** Design-token check 3 (`scripts/verify-design-tokens.sh`) allows that one line, by its file and exact text; a
+second tween in `MotionTokens.kt`, or this one copied anywhere, fails the check (shown with planted tweens when the exception was
+added). `MotionTokensTest` holds every other category to "no `TweenSpec`" and this one to the constant's duration. Rejected: an
+exception for "timed" animations in general, which would let durations back in one plea at a time.
+
+## Amendment, 2026-10-07: motion Part 3's prune and three new categories
+
+Dispatch 2026-09-28-676 (motion Part 3), under the owner's "Use it, then prune (Recommended)" (RECORD -655). Superseding, not
+rewriting: the table and reasoning above are left as they were written.
+
+- **Removed, with no production caller after the three motion parts:** `markerEntranceSpec`, `MARKER_CLUSTER_STAGGER_STEP_MS`,
+  `selectionPulseSpec`, `SELECTION_PULSE_MIN_SCALE`, `SELECTION_PULSE_MAX_SCALE`, `narrativeRevealSpec`, `ROUTE_REVEAL_MS_PER_KM`,
+  `routeRecalculationMorphSpec` and `dataLayerOverlaySpec` from `MotionTokens.kt`, and the whole of `MotionPrecedence.kt` (its
+  precedence order, degradation tiers, budget and clustering threshold) with `MotionPrecedenceTest.kt`. The rules they encoded
+  stay in `docs/motion-spec.md`; a later caller adds its category back with a reason here.
+- **Added:** `pageSlideSpec` and `listRowSpec` on `defaultEffectsSpec`, and `nightModeFadeSpec` on `fastEffectsSpec`. The first two
+  move bounds, which this ADR would put on a spatial spec; they are on the effects family **because it is critically damped**: an
+  underdamped slide-in overshoots and bares the page beneath at the right edge, and an underdamped list closes up past its place
+  and bounces every row below, the overshoot on a primary surface that ADR-0001 was written against. Rejected: the spatial specs
+  under `expressive()` (all underdamped). `nightModeFadeSpec` is read from the motion scheme the theme is about to provide,
+  because what it fades is the theme's own colours.
+- **Also removed (Amendment 1, RECORD -681):** `MotionTreatment`, `ReducedMotionTreatment` and `reducedMotionEquivalent` from
+  `ReduceMotion.kt`, which the reduced-motion section above discusses; none had a production caller. `docs/motion-spec.md` §4's
+  table is the rule they encoded.

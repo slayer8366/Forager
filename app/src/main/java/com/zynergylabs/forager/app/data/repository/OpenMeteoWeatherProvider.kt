@@ -8,6 +8,7 @@ import com.zynergylabs.forager.app.domain.FruitingPatternAssumptions
 import com.zynergylabs.forager.app.domain.TripPlanningWeatherProvider
 import com.zynergylabs.forager.app.domain.WeatherProvider
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
+import com.zynergylabs.forager.app.domain.model.DailyRain
 import com.zynergylabs.forager.app.domain.model.DailyWeather
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.SoilAvailability
@@ -124,7 +125,9 @@ internal fun summariseObservedConditions(
  *
  * Returning the narrowed DTO rather than raw lists lets [toDomain] stay exactly as it shipped —
  * unchanged code, still covered by its original tests, now with its precondition ("every entry is
- * in the past") actually guaranteed by the caller instead of by the request shape.
+ * in the past") actually guaranteed by the caller instead of by the request shape. (Data part C,
+ * RECORD -668, later added the daily values to its result; the total and the days-since figure are
+ * computed exactly as before.)
  */
 internal fun observedSlice(dto: PrecipitationResponseDto, referenceDay: LocalDate): PrecipitationResponseDto {
     val dates = dto.daily.time.map(LocalDate::parse)
@@ -154,10 +157,16 @@ internal fun toDomain(dto: PrecipitationResponseDto, region: Region): Conditions
         .firstOrNull { index -> precipitation[index] >= OpenMeteoWeatherProvider.SIGNIFICANT_RAIN_MM }
         ?.let { index -> precipitation.lastIndex - index }
 
+    // Kept rather than discarded (data part C, RECORD -668). Paired by index with the dates: the
+    // observed slice keeps both arrays index-aligned, and `zip` stops at the shorter one, so a day
+    // with no value is left out rather than paired with another day's date or drawn as zero.
+    val dailyRain = dto.daily.time.zip(precipitation) { date, mm -> DailyRain(LocalDate.parse(date), mm) }
+
     return ConditionsSummary(
         region = region,
         totalPrecipitationMm = total,
         daysSinceSignificantRain = daysSinceSignificantRain,
+        dailyRain = dailyRain,
     )
 }
 

@@ -34,8 +34,15 @@ interface SearchCacheRepository {
     /** The stored result for this exact search, or null if there is none (or storage failed). */
     suspend fun getCached(region: Region, month: Int, filter: TaxonFilter): CachedAvailability?
 
-    /** Stores [forecast], replacing any previous result for the same search. Best-effort; see above. */
-    suspend fun save(forecast: AvailabilityForecast)
+    /**
+     * Stores [forecast], replacing any previous result for the same search. Best-effort; see above.
+     *
+     * [speciesIconicTaxonName] is the group of the species searched for, stored only when [forecast]'s
+     * filter is a [TaxonFilter.SpecificTaxon] and handed back on [CachedSearchSummary], so a species
+     * reopened from a recent search keeps its weather guidance (dispatch 2026-09-28-695, amendment 1).
+     * It is not part of what makes two searches the same. No default: a caller states it, or states null.
+     */
+    suspend fun save(forecast: AvailabilityForecast, speciesIconicTaxonName: String?)
 
     /** Up to 5 most-recently-accessed cached searches, most recent first. */
     suspend fun getRecent(): List<CachedSearchSummary>
@@ -53,4 +60,10 @@ data class CachedSearchSummary(
     val month: Int,
     val filter: TaxonFilter,
     val cachedAtEpochMillis: Long,
+    /**
+     * The species' iNaturalist group when [filter] is a [TaxonFilter.SpecificTaxon] and the group was
+     * stored with the search; null otherwise, including every search saved before database version 19.
+     * Read by [com.zynergylabs.forager.app.domain.ForagingSelection.fromRecentSearch].
+     */
+    val speciesIconicTaxonName: String? = null,
 )

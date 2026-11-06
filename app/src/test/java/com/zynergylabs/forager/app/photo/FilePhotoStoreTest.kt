@@ -336,6 +336,66 @@ class FilePhotoStoreTest {
         assertTrue("not this app's file to delete", sourceFile.exists())
     }
 
+    // ── RAW stage 2 (dispatch 2026-10-15-01): one shot, two files ─────────────────────────────────────────────
+
+    /**
+     * A RAW shot persists both files under one id: the JPG, scrubbed exactly as every capture's is, in `relativePath` (what
+     * every screen shows, RECORD -1004), and the DNG byte for byte in `rawRelativePath`. Both scratch files are released.
+     */
+    @Test
+    fun `a RAW shot persists its JPG scrubbed and its DNG beside it, and releases both scratch files`() = runTest {
+        val jpg = minimalJpegWithExif(sourceDir, "raw-shot.jpg") { exif -> exif.setLatLong(45.5, -122.6) }
+        val dngBytes = byteArrayOf(0x49, 0x49, 0x2A, 0x00, 8, 0, 0, 0, 1, 2, 3)
+        val dng = File(sourceDir, "raw-shot.dng").apply { writeBytes(dngBytes) }
+
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(jpg), jpg), rawFile = dng)).getOrThrow()
+
+        assertEquals("photos/${photo.id}.jpg", photo.relativePath)
+        assertEquals("photos/${photo.id}.dng", photo.rawRelativePath)
+        assertArrayEquals("the DNG is copied as Forager wrote it", dngBytes, File(context.filesDir, photo.rawRelativePath!!).readBytes())
+        assertNull("the JPG is scrubbed as every capture is", ExifInterface(File(context.filesDir, photo.relativePath).absolutePath).latLong)
+        assertEquals("export sends the DNG", photo.rawRelativePath, photo.exportRelativePath)
+        assertFalse("the JPG scratch file is released", jpg.exists())
+        assertFalse("the DNG scratch file is released", dng.exists())
+    }
+
+    @Test
+    fun `a JPG shot records no DNG, and exports itself`() = runTest {
+        val sourceFile = File(sourceDir, "plain.jpg").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
+        assertNull(photo.rawRelativePath)
+        assertEquals(photo.relativePath, photo.exportRelativePath)
+        assertEquals("one file, as before", listOf("${photo.id}.jpg"), File(context.filesDir, "photos").list()!!.filter { it.startsWith(photo.id) })
+    }
+
+    /** Never a RAW shot silently kept as a JPG at persist: the shot step is the one place that may do that, and it says so (RECORD -1003). */
+    @Test
+    fun `a RAW shot whose DNG cannot be copied fails whole, and leaves neither file in photos`() = runTest {
+        val jpg = File(sourceDir, "orphaned.jpg").apply { writeBytes(byteArrayOf(1, 2, 3)) }
+        val missingDng = File(sourceDir, "gone.dng")
+        val before = File(context.filesDir, "photos").list()?.toSet().orEmpty()
+
+        val result = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(jpg), jpg), rawFile = missingDng))
+
+        assertTrue("persist reports the failure", result.isFailure)
+        assertEquals("nothing new in photos/", before, File(context.filesDir, "photos").list()?.toSet().orEmpty())
+    }
+
+    @Test
+    fun `deleting a RAW photo removes everything the shot saved`() = runTest {
+        val jpg = File(sourceDir, "both.jpg").apply { writeBytes(byteArrayOf(1)) }
+        val dng = File(sourceDir, "both.dng").apply { writeBytes(byteArrayOf(2)) }
+        val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(jpg), jpg), rawFile = dng)).getOrThrow()
+        val storedJpg = File(context.filesDir, photo.relativePath)
+        val storedDng = File(context.filesDir, photo.rawRelativePath!!)
+        assertTrue(storedJpg.exists() && storedDng.exists())
+
+        assertTrue(store.delete(photo).isSuccess)
+
+        assertFalse("the JPG is gone", storedJpg.exists())
+        assertFalse("the DNG is gone", storedDng.exists())
+    }
+
     private fun minimalJpegWithExif(directory: File, name: String, configure: (ExifInterface) -> Unit): File {
         val file = File(directory, name).apply { writeBytes(Base64.getDecoder().decode(MINIMAL_JPEG_BASE64)) }
         val exif = ExifInterface(file.absolutePath)

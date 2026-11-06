@@ -52,7 +52,7 @@ private class FixedResponseApi(private val response: ObservationsResponseDto) : 
 
 class INaturalistMushroomRepositoryObservationMappingTest {
 
-    private val region = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+    private val region = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
     private val taxon = TaxonDto(id = 49158L, name = "Hericium erinaceus", preferredCommonName = "lion's mane")
 
     private fun observation(
@@ -152,5 +152,46 @@ class INaturalistMushroomRepositoryObservationMappingTest {
             .getSightings(region, month = 8, filter = TaxonFilter.FUNGI).getOrThrow()
 
         assertEquals(listOf(1L), page.sightings.map { it.observationId })
+    }
+
+    /**
+     * Dispatch 2026-09-28-658 (D6): malformed positions and dates are counted in the log, apart from
+     * the absences iNaturalist sends on purpose (no location, obscured), which are not.
+     */
+    @Test
+    fun `malformed positions and dates are counted in one log line, and recorded exclusions are not`() = runTest {
+        val response = ObservationsResponseDto(
+            totalResults = 6,
+            results = listOf(
+                observation(id = 1),
+                observation(id = 2, location = "not,a-place"),
+                observation(id = 3, location = "95.0,-122.6"),
+                observation(id = 4, location = null),
+                observation(id = 5, obscured = true),
+                observation(id = 6).copy(observedOn = "2026-13-45"),
+            ),
+        )
+        val logged = mutableListOf<String>()
+
+        val page = INaturalistMushroomRepository(FixedResponseApi(response), errorLog = { _, message, _ -> logged += message })
+            .getSightings(region, month = 8, filter = TaxonFilter.FUNGI).getOrThrow()
+
+        assertEquals(listOf(1L, 6L), page.sightings.map { it.observationId })
+        assertNull("the bad date is kept as no date", page.sightings.single { it.observationId == 6L }.observedOn)
+        assertEquals(
+            listOf("Of 6 iNaturalist observation(s), 2 dropped for a malformed position and 1 kept with no date for a malformed date; 2 shown."),
+            logged,
+        )
+    }
+
+    @Test
+    fun `a clean page logs nothing`() = runTest {
+        val response = ObservationsResponseDto(totalResults = 2, results = listOf(observation(id = 1), observation(id = 4, location = null)))
+        val logged = mutableListOf<String>()
+
+        INaturalistMushroomRepository(FixedResponseApi(response), errorLog = { _, message, _ -> logged += message })
+            .getSightings(region, month = 8, filter = TaxonFilter.FUNGI).getOrThrow()
+
+        assertEquals(emptyList<String>(), logged)
     }
 }

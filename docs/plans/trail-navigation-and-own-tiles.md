@@ -20,12 +20,40 @@ Trail navigation and Forager's own tiles need the same thing: OpenStreetMap data
 
 ## What is decided (owner rulings)
 
-- **Data** (-445, 1 and 2): OpenStreetMap is the routable base. Public-domain agency trails (Forest Service, BLM, USGS) are a separate reference layer used to flag gaps, never merged into the route network. National Park Service and Washington RCO trail data are left out ("not for navigation").
+- **Data** (-445, 1 and 2): OpenStreetMap is the routable base. Public-domain agency trails (Forest Service, BLM; USGS dropped 2026-10-17, -1176) are a separate reference layer used to flag gaps, never merged into the route network. National Park Service and Washington RCO trail data are left out ("not for navigation").
 - **The network** (-447): trails and roads alike. The route follows established paths where they exist.
 - **Off the trail** (-445, 4), every number provisional: off for about 15 s, the map quietly dims the trail, highlights the walker's own track and shows "Off trail · your track leads back", with no sound; no alerts while foraging, with a readout of the way back along their own track; heading back, guidance follows their own track to where they left the trail, with no straight-line shortcut; one gentle alert only when far from both the trail and their track, or near dusk; back on the trail, trail navigation resumes and "Back on trail" shows briefly.
 - **A wrong turn** (-447): walking along a different trail or road than the route, away from it, gives one alert ("Wrong way, your route is back there", the planner's wording) and the line shows the way back. Leaving all paths is the quiet switch above.
 - **Today's off-track rule** (T21) stays as built until this replaces its "path at Return" (-449).
 - **Licences:** no proprietary software in the app (the owner, -397). The app is non-commercial and open source; the 2026-09-28 commercial ruling cited in `docs/plans/own-map-tiles.md` is superseded. OSM data carries ODbL attribution, and any derived database Forager ships is offered under ODbL.
+
+## Evidence, 2026-10-17: OSM and federal trails compared in seven areas
+
+A read-only comparison (RECORD -1172; report `docs/audits/2026-10-17-trail-data-comparison.md` on branch `trail-data-comparison`, 7a10b971) measured both sources in seven 10 km areas. The method was committed before any data was read. Every query is logged, and the licences are quoted at source. It **confirms the data ruling above (-445):** OpenStreetMap as the routable base, and the agency trails as a separate reference layer.
+
+**Where both have a trail they agree to about 3 m** (median offset 2.6 to 3.9 m; 11 m in the Frank Church).
+
+**What each adds:**
+
+| Area | OSM | Forest Service / BLM | What it means |
+|---|---|---|---|
+| Mount Hood | 160.6 km | FS 88.7 km summer trails (+53.8 km snow trails) | OSM has bike and informal trails, plus one FS-numbered trail missing from the FS layer |
+| Eagle Cap (Wallowa-Whitman) | 99.5 km, 97% connected | **none** | OSM is the only source |
+| Chamberlain Basin (Idaho interior) | 50.3 km | FS 59.3 km | two FS trails missing from OSM (12.5 km) |
+| Oregon Badlands (BLM) | 150 km | BLM 54.6 km, all within 15 m of OSM | BLM adds the richest attributes: uses, seasons, surface |
+| Cape Perpetua (coast) | 89.7 km (61 km forest roads) | FS 21.7 km | both needed: OSM includes roads tagged as tracks |
+| Tiger and Cougar Mountain (no federal land) | 225.5 km | none | OSM only |
+| Three Sisters | 63.4 km | FS 58.4 km | one FS trail missing from OSM; one climber trail drawn differently |
+
+**Findings for the stages below:**
+- **USGS's transportation trails added nothing** beyond the Forest Service and BLM in any area. They republish agency data about 1 m away, with fewer attributes.
+- **The reference layer's real value is its attributes:** official names, trail numbers, class, allowed uses and seasons (where a forest publishes its full record), plus a few backcountry trails OSM lacks.
+- **Neither source alone forms a connected network:** trails join through roads. Routing needs the road network in the graph (the -447 "trails and roads alike").
+- **No source carries live closures.**
+- **Attribution in the app:** "Map data © OpenStreetMap contributors, ODbL" with a link; "National Forest System Trails, USDA Forest Service, CC BY 4.0" with a link. BLM's line is optional (public domain).
+- **Share-alike** (inferred, not legal advice): keeping the agency layer separate from the OSM routing database keeps ODbL's share-alike on the OSM part only, as the 2016 guideline from the body that runs OpenStreetMap allows. That matches -445's "never merged".
+
+**Decided, 2026-10-17 (RECORD -1176):** USGS is dropped from the reference layer, which is now the Forest Service and BLM only. The owner: "yes we stick with the original plan. I was trying to be ambitious, but I want to be accurate and have the best data than throwing anything possible."
 
 ## Stages
 

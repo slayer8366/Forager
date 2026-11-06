@@ -67,7 +67,7 @@ class AvailabilityScreenBubbleClearanceTest {
     /** A glyph whose centre is at root ([x], [y]) dp (the map slot is full-bleed, so its own origin is looked up, not assumed). */
     private fun addGlyphAtRoot(x: Dp, y: Dp) {
         val slot = tag("map-slot")
-        glyphs.add(StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", x - slot.left, y - slot.top, LatLng(45.326, -122.634)))
+        glyphs.add(StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", x - slot.left, y - slot.top, LatLng(45.3736, -121.6959)))
         composeRule.waitForIdle()
     }
 
@@ -105,12 +105,14 @@ class AvailabilityScreenBubbleClearanceTest {
         assertBubbleClearOfChrome()
     }
 
+    // RECORD -956 (the owner: "One should look exactly line the other"): the rail is on the right at 270 too, so the glyph goes 30 dp inboard of its
+    // left edge. Was: "the rail is on the left at 270", `rail.left <= map-slot.left`, and the glyph at `rail.right + 30.dp`.
     @Test
     fun `at ROTATION_270 a bubble for a glyph 30 dp from the rail's inner edge opens clear of the rail and the L`() {
         setScreen(Surface.ROTATION_270)
         val rail = tag(COMPACT_NAVIGATION_RAIL_TAG)
-        assertTrue("the rail ${rail.describe()} is on the left at 270", rail.left <= tag("map-slot").left + 0.5.dp)
-        addGlyphAtRoot(rail.right + 30.dp, 200.dp)
+        assertTrue("the rail ${rail.describe()} is on the right at 270", rail.right >= tag("map-slot").right - 0.5.dp)
+        addGlyphAtRoot(rail.left - 30.dp, 200.dp)
 
         openBubbleOnGlyph()
 

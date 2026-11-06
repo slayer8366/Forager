@@ -1,11 +1,15 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
+import com.zynergylabs.forager.app.ui.motion.StateCrossfade
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -22,7 +26,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -52,6 +55,11 @@ import com.zynergylabs.forager.app.domain.model.StipeSection
 import com.zynergylabs.forager.app.domain.model.VeilSection
 import com.zynergylabs.forager.app.domain.model.valueOrNull
 import com.zynergylabs.forager.app.ui.theme.Spacing
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalWindowInfo
+import com.zynergylabs.forager.app.ui.format.is24HourClock
 
 /**
  * The Journal gallery's default view for an *existing* entry — a compiled, readable report of
@@ -116,13 +124,21 @@ internal fun LogEntryReportScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                IconButton(onClick = onBack) {
+                BouncingIconButton(onClick = onBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to your log")
                 }
-                Text("Find on ${entry.foundOn}", style = MaterialTheme.typography.titleMedium)
+                // Data part D (RECORD -703, "Match the tile"): the find's title by the tile's rule ([findTitle]), blank when it has
+                // none, with the tile's screen-reader label.
+                val title = findTitle(entry, is24HourClock())
+                val blankLabel = findBlankTitleLabel(entry)
+                Text(
+                    title ?: "",
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.testTag(FIND_PAGE_TITLE_TAG).then(if (title == null) Modifier.semantics { contentDescription = blankLabel } else Modifier),
+                )
             }
             Box {
-                IconButton(onClick = { menuExpanded = true }) {
+                BouncingIconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Filled.MoreVert, contentDescription = "Entry options")
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
@@ -154,9 +170,20 @@ internal fun LogEntryReportScreen(
                 .padding(horizontal = Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            if (isEntirelyEmpty) {
+            // Motion Part 3, Amendment 2 (RECORD -682; scout F8): the empty message and the report crossfade instead of swapping in
+            // one frame (motion/StateCrossfade.kt). The report keeps this column's spacing inside its own column.
+            StateCrossfade(targetState = isEntirelyEmpty, modifier = Modifier.fillMaxWidth()) { empty ->
+            if (empty) {
                 Text(EMPTY_FIND_MESSAGE, style = MaterialTheme.typography.bodyMedium)
             } else {
+              Column(modifier = Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+                // RECORD -868 and -871 (the owner: "Under the title, whole photo, next one peeking (Recommended)"): the
+                // photos come first, under the title, large and uncropped; "Found at" and the identification follow.
+                // Until then they were 88 dp crops after those two lines.
+                if (entry.photos.isNotEmpty()) {
+                    ReportPhotos(photos = entry.photos, onOpen = { id -> viewingPhotoId = id })
+                }
+
                 Text(
                     entry.foundAt?.let { location -> "Found at ${"%.4f".format(location.lat)}, ${"%.4f".format(location.lng)}" }
                         ?: stringResource(R.string.log_entry_no_location),
@@ -165,14 +192,6 @@ internal fun LogEntryReportScreen(
 
                 entry.ownIdentification?.takeIf { it.isNotBlank() }?.let { identification ->
                     Text("Your own identification: $identification", style = MaterialTheme.typography.bodyMedium)
-                }
-
-                if (entry.photos.isNotEmpty()) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        entry.photos.forEach { photo ->
-                            ReportPhotoThumbnail(photo = photo, onOpen = { viewingPhotoId = photo.id })
-                        }
-                    }
                 }
 
                 HorizontalDivider()
@@ -188,6 +207,8 @@ internal fun LogEntryReportScreen(
                 if (entry.notes.isNotBlank()) {
                     ReportSection("Description Notes", listOf(entry.notes))
                 }
+              }
+            }
             }
 
             Spacer(modifier = Modifier.heightIn(min = Spacing.lg))
@@ -313,13 +334,73 @@ private fun hostSubstrateReportLines(hostSubstrate: HostSubstrateSection): List<
     if (hostSubstrate.notes.isNotBlank()) add("Notes: ${hostSubstrate.notes}")
 }
 
-private const val REPORT_PHOTO_SIZE_DP = 88
-
-/** Read-only counterpart to [LogEntryDetailScreen]'s removable [LogPhotoThumbnail] — same shared [DecodedPhoto], no remove action; tapping anywhere on it opens [PhotoViewerDialog]. */
+/**
+ * The find page's photos (RECORD -868: "have the picture be centered inside the find entry itself"; RECORD -871:
+ * "Under the title, whole photo, next one peeking (Recommended)"). One photo: the page's width less its margins,
+ * centred, in its own shape. Several: a row that swipes sideways ([HorizontalPager], one photo per page, snapping),
+ * the current photo centred and the next one peeking in from the side by [REPORT_PHOTO_PEEK], less the gap.
+ *
+ * Each photo is capped at the smaller of [REPORT_PHOTO_MAX_HEIGHT] and [REPORT_PHOTO_WINDOW_FRACTION] of the window's
+ * height (the planner's call, RECORD -874), so the title and the find's details stay in view, in a short landscape
+ * window too; a capped photo is shown whole inside the cap, narrower, never cropped. The window's height is read the
+ * way the entry page's short-window map cap reads it (`CartographyEntryReportScreen`'s `shortWindowMapCap`).
+ *
+ * The full-screen viewer has its own previous and next buttons and no swiping (see [PhotoViewerDialog]); that is
+ * unchanged, and only this row swipes.
+ */
 @Composable
-private fun ReportPhotoThumbnail(photo: LogPhoto, onOpen: () -> Unit) {
+private fun ReportPhotos(photos: List<LogPhoto>, onOpen: (String) -> Unit) {
+    if (photos.size == 1) {
+        Box(modifier = Modifier.fillMaxWidth().testTag(FIND_PAGE_PHOTOS_TAG), contentAlignment = Alignment.Center) {
+            Box(modifier = Modifier.testTag(findPagePhotoTag(photos.single().id))) { ReportPhoto(photo = photos.single(), onOpen = onOpen) }
+        }
+    } else {
+        val pagerState = rememberPagerState { photos.size }
+        HorizontalPager(
+            state = pagerState,
+            contentPadding = PaddingValues(horizontal = REPORT_PHOTO_PEEK),
+            pageSpacing = Spacing.sm,
+            verticalAlignment = Alignment.CenterVertically,
+            key = { page -> photos[page].id },
+            modifier = Modifier.fillMaxWidth().testTag(FIND_PAGE_PHOTOS_TAG),
+        ) { page ->
+            Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                Box(modifier = Modifier.testTag(findPagePhotoTag(photos[page].id))) { ReportPhoto(photo = photos[page], onOpen = onOpen) }
+            }
+        }
+    }
+}
+
+/** One photo on the find page, through the shared [DecodedPhoto], whole; tapping anywhere on it opens [PhotoViewerDialog]. */
+@Composable
+private fun ReportPhoto(photo: LogPhoto, onOpen: (String) -> Unit) {
+    // The window's own height, not Configuration.screenHeightDp (lint ConfigurationScreenWidthHeight; see currentWindowWidthClass).
+    val heightCap = minOf(REPORT_PHOTO_MAX_HEIGHT, LocalWindowInfo.current.containerDpSize.height * REPORT_PHOTO_WINDOW_FRACTION)
     DecodedPhoto(
         relativePath = photo.relativePath,
-        modifier = Modifier.size(REPORT_PHOTO_SIZE_DP.dp).clickable(onClickLabel = "Open full screen", onClick = onOpen),
+        // No fillMaxWidth: the width is the row's (its Box gives a maximum and no minimum), and DecodedPhoto's own aspect
+        // ratio then picks the full width when the photo fits under the cap, or the cap's height and a narrower width when
+        // it does not. A forced full width would leave a tall photo no way to narrow, and it would fall back to its pixel
+        // size (a revert check on CI showed the forced width also hid a crop from the first test).
+        modifier = Modifier
+            .heightIn(max = heightCap)
+            // No test tag on this node: DecodedPhotoSemanticsTest pins its semantics, and the tag sits on a Box around it.
+            .clickable(onClickLabel = "Open full screen", onClick = { onOpen(photo.id) }),
+        wholePhoto = true,
     )
 }
+
+/** How far the next photo's page reaches in from each side of the row, before the gap between pages. */
+private val REPORT_PHOTO_PEEK = 32.dp
+
+/** The tallest a find page photo is drawn on any window; see [ReportPhotos]. */
+private val REPORT_PHOTO_MAX_HEIGHT = 480.dp
+
+/** The share of the window's height a find page photo may take, when that is less than [REPORT_PHOTO_MAX_HEIGHT]. */
+private const val REPORT_PHOTO_WINDOW_FRACTION = 0.6f
+
+/** The find page's photo row (one photo or the swiping row), for tests. */
+internal const val FIND_PAGE_PHOTOS_TAG = "find-page-photos"
+
+/** One photo on the find page, for tests. */
+internal fun findPagePhotoTag(photoId: String): String = "find-page-photo-$photoId"

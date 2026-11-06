@@ -41,6 +41,10 @@ sealed interface LocationFix {
      * "not reported", never a zero standing in for it. Defaults so no existing constructor site
      * changes; the real tracker fills both. See [com.zynergylabs.forager.app.domain.model.TrackPoint] for what
      * the persisted copy means and who reads it.
+     *
+     * [provider] (dispatch 2026-09-28-527) is where the platform said the fix came from. **No default**
+     * (RECORD -558, the owner: "Must always say"): every place that builds a fix says which, so none is
+     * guessed. Only a GPS fix may act on position; see [FixProvider]. Not carried onto a stored point.
      */
     data class Update(
         val lat: Double,
@@ -48,6 +52,7 @@ sealed interface LocationFix {
         val altitude: Double?,
         val accuracyMeters: Float?,
         val timestampEpochMillis: Long,
+        val provider: FixProvider,
         val speedMetersPerSecond: Float? = null,
         val speedAccuracyMetersPerSecond: Float? = null,
     ) : LocationFix

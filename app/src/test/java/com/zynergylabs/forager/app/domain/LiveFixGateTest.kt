@@ -7,7 +7,7 @@ import org.junit.Test
 /** The live-fix gate's boundary, pinned on both sides with literals — location-accuracy dispatch, item 1. */
 class LiveFixGateTest {
 
-    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = 1_700_000_000_000L)
+    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = 1_700_000_000_000L, provider = FixProvider.GPS)
 
     @Test
     fun `at or under 50 m passes, over 50 m is rejected`() {

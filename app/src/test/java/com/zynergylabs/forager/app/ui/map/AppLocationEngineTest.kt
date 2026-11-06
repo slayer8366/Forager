@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 import android.location.Location
 import android.os.Looper
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -24,7 +25,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36])
 class AppLocationEngineTest {
 
-    private val approximate = LocationFix.Update(lat = 45.51, lng = -122.61, altitude = 210.0, accuracyMeters = 120f, timestampEpochMillis = 1_700_000_000_123L)
+    private val approximate = LocationFix.Update(lat = 45.51, lng = -122.61, altitude = 210.0, accuracyMeters = 120f, timestampEpochMillis = 1_700_000_000_123L, provider = FixProvider.NETWORK)
 
     private class Recording : LocationEngineCallback<LocationEngineResult> {
         val delivered = mutableListOf<Location>()
@@ -62,7 +63,7 @@ class AppLocationEngineTest {
         val engine = AppLocationEngine()
         val heard = engine.listen()
 
-        engine.update(LocationFix.Update(45.5, -122.6, null, null, 1_700_000_000_000L))
+        engine.update(LocationFix.Update(45.5, -122.6, null, null, 1_700_000_000_000L, provider = FixProvider.GPS))
 
         val location = heard.delivered.single()
         assertFalse(location.hasAccuracy())

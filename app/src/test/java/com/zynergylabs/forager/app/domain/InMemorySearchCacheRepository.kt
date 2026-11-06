@@ -24,6 +24,9 @@ class InMemorySearchCacheRepository(
     /** Most recently used last, so eviction takes from the front and [getRecent] reads it reversed. */
     private val entries = LinkedHashMap<Key, CachedAvailability>()
 
+    /** The species group stored with each search, as the Room store keeps it (species rows only). */
+    private val speciesGroups = HashMap<Key, String?>()
+
     /** How many times [save] has been called — proof a write-through actually happened. */
     var saveCount: Int = 0
         private set
@@ -35,12 +38,14 @@ class InMemorySearchCacheRepository(
         return hit
     }
 
-    override suspend fun save(forecast: AvailabilityForecast) {
+    override suspend fun save(forecast: AvailabilityForecast, speciesIconicTaxonName: String?) {
         saveCount++
         val key = Key(forecast.region, forecast.month, forecast.filter)
         entries.remove(key)
         entries[key] = CachedAvailability(forecast, currentTime.nowEpochMillis())
+        speciesGroups[key] = speciesIconicTaxonName.takeIf { forecast.filter is TaxonFilter.SpecificTaxon }
         while (entries.size > MAX_ENTRIES) {
+            speciesGroups.remove(entries.keys.first())
             entries.remove(entries.keys.first())
         }
     }
@@ -54,6 +59,7 @@ class InMemorySearchCacheRepository(
                 month = key.month,
                 filter = key.filter,
                 cachedAtEpochMillis = cached.cachedAtEpochMillis,
+                speciesIconicTaxonName = speciesGroups[key],
             )
         }
 

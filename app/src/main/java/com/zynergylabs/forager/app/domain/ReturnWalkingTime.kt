@@ -10,12 +10,17 @@ import kotlin.math.roundToLong
  *
  * ```
  * walking time = distance remaining along the walked track ÷ average moving speed
+ *              + 2.2 s per metre climbed and per metre descended on the way back
  * ```
  *
- * [pathHome] is the distance, [movingPace] the speed. **No stop allowance. Not an arrival time.**
+ * [pathHome] is the distance, [movingPace] the speed, [climbAllowanceMillis] the climb (dispatch 2026-10-26-19
+ * Amendment 1, RECORD -1687 and -1689: a modelled term the owner ruled on, not a pad; see
+ * [CLIMB_ALLOWANCE_SECONDS_PER_METER] for its figure, the barometer-only rule and the accepted double count with the
+ * pace). **No stop allowance. Not an arrival time.**
  * This answers "how long is the walk back", not "when will I be back", and whatever surfaces it
  * later must not blur that: the estimate is systematically optimistic for someone who stops, which
- * the owner accepted on the condition that it is labelled walking time and never padded — the
+ * the owner accepted on the condition that it is labelled walking time and never padded (the climbing
+ * allowance is a modelled term the owner ruled on, not a pad: RECORD -1689) — the
  * conservatism lives in the turnaround alert's margin, which is separate work, and a padded input
  * plus a margin double-counts by an amount nobody could name. **No surface exists yet, on purpose**
  * (the dispatch it was built for: "a number on screen that nothing acts on invites the user to act
@@ -64,6 +69,26 @@ fun returnWalkingTime(
     if (current == null || fixFreshness == FixFreshness.LOST) return ReturnWalkingTime.Withheld(WithholdReason.NO_FIX)
     if (track.hasNoUsablePoints()) return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
     val path = pathHome(track, current, origin, previousHopBand) ?: return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
+    return estimateAlong(track, path, fixFreshness)
+}
+
+/**
+ * The walking time along the way home shown, in place of the walked track (dispatch 2026-10-24-10; RECORD -1589,
+ * "app-wide", "Track until Return"): [path] is the distance home along that line from the walker's place
+ * (`domain/wayhome/WayHomeProgress`), as a [PathHome] so every rule above reads it unchanged. The pace, and every
+ * degrade and withhold rule, are [returnWalkingTime]'s, read from [track] as there; only the distance differs. Its
+ * one caller is `SundownWatch`, while a way home along trails is shown and the walker is placed on it.
+ */
+fun returnWalkingTimeAlong(track: Track, path: PathHome, fixFreshness: FixFreshness): ReturnWalkingTime {
+    if (fixFreshness == FixFreshness.LOST) return ReturnWalkingTime.Withheld(WithholdReason.NO_FIX)
+    // Both of returnWalkingTime's no-points withholds: hasNoUsablePoints is false for a track with no points at all
+    // (storedPointCount 0), which returnWalkingTime withholds through pathHome returning null.
+    if (track.points.isEmpty() || track.hasNoUsablePoints()) return ReturnWalkingTime.Withheld(WithholdReason.NO_USABLE_POINTS)
+    return estimateAlong(track, path, fixFreshness)
+}
+
+/** The estimate over [path], the part [returnWalkingTime] and [returnWalkingTimeAlong] share. */
+private fun estimateAlong(track: Track, path: PathHome, fixFreshness: FixFreshness): ReturnWalkingTime {
     val pace = movingPace(track.points)
 
     val reasons = buildSet {
@@ -81,11 +106,13 @@ fun returnWalkingTime(
         if (track.points.size < MOSTLY_NETWORK_FIXES_MIN_STORED_POINTS) add(DegradeReason.FEW_POINTS)
     }
 
+    val climbMillis = climbAllowanceMillis(path.climb)
     return ReturnWalkingTime.Estimate(
         path = path,
         pace = pace,
-        walkingMillis = (path.totalMeters / pace.speedMetersPerSecond * 1_000.0).roundToLong(),
+        walkingMillis = (path.totalMeters / pace.speedMetersPerSecond * 1_000.0).roundToLong() + climbMillis,
         degradeReasons = reasons,
+        climbAllowanceMillis = climbMillis,
     )
 }
 
@@ -99,9 +126,11 @@ sealed interface ReturnWalkingTime {
     data class Estimate(
         val path: PathHome,
         val pace: MovingPace,
-        /** [PathHome.totalMeters] ÷ [MovingPace.speedMetersPerSecond], in milliseconds of walking. */
+        /** [PathHome.totalMeters] ÷ [MovingPace.speedMetersPerSecond], plus [climbAllowanceMillis], in milliseconds of walking. */
         val walkingMillis: Long,
         val degradeReasons: Set<DegradeReason>,
+        /** The climbing allowance inside [walkingMillis], from [PathHome.climb] ([climbAllowanceMillis]); 0 when not counted. */
+        val climbAllowanceMillis: Long = 0L,
     ) : ReturnWalkingTime {
         val isAtLeast: Boolean get() = degradeReasons.isNotEmpty()
     }

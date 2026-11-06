@@ -2,6 +2,9 @@ package com.zynergylabs.forager.app.map
 
 import com.zynergylabs.forager.app.data.local.OfflineRegionDao
 import com.zynergylabs.forager.app.data.local.OfflineRegionEntity
+import com.zynergylabs.forager.app.data.dropoffmap.NoRegionDropOffMaps
+import com.zynergylabs.forager.app.data.dropoffmap.RegionDropOffMaps
+import com.zynergylabs.forager.app.data.routedata.RegionRouteFolders
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.Region
 
@@ -17,12 +20,16 @@ internal class LiveRegion(
     val metadata: ByteArray?,
     val tileCount: Long,
     val sizeBytes: Long,
+    /** The style URL the region was downloaded against, from MapLibre's own region definition; `null` if it names none. */
+    val styleUrl: String? = null,
 )
 
 /**
  * Reconciles `OfflineManager`'s read with the Room index and returns the regions to show.
  * [deleteRegion] deletes a region's tiles from `OfflineManager`; [inFlightIds] are downloads this
- * process is still running.
+ * process is still running. [routes] holds each region's trail route data (dispatch 2026-10-23-03): each shown
+ * region carries its state and counts its bytes into its size, a region deleted here loses its routes too, and
+ * route folders no region owns are cleared last. [dropOffMaps] is held to the same rules (dispatch 2026-11-04-09).
  */
 internal suspend fun reconcileOfflineRegions(
     live: List<LiveRegion>,
@@ -30,6 +37,12 @@ internal suspend fun reconcileOfflineRegions(
     inFlightIds: Set<Long>,
     deleteRegion: suspend (Long) -> Unit,
     warn: (String) -> Unit,
+    routes: RegionRouteFolders,
+    /**
+     * Each region's drop-off map copy (dispatch 2026-11-04-09), one unit with it as its routes are: counted into its size
+     * (A5), deleted with it, and cleared with the same set kept. None by default, for callers that keep no copy.
+     */
+    dropOffMaps: RegionDropOffMaps = NoRegionDropOffMaps,
 ): List<OfflineRegionSummary> {
     // A Room row with no MapLibre region is kept, not shown, and logged every time it is seen.
     // MapLibre's read is not authoritative: an empty or partial read (a store that was not the one
@@ -41,7 +54,8 @@ internal suspend fun reconcileOfflineRegions(
         warn("Room region row $id has no MapLibre region in this read; kept, not shown.")
     }
 
-    return live.mapNotNull { region ->
+    val deletedIds = mutableSetOf<Long>()
+    val shown = live.mapNotNull { region ->
         if (!region.isComplete) {
             when (val decision = incompleteRegionDecision(region, hasRoomRow = dao.getById(region.id) != null, inFlightIds)) {
                 IncompleteRegionDecision.InFlight -> Unit
@@ -49,6 +63,9 @@ internal suspend fun reconcileOfflineRegions(
                     warn("Deleting region ${region.id}: it never finished (incomplete, not downloading now, no Room row, metadata never recorded a completion).")
                     deleteRegion(region.id)
                     dao.deleteById(region.id)
+                    deletedIds += region.id
+                    deleteRoutesOrLeaveForCleanup(routes, region.id, warn)
+                    deleteDropOffMapOrLeaveForCleanup(dropOffMaps, region.id, warn)
                 }
                 is IncompleteRegionDecision.Keep ->
                     warn("Region ${region.id} is incomplete; kept, not shown: ${decision.reason}.")
@@ -56,21 +73,35 @@ internal suspend fun reconcileOfflineRegions(
             return@mapNotNull null
         }
 
+        // A complete region with no Room row is rebuilt from its metadata. One whose metadata is
+        // missing or unreadable cannot be, and is left out of the list with its tiles kept; that is
+        // logged with the reason (dispatch 2026-09-28-658, M1), as every other branch here is.
         val row = dao.getById(region.id)
-            ?: region.metadata?.toRegionMetadata()?.let { metadata ->
-                OfflineRegionEntity(
-                    id = region.id,
-                    name = metadata.name,
-                    lat = metadata.region.lat,
-                    lng = metadata.region.lng,
-                    radiusKm = metadata.region.radiusKm,
-                    minZoom = metadata.minZoom,
-                    maxZoom = metadata.maxZoom,
-                    createdAtEpochMillis = metadata.downloadedAtEpochMillis,
-                ).also { dao.upsert(it) }
+            ?: when (val read = region.metadata?.readRegionMetadata()) {
+                null -> {
+                    warn("Region ${region.id} is complete but has no Room row and no metadata to rebuild one from; kept, not shown.")
+                    return@mapNotNull null
+                }
+                is RegionMetadataRead.Unreadable -> {
+                    warn("Region ${region.id} is complete but has no Room row, and its metadata can't be read (${read.reason}); kept, not shown.")
+                    return@mapNotNull null
+                }
+                is RegionMetadataRead.Parsed -> read.metadata.let { metadata ->
+                    OfflineRegionEntity(
+                        id = region.id,
+                        name = metadata.name,
+                        lat = metadata.region.lat,
+                        lng = metadata.region.lng,
+                        radiusKm = metadata.region.radiusKm,
+                        minZoom = metadata.minZoom,
+                        maxZoom = metadata.maxZoom,
+                        createdAtEpochMillis = metadata.downloadedAtEpochMillis,
+                    ).also { dao.upsert(it) }
+                }
             }
-            ?: return@mapNotNull null
 
+        val routeData = routes.status(row.id)
+        val dropOffMap = dropOffMaps.status(row.id)
         OfflineRegionSummary(
             id = row.id,
             name = row.name,
@@ -78,9 +109,46 @@ internal suspend fun reconcileOfflineRegions(
             minZoom = row.minZoom,
             maxZoom = row.maxZoom,
             tileCount = region.tileCount.toInt(),
-            sizeBytes = region.sizeBytes,
+            // One unit to the user: the region's size is its tiles and its routes (dispatch 2026-10-23-03, item 2), and its
+            // drop-off map copy (dispatch 2026-11-04-09 A5, the owner: "Include it (Recommended)").
+            sizeBytes = region.sizeBytes + routeData.sizeBytes + dropOffMap.sizeBytes,
             createdAtEpochMillis = row.createdAtEpochMillis,
+            styleUrl = region.styleUrl,
+            routeData = routeData,
+            dropOffMap = dropOffMap,
         )
+    }
+
+    // Kept: every Room row (a row with no MapLibre region in this read is kept, above, and so are its routes), every
+    // region in the read but those just deleted as never finished, and every download still running.
+    val keepIds = dao.getAll().map { it.id }.toSet() + (liveIds - deletedIds) + inFlightIds
+    routes.cleanOrphans(keepIds)
+    dropOffMaps.cleanOrphans(keepIds)
+    return shown
+}
+
+/**
+ * Deletes [regionId]'s routes after its tiles and row are gone. A failure is logged, not thrown: the region is already
+ * gone, and its folder, now owned by no region, is removed by the next [RegionRouteFolders.cleanOrphans].
+ */
+internal suspend fun deleteRoutesOrLeaveForCleanup(routes: RegionRouteFolders, regionId: Long, warn: (String) -> Unit) {
+    try {
+        routes.delete(regionId)
+    } catch (e: java.io.IOException) {
+        warn("Couldn't delete region $regionId's routes (${e.message}); the next listing clears them.")
+    }
+}
+
+/**
+ * Deletes [regionId]'s drop-off map copy after its tiles and row are gone, as [deleteRoutesOrLeaveForCleanup] does its
+ * routes. A failure is logged, not thrown: the copy, now owned by no region, is removed by the next
+ * [RegionDropOffMaps.cleanOrphans].
+ */
+internal suspend fun deleteDropOffMapOrLeaveForCleanup(dropOffMaps: RegionDropOffMaps, regionId: Long, warn: (String) -> Unit) {
+    try {
+        dropOffMaps.delete(regionId)
+    } catch (e: java.io.IOException) {
+        warn("Couldn't delete region $regionId's drop-off map copy (${e.message}); the next listing clears it.")
     }
 }
 
@@ -113,8 +181,11 @@ internal fun incompleteRegionDecision(
 ): IncompleteRegionDecision {
     if (region.id in inFlightIds) return IncompleteRegionDecision.InFlight
     if (hasRoomRow) return IncompleteRegionDecision.Keep("it has a Room row, which is written only on completion")
-    val metadata = region.metadata?.toRegionMetadata()
-        ?: return IncompleteRegionDecision.Keep("its metadata is missing or unreadable")
+    val metadata = when (val read = region.metadata?.readRegionMetadata()) {
+        null -> return IncompleteRegionDecision.Keep("its metadata is missing")
+        is RegionMetadataRead.Unreadable -> return IncompleteRegionDecision.Keep("its metadata is unreadable (${read.reason})")
+        is RegionMetadataRead.Parsed -> read.metadata
+    }
     if (metadata.downloadedAtEpochMillis != 0L) {
         return IncompleteRegionDecision.Keep("its metadata records a completion time")
     }

@@ -1,11 +1,14 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.GridOff
-import androidx.compose.material.icons.filled.GridOn
-import androidx.compose.material.icons.filled.Straighten
-import androidx.compose.material3.IconButton
+import androidx.compose.material.icons.outlined.GridOff
+import androidx.compose.material.icons.outlined.GridOn
+import androidx.compose.material.icons.outlined.Straighten
 import androidx.compose.runtime.Composable
+import com.zynergylabs.forager.app.ui.motion.IconSwap
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -21,27 +24,32 @@ import com.zynergylabs.forager.app.domain.next
  * **[mode] is the stored mode.** A tap calls [onGridModeChanged] and changes nothing here; the chip
  * shows the next mode when `CameraGridModeViewModel` has stored it.
  *
- * **Glyphs:** `GridOff`, `GridOn` and `Straighten` (a ruler, for the level) from
+ * **Glyphs (the Outlined style since dispatch 2026-10-13-03, RECORD -970):** `GridOff`, `GridOn` and `Straighten` (a ruler, for the level) from
  * `material-icons-extended`. Material has no grid-with-level glyph; `Straighten` is the closest
  * this session found, chosen by name and not compared against any reference app's icon.
  */
 @Composable
 internal fun GridChip(mode: GridMode, onGridModeChanged: (GridMode) -> Unit, deviceRotation: Int?, displayRotation: Int) {
     val glyph = gridGlyph(mode)
-    IconButton(
+    BouncingIconButton(
         onClick = { onGridModeChanged(mode.next()) },
-        modifier = Modifier.rotateWithDevice(deviceRotation, displayRotation).testTag(CAMERA_GRID_CHIP_TAG),
+        modifier = Modifier
+            .rotateWithDevice(deviceRotation, displayRotation)
+            .testTag(CAMERA_GRID_CHIP_TAG)
+            .semantics { contentDescription = glyph.label },
     ) {
-        OverlayIcon(glyph.icon, contentDescription = glyph.label)
+        // Motion Part 1 (dispatch 2026-09-28-652, item 5): the glyph crossfades with a slight grow when the mode changes. The
+        // label sits on the button, not the icon, because both glyphs are composed for the length of the swap.
+        IconSwap(targetState = glyph.icon) { icon -> OverlayIcon(icon, contentDescription = null) }
     }
 }
 
 internal data class GridGlyph(val icon: ImageVector, val label: String)
 
 internal fun gridGlyph(mode: GridMode): GridGlyph = when (mode) {
-    GridMode.Off -> GridGlyph(Icons.Filled.GridOff, GRID_OFF_LABEL)
-    GridMode.Grid -> GridGlyph(Icons.Filled.GridOn, GRID_ON_LABEL)
-    GridMode.GridLevel -> GridGlyph(Icons.Filled.Straighten, GRID_AND_LEVEL_LABEL)
+    GridMode.Off -> GridGlyph(Icons.Outlined.GridOff, GRID_OFF_LABEL)
+    GridMode.Grid -> GridGlyph(Icons.Outlined.GridOn, GRID_ON_LABEL)
+    GridMode.GridLevel -> GridGlyph(Icons.Outlined.Straighten, GRID_AND_LEVEL_LABEL)
 }
 
 internal const val CAMERA_GRID_CHIP_TAG = "in-app-camera-grid-chip"

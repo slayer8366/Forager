@@ -32,6 +32,19 @@ internal fun portEdgeFor(windowIsLandscape: Boolean, displayRotation: Int): Scre
     else -> ScreenEdge.Right
 }
 
+/**
+ * RECORD -956, the owner: "There should be nothing fixed between the two landscape modes. One should look exactly line the other";
+ * "Screen left can be either charging port or front camera end, depending on which degree rotation it's in"; told the side bar
+ * followed the charging port, "That was never my call and that should be fixed". So the main window no longer reads the rotation:
+ * in a landscape window its navigation rail is on the screen's right and the search bar on its left, at ROTATION_90 and
+ * ROTATION_270 alike (as at ROTATION_90 before). Not landscape: the bottom, as [portEdgeFor]. The in-app camera keeps
+ * [portEdgeFor] (the planner, -956 answer 1: "leave it on the port-edge mapping for now").
+ */
+internal fun mainWindowRailEdgeFor(windowIsLandscape: Boolean): ScreenEdge = if (windowIsLandscape) ScreenEdge.Right else ScreenEdge.Bottom
+
+/** RECORD -956: the main window's search-bar side, the rail's opposite: the screen's left in landscape. */
+internal fun mainWindowSearchEdgeFor(windowIsLandscape: Boolean): ScreenEdge = mainWindowRailEdgeFor(windowIsLandscape).opposite
+
 /** The punch-hole edge: the port edge's opposite, by the device anatomy [portEdgeFor] assumes. */
 internal fun punchHoleEdgeFor(windowIsLandscape: Boolean, displayRotation: Int): ScreenEdge =
     portEdgeFor(windowIsLandscape, displayRotation).opposite

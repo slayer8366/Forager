@@ -15,6 +15,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.vector.VectorPath
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -62,7 +63,7 @@ class CentrePinLocationPickerTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    private val region = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+    private val region = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
     @Test
     fun `OK confirms the region's own centre when the map is never panned`() {
@@ -214,6 +215,27 @@ class CentrePinLocationPickerTest {
         }
         assertEquals(Icons.Filled.LocationOn.viewportWidth, casing.viewportWidth)
         assertEquals(Icons.Filled.LocationOn.viewportHeight, casing.viewportHeight)
+    }
+
+    /**
+     * Dispatch 2026-10-18-03, item 1: the offline-maps screen drops OK and Cancel ("Remove both OK and Cancel and just have the
+     * Download Maps option", RECORD -1269), and "every other picker that shares CentrePinConfirmActions keeps its OK and
+     * Cancel; if removing them here needs a parameter, it defaults to today's behaviour". Called with its defaults, as the
+     * find's location picker (CentrePinLocationPicker) calls it: OK and Cancel are there and each does its job.
+     */
+    @Test
+    fun `CentrePinConfirmActions with its defaults keeps OK and Cancel, for every picker but the offline screen`() {
+        var confirmed: LatLng? = null
+        var cancelled = false
+        composeRule.setContent {
+            CentrePinConfirmActions(state = CentrePinState(region), onConfirm = { confirmed = it }, onCancel = { cancelled = true })
+        }
+        composeRule.onNodeWithText("OK").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
+        composeRule.onNodeWithText("OK").performClick()
+        assertEquals(LatLng(region.lat, region.lng), confirmed)
+        composeRule.onNodeWithText("Cancel").performClick()
+        assertEquals(true, cancelled)
     }
 
     private fun hex(argb: Int) = "#%08X".format(argb)

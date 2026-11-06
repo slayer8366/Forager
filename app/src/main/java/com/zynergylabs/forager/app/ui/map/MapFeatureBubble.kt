@@ -1,0 +1,282 @@
+package com.zynergylabs.forager.app.ui.map
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.FlowRowScope
+import androidx.compose.foundation.layout.size
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.JournalEntryOnMap
+import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.ui.log.DecodedPhoto
+import com.zynergylabs.forager.app.ui.log.RecordDetailsTarget
+import com.zynergylabs.forager.app.ui.theme.Spacing
+
+/** Every kind's bubble but a sighting's (B3), on [MapBubbleShell], with its actions (B4). */
+@Composable
+internal fun MapFeatureBubble(
+    content: MapBubbleContent,
+    tipInBubble: State<Offset?>,
+    onDismiss: () -> Unit,
+    openFindLabel: String,
+    onOpenFind: ((String) -> Unit)?,
+    onViewPhoto: (String) -> Unit,
+    onDirections: (name: String, at: LatLng) -> Unit,
+    onDetails: (RecordDetailsTarget) -> Unit,
+    /**
+     * J8-4: opens a keeping entry (owner's Q1 ruling, "Open in Journal, prompt first"). With it, a
+     * highlighted record's bubble draws its keeping entries ([KeptInEntries]); `null` draws none.
+     */
+    onOpenEntry: ((String) -> Unit)? = null,
+    /**
+     * Dispatch 2026-09-28-502: a waypoint's "Navigate", given its id, first among its actions (T9). The Maps tab
+     * and, since RECORD -890, a journal entry's map pass one; `null` (tests only) offers none.
+     */
+    onNavigate: ((String) -> Unit)? = null,
+    /** Dispatch 2026-10-30-08: a waypoint's "Plot route", given its id, after Navigate. Only the Maps tab passes one. */
+    onPlotRoute: ((String) -> Unit)? = null,
+    /** Dispatch 2026-11-05-05 (A8): a trip's "Navigate", given its id, first among its actions. Only the Maps tab passes one. */
+    onNavigateToTrip: ((String) -> Unit)? = null,
+    /** Dispatch 2026-11-05-05 (A3): a trip's "Plot route", given its id, after Navigate. Only the Maps tab passes one. */
+    onPlotRouteFromTrip: ((String) -> Unit)? = null,
+) {
+    MapBubbleShell(tipInBubble = tipInBubble, onDismiss = onDismiss, cardTag = MAP_BUBBLE_TAG, closeTag = MAP_BUBBLE_CLOSE_TAG) {
+        when (content) {
+            is MapBubbleContent.Find -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    content.coverPhotoPath?.let { DecodedPhoto(relativePath = it, modifier = Modifier.size(BUBBLE_THUMBNAIL_SIZE), contentDescription = "Cover photo") }
+                    Column {
+                        // A blank title (RECORD -703) draws nothing and says the tile's label to a screen reader.
+                        content.title?.let { BubbleTitle(it) }
+                            ?: content.blankTitleLabel?.let { label -> Box(Modifier.semantics { contentDescription = label }) }
+                        content.date?.let { BubbleLine(it) }
+                    }
+                }
+                KeptInEntries(content.keptIn, onOpenEntry)
+                onOpenFind?.let { open -> BubbleActions { BubbleAction(openFindLabel, MAP_BUBBLE_OPEN_FIND_TAG) { open(content.findId) } } }
+            }
+            is MapBubbleContent.Photo -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    DecodedPhoto(relativePath = content.photo.relativePath, modifier = Modifier.size(BUBBLE_THUMBNAIL_SIZE), contentDescription = "Photo")
+                    Column {
+                        BubbleTitle(content.date)
+                        content.attachedTo?.let { BubbleLine(it) }
+                    }
+                }
+                KeptInEntries(content.keptIn, onOpenEntry)
+                BubbleActions { BubbleAction("View photo", MAP_BUBBLE_VIEW_PHOTO_TAG) { onViewPhoto(content.photo.id) } }
+            }
+            is MapBubbleContent.WaypointContent -> {
+                BubbleTitle(content.waypoint.name)
+                content.mgrs?.let { BubbleLine(it) }
+                // Dispatch 2026-11-03-07 (A1): below the coordinates, above "from start"; no line when not known (A2).
+                content.elevation?.let { BubbleLine(it, Modifier.testTag(MAP_BUBBLE_ELEVATION_TAG)) }
+                content.fromStart?.let { BubbleLine(it) }
+                KeptInEntries(content.keptIn, onOpenEntry)
+                BubbleActions {
+                    // Only for a waypoint still in Records: one an entry knows only from its snapshot has nothing to navigate by.
+                    onNavigate?.takeIf { content.hasDetails }?.let { navigate -> BubbleAction("Navigate", MAP_BUBBLE_NAVIGATE_TAG) { navigate(content.waypoint.id) } }
+                    onPlotRoute?.takeIf { content.hasDetails }?.let { plot -> BubbleAction("Plot route", MAP_BUBBLE_PLOT_ROUTE_TAG) { plot(content.waypoint.id) } }
+                    // Dispatch 2026-10-29-09 (RECORD -1819): Directions only where Navigate cannot reach, that snapshot-only
+                    // waypoint (the owner: "Keep Directions (Recommended)"). A waypoint in Records has Navigate in its place.
+                    if (!content.hasDetails) {
+                        BubbleAction("Directions", MAP_BUBBLE_DIRECTIONS_TAG) { onDirections(content.waypoint.name, LatLng(content.waypoint.lat, content.waypoint.lng)) }
+                    }
+                    if (content.hasDetails) {
+                        BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.WaypointDetails(content.waypoint.id)) }
+                    }
+                }
+            }
+            is MapBubbleContent.TrackContent -> {
+                BubbleTitle(content.title)
+                content.date?.let { BubbleLine(it) }
+                BubbleLine("${content.distance} · ${content.duration}")
+                KeptInEntries(content.keptIn, onOpenEntry)
+                if (content.hasDetails) {
+                    BubbleActions { BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.TrackDetails(content.trackId)) } }
+                }
+            }
+            // Dispatch 2026-11-05-05 (A1; RECORD -2140, the owner: "The trip icon should show a navigate option, along with
+            // elevation data. Remove the directions from the bubble add Navigate, Plot Route Details. Remove the long/lat
+            // coordinates from the Trip icon, and keep the military style"): name, date, MGRS, elevation, then the waypoint's
+            // three actions. This replaces -1819's "Keep Directions for now" here, and M1's "a planned trip has no sheet".
+            is MapBubbleContent.Trip -> {
+                BubbleTitle(content.trip.name)
+                content.date?.let { BubbleLine(it) }
+                content.mgrs?.let { BubbleLine(it) }
+                content.elevation?.let { BubbleLine(it, Modifier.testTag(MAP_BUBBLE_ELEVATION_TAG)) }
+                BubbleActions {
+                    onNavigateToTrip?.let { navigate -> BubbleAction("Navigate", MAP_BUBBLE_NAVIGATE_TAG) { navigate(content.trip.id) } }
+                    onPlotRouteFromTrip?.let { plot -> BubbleAction("Plot route", MAP_BUBBLE_PLOT_ROUTE_TAG) { plot(content.trip.id) } }
+                    BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.TripDetails(content.trip.id)) }
+                }
+            }
+            is MapBubbleContent.Region -> {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    BubbleTitle(content.name)
+                    if (content.stale) {
+                        Text("Stale", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag(MAP_BUBBLE_STALE_TAG))
+                    }
+                }
+                BubbleLine("${content.radius} · ${content.size}")
+                KeptInEntries(content.keptIn, onOpenEntry)
+                BubbleActions { BubbleAction("Details", MAP_BUBBLE_DETAILS_TAG) { onDetails(RecordDetailsTarget.OfflineRegionDetails(content.regionId)) } }
+            }
+            is MapBubbleContent.Cell -> {
+                BubbleTitle(content.layerName)
+                Text(content.chance, style = MaterialTheme.typography.titleLarge, modifier = Modifier.testTag(MAP_BUBBLE_CHANCE_TAG))
+                BubbleLine(content.range)
+                content.drivers.forEach { BubbleLine(it) }
+                BubbleLine(content.dates)
+                Text(
+                    content.referenceClass,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = LocalContentColor.current.copy(alpha = 0.7f),
+                )
+            }
+            // Step 8c (RECORD -1680, -1681): whose trail it is, then that routes follow the trail map. No action.
+            is MapBubbleContent.ReferenceTrail -> {
+                Box(Modifier.testTag(MAP_BUBBLE_REFERENCE_TITLE_TAG)) { BubbleTitle(content.title) }
+                Box(Modifier.testTag(MAP_BUBBLE_REFERENCE_NOTE_TAG)) { BubbleLine(content.note) }
+            }
+        }
+    }
+}
+
+/**
+ * J8-4, a highlighted record's keeping entries (owner's Q2 ruling, "Tap a date line"; planner's Q3,
+ * the report header's date form): up to three, one line each showing its date, whose tap opens that
+ * entry, labelled "Open entry <date>" for TalkBack; past three, one line, "In N journal entries" (was "Kept in"; RECORD -671),
+ * whose tap opens an untitled list of their dates, each opening its entry. Nothing for a record no
+ * shown entry keeps, or without [onOpenEntry] (every map but the Maps tab). The list is a menu over the
+ * map at the map chrome's opacity ([journalMenuContainerColor]).
+ */
+@Composable
+private fun KeptInEntries(keptIn: List<JournalEntryOnMap>, onOpenEntry: ((String) -> Unit)?) {
+    val open = onOpenEntry ?: return
+    when (val lines = keptInEntriesLines(keptIn)) {
+        null -> Unit
+        is KeptInEntriesLines.Dates -> lines.lines.forEach { line ->
+            TextButton(
+                onClick = { open(line.entryId) },
+                contentPadding = PaddingValues(horizontal = Spacing.sm),
+                modifier = Modifier
+                    .testTag(mapBubbleEntryLineTag(line.entryId))
+                    .semantics { contentDescription = line.accessibilityLabel },
+            ) {
+                Text(line.date, style = MaterialTheme.typography.labelMedium)
+            }
+        }
+        is KeptInEntriesLines.Count -> {
+            var expanded by remember { mutableStateOf(false) }
+            Box {
+                TextButton(
+                    onClick = { expanded = true },
+                    contentPadding = PaddingValues(horizontal = Spacing.sm),
+                    modifier = Modifier.testTag(MAP_BUBBLE_ENTRY_COUNT_TAG),
+                ) {
+                    Text(lines.label, style = MaterialTheme.typography.labelMedium)
+                }
+                val container = journalMenuContainerColor()
+                val content = journalMenuContentColor()
+                DropdownMenu(
+                    expanded = expanded,
+                    onDismissRequest = { expanded = false },
+                    containerColor = container,
+                    // Over the map: no shadow, the map-chrome hairline (dispatch 2026-11-05-06, C2; MapChromeMenuEdge.kt).
+                    shadowElevation = mapChromeMenuShadowElevation(overMap = true),
+                    border = mapChromeMenuBorder(overMap = true),
+                    modifier = Modifier.testTag(MAP_BUBBLE_ENTRY_LIST_TAG).journalMenuColours(container, content),
+                ) {
+                    lines.entries.forEach { line ->
+                        DropdownMenuItem(
+                            text = { Text(line.date) },
+                            onClick = {
+                                expanded = false
+                                open(line.entryId)
+                            },
+                            colors = MenuDefaults.itemColors(textColor = content),
+                            modifier = Modifier
+                                .testTag(mapBubbleEntryLineTag(line.entryId))
+                                .semantics { contentDescription = line.accessibilityLabel },
+                        )
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BubbleTitle(text: String) {
+    Text(text, style = MaterialTheme.typography.titleSmall)
+}
+
+@Composable
+private fun BubbleLine(text: String, modifier: Modifier = Modifier) {
+    Text(text, style = MaterialTheme.typography.bodySmall, modifier = modifier)
+}
+
+@Composable
+private fun BubbleActions(content: @Composable FlowRowScope.() -> Unit) {
+    // A FlowRow since dispatch 2026-10-30-08: a waypoint's third action ("Plot route") wraps to a second line where the
+    // bubble's 280 dp cannot hold all three (large font scales) rather than being clipped. Where they fit it lays out as the Row did.
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), content = content)
+}
+
+@Composable
+private fun BubbleAction(label: String, tag: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick, contentPadding = PaddingValues(horizontal = Spacing.sm), modifier = Modifier.testTag(tag)) {
+        Text(label, style = MaterialTheme.typography.labelMedium)
+    }
+}
+
+private val BUBBLE_THUMBNAIL_SIZE = 56.dp
+
+internal const val MAP_BUBBLE_TAG = "map-bubble"
+internal const val MAP_BUBBLE_CLOSE_TAG = "map-bubble-close"
+internal const val MAP_BUBBLE_OPEN_FIND_TAG = "map-bubble-open-find"
+internal const val MAP_BUBBLE_VIEW_PHOTO_TAG = "map-bubble-view-photo"
+internal const val MAP_BUBBLE_DIRECTIONS_TAG = "map-bubble-directions"
+internal const val MAP_BUBBLE_NAVIGATE_TAG = "map-bubble-navigate"
+internal const val MAP_BUBBLE_PLOT_ROUTE_TAG = "map-bubble-plot-route"
+internal const val MAP_BUBBLE_DETAILS_TAG = "map-bubble-details"
+/** The waypoint bubble's elevation line (dispatch 2026-11-03-07), and a trip's (dispatch 2026-11-05-05). */
+internal const val MAP_BUBBLE_ELEVATION_TAG = "map-bubble-elevation"
+internal const val MAP_BUBBLE_STALE_TAG = "map-bubble-stale"
+internal const val MAP_BUBBLE_CHANCE_TAG = "map-bubble-chance"
+
+/** Step 8c: an official-trails band's two lines. */
+internal const val MAP_BUBBLE_REFERENCE_TITLE_TAG = "map-bubble-reference-title"
+internal const val MAP_BUBBLE_REFERENCE_NOTE_TAG = "map-bubble-reference-note"
+
+/** J8: a highlighted record's bubble line for one keeping entry, by its date; a tap opens that entry. */
+internal fun mapBubbleEntryLineTag(entryId: String) = "map-bubble-entry-$entryId"
+
+/** J8: the one line, "In N journal entries" (was "Kept in"; RECORD -671), that stands for more than three keeping entries. */
+internal const val MAP_BUBBLE_ENTRY_COUNT_TAG = "map-bubble-entry-count"
+
+/** J8: the untitled list of those entries' dates, opened from [MAP_BUBBLE_ENTRY_COUNT_TAG]. */
+internal const val MAP_BUBBLE_ENTRY_LIST_TAG = "map-bubble-entry-list"

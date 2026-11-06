@@ -50,6 +50,21 @@ class MapChromeColourTokenTest {
         assertEquals(LightColors.surfaceContainer, MapIconStackButtonColorLight.copy(alpha = 1f))
         assertEquals(MAP_CHROME_OVER_MAP_ALPHA, MapIconStackButtonColorLight.alpha, 0.0001f)
     }
+
+    /**
+     * Dispatch 2026-10-12-08 (RECORD -945, -951): the search pill's lighter fill is a theme role, not a raw value: the surface
+     * ramp's lightest end in each theme (surfaceContainerLowest by day, #FFFFFF; surfaceContainerHighest at night, #373737), at
+     * the standing 0.8; its colour, not its alpha, is what differs from the token.
+     */
+    @Test
+    fun `the pill's fill is the surface ramp's lightest end in each theme, at the standing 0_8`() {
+        assertEquals(LightColors.surfaceContainerLowest, MapPillColorLight.copy(alpha = 1f))
+        assertEquals(DarkColors.surfaceContainerHighest, MapPillColorDark.copy(alpha = 1f))
+        assertEquals(Color(0xFFFFFFFF), MapPillColorLight.copy(alpha = 1f))
+        assertEquals(Color(0xFF373737), MapPillColorDark.copy(alpha = 1f))
+        assertEquals(MAP_CHROME_OVER_MAP_ALPHA, MapPillColorLight.alpha, 0.0001f)
+        assertEquals(MAP_CHROME_OVER_MAP_ALPHA, MapPillColorDark.alpha, 0.0001f)
+    }
 }
 
 /** The composable side of the token: what a composition in each theme reads, and the cluster's two layers built from it. */

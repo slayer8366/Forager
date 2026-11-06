@@ -1,0 +1,19 @@
+# The eight ruled sprite cut-outs, day, 1x and 2x (dispatch 2026-10-22-03 Amendment 1, RECORD -1561), as
+# slayer8366/Forager-cartography records them in assets/sprite-drafts/2026-10-22/SHA256SUMS. fetch-assets.sh checks
+# the extracted files against these lines, so the fetched archive's own SHA256SUMS is never what is trusted.
+d94155c5f98ca8ab75d67713e6514fcac6c02564fce525688f473d586ae891a9  day/camp_site@2x.png
+ae486d163f7c6ef38f9b47a04243a7f70f12106f5f4bb0e39cfb66d1a7a81c07  day/camp_site.png
+ff4a84910d9fc7fe3c4f0dcbca25a7e01776b98bd6fabaec38e50477ace375a9  day/parking@2x.png
+c515ce6b22190423212cae963e0e1b77c1b2b8b179a4b1b4fe5b7ddbbc1b4869  day/parking.png
+f864cc1e15f129ef3285de869abe54cf11cd2c56e18863947f21c097f2bdc239  day/picnic_site@2x.png
+8b8c9051f9dbe96775be979d4763291598029dfc4bccd851755612c1983239cc  day/picnic_site.png
+4ca302afd4c680c944604e51033b8f492cd17d0b5391eee7ff50337f2253f50b  day/ranger_station@2x.png
+c16885c83a7147e6ba7f02132bc14e2ea1c22ba6b9622722e4e592489b4520cb  day/ranger_station.png
+752a85f74c1347b87435ac97cb92525054c3fb28d231abff66a253dcd39b2d0c  day/trailhead_b@2x.png
+6563f18e58ada4539952f38ece0dec17abd760f74df1bbcc781e33746e34a8e7  day/trailhead_b.png
+5f935019c077bc6261813d7c84d8ad384b00e91de620f4c4aabd30299a1174a0  day/tree_dark_irregular@2x.png
+887ccd67aff14600d176dfb5d1b1b8738bee3ea7ff8338e1b1bb39eb0624451a  day/tree_dark_irregular.png
+b8406c8a97d99463a1ab769168af7e61f1cded868c9aa7f6e76e7366bb374b7f  day/tufts@2x.png
+111ecd9619a7a51f0cdd49729e9c920d37df6f06abaa955a4943f84fe7edd27d  day/tufts.png
+47f309d55fb8e3671c8ca33004ebec3ac09912bc8b6dc493325744b2d7d172b2  day/viewpoint_c@2x.png
+ebc1d4a28a003373f2f871f431540713d415008a0459386bc95b99262d714cb7  day/viewpoint_c.png

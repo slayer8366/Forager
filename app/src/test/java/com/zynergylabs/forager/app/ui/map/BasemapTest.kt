@@ -1,8 +1,7 @@
 package com.zynergylabs.forager.app.ui.map
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -14,7 +13,7 @@ import org.junit.Test
  * real change what it is. What is asserted here is the set of properties the *feature* depends on
  * and that a plausible future edit could break: that the app is still usable outside the United
  * States, that every option can be told apart in the menu, that no option is shipped without the
- * coverage and credit text the UI relies on, and that the two enums agree about what a limit means.
+ * credit text the UI relies on, and that no US-only service has crept back in.
  *
  * The claims that need the real osmdroid artifact — names, zoom ceilings, URL shape, copyright
  * strings, cache separation — are in `BasemapTileSourceTest`. The claim that a live swap preserves
@@ -36,68 +35,33 @@ class BasemapTest {
     private val minimumUsableMaxZoom = 13
 
     @Test
-    fun `the default basemap is OpenTopoMap, derived from MapMode's default`() {
+    fun `the default basemap is Forager Trail Map, derived from MapMode's default`() {
         // Not USGS Topo (PR #13's original default, deleted from the catalogue entirely once
         // MapMode superseded it): MapMode.DEFAULT is Topographical via OpenStreetMap, because USGS
         // covers the United States only and a US-only opening basemap would break the map outright
         // for every user outside it. See MapMode's own doc comment.
-        assertEquals(Basemap.OPEN_TOPO_MAP, Basemap.DEFAULT)
+        // Was assertEquals(Basemap.OPEN_TOPO_MAP, Basemap.DEFAULT), then STREET (Street, RECORD -1297); the opening map
+        // became Forager Trail Map (dispatch 2026-10-22-01, RECORD -1554).
+        assertEquals(Basemap.FORAGER_TRAIL, Basemap.DEFAULT)
         assertEquals(MapMode.DEFAULT.basemap, Basemap.DEFAULT)
     }
 
     /**
-     * The load-bearing one. USGS covers the United States only, and the default is USGS, so the
-     * only thing that keeps this app usable in Europe or anywhere else is that the selector offers
-     * a basemap without that limit. Delete [Basemap.OSM_STANDARD] and [Basemap.OPEN_TOPO_MAP] and
-     * every other test here still passes while the map is blank for every non-US user.
+     * Dispatch 2026-09-28-708 removed Satellite, the last USGS basemap, and with it [Basemap]'s
+     * coverage field and its United-States-only note, which no remaining basemap needed. This replaces
+     * the four coverage tests that went with them (that one basemap works outside the US, that OSM
+     * Standard is unrestricted, that a limited basemap carries a note, and the USGS/US-only
+     * biconditional): every basemap left is worldwide, so what can still go wrong is a US-only service
+     * coming back without its limit being stated. That is the case this pins, by the two marks a USGS
+     * National Map basemap carried.
      */
     @Test
-    fun `at least one basemap works outside the United States`() {
-        val worldwide = Basemap.entries.filter { it.coverage == BasemapCoverage.WORLDWIDE }
-        assertTrue(
-            "Every basemap is limited to ${BasemapCoverage.UNITED_STATES_ONLY}, so a user outside " +
-                "the US would have no working option. At least one WORLDWIDE basemap must be offered.",
-            worldwide.isNotEmpty(),
-        )
-    }
-
-    /** The current OSM standard street map stays on offer: it is the basemap this feature replaced as default. */
-    @Test
-    fun `the OpenStreetMap standard basemap is still offered and unrestricted`() {
-        assertEquals(BasemapCoverage.WORLDWIDE, Basemap.OSM_STANDARD.coverage)
-    }
-
-    @Test
-    fun `a limited-coverage basemap carries a note and a worldwide one does not`() {
-        assertNull(
-            "A basemap that works everywhere has no coverage caveat to show, so the UI must get " +
-                "null rather than reassuring text it would then have to render.",
-            BasemapCoverage.WORLDWIDE.note,
-        )
-        val restricted = BasemapCoverage.UNITED_STATES_ONLY.note
-        assertNotNull(
-            "The US-only coverage note is what the selector shows in place of coverage detection.",
-            restricted,
-        )
-        assertTrue(
-            "The note is the app's only statement of the coverage limit, so it has to name it: $restricted",
-            restricted!!.contains("United States"),
-        )
-    }
-
-    @Test
-    fun `every US-only basemap is a USGS one and every USGS basemap is US-only`() {
-        // Stated as a biconditional on purpose: adding a USGS service without its coverage note, or
-        // marking a worldwide source US-only, are both real mistakes and neither is caught by a
-        // one-directional check.
+    fun `no basemap is a US-only USGS service`() {
         Basemap.entries.forEach { basemap ->
-            val isUsgs = basemap.attribution.contains("USGS")
-            val isRestricted = basemap.coverage == BasemapCoverage.UNITED_STATES_ONLY
-            assertEquals(
-                "${basemap.name}: a USGS basemap covers the US only, and nothing else here does. " +
-                    "attribution=\"${basemap.attribution}\" coverage=${basemap.coverage}",
-                isUsgs,
-                isRestricted,
+            assertFalse("${basemap.name}'s credit names USGS: ${basemap.attribution}", basemap.attribution.contains("USGS"))
+            assertFalse(
+                "${basemap.name} draws from the US-only National Map: ${basemap.tileUrlTemplate}",
+                basemap.tileUrlTemplate.contains("nationalmap.gov"),
             )
         }
     }
@@ -134,4 +98,23 @@ class BasemapTest {
             )
         }
     }
+
+    /**
+     * Dispatch 2026-10-18-04, item 3. OpenTopoMap's own page asks for "Kartendaten: © OpenStreetMap-Mitwirkende, SRTM |
+     * Kartendarstellung: © OpenTopoMap (CC-BY-SA)" (Juniper's research, Q2). The owner's "option c": the short form stays
+     * in the always-visible caption, where the full one would wrap on the S22 in portrait, and the full English form goes
+     * in the tap-to-reveal attribution ([Basemap.fullAttribution]). Both texts are pinned here, and the caption is read
+     * through the function the map's caption draws ([attributionCaption] of [mapCreditsFor]).
+     */
+    @Test
+    fun `OpenTopoMap's caption keeps the short credit and its full credit is the long form`() {
+        assertEquals("© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)", Basemap.OPEN_TOPO_MAP.fullAttribution)
+        assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)", Basemap.OPEN_TOPO_MAP.attribution)
+        assertEquals(
+            "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
+            attributionCaption(mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false)),
+        )
+    }
+
+    // "Street's caption and full credit are the same line" is held in ui/map/street/StreetMapTest (dispatch 2026-11-03-05 D7).
 }

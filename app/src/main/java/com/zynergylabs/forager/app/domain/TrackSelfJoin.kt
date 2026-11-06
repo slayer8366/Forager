@@ -3,7 +3,6 @@ package com.zynergylabs.forager.app.domain
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import java.util.PriorityQueue
-import kotlin.math.cos
 import kotlin.math.floor
 
 /**
@@ -88,8 +87,7 @@ internal fun joinedTrackRoute(points: List<TrackPoint>, epsilonMeters: Double = 
     // Join scan over a grid of ε cells in a local equirectangular projection about the first
     // point. Points are inserted in track order, so each point is compared only against earlier
     // ones and every pair is seen once. A consecutive pair is already a leg and is skipped.
-    val metersPerDegreeLat = Math.PI * GeoDistance.EARTH_MEAN_RADIUS_METERS / 180.0
-    val metersPerDegreeLng = metersPerDegreeLat * cos(Math.toRadians(latLngs[0].lat))
+    val (metersPerDegreeLat, metersPerDegreeLng) = GeoDistance.metersPerDegree(latLngs[0].lat)
     val cellMeters = (epsilonMeters * GRID_CELL_SLACK).coerceAtLeast(MIN_CELL_METERS)
     val grid = HashMap<Long, MutableList<Int>>()
     val joins = arrayOfNulls<MutableList<Join>>(n)
@@ -125,7 +123,7 @@ internal fun joinedTrackRoute(points: List<TrackPoint>, epsilonMeters: Double = 
     val queue = PriorityQueue<QueueEntry>()
     queue.add(QueueEntry(0.0, source))
     while (queue.isNotEmpty()) {
-        val entry = queue.poll()
+        val entry = queue.poll()!!
         val u = entry.node
         if (u == 0) break
         if (entry.distance > distance[u]) continue

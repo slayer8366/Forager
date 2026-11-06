@@ -104,9 +104,16 @@ internal fun rememberJournalScreenState(): JournalScreenState =
 
 /**
  * What Records shows when nothing has chosen otherwise — the holder's initial value and
- * `RecordsTab`'s own local default for a caller that passes no state (`LogPanel`).
+ * `RecordsTab`'s own local default for a caller that passes no state (tests).
+ *
+ * Finds since RECORD -868 (the owner: "Have Finds be the default chip the Records tab opens up to"; "Your last pick
+ * until the app restarts (Recommended)"); it was All from journal redesign J1. "Until the app restarts" needs nothing
+ * more than this value: the holder is hoisted above the Journal tab, so a pick survives leaving the tab, and a cold
+ * start has no saved state, so it opens here. One edge, inferred from how saved state works and not checked on a
+ * phone: a process the system killed in the background and then restored keeps the last pick, which to the user is
+ * the app resuming, not restarting.
  */
-internal val DEFAULT_RECORDS_FILTER: RecordsSubTab = RecordsSubTab.ALL
+internal val DEFAULT_RECORDS_FILTER: RecordsSubTab = RecordsSubTab.FINDS
 
 /** Entries' two views (J2, T3; plan J3): the entries timeline, or the album of every photo grouped by day. */
 internal enum class EntriesViewMode { TIMELINE, ALBUM }

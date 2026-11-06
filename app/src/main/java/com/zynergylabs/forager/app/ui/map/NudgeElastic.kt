@@ -91,10 +91,10 @@ class NudgeGive(private val thresholdPx: Float, private val ratio: Float = NAVIG
  * The walker sits at the centre of the padded area, so widening one side by twice the give moves them,
  * and the map with them, by the give. Only ever widened, so no side goes negative.
  */
-fun nudgePadding(topPaddingPx: Double, offset: NudgeOffset): DoubleArray = doubleArrayOf(
-    2.0 * max(offset.dxPx, 0f),
+fun nudgePadding(topPaddingPx: Double, offset: NudgeOffset, side: NavigationSideInsets = NavigationSideInsets.NONE): DoubleArray = doubleArrayOf(
+    side.leftPx + 2.0 * max(offset.dxPx, 0f),
     topPaddingPx + 2.0 * max(offset.dyPx, 0f),
-    2.0 * max(-offset.dxPx, 0f),
+    side.rightPx + 2.0 * max(-offset.dxPx, 0f),
     2.0 * max(-offset.dyPx, 0f),
 )
 
@@ -129,6 +129,8 @@ class NudgeElasticDriver(
     private val camera: NudgeCamera,
     thresholdPx: Float,
     private val viewTopPaddingPx: () -> Double,
+    /** D29: the navigation view's side padding ([NavigationSideInsets]), which a give is added to; none on a plain map. */
+    private val viewSideInsetsPx: () -> NavigationSideInsets = { NavigationSideInsets.NONE },
 ) {
     private val give = NudgeGive(thresholdPx)
     private var shown = NudgeOffset.ZERO
@@ -179,7 +181,7 @@ class NudgeElasticDriver(
 
     private fun show(offset: NudgeOffset) {
         shown = offset
-        camera.showPadding(nudgePadding(viewTopPaddingPx(), offset))
+        camera.showPadding(nudgePadding(viewTopPaddingPx(), offset, viewSideInsetsPx()))
     }
 
     private fun stopSpring() {

@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app.domain
 
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TrackPoint
-import kotlin.math.cos
 import kotlin.math.hypot
 
 /** How far beyond the path, plus the reading's own reported accuracy, counts as off it. The owner: "About 40 m". Provisional. */
@@ -37,10 +36,14 @@ data class OffTrackVerdict(val isOffTrack: Boolean, val alert: Boolean)
  *   tapped. Not the whole track, which keeps being recorded on the way back and would always read
  *   near zero. The distance is to the nearest point of the path's line, not to its nearest
  *   recorded point.
- * - **Only GPS readings count.** A network reading ([isNetworkProviderFix], the timestamp rule the
- *   tracks are already read with) counts neither toward going off nor as being back on: it is
- *   skipped, and the verdict stays as it was. Its cost, measured on the owner's walk: 2 of 648 GPS
- *   readings carry sub-second stamps too, and are skipped with the network ones.
+ * - **Only GPS readings count.** A network reading counts neither toward going off nor as being back
+ *   on: it is skipped, and the verdict stays as it was. A live reading is told by the provider the
+ *   platform reported ([next]'s `provider`, dispatch 2026-09-28-527), so an unknown provider is
+ *   skipped too. A reading with no provider, a stored point in a replay of a saved walk, and the
+ *   path itself, which is stored points, are told by the timestamp rule ([isNetworkProviderFix],
+ *   the rule the tracks are read with). Its cost, measured on the owner's walk: 2 of 648 GPS
+ *   readings carry sub-second stamps too, and are skipped with the network ones; on a live reading
+ *   that no longer happens.
  * - **Off the path** is further from it than [OFF_TRACK_LINE_METERS] plus the reading's own
  *   reported accuracy, so a reading that says it is poor gets a wider line. No ceiling on that
  *   accuracy: the walk had no poor GPS reading (worst 9.9 m) to choose one from.
@@ -51,6 +54,13 @@ data class OffTrackVerdict(val isOffTrack: Boolean, val alert: Boolean)
  *   it alert again, and only then does [OffTrackVerdict.isOffTrack] clear. A stray that lasts is not
  *   reminded of ("once per stray", the owner's choice; the 120 s repeat it replaces is gone).
  * - **An empty path decides nothing.**
+ * - **Also on course near the way home's trail line** (dispatch 2026-10-25-08, plan step 7 PR 1; RECORD -1631):
+ *   [next]'s `alsoOn` lines count as on course beside the path. The return passes the trail parts of every way home
+ *   shown on it, so a walker following the app's own trail line home, where it runs far from the way they walked
+ *   out, is not off track. Off is then further than the line from the path **and** from every one of them: the
+ *   far-from-both alert of the step 7 report (`docs/audits/2026-10-25-04-off-trail-and-wrong-turn-report.md`, 3.4).
+ *   Passed per reading rather than fixed at construction, so a line that arrives or changes mid-return (a re-route)
+ *   applies at once without restarting the hold or re-arming.
  *
  * Every figure is provisional, named once above, and is for the owner's next walk to test.
  *
@@ -66,12 +76,24 @@ class OffTrackJudge(path: List<TrackPoint>) {
     private var armed = true
     private var offTrack = false
 
-    fun next(reading: TrackPoint): OffTrackVerdict {
-        if (line.isEmpty() || reading.isNetworkProviderFix()) return OffTrackVerdict(offTrack, alert = false)
+    /**
+     * [provider] is the live reading's, as the platform reported it (dispatch 2026-09-28-527); `null` for a
+     * reading that has none, a stored point, which the timestamp rule judges instead. Not a default
+     * standing in for a provider: a stored point genuinely has none.
+     */
+    fun next(reading: TrackPoint, provider: FixProvider? = null, alsoOn: List<List<LatLng>> = emptyList()): OffTrackVerdict {
+        val counts = provider?.mayAct ?: !reading.isNetworkProviderFix()
+        if (line.isEmpty() || !counts) return OffTrackVerdict(offTrack, alert = false)
         val t = reading.timestampEpochMillis
+        // A reading with no accuracy (null, not reported) widens the line by nothing: it is judged
+        // as if it were exact, at OFF_TRACK_LINE_METERS alone. That is the rule today, stated here
+        // (dispatch 2026-09-28-658, scout item R8), not decided here: the sampler and the live-fix
+        // gate let a null through as "not reported", and this treats it as 0 m. Changing it changes
+        // when the off-track alert fires, which is the owner's call, and was taken to them.
         val limit = OFF_TRACK_LINE_METERS + (reading.accuracyMeters?.toDouble() ?: 0.0)
         var alert = false
-        if (metersToLine(LatLng(reading.lat, reading.lng)) > limit) {
+        val here = LatLng(reading.lat, reading.lng)
+        if (metersToPolyline(here, line) > limit && alsoOn.all { it.isEmpty() || metersToPolyline(here, it) > limit }) {
             onSinceMillis = null
             val since = offSinceMillis ?: t.also { offSinceMillis = it; offReadings = 0 }
             offReadings++
@@ -91,24 +113,27 @@ class OffTrackJudge(path: List<TrackPoint>) {
         }
         return OffTrackVerdict(offTrack, alert)
     }
+}
 
-    /** Metres from [p] to the nearest point of the path's line, on a flat projection about [p]; tens to hundreds of metres, where its error is far below the fixes'. */
-    private fun metersToLine(p: LatLng): Double {
-        if (line.size == 1) return GeoDistance.metersBetween(p, line[0])
-        val metersPerDegreeLat = Math.PI * GeoDistance.EARTH_MEAN_RADIUS_METERS / 180.0
-        val metersPerDegreeLng = metersPerDegreeLat * cos(Math.toRadians(p.lat))
-        var best = Double.MAX_VALUE
-        for (i in 0 until line.lastIndex) {
-            val ax = (line[i].lng - p.lng) * metersPerDegreeLng
-            val ay = (line[i].lat - p.lat) * metersPerDegreeLat
-            val bx = (line[i + 1].lng - p.lng) * metersPerDegreeLng
-            val by = (line[i + 1].lat - p.lat) * metersPerDegreeLat
-            val vx = bx - ax
-            val vy = by - ay
-            val lengthSquared = vx * vx + vy * vy
-            val s = if (lengthSquared == 0.0) 0.0 else (-(ax * vx + ay * vy) / lengthSquared).coerceIn(0.0, 1.0)
-            best = minOf(best, hypot(ax + s * vx, ay + s * vy))
-        }
-        return best
+/**
+ * Metres from [p] to the nearest point of [line], on a flat projection about [p]; tens to hundreds of metres, where its
+ * error is far below the fixes'. [OffTrackJudge]'s, made top-level unchanged so the quiet off-trail state
+ * (`wayhome/WayHomeOffTrail`, plan step 7 PR 3) measures the same way.
+ */
+internal fun metersToPolyline(p: LatLng, line: List<LatLng>): Double {
+    if (line.size == 1) return GeoDistance.metersBetween(p, line[0])
+    val (metersPerDegreeLat, metersPerDegreeLng) = GeoDistance.metersPerDegree(p.lat)
+    var best = Double.MAX_VALUE
+    for (i in 0 until line.lastIndex) {
+        val ax = (line[i].lng - p.lng) * metersPerDegreeLng
+        val ay = (line[i].lat - p.lat) * metersPerDegreeLat
+        val bx = (line[i + 1].lng - p.lng) * metersPerDegreeLng
+        val by = (line[i + 1].lat - p.lat) * metersPerDegreeLat
+        val vx = bx - ax
+        val vy = by - ay
+        val lengthSquared = vx * vx + vy * vy
+        val s = if (lengthSquared == 0.0) 0.0 else (-(ax * vx + ay * vy) / lengthSquared).coerceIn(0.0, 1.0)
+        best = minOf(best, hypot(ax + s * vx, ay + s * vy))
     }
+    return best
 }

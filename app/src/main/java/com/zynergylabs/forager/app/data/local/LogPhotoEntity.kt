@@ -25,6 +25,8 @@ data class LogPhotoEntity(
     val createdAtEpochMillis: Long?,
     val latitude: Double? = null,
     val longitude: Double? = null,
+    /** A RAW shot's DNG — see [com.zynergylabs.forager.app.domain.model.LogPhoto.rawRelativePath]. `MIGRATION_21_22`; `null` for every row before it. */
+    val rawRelativePath: String? = null,
 )
 
 /**

@@ -11,7 +11,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.click
@@ -80,6 +84,7 @@ import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PlannedTripRepository
@@ -116,7 +121,11 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDecision
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.photo.FilePhotoStore
+import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.ui.log.CartographyViewModel
+import com.zynergylabs.forager.app.ui.log.entryGroupRowTag
+import com.zynergylabs.forager.app.ui.log.entryItemSwitchTag
+import com.zynergylabs.forager.app.ui.log.waypointItemKey
 import com.zynergylabs.forager.app.ui.log.ENTRIES_FAB_TAG
 import com.zynergylabs.forager.app.ui.log.ENTRIES_HOME_TAG
 import com.zynergylabs.forager.app.ui.log.LEAVE_PROMPT_DISCARD_TEST_TAG
@@ -151,6 +160,8 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import androidx.compose.ui.test.performScrollToNode
+import com.zynergylabs.forager.app.ui.log.FINDS_GRID_TAG
 
 /**
  * The Leaving-the-Journal fixes, intent 2026-09-28-44 (`prompts/preserved/2026-09-28-44.md`; the
@@ -241,6 +252,7 @@ class LeavingTheJournalFixesTest {
             deleteGalleryPhoto = DeleteGalleryPhotoUseCase(logRepository, photoStore),
             locationProvider = LeaveFixUnavailableLocationProvider,
             updatePhotoLocation = UpdatePhotoLocationUseCase(logRepository),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         cartographyViewModel = CartographyViewModel(
             getEntries = GetCartographyEntriesUseCase(cartographyRepository),
@@ -284,6 +296,7 @@ class LeavingTheJournalFixesTest {
             unitSystemPreferenceRepository = LeaveFixStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = LeaveFixStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(LeaveFixStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by availabilityViewModel.uiState.collectAsState()
@@ -291,68 +304,79 @@ class LeavingTheJournalFixesTest {
             val cartographyUiState by cartographyViewModel.uiState.collectAsState()
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = availabilityViewModel::useCurrentLocation,
-                onManualLatChanged = availabilityViewModel::onManualLatChanged,
-                onManualLngChanged = availabilityViewModel::onManualLngChanged,
-                onSearchManualCoordinates = availabilityViewModel::searchManualCoordinates,
-                onRadiusChanged = availabilityViewModel::onRadiusChanged,
-                onMonthSelected = availabilityViewModel::onMonthSelected,
-                onMapTabSelected = availabilityViewModel::onMapTabSelected,
-                onSeasonalTabSelected = availabilityViewModel::onSeasonalTabSelected,
-                onTaxonSearchQueryChanged = availabilityViewModel::onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = availabilityViewModel::onTaxonSearchResultSelected,
-                onDismissTaxonSuggestions = availabilityViewModel::onDismissTaxonSuggestions,
-                onReopenTaxonSuggestions = availabilityViewModel::onReopenTaxonSuggestions,
-                onPlaceTripPin = availabilityViewModel::onPlaceTripPin,
-                onDeletePlannedTrip = availabilityViewModel::onDeletePlannedTrip,
-                onRecentSearchSelected = availabilityViewModel::onRecentSearchSelected,
-                onOfflineMapLatChanged = availabilityViewModel::onOfflineMapLatChanged,
-                onOfflineMapLngChanged = availabilityViewModel::onOfflineMapLngChanged,
-                onOfflineMapRadiusChanged = availabilityViewModel::onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = availabilityViewModel::onOfflineMapNameChanged,
-                onOfflineMapsOpened = availabilityViewModel::onOfflineMapsOpened,
-                onDownloadOfflineMaps = availabilityViewModel::onDownloadOfflineMaps,
-                onDeleteOfflineRegion = availabilityViewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
-                onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
-                // What MainActivity passes for the finds.
-                logUiState = logUiState.hidingPendingDelete(),
-                onStartLogEntry = logViewModel::onStartNewEntry,
-                onOpenLogEntry = logViewModel::onOpenEntry,
-                onCloseLogEntry = logViewModel::onCloseEntry,
-                onLogEntryChanged = logViewModel::onEntryEdited,
-                onStartEditingLogEntry = logViewModel::onStartEditingEntry,
-                onOpenLogEntryForEditing = logViewModel::onOpenEntryForEditing,
-                onSaveLogEntry = logViewModel::onSaveEntry,
-                onCancelLogEntryEditing = logViewModel::onCancelEditing,
-                onLeaveLogEntryEditingIncidentally = logViewModel::onLeaveEditingIncidentally,
-                onDiscardLogDraft = logViewModel::onDeleteEntry,
-                onAddLogPhoto = logViewModel::onAddPhoto,
-                onRemoveLogPhoto = logViewModel::onRemovePhoto,
-                onPullLogPhoto = logViewModel::onPullPhoto,
-                onDeleteLogEntry = logViewModel::requestDeleteEntry,
-                onDeleteGalleryPhoto = logViewModel::onDeleteGalleryPhoto,
-                onAddGalleryPhoto = logViewModel::onAddGalleryPhoto,
-                onSaveLogErrorDismissed = logViewModel::onSaveErrorDismissed,
-                // What MainActivity passes for the day entries.
-                cartographyUiState = cartographyUiState.hidingPendingDelete(),
-                onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
-                onStartCartographyEntry = cartographyViewModel::onStartEntry,
-                onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
-                onCartographyTextChanged = cartographyViewModel::onTextChanged,
-                onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
-                onSetFindDecision = cartographyViewModel::onSetFindDecision,
-                onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
-                onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
-                onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
-                onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
-                onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
-                onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
-                onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
-                onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
-                onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
-                onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
-                onRequestDeleteGalleryPhoto = logViewModel::requestDeleteGalleryPhoto,
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = availabilityViewModel::useCurrentLocation,
+                    onManualLatChanged = availabilityViewModel::onManualLatChanged,
+                    onManualLngChanged = availabilityViewModel::onManualLngChanged,
+                    onSearchManualCoordinates = availabilityViewModel::searchManualCoordinates,
+                    onRadiusChanged = availabilityViewModel::onRadiusChanged,
+                    onMonthSelected = availabilityViewModel::onMonthSelected,
+                    onMapTabSelected = availabilityViewModel::onMapTabSelected,
+                    onSeasonalTabSelected = availabilityViewModel::onSeasonalTabSelected,
+                    onTaxonSearchQueryChanged = availabilityViewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = availabilityViewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = availabilityViewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = availabilityViewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = availabilityViewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = availabilityViewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = availabilityViewModel::onRecentSearchSelected,
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = availabilityViewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = availabilityViewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = availabilityViewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = availabilityViewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = availabilityViewModel::onOfflineMapsOpened,
+                    onDownloadOfflineMaps = availabilityViewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = availabilityViewModel::onDeleteOfflineRegion,
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = availabilityViewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = availabilityViewModel::onThemeModeChanged,
+                ),
+                journalEntries = AvailabilityScreenJournalEntries(
+                    // What MainActivity passes for the day entries.
+                    cartographyUiState = cartographyUiState.hidingPendingDelete(),
+                    onOpenCartographyEntry = cartographyViewModel::onOpenEntry,
+                    onStartCartographyEntry = cartographyViewModel::onStartEntry,
+                    onCloseCartographyEntry = cartographyViewModel::onCloseEntry,
+                    onCartographyTextChanged = cartographyViewModel::onTextChanged,
+                    onCartographyTagsChanged = cartographyViewModel::onTagsChanged,
+                    onSetFindDecision = cartographyViewModel::onSetFindDecision,
+                    onSetTrackDecision = cartographyViewModel::onSetTrackDecision,
+                    onSetWaypointDecision = cartographyViewModel::onSetWaypointDecision,
+                    onSetOfflineRegionDecision = cartographyViewModel::onSetOfflineRegionDecision,
+                    onSetEntryGroupIncluded = cartographyViewModel::onSetEntryGroupIncluded,
+                    onToggleKeptPhoto = cartographyViewModel::onToggleKeptPhoto,
+                    onFinishCartographyEntry = cartographyViewModel::onFinishEntry,
+                    onSaveCartographyEntry = cartographyViewModel::onSaveEntry,
+                    onDiscardCartographyEntryChanges = cartographyViewModel::onDiscardEntryChanges,
+                    onSaveCartographyEntryAsDraft = cartographyViewModel::onSaveEntryAsDraft,
+                    onDeleteCartographyEntry = cartographyViewModel::onDeleteEntry,
+                    onRequestDeleteCartographyEntry = cartographyViewModel::requestDeleteEntry,
+                ),
+                findsLog = AvailabilityScreenFindsLog(
+                    // What MainActivity passes for the finds.
+                    logUiState = logUiState.hidingPendingDelete(),
+                    onStartLogEntry = logViewModel::onStartNewEntry,
+                    onOpenLogEntry = logViewModel::onOpenEntry,
+                    onCloseLogEntry = logViewModel::onCloseEntry,
+                    onLogEntryChanged = logViewModel::onEntryEdited,
+                    onStartEditingLogEntry = logViewModel::onStartEditingEntry,
+                    onOpenLogEntryForEditing = logViewModel::onOpenEntryForEditing,
+                    onSaveLogEntry = logViewModel::onSaveEntry,
+                    onCancelLogEntryEditing = logViewModel::onCancelEditing,
+                    onLeaveLogEntryEditingIncidentally = logViewModel::onLeaveEditingIncidentally,
+                    onDiscardLogDraft = logViewModel::onDeleteEntry,
+                    onAddLogPhoto = logViewModel::onAddPhoto,
+                    onRemoveLogPhoto = logViewModel::onRemovePhoto,
+                    onPullLogPhoto = logViewModel::onPullPhoto,
+                    onDeleteLogEntry = logViewModel::requestDeleteEntry,
+                    onDeleteGalleryPhoto = logViewModel::onDeleteGalleryPhoto,
+                    onAddGalleryPhoto = logViewModel::onAddGalleryPhoto,
+                    onSaveLogErrorDismissed = logViewModel::onSaveErrorDismissed,
+                    onRequestDeleteGalleryPhoto = logViewModel::requestDeleteGalleryPhoto,
+                ),
                 compassProvider = LeaveFixFakeCompassProvider,
                 mapSlot = mapSlot,
             )
@@ -397,6 +421,11 @@ class LeavingTheJournalFixesTest {
 
     private fun openFindReport() {
         openFindsGallery()
+        // RECORD -717: the Finds grid is lazy, and with the day heading above it (data part D) the tile sits below a short
+        // landscape window and is not composed (measured at the build, on JournalPendingDeleteTest's window: the second day's
+        // heading at 1240-1280 px of 1280). Scroll the grid to it first; the assertions are unchanged.
+        composeRule.onNodeWithTag(FINDS_GRID_TAG).performScrollToNode(hasText(FIND_TILE_TEXT))
+        composeRule.waitForIdle()
         // The merged tile, whose centre is on screen in both windows: the tile's own text sits at its
         // foot, below the edge of a short landscape window, so a click there reaches nothing.
         composeRule.onNodeWithText(FIND_TILE_TEXT).performClick()
@@ -600,7 +629,7 @@ class LeavingTheJournalFixesTest {
     fun `F1 a new find left by Back offers Discard, and once that find is saved the Discard deletes nothing`() {
         setScreen()
         openFindsGallery()
-        composeRule.onNodeWithContentDescription("New log entry").performClick()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.FINDS_FAB_TAG).performClick()
         composeRule.waitForIdle()
         typeFindIdentification("Hedgehog")
         pressBack()
@@ -627,6 +656,43 @@ class LeavingTheJournalFixesTest {
             storedFinds().map { it.id }.toSet(),
         )
         assertEquals(false, storedFinds().single { it.id == NEW_FIND_ID }.isDraft)
+    }
+
+    /**
+     * RECORD -692 (the owner: "Search bar returns after the slide (Recommended)"): leaving a new find's editor by Back, the search
+     * bar stays away while the editor slides out and comes back once it has gone, and its dropdown never opens. Frames are stepped
+     * with the clock stopped after Back (the write applied first). Motion Part 3's build measured the failure this guards: the
+     * bar came back at once, and when the sliding editor went, focus fell to its field and opened the dropdown (F1 above).
+     */
+    @Test
+    fun `F1b the search bar stays away while a closed find slides out, then returns, and its dropdown never opens`() {
+        setScreen()
+        openFindsGallery()
+        composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.FINDS_FAB_TAG).performClick()
+        composeRule.waitForIdle()
+        typeFindIdentification("Hedgehog")
+
+        fun count(matcher: androidx.compose.ui.test.SemanticsMatcher) = composeRule.onAllNodes(matcher, useUnmergedTree = true).fetchSemanticsNodes().size
+        val leavingPage = androidx.compose.ui.test.SemanticsMatcher.expectValue(com.zynergylabs.forager.app.ui.motion.PageLeavingKey, true)
+        composeRule.mainClock.autoAdvance = false
+        composeRule.runOnUiThread {
+            composeRule.activity.onBackPressedDispatcher.onBackPressed()
+            androidx.compose.runtime.snapshots.Snapshot.sendApplyNotifications()
+        }
+        var framesLeaving = 0
+        repeat(60) { frame ->
+            composeRule.mainClock.advanceTimeByFrame()
+            assertEquals("frame $frame: the search dropdown never opens", 0, count(hasTestTag("search-dropdown-scrim")))
+            if (count(leavingPage) > 0) {
+                framesLeaving++
+                assertEquals("frame $frame: no search bar while the editor slides out", 0, count(hasTestTag(SEARCH_ENTRY_BAR_TAG)))
+            }
+        }
+        assertTrue("the editor was seen sliding out ($framesLeaving frames)", framesLeaving > 0)
+        composeRule.mainClock.autoAdvance = true
+        composeRule.waitForIdle()
+        assertEquals("the search bar is back once the editor has gone", 1, count(hasTestTag(SEARCH_ENTRY_BAR_TAG)))
+        assertEquals("and its dropdown is closed", 0, count(hasTestTag("search-dropdown-scrim")))
     }
 
     // ── F2: a day entry left in its editor comes back in its editor ──
@@ -713,22 +779,28 @@ class LeavingTheJournalFixesTest {
         assertEquals(false, cartographyViewModel.uiState.value.hasUnsavedChanges)
     }
 
-    /** Ported from the investigation's withheld-waypoint test, with its assertion inverted: the editor comes back, the choice still pending in it. */
+    /**
+     * Ported from the investigation's withheld-waypoint test, with its assertion inverted: the editor comes back, the choice still pending in it.
+     * Data part A (dispatch 2026-09-28-667): the waypoint is now behind its group in the "In this entry" panel, and "Withhold" is its
+     * switch turned off ("Leave out"). The group opened before the tab change is still open after it (CLAUDE.md, UX defaults).
+     */
     @Test
     fun `F2 a committed day entry's editor left with a waypoint withheld comes back in its editor with the waypoint still withheld`() {
         setScreen()
         openCommittedDayEntryEditor()
-        composeRule.onNodeWithText(DAY_WAYPOINT.name).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Withhold").performScrollTo().performClick()
+        composeRule.onNodeWithTag(entryGroupRowTag(EntryGroup.WAYPOINTS)).performScrollTo().performTouchInput { click(Offset(width * 0.25f, height / 2f)) }
         composeRule.waitForIdle()
-        composeRule.onNodeWithText("Keep").assertExists()
+        composeRule.onNodeWithText(DAY_WAYPOINT.name).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithTag(entryItemSwitchTag(waypointItemKey(DAY_WAYPOINT.id))).performScrollTo().assertIsOn().performTouchInput { click() }
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(entryItemSwitchTag(waypointItemKey(DAY_WAYPOINT.id))).assertIsOff()
 
         touchNavItem("Maps")
         touchNavItem("Journal")
 
         assertDayEntryEditorShowing("back on Journal")
         composeRule.onNodeWithText(DAY_WAYPOINT.name).performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithText("Keep").assertExists()
+        composeRule.onNodeWithTag(entryItemSwitchTag(waypointItemKey(DAY_WAYPOINT.id))).assertIsOff()
         assertEquals(
             "the store still keeps the waypoint",
             listOf(true),
@@ -926,7 +998,8 @@ class LeavingTheJournalFixesTest {
 
         assertEquals("the find is still open", COMMITTED_FIND.id, logViewModel.uiState.value.editingEntry?.id)
         assertTrue("the find's report shows", findReportShowing())
-        composeRule.onNodeWithText("Your own identification: Chanterelle").assertIsDisplayed()
+        // Scrolled to: since RECORD -871 the find's photo comes first, large, and the identification line is under it.
+        composeRule.onNodeWithText("Your own identification: Chanterelle").performScrollTo().assertIsDisplayed()
         assertNothingDeletedAndNoDraft("the round trip")
     }
 
@@ -1025,7 +1098,7 @@ class LeavingTheJournalFixesTest {
         assertCommittedFindIntact()
     }
 
-    private val bubbleMap = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.FINDS, COMMITTED_FIND.id, 60.dp, 160.dp, LatLng(45.33, -122.63))))
+    private val bubbleMap = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.FINDS, COMMITTED_FIND.id, 60.dp, 160.dp, LatLng(45.38, -121.69))))
 
     /** Maps, the find's glyph, its bubble's "Open in Journal" (M1): the find opens in its report over the Journal. */
     private fun openFindInJournalFromMaps() {
@@ -1143,17 +1216,18 @@ class LeavingTheJournalFixesTest {
         const val NEW_DAY_ENTRY_ID = "day-new"
         const val NEW_FIND_ID = "find-new"
         const val TYPED_TEXT = "Typed on the trail, not saved."
-        val FIND_TILE_TEXT = "Find on $FIND_DATE"
+        // A find tile shows the name the user gave the find (data part D, RECORD -702), COMMITTED_FIND's own identification.
+        val FIND_TILE_TEXT = "Chanterelle"
 
         val PHOTO = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 1_000L)
 
-        val COMMITTED_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.33, -122.63), date = FIND_DATE)
+        val COMMITTED_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.38, -121.69), date = FIND_DATE)
             .copy(isDraft = false, ownIdentification = "Chanterelle", photos = listOf(PHOTO))
 
         val DAY_WAYPOINT = Waypoint(
             id = "wp-1",
-            lat = 45.32,
-            lng = -122.64,
+            lat = 45.37,
+            lng = -121.70,
             altitude = null,
             name = "Creek pin",
             note = "",
@@ -1164,13 +1238,13 @@ class LeavingTheJournalFixesTest {
             .copy(
                 isDraft = false,
                 text = "The original account.",
-                waypointDecisions = listOf(WaypointDecision(waypointId = "wp-1", name = "Creek pin", lat = 45.32, lng = -122.64, kept = true)),
+                waypointDecisions = listOf(WaypointDecision(waypointId = "wp-1", name = "Creek pin", lat = 45.37, lng = -121.70, kept = true)),
             )
     }
 }
 private val LeaveFixStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Button(onClick = { onCameraIdle(LatLng(45.326, -122.634)) }) { Text("Simulate pan to test location") }
+        Button(onClick = { onCameraIdle(LatLng(45.3736, -121.6959)) }) { Text("Simulate pan to test location") }
     }
 }
 

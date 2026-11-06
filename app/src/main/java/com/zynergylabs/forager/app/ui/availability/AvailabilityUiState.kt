@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.CrowdedIconsMode
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.ForagingSelection
@@ -7,7 +8,9 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.ShownHeight
 import com.zynergylabs.forager.app.domain.WaypointNavigation
+import com.zynergylabs.forager.app.domain.liveHeightToShowMeters
 import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.AvailabilityForecast
@@ -24,6 +27,8 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
+import com.zynergylabs.forager.app.domain.MapIconClusterPlacement
+import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.time.LocalDate
 
@@ -41,6 +46,23 @@ data class AvailabilityUiState(
     val errorMessage: String? = null,
     val locationPermissionDenied: Boolean = false,
     val sightings: List<Sighting> = emptyList(),
+    /**
+     * RECORD -723: counts every search the ViewModel starts, the same search run again included. Read by
+     * AvailabilityScreen's lazy-fetch effect, which is keyed on it: a search clears [sightings] and the
+     * seasonal pattern and expects the visible tab to fetch them again, but re-running the search already
+     * showing (a recent search tapped, the same coordinates searched twice) changes none of region, month
+     * or filter, so without this the effect never re-ran and the map was left empty ("Dropdown closes,
+     * nothing new").
+     */
+    val searchSerial: Int = 0,
+    /**
+     * RECORD -750, item 5 (the owner: "Yes, fly to the search (Recommended)"): counts the location searches the user ran (a
+     * recent search, coordinates, Set on map, Search with the current location), each bumped in the same update that sets
+     * [region]. The Maps tab hands it to the map as [com.zynergylabs.forager.app.ui.map.MapOverlayContent.searchFrameRequestId],
+     * and each new value stops the camera following the GPS fix and frames the searched region. Not [searchSerial]: a month
+     * change re-runs the search for the same place, and that does not move the camera the user may have moved.
+     */
+    val searchFrameSerial: Int = 0,
     val isLoadingSightings: Boolean = false,
     val sightingsErrorMessage: String? = null,
     val taxonFilter: TaxonFilter = TaxonFilter.FUNGI,
@@ -94,6 +116,12 @@ data class AvailabilityUiState(
      */
     val plannedTrips: List<PlannedTrip> = emptyList(),
     val plannedTripsErrorMessage: String? = null,
+    /**
+     * Whether [plannedTrips] has been read yet (dispatch 2026-11-05-05, Amendment 1, A8), as the waypoints' `waypointsLoaded`
+     * is: until it is, a trip being navigated to that is not in the list is waited for, not taken as deleted. Set by the
+     * first read that succeeds; a failed read leaves it as it was, and is logged and shown in the Trip Planner.
+     */
+    val plannedTripsLoaded: Boolean = false,
     /**
      * The Seasonal tab's test of [com.zynergylabs.forager.app.domain.FruitingPatternAssumptions.FRUITING_LAG_DAYS]
      * against real historical sightings and rainfall for the current search — see
@@ -166,7 +194,7 @@ data class AvailabilityUiState(
      * [offlineDownloadStatus]'s in-flight/last-attempt state.
      */
     val offlineRegions: List<OfflineRegionSummary> = emptyList(),
-    /** How many Cartography entries currently keep a reference to each offline region (by id) — Journal Stage 2b's 4b deletion warning. Loaded alongside [offlineRegions]; a region missing from this map has never been counted, treated as zero the same as an explicit zero. */
+    /** How many Cartography entries currently keep a reference to each offline region (by id) — Journal Stage 2b's 4b deletion warning. Live since dispatch 2026-10-28-08 (`EntryReferenceCountSource`), not loaded with [offlineRegions]; a region missing from this map has no committed entry keeping it, and reads as zero. */
     val offlineRegionEntryReferenceCounts: Map<Long, Int> = emptyMap(),
     /**
      * The offline region whose delete was asked for (a swipe on its Records row, journal redesign J4)
@@ -210,6 +238,33 @@ data class AvailabilityUiState(
      * failure (logged, [nightModeMaps] left `false`), so it can never hold the map blank forever.
      */
     val nightModeMapsLoaded: Boolean = false,
+    /** Settings > Map > "Crowded icons" (dispatch 2026-10-27-14); the Maps tab writes it into its crowded-stack host. */
+    val crowdedIconsMode: CrowdedIconsMode = CrowdedIconsMode.DEFAULT,
+    /** Settings > Map > "Waypoint names" (dispatch 2026-11-02-04), on by default; the Maps tab hands it to its map. */
+    val waypointNamesShown: Boolean = true,
+    /**
+     * The Maps tab's basemap (dispatch 2026-09-28-708): restored at start from
+     * [com.zynergylabs.forager.app.domain.BasemapPreferenceRepository] and kept in step with every pick
+     * ([AvailabilityViewModel.onMapModeSelected]). `null` until that read has finished, successfully or
+     * not, which is the second half of the cold-launch gate: `AvailabilityScreen` tells the map no style
+     * may load until this and [nightModeMapsLoaded] are both in, so a phone that left Street never draws
+     * a first frame of Topographical. A failed read, or a stored key naming no map type (Satellite's,
+     * after its removal), is logged and lands here as a real mode, so it can never hold the map blank.
+     */
+    val mapMode: MapMode? = null,
+    /**
+     * The Maps tab's icon cluster's side and height (RECORD -711), as stored: restored at start from
+     * [com.zynergylabs.forager.app.domain.MapIconClusterPlacementRepository] and kept in step with every
+     * drag that ends ([AvailabilityViewModel.onMapIconClusterPlacementChanged]). `null` while the read is
+     * pending, and while it is `null` `AvailabilityScreen` does not draw the cluster, so a phone that left
+     * it on the left never shows a frame of it on the right. Every way the read ends (stored, nothing
+     * stored, failed and logged) lands a real placement here, so it cannot keep the cluster hidden.
+     *
+     * The default here is [MapIconClusterPlacement.DEFAULT], not `null`: the ViewModel starts its state
+     * with `null` explicitly (it has a read to wait for), while a host with no ViewModel (the screen tests
+     * that build this state directly) has nothing to wait for and shows the cluster where it always opened.
+     */
+    val mapIconClusterPlacement: MapIconClusterPlacement? = MapIconClusterPlacement.DEFAULT,
 
     /**
      * Settings' "Automatically Save Location to Photos" checkbox — see
@@ -218,12 +273,14 @@ data class AvailabilityUiState(
      * repository's own default so the checkbox does not visibly flip on itself at startup.
      */
     val autoSaveLocationToPhotos: Boolean = true,
-    /**
-     * Settings' "Lock camera to portrait" — see
-     * [com.zynergylabs.forager.app.domain.CameraOrientationPreferenceRepository] for the one gate it
-     * throws. `false` until the stored preference loads, matching that repository's default.
-     */
-    val lockCameraToPortrait: Boolean = false,
+    /** Settings' "Sundown alerts" (dispatch 2026-09-28-592): on until the stored value loads, the repository's default. */
+    val sundownAlertsEnabled: Boolean = true,
+    /** Settings' "Off-track reminder" (dispatch 2026-09-28-626): on until the stored value loads, the repository's default. */
+    val offTrackReminderEnabled: Boolean = true,
+    /** The quick menu's "Battery saver" (dispatch 2026-09-28-767): off until the stored value loads, the repository's default. */
+    val batterySaverEnabled: Boolean = false,
+    /** Settings' "Dark under trees", in minutes (dispatch 2026-09-28-592): one hour until the stored value loads, the repository's default. */
+    val darknessMarginMinutes: Int = com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES,
     /**
      * Whether the Maps tab was left in fullscreen on the last run, restored from
      * [com.zynergylabs.forager.app.domain.MapPreferencesRepository.getMapFullscreen] — the one cluster/map
@@ -279,7 +336,15 @@ data class AvailabilityUiState(
      */
     val liveFix: LocationFix.Update? = null,
     /**
-     * The newest fix the live gate refused ([com.zynergylabs.forager.app.domain.acceptLiveFix], over 50 m):
+     * The live height above sea level, steadied by the barometer (dispatch 2026-10-28-13, RECORD -1792): the one
+     * height the strip, the navigation card and the Return control read ([liveAltitudeMeters]). `null` before the
+     * first fix; [ShownHeight.Unavailable] when there is no height to show. Never [liveFix]'s raw height itself: that is put
+     * in only where it is shown, by [liveAltitudeMeters] (RECORD -2022).
+     */
+    val shownHeight: ShownHeight? = null,
+    /**
+     * The newest fix the live gate refused ([com.zynergylabs.forager.app.domain.acceptLiveFix]: over 50 m, or
+     * not from GPS, dispatch 2026-09-28-527):
      * an approximate reading, shown and never acted on (dispatch 2026-09-28-510; see
      * [com.zynergylabs.forager.app.domain.ShownPosition]). Held **beside** [liveFix], never in it, so
      * everything that reads [liveFix] to act ("Arrived", the waypoint's line, a new find's location) can
@@ -300,6 +365,19 @@ data class AvailabilityUiState(
      * no recording: the live fix it measures from is this ViewModel's own.
      */
     val waypointNavigation: WaypointNavigation? = null,
+    /**
+     * The dashed line to the waypoint being navigated to (dispatch -502), worked out by [AvailabilityWaypointLine]
+     * and held here, so it outlives a tab change (step 6 PR 1, dispatch 2026-10-26-06: moved from the screen's own
+     * `remember`). `null` with no navigation, before the first fix, and once arrived. The screen draws it only while
+     * its own resolved target is found: the one rule for a deleted or Undo-pending waypoint (RECORD -1657).
+     */
+    val waypointStraightLine: StraightLine? = null,
+    /**
+     * The way to that waypoint along trails (step 6 PR 3, dispatch 2026-10-26-11), worked out by [AvailabilityWaypointRoute]
+     * from this ViewModel's own fixes, in the foreground only (RECORD -1652 Q5). `null` with no navigation and while the
+     * route is worked out, when the HUD and the map are today's straight ones; see [WaypointRouteShown].
+     */
+    val waypointRoute: WaypointRouteShown? = null,
     /**
      * The system of units this person reads, restored from
      * [com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository.getUnitSystem] at startup and
@@ -325,6 +403,16 @@ data class AvailabilityUiState(
     val forecastWeek: LocalDate? = null,
     /** The forecast groups the store has data for in [forecastWeek]; empty for "no forecast data" (L0b, B5). */
     val forecastGroups: Set<String> = emptySet(),
+    /** Regions whose trail routes are being fetched now (dispatch 2026-10-23-03); their rows say "Getting trail routes". */
+    val offlineRouteFetchingIds: Set<Long> = emptySet(),
+    /** Regions whose route fetch failed this session, at download or automatically; only these offer "Try again". */
+    val offlineRouteFailedIds: Set<Long> = emptySet(),
+    /** Known bug 14 (dispatch 2026-11-02-02): the map server's last answer on the Offline Maps picker's area; see [OfflineDetailAnswer]. */
+    val offlineDetail: OfflineDetailAnswer? = null,
+    /** Dispatch 2026-11-05-08: the trip a Trip Planner Download Maps opened Offline Maps for, until the user leaves; see [TripMapsOpening]. */
+    val offlineMapsTripOpening: TripMapsOpening? = null,
+    /** Counts each trip's Download Maps, so a picker already on screen, panned or not, starts again on the trip's pin (B3). */
+    val offlineMapPinRequest: Int = 0,
 ) {
     /**
      * [offlineRegions] without [pendingOfflineRegionDelete]: what the Journal's region rows, the All
@@ -346,8 +434,13 @@ data class AvailabilityUiState(
      */
     val liveLocation: LatLng? get() = liveFix?.let { LatLng(it.lat, it.lng) }
 
-    /** See [liveLocation] — the same fix's altitude, `null` whenever the device didn't report one. */
-    val liveAltitudeMeters: Double? get() = liveFix?.altitude
+    /**
+     * The live height above sea level ([shownHeight]), or, until the first conversion arrives and on a phone that cannot
+     * convert, [liveFix]'s own GPS height (RECORD -2022, [liveHeightToShowMeters]). `null` with no fix, or none of either
+     * ("Alt unavailable"). Until dispatch 2026-10-28-13 this was always [liveFix]'s own altitude: the height above the
+     * ellipsoid, about 21 m low in western Oregon.
+     */
+    val liveAltitudeMeters: Double? get() = if (liveFix == null) null else liveHeightToShowMeters(shownHeight, liveFix.altitude)
 
     /**
      * The position true north is worked out at (declination), dispatch 2026-09-28-510: the gated fix,

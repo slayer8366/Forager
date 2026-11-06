@@ -229,8 +229,8 @@ observed (table above). See open question 10.
 - The status bar stays visible.
 - No full-width bars in landscape. Every top element is sized to its content.
 
-*Reason:* height is the scarce axis — see [Prior art](#prior-art): the a widely used backcountry map app
-GPS and a mainstream maps app reports of stacked horizontal bars squashing the map, and
+*Reason:* height is the scarce axis — see [Prior art](#prior-art): the backcountry
+map app and mainstream maps app reports of stacked horizontal bars squashing the map, and
 the Navigation SDK's half-width, start-aligned landscape footers.
 
 ### P6. The icon cluster
@@ -333,7 +333,7 @@ and 5.
 2. Material's navigation-rail guidance for phones wider than 600 dp in
    landscape.
 3. The map-app evidence that stacked horizontal bars squash the map in
-   landscape (a widely used backcountry map app, a mainstream maps app community; [Prior art](#prior-art)).
+   landscape (a backcountry map app, a mainstream maps app's community; [Prior art](#prior-art)).
 4. The system's own 3-button bar sitting on the same port edge (window dumps
    above), so the rail and the system bar form one edge of controls rather
    than two.
@@ -398,17 +398,17 @@ web access and did not re-fetch these; the quotations are the planner's.
   https://developer.android.com/develop/adaptive-apps/guides/build-adaptive-navigation
 - Material 3, Navigation rail guidelines (P3, P14).
   https://m3.material.io/components/navigation-rail/guidelines
-- a widely used backcountry map app: Android landscape is "three horizontal ribbons with controls",
+- A widely used backcountry map app: Android landscape is "three horizontal ribbons with controls",
   leaving the map "little over an inch high" (P5, P14).
-  https://www.territorysupply.com/a backcountry navigation app-vs-a widely used backcountry map app-gps
-- a mainstream maps app community: the landscape map is "too wide and not high enough"
+  (a gear site's comparison of two backcountry map apps)
+- A mainstream maps app's community: the landscape map is "too wide and not high enough"
   (P5, P14). https://support.google.com/maps/thread/10909291
 - Google Navigation SDK: landscape footers are half width and start-aligned
   (P5, P9).
   https://developers.google.com/maps/documentation/navigation/android-sdk/controls
-- an offline maps app: separate landscape widget layouts, with buttons on the sides (P6).
-  https://an offline maps app.net/docs/user/widgets/map-buttons/ and
-  https://github.com/offline-maps-app/an offline maps app/issues/20155
+- An offline maps app: separate landscape widget layouts, with buttons on the sides (P6).
+  its map-buttons widget documentation and
+  its public issue 20155
 
 ## Open questions
 

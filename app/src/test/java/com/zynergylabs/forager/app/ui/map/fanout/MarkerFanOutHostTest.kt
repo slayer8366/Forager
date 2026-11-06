@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map.fanout
 
+import com.zynergylabs.forager.app.ui.motion.ProvideReduceMotion
 import android.app.Application
 import android.content.ComponentName
 import android.provider.Settings
@@ -69,10 +70,14 @@ class MarkerFanOutHostTest {
 
     private fun show(content: @androidx.compose.runtime.Composable () -> Unit = {}) {
         composeRule.mainClock.autoAdvance = false
+        // Under the app's reduce-motion provider, as every screen is (ForagerTheme provides it): the fan reads LocalReduceMotion
+        // since motion Part 1 (dispatch 2026-09-28-652, Amendment 1, RECORD -657). The animator scale below is still its real source.
         composeRule.setContent {
-            MarkerFanOutHost(state)
-            MarkerFanOutBackHandler(state)
-            content()
+            ProvideReduceMotion {
+                MarkerFanOutHost(state)
+                MarkerFanOutBackHandler(state)
+                content()
+            }
         }
     }
 

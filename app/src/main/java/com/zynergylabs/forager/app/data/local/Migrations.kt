@@ -1002,3 +1002,265 @@ val MIGRATION_16_17: Migration = object : Migration(16, 17) {
         db.execSQL("CREATE INDEX IF NOT EXISTS `index_cartography_entry_track_paths_trackId` ON `cartography_entry_track_paths` (`trackId`)")
     }
 }
+
+/**
+ * Adds `importedAtEpochMillis` (nullable) and `importedWithoutTimes` (`NOT NULL DEFAULT 0`) to `tracks` —
+ * plan T16, GPX import (dispatch 2026-09-28-634, the owner's answers in -636). The first says a track came
+ * from a GPX file and when (the "Imported" label; kept out of the Journal's derived trips); the second
+ * says the file gave it no times ("No times in file"). Every existing row is a recorded walk: `NULL` and
+ * `0`, written explicitly in the copy rather than left to the default, as [MIGRATION_15_16] writes
+ * `shownOnMap`. Version 18 was checked against every branch on both remotes (none above 17, no
+ * `MIGRATION_17_*`) before being claimed.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_12_13] records:
+ * [TrackEntity] is declared directly by every `LegacyForagerDatabaseVn` fixture, so their generated
+ * `tracks` tables already carry both columns and an `ADD COLUMN` would fail against them; the explicit
+ * source column list below never names either, so a leaked one is ignored. `track_points.trackId` and
+ * `waypoints.trackId` are plain columns with no constraint on this table, so rebuilding it needs no
+ * cascade handling, and both indexes are recreated because `DROP TABLE` takes them with it. The table's
+ * SQL is `18.json`'s `createSql`; [SchemaMigrationTest] validates the result against that file.
+ */
+val MIGRATION_17_18: Migration = object : Migration(17, 18) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `tracks_new` (
+            `id` TEXT NOT NULL,
+            `name` TEXT,
+            `startedAtEpochMillis` INTEGER NOT NULL,
+            `endedAtEpochMillis` INTEGER,
+            `originWaypointId` TEXT,
+            `importedAtEpochMillis` INTEGER,
+            `importedWithoutTimes` INTEGER NOT NULL DEFAULT 0,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `tracks_new` (`id`, `name`, `startedAtEpochMillis`, `endedAtEpochMillis`, `originWaypointId`, `importedAtEpochMillis`, `importedWithoutTimes`)
+            SELECT `id`, `name`, `startedAtEpochMillis`, `endedAtEpochMillis`, `originWaypointId`, NULL, 0 FROM `tracks`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `tracks`")
+        db.execSQL("ALTER TABLE `tracks_new` RENAME TO `tracks`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_tracks_startedAtEpochMillis` ON `tracks` (`startedAtEpochMillis`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_tracks_endedAtEpochMillis` ON `tracks` (`endedAtEpochMillis`)")
+    }
+}
+
+/**
+ * Adds nullable `speciesIconicTaxonName` to `cached_searches` — dispatch 2026-09-28-695, amendment 1 (RECORD
+ * -696; the owner, "Save it with the search"). It holds a species row's iNaturalist group, so a species reopened
+ * from a recent search keeps its weather guidance (see [CachedSearchEntity.speciesIconicTaxonName]).
+ *
+ * **Not backfilled.** Every existing row is copied with `NULL`, written explicitly in the copy as
+ * [MIGRATION_17_18] writes its new columns: nothing stored says which group an old species row belongs to, and
+ * guessing one would show a pattern the user never had. Such a row shows no guidance until the species is
+ * searched by name again.
+ *
+ * A full rebuild rather than the `ALTER TABLE ... ADD COLUMN` the amendment named, for the reason
+ * [MIGRATION_12_13] records: [CachedSearchEntity] is declared directly by every `LegacyForagerDatabaseVn`
+ * fixture, so their generated `cached_searches` tables already carry this column and an `ADD COLUMN` would fail
+ * against them with a duplicate column; the explicit source column list below never names it, so a leaked one is
+ * ignored. The table has no index. Its SQL is `19.json`'s `createSql`; [SchemaMigrationTest] validates the result
+ * against that file.
+ */
+val MIGRATION_18_19: Migration = object : Migration(18, 19) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `cached_searches_new` (
+            `key` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `radiusKm` INTEGER NOT NULL,
+            `month` INTEGER NOT NULL,
+            `filterLabel` TEXT NOT NULL,
+            `filterIconicTaxonName` TEXT,
+            `filterTaxonId` INTEGER,
+            `filterExcludedTaxonId` INTEGER,
+            `speciesIconicTaxonName` TEXT,
+            `entriesJson` TEXT NOT NULL,
+            `fetchedAtEpochMillis` INTEGER NOT NULL,
+            `lastAccessedAtEpochMillis` INTEGER NOT NULL,
+            PRIMARY KEY(`key`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `cached_searches_new` (`key`, `lat`, `lng`, `radiusKm`, `month`, `filterLabel`, `filterIconicTaxonName`, `filterTaxonId`, `filterExcludedTaxonId`, `speciesIconicTaxonName`, `entriesJson`, `fetchedAtEpochMillis`, `lastAccessedAtEpochMillis`)
+            SELECT `key`, `lat`, `lng`, `radiusKm`, `month`, `filterLabel`, `filterIconicTaxonName`, `filterTaxonId`, `filterExcludedTaxonId`, NULL, `entriesJson`, `fetchedAtEpochMillis`, `lastAccessedAtEpochMillis` FROM `cached_searches`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `cached_searches`")
+        db.execSQL("ALTER TABLE `cached_searches_new` RENAME TO `cached_searches`")
+    }
+}
+
+/**
+ * Version 19 to 20: nullable `foundAtEpochMillis` on `mushroom_log_entries`, when a find was found (data part D, dispatch
+ * 2026-09-28-697 Amendment 4, RECORD -703; the owner: "Option 1, but keep it blank instead of showing "Unnamed find""). Written
+ * when a find is created ([com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase]) and read by the find's title
+ * (`ui/log/FindTitles.kt`). Every existing row gets `NULL`: no time of day is known for it, and the title then falls back to the
+ * find's earliest photo of the day, else nothing.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_12_13] records and 17 to 18 and 18 to 19
+ * followed: [MushroomLogEntryEntity] is declared directly by the `LegacyForagerDatabaseVn` fixtures, so their generated tables
+ * already carry this column and an `ADD COLUMN` would fail on them; the explicit source column list below ignores it there. The
+ * two indexes are recreated because `DROP TABLE` takes them with it. No `@ForeignKey` points at this table (this database
+ * declares none), so nothing else is touched. Version 20 was checked against every branch on the remote (only
+ * `guidance-text`, at 19, above `main`'s 18; no `MIGRATION_19_*` anywhere) on 2026-10-08 before being claimed; re-check at build.
+ */
+val MIGRATION_19_20: Migration = object : Migration(19, 20) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `mushroom_log_entries_new` (
+            `id` TEXT NOT NULL,
+            `lat` REAL,
+            `lng` REAL,
+            `foundOn` TEXT NOT NULL,
+            `entryNotes` TEXT NOT NULL,
+            `ownIdentification` TEXT,
+            `syncStateKind` TEXT NOT NULL,
+            `syncProgress` REAL,
+            `syncRemoteObservationId` TEXT,
+            `syncUploadedAtEpochMillis` INTEGER,
+            `syncFailureReason` TEXT,
+            `capShape` TEXT,
+            `capSurface` TEXT,
+            `capDecorationsState` TEXT NOT NULL,
+            `capDecorationsValue` TEXT,
+            `capMargin` TEXT,
+            `capNotes` TEXT NOT NULL,
+            `hymenophoreKind` TEXT,
+            `gillAttachment` TEXT,
+            `gillSpacing` TEXT,
+            `gillEdge` TEXT,
+            `hymenophoreNotes` TEXT NOT NULL,
+            `stipeKind` TEXT,
+            `stipePosition` TEXT,
+            `stipeInterior` TEXT,
+            `stipeBase` TEXT,
+            `stipeNotes` TEXT NOT NULL,
+            `annulusState` TEXT NOT NULL,
+            `annulusValue` TEXT,
+            `volvaState` TEXT NOT NULL,
+            `volvaValue` TEXT,
+            `veilNotes` TEXT NOT NULL,
+            `fleshTexture` TEXT,
+            `colorChangeState` TEXT NOT NULL,
+            `colorChangeValue` TEXT,
+            `exudateState` TEXT NOT NULL,
+            `exudateValue` TEXT,
+            `contextFleshNotes` TEXT NOT NULL,
+            `sporePrintColorKind` TEXT,
+            `sporePrintOtherText` TEXT,
+            `sporePrintReadOn` TEXT,
+            `sporePrintNotes` TEXT NOT NULL,
+            `associationKind` TEXT,
+            `associationHostSpecies` TEXT,
+            `associationOtherText` TEXT,
+            `forestType` TEXT,
+            `hostHealth` TEXT,
+            `hostSubstrateNotes` TEXT NOT NULL,
+            `offlineRegionId` INTEGER,
+            `isDraft` INTEGER NOT NULL,
+            `draftOfEntryId` TEXT,
+            `foundAtEpochMillis` INTEGER,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `mushroom_log_entries_new` (`id`, `lat`, `lng`, `foundOn`, `entryNotes`, `ownIdentification`, `syncStateKind`, `syncProgress`, `syncRemoteObservationId`, `syncUploadedAtEpochMillis`, `syncFailureReason`, `capShape`, `capSurface`, `capDecorationsState`, `capDecorationsValue`, `capMargin`, `capNotes`, `hymenophoreKind`, `gillAttachment`, `gillSpacing`, `gillEdge`, `hymenophoreNotes`, `stipeKind`, `stipePosition`, `stipeInterior`, `stipeBase`, `stipeNotes`, `annulusState`, `annulusValue`, `volvaState`, `volvaValue`, `veilNotes`, `fleshTexture`, `colorChangeState`, `colorChangeValue`, `exudateState`, `exudateValue`, `contextFleshNotes`, `sporePrintColorKind`, `sporePrintOtherText`, `sporePrintReadOn`, `sporePrintNotes`, `associationKind`, `associationHostSpecies`, `associationOtherText`, `forestType`, `hostHealth`, `hostSubstrateNotes`, `offlineRegionId`, `isDraft`, `draftOfEntryId`, `foundAtEpochMillis`)
+            SELECT `id`, `lat`, `lng`, `foundOn`, `entryNotes`, `ownIdentification`, `syncStateKind`, `syncProgress`, `syncRemoteObservationId`, `syncUploadedAtEpochMillis`, `syncFailureReason`, `capShape`, `capSurface`, `capDecorationsState`, `capDecorationsValue`, `capMargin`, `capNotes`, `hymenophoreKind`, `gillAttachment`, `gillSpacing`, `gillEdge`, `hymenophoreNotes`, `stipeKind`, `stipePosition`, `stipeInterior`, `stipeBase`, `stipeNotes`, `annulusState`, `annulusValue`, `volvaState`, `volvaValue`, `veilNotes`, `fleshTexture`, `colorChangeState`, `colorChangeValue`, `exudateState`, `exudateValue`, `contextFleshNotes`, `sporePrintColorKind`, `sporePrintOtherText`, `sporePrintReadOn`, `sporePrintNotes`, `associationKind`, `associationHostSpecies`, `associationOtherText`, `forestType`, `hostHealth`, `hostSubstrateNotes`, `offlineRegionId`, `isDraft`, `draftOfEntryId`, NULL FROM `mushroom_log_entries`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `mushroom_log_entries`")
+        db.execSQL("ALTER TABLE `mushroom_log_entries_new` RENAME TO `mushroom_log_entries`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_mushroom_log_entries_offlineRegionId` ON `mushroom_log_entries` (`offlineRegionId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_mushroom_log_entries_foundOn` ON `mushroom_log_entries` (`foundOn`)")
+    }
+}
+
+/**
+ * Adds nullable `pressureHpa` to `track_points` — the barometer (RECORD -864, the owner: "Use the barometer
+ * (Recommended)"; RECORD -867, the planner's call: "a raw pressureHpa column on track_points via MIGRATION_20_21").
+ * The pressure the phone's barometer read when each point was made, in hPa, raw, so the height rule
+ * (`com.zynergylabs.forager.app.domain.trackHeights`, its one reader) can change later without touching stored data.
+ * Every existing row gets `NULL`: nothing before this version read a barometer, and a walk with no pressure reads
+ * smoothed GPS height. GPS `altitude` is not touched, so a GPX export is unchanged.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_14_15] records: [TrackPointEntity]
+ * is declared directly by every `LegacyForagerDatabaseVn` fixture from version 5 on, so their generated tables already
+ * carry the column and an `ADD COLUMN` would fail against them; the explicit source column list below ignores it.
+ * `id` is copied so rowids survive, and the one index is recreated because `DROP TABLE` takes it. Version 21 was
+ * checked unclaimed on every remote branch at step 0 (2026-10-11, `git log --remotes -S "version = 21,"`) and again
+ * when this was built; re-check before merge (RECORD -867).
+ */
+val MIGRATION_20_21: Migration = object : Migration(20, 21) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `track_points_new` (
+            `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+            `trackId` TEXT NOT NULL,
+            `lat` REAL NOT NULL,
+            `lng` REAL NOT NULL,
+            `altitude` REAL,
+            `accuracyMeters` REAL,
+            `timestampEpochMillis` INTEGER NOT NULL,
+            `speedMetersPerSecond` REAL,
+            `speedAccuracyMetersPerSecond` REAL,
+            `pressureHpa` REAL)
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `track_points_new` (`id`, `trackId`, `lat`, `lng`, `altitude`, `accuracyMeters`, `timestampEpochMillis`, `speedMetersPerSecond`, `speedAccuracyMetersPerSecond`, `pressureHpa`)
+            SELECT `id`, `trackId`, `lat`, `lng`, `altitude`, `accuracyMeters`, `timestampEpochMillis`, `speedMetersPerSecond`, `speedAccuracyMetersPerSecond`, NULL FROM `track_points`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `track_points`")
+        db.execSQL("ALTER TABLE `track_points_new` RENAME TO `track_points`")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_track_points_trackId` ON `track_points` (`trackId`)")
+    }
+}
+
+/**
+ * Adds nullable `rawRelativePath` to `log_photos` — RAW pipeline stage 2 (dispatch 2026-10-15-01, Amendment 1 item 6: "the
+ * nullable `log_photos` column, version 22, `MIGRATION_21_22`"). A RAW shot's DNG, beside its JPG under `photos/`; the JPG
+ * stays in `relativePath` and is what every screen shows (RECORD -1004). Its readers land with it (CLAUDE.md): export
+ * (`LogPhoto.exportRelativePath`), backup and restore (`RoomJournalBackup`) and delete (`FilePhotoStore.delete`). Every
+ * existing row gets `NULL`: nothing before this version saved a DNG.
+ *
+ * A full rebuild rather than `ALTER TABLE ... ADD COLUMN`, for the reason [MIGRATION_11_12] records: [LogPhotoEntity] is
+ * declared directly by `LegacyForagerDatabaseVn` fixtures, so their generated tables already carry the column and an
+ * `ADD COLUMN` would fail against them; the explicit source column list below ignores it. Version 22 was checked unclaimed
+ * on every remote branch (2026-10-15); re-check before merge.
+ */
+val MIGRATION_21_22: Migration = object : Migration(21, 22) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL(
+            """
+            CREATE TABLE `log_photos_new` (
+            `id` TEXT NOT NULL,
+            `relativePath` TEXT NOT NULL,
+            `createdAtEpochMillis` INTEGER,
+            `latitude` REAL,
+            `longitude` REAL,
+            `rawRelativePath` TEXT,
+            PRIMARY KEY(`id`))
+            """.trimIndent(),
+        )
+        db.execSQL(
+            """
+            INSERT INTO `log_photos_new` (`id`, `relativePath`, `createdAtEpochMillis`, `latitude`, `longitude`, `rawRelativePath`)
+            SELECT `id`, `relativePath`, `createdAtEpochMillis`, `latitude`, `longitude`, NULL FROM `log_photos`
+            """.trimIndent(),
+        )
+        db.execSQL("DROP TABLE `log_photos`")
+        db.execSQL("ALTER TABLE `log_photos_new` RENAME TO `log_photos`")
+    }
+}

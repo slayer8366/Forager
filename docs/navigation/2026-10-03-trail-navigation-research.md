@@ -14,7 +14,7 @@
 
 1. **A comprehensive trail network exists, and the practical base is OpenStreetMap** [I]: it is the only source that is nationwide, already connected at junctions, updated daily, and licensed in a way an open-source app can ship (ODbL, with attribution). The federal agency datasets (Forest Service, BLM, USGS) are public domain and fill gaps, but they are loose lines that need joining and checking before a route can use them.
 2. **Two open-source engines can find a route along trails on the phone without signal** [I]: Valhalla (through the `valhalla-mobile` Android library) and BRouter. Both are MIT licensed. Neither has been measured on a phone; a short spike on the S22 with real Oregon data would decide between them.
-3. **Leaving the trail on purpose is not an error for a forager.** No app found treats it that way [I]. The closest are Locus Map (guides to the nearest route point in a straight line) and an established handheld GPS maker's TracBack (back along the path walked). Search-and-rescue guidance favours retracing your steps over shortcuts. The walker's own track is the only way back known to be passable.
+3. **Leaving the trail on purpose is not an error for a forager.** No app found treats it that way [I]. The closest are Locus Map (guides to the nearest route point in a straight line) and an established handheld GPS maker's track-back feature (back along the path walked). Search-and-rescue guidance favours retracing your steps over shortcuts. The walker's own track is the only way back known to be passable.
 
 ## 1. Trail data
 
@@ -52,10 +52,10 @@
 | **Valhalla** via `valhalla-mobile` | MIT [C] | In-process native library (JNI), runs against tiles on the device [C] | `max_hiking_difficulty` (sac_scale 0 to 6), `use_tracks`, `use_hills` [C] | Not found; guessed 300 to 600 MB [I] | Snaps within a search radius; no connector line returned [I] |
 | **BRouter** | MIT [C] | Java; only the separate-app route is documented, embedding the library is not [C]/[I] | `sac_scale`, surface and mud, uphill and downhill costs; no `trail_visibility` [C] | About 155 MB for the four tiles covering both states [C] | Searches up to about 50 km and can return the connection as a straight segment [C] |
 | GraphHopper | Apache 2.0 [C] | Offline "no longer officially supported"; works only on old versions (4.0, 5.3) [C] | Hike profiles, `hike_rating` [C] | Not found | Snaps to the nearest edge [C] |
-| an offline maps app's routing | GPLv3 [C] | Would make the whole app GPL [I] | | | |
+| An offline maps app's routing | GPLv3 [C] | Would make the whole app GPL [I] | | | |
 | OSRM, Organic Maps | | Not realistic on-device, or not separable [I] | | | |
 
-Sources: https://github.com/valhalla/valhalla ; https://github.com/Rallista/valhalla-mobile ; https://valhalla.github.io/valhalla/api/route/api-reference/ ; https://github.com/abrensch/brouter ; https://brouter.de/brouter/segments4/ (rd5 files dated 2026-10-03) ; https://github.com/graphhopper/graphhopper ; https://discuss.graphhopper.com/t/offlne-routing-on-android/9176 ; https://raw.githubusercontent.com/offline-maps-app/an offline maps app/master/LICENSE.
+Sources: https://github.com/valhalla/valhalla ; https://github.com/Rallista/valhalla-mobile ; https://valhalla.github.io/valhalla/api/route/api-reference/ ; https://github.com/abrensch/brouter ; https://brouter.de/brouter/segments4/ (rd5 files dated 2026-10-03) ; https://github.com/graphhopper/graphhopper ; https://discuss.graphhopper.com/t/offlne-routing-on-android/9176 ; the offline maps app's LICENSE file in its public source repository.
 
 - **Drawing the route** on MapLibre is a GeoJSON line layer, the same for any engine [I].
 - **Ferrostar** (BSD-3, https://stadiamaps.github.io/ferrostar/) is an open-source navigation SDK with a MapLibre and Compose UI, usually paired with Valhalla. It has a replaceable off-route component [C]. It is prior art for the pairing, not necessarily something to adopt.
@@ -66,10 +66,10 @@ Sources: https://github.com/valhalla/valhalla ; https://github.com/Rallista/valh
 
 ### What others do
 - **Locus Map** [C]: three distances, a maximum deviation (example 30 m), an off-route notice (75 m) and recalculation (100 m). Past the first it guides "to the nearest route point with a beeline". It advises larger values in rugged terrain. https://www.locusmap.app/how-to-set-alerts-for-leaving-your-navigation-route/
-- **an offline maps app** [C]: recalculates to bring you back, rejoining at the track's start or its nearest point, by straight line or a route. https://www.an offline maps app.net/docs/user/navigation/setup/gpx-navigation
-- **an established handheld GPS maker TracBack** [C]: back "to the starting point of your activity along the path you traveled", with an "Off Course" alert. One user reports it fired only after 50 to 100 m when set to 10 m.
-- **a widely used hiking app** [S]: one alert after about 50 m off route; tapping it stops further alerts until you are back on the trail. No guidance back.
-- **a route-planning app** [S]: shows the distance walked off the route as a dotted line "so you can easily see how to backtrack".
+- **An offline maps app** [C]: recalculates to bring you back, rejoining at the track's start or its nearest point, by straight line or a route. (its GPX navigation documentation)
+- **A handheld GPS maker's track-back feature** [C]: back "to the starting point of your activity along the path you traveled", with an "Off Course" alert. One user reports it fired only after 50 to 100 m when set to 10 m.
+- **A widely used hiking app** [S]: one alert after about 50 m off route; tapping it stops further alerts until you are back on the trail. No guidance back.
+- **A route-planning app** [S]: shows the distance walked off the route as a dotted line "so you can easily see how to backtrack".
 - **Mapbox Navigation SDK** [C]: off route beyond 15 m, *not counting* the reading's accuracy; rerouting on backtracking needs 50 m over at least 3 updates.
 - **Organic Maps** [C]: does not navigate along a track yet.
 
@@ -80,7 +80,7 @@ Sources: https://github.com/valhalla/valhalla ; https://github.com/Rallista/valh
 
 ### Telling off the trail from GPS drift
 - Phone GPS is about 5 m under open sky and worse under trees [C]; one forest study found mostly 5 to 15 m [C].
-- Users of one watch that tightened its off-route thresholds report constant false alerts, "shortly followed by 'back on route' … I basically stopped paying attention to them" [C] (https://forum.a sports watch maker.com/topic/15609/frequent-false-off-route-notifications/6).
+- Users of one watch that tightened its off-route thresholds report constant false alerts, "shortly followed by 'back on route' … I basically stopped paying attention to them" [C] (a sports watch maker's user forum, thread 15609).
 - No published rule for when a walker counts as back on the trail was found.
 
 ### The agent's proposed behaviour, as a step path [I; every number is the agent's, untested]
@@ -94,7 +94,7 @@ Sources: https://github.com/valhalla/valhalla ; https://github.com/Rallista/valh
 
 ## What this means for Forager [I, the planner's]
 
-- **The owner's requirement and the research agree.** Default to the walker's own track off the trail, and guide back along it, is what an established handheld GPS maker's TracBack and the safety guidance point to, and what straight-line apps lack.
+- **The owner's requirement and the research agree.** Default to the walker's own track off the trail, and guide back along it, is what the handheld GPS maker's track-back feature and the safety guidance point to, and what straight-line apps lack.
 - **It fits what exists.** T21's off-track rule already measures against the walker's own path, and T5's way-back route already follows the walked track. Trail navigation adds a second thing to follow, the trail network, with the walker's own track as the way back to it.
 - **It belongs with the next update's map work.** Trail data is a second offline download per region, next to the offline map tiles (`docs/plans/own-map-tiles.md`), and the route drawn on the map is T7.
 - **It is not small.** Data preparation, an engine, a second download, mode switching and its alerts are each a piece of work.
@@ -109,4 +109,4 @@ Sources: https://github.com/valhalla/valhalla ; https://github.com/Rallista/valh
 
 ## Could not determine
 
-US trail completeness in OSM against the agencies; explicit licences for the Forest Service, NPS and Washington RCO trail data; a downloadable Oregon statewide layer; Valhalla and GraphHopper data sizes for Oregon and Washington; memory, CPU and route times on a phone for any engine; whether BRouter's library can run inside the app; whether Valhalla returns the connector from an off-trail start; a backcountry navigation app, a topographic mapping app and Google walking off-route behaviour; a widely used backcountry map app's and a route-planning app's thresholds; any published rule for rejoining a trail; any slope limit for walking cross-country.
+US trail completeness in OSM against the agencies; explicit licences for the Forest Service, NPS and Washington RCO trail data; a downloadable Oregon statewide layer; Valhalla and GraphHopper data sizes for Oregon and Washington; memory, CPU and route times on a phone for any engine; whether BRouter's library can run inside the app; whether Valhalla returns the connector from an off-trail start; a backcountry navigation app's, a topographic mapping app's and Google walking off-route behaviour; the backcountry map app's and the route-planning app's thresholds; any published rule for rejoining a trail; any slope limit for walking cross-country.

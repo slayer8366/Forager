@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -22,30 +23,29 @@ import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
+import com.zynergylabs.forager.app.domain.EntryGroup
+import com.zynergylabs.forager.app.domain.entryContentsOf
 import com.zynergylabs.forager.app.domain.networkFixExclusionNote
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
@@ -55,20 +55,21 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.PhotoAttachment
 import com.zynergylabs.forager.app.domain.model.PhotoSource
-import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * A Cartography entry's curation-and-writing surface — Journal Stage 2b, extended by its own
  * follow-up dispatch (point 2). [candidates]/[candidateOfflineRegions] are that day's *live* trip
- * report, reloaded on every open (creation or reopen); each section below merges them against the
- * entry's own persisted decisions into three states per candidate — **kept**, **withheld**, or **not
- * yet decided** — via [mergeDecisionRows]. A `null` [candidates] means the trip report hasn't finished
- * loading yet (or failed); every section falls back to the entry's own already-decided rows only, so
- * the screen still renders sensibly rather than going blank.
+ * report, reloaded on every open (creation or reopen); [entryContentsOf] merges them against the
+ * entry's own persisted decisions into three states per candidate — **included** (kept), **left out**
+ * (withheld), or **new** (not yet decided) — and [EntryContentsPanel] shows them (data part A, dispatch
+ * 2026-09-28-667, which replaced the one-card-per-item Withhold list). A `null` [candidates] means the
+ * trip report hasn't finished loading yet (or failed); the panel then shows the entry's own
+ * already-decided items only, so the screen still renders sensibly rather than going blank.
  *
  * **No field here is required, and nothing here reads as incomplete for being empty** —
  * `amendment-2b-optional-writing.md`: selection alone is a complete act of authorship, prose is one
@@ -137,6 +138,11 @@ internal fun CartographyEntryEditScreen(
     onSetTrackDecision: (String, Boolean) -> Unit,
     onSetWaypointDecision: (String, Boolean) -> Unit,
     onSetOfflineRegionDecision: (Long, Boolean) -> Unit,
+    /** A group switch in the "In this entry" panel: see [EntryContentsPanel] and [CartographyViewModel.onSetEntryGroupIncluded]. */
+    onSetGroupIncluded: (EntryGroup, Boolean) -> Unit,
+    /** Which of the panel's groups are open, hoisted so it survives a tab change; see [EntryContentsPanel]. */
+    openGroups: Set<EntryGroup>,
+    onToggleGroupOpen: (EntryGroup) -> Unit,
     onToggleKeptPhoto: (String) -> Unit,
     /**
      * Entry-photo-acquisition dispatch, Item 2: Camera and Import, reached from inside the open
@@ -174,8 +180,16 @@ internal fun CartographyEntryEditScreen(
     modifier: Modifier = Modifier,
     /** Off while the Tools drawer is open over the Journal, so Back closes the drawer (intent 2026-09-28-28); see [JournalTab]'s parameter of the same name. `true` (the default) is every other caller, unchanged. */
     backEnabled: Boolean = true,
+    /**
+     * Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout J7): whether the album picker is open over
+     * this editor, and whether this screen draws that picker itself. [CartographyScreen] holds the first and draws the picker as
+     * its own page, which slides in over the editor and out again on Back, so it passes `false` for the second and this screen
+     * draws the form only. The defaults are this screen on its own, as before: it holds the flag and draws the picker in place.
+     */
+    pullingPhotoState: MutableState<Boolean> = remember(entry.id) { mutableStateOf(false) },
+    drawsPhotoPicker: Boolean = true,
 ) {
-    var pullingPhoto by remember(entry.id) { mutableStateOf(false) }
+    var pullingPhoto by pullingPhotoState
     // Entry-photo-acquisition dispatch, Item 3: found on device — system back from this picker
     // landed on the Cartography entry *list*, skipping this editor entirely. CartographyScreen's
     // own BackHandler only knows "an entry is open"; pullingPhoto is a level inside that it had no
@@ -187,10 +201,10 @@ internal fun CartographyEntryEditScreen(
     // codebase (the map "+" flow, the camera return, the Cartography entry, the Records sub-tab,
     // now this) — a shared navigation abstraction remains queued behind the AvailabilityScreen.kt
     // split, not attempted here.
-    BackHandler(enabled = backEnabled && pullingPhoto) {
+    BackHandler(enabled = backEnabled && pullingPhoto && drawsPhotoPicker) {
         pullingPhoto = false
     }
-    if (pullingPhoto) {
+    if (pullingPhoto && drawsPhotoPicker) {
         PullPhotoPickerScreen(
             photos = galleryPhotos,
             onPhotoSelected = { photo -> onToggleKeptPhoto(photo.id); pullingPhoto = false },
@@ -214,16 +228,16 @@ internal fun CartographyEntryEditScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                IconButton(onClick = onRequestBack) {
+                BouncingIconButton(onClick = onRequestBack) {
                     Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back to Cartography")
                 }
-                Text(entry.date.toString(), style = MaterialTheme.typography.titleMedium)
+                Text(displayDate(entry.date), style = MaterialTheme.typography.titleMedium)
                 if (isLoadingCandidates) {
                     CircularProgressIndicator(modifier = Modifier.size(16.dp))
                 }
             }
             Box {
-                IconButton(onClick = { menuExpanded = true }) {
+                BouncingIconButton(onClick = { menuExpanded = true }) {
                     Icon(Icons.Filled.MoreVert, contentDescription = "Entry options")
                 }
                 DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
@@ -273,14 +287,20 @@ internal fun CartographyEntryEditScreen(
                 onAddFromAlbum = { pullingPhoto = true },
             )
 
-            FindsSection(entry = entry, candidates = candidates, onSetDecision = onSetFindDecision)
-            TracksSection(entry = entry, candidates = candidates, distanceUnit = distanceUnit, onSetDecision = onSetTrackDecision)
-            WaypointsSection(entry = entry, candidates = candidates, onSetDecision = onSetWaypointDecision)
-            OfflineRegionsSection(
-                entry = entry,
-                candidates = candidateOfflineRegions,
+            // Data part A (dispatch 2026-09-28-667): one panel in place of the four card lists.
+            val contents = remember(entry, candidates, candidateOfflineRegions) {
+                entryContentsOf(entry, candidates, candidateOfflineRegions, ComputeTrackStatisticsUseCase())
+            }
+            EntryContentsPanel(
+                contents = contents,
                 distanceUnit = distanceUnit,
-                onSetDecision = onSetOfflineRegionDecision,
+                openGroups = openGroups,
+                onToggleGroupOpen = onToggleGroupOpen,
+                onSetGroupIncluded = onSetGroupIncluded,
+                onSetFindIncluded = onSetFindDecision,
+                onSetTrackIncluded = onSetTrackDecision,
+                onSetWaypointIncluded = onSetWaypointDecision,
+                onSetOfflineMapIncluded = onSetOfflineRegionDecision,
             )
 
             if (entry.isDraft) {
@@ -306,7 +326,7 @@ internal fun CartographyEntryEditScreen(
         AlertDialog(
             onDismissRequest = { confirmingDelete = false },
             title = { Text("Delete this entry?") },
-            text = { Text("This removes the entry and its kept selections. The finds, tracks, waypoints, and regions it kept stay in Records.") },
+            text = { Text(DELETE_ENTRY_DIALOG_TEXT) },
             confirmButton = {
                 TextButton(onClick = { confirmingDelete = false; onDeleteEntry() }) { Text("Delete") }
             },
@@ -420,7 +440,7 @@ private fun KeptPhotosSection(
                         photo = photosById[attachment.photoId],
                         modifier = Modifier.size(KEPT_PHOTO_SIZE_DP.dp),
                     )
-                    IconButton(
+                    BouncingIconButton(
                         onClick = { onToggleKeptPhoto(attachment.photoId) },
                         modifier = Modifier.align(Alignment.TopEnd).size(24.dp),
                     ) {
@@ -428,7 +448,7 @@ private fun KeptPhotosSection(
                     }
                 }
             }
-            IconButton(onClick = onAddFromAlbum) {
+            BouncingIconButton(onClick = onAddFromAlbum) {
                 Icon(Icons.Filled.Add, contentDescription = "Add a photo from the Album")
             }
         }
@@ -459,180 +479,6 @@ internal fun KeptPhotoOrUnavailable(attachment: PhotoAttachment, photo: GalleryP
     }
 }
 
-@Composable
-private fun FindsSection(entry: CartographyEntry, candidates: DerivedTrip?, onSetDecision: (String, Boolean) -> Unit) {
-    val rows = mergeDecisionRows(
-        decided = entry.findDecisions,
-        decidedId = { it.findId },
-        decidedRow = { DecisionRowState(id = it.findId, title = "Find on ${it.foundOn}", subtitle = it.ownIdentification, state = it.state) },
-        candidates = candidates?.finds.orEmpty(),
-        candidateId = { it.id },
-        candidateRow = { DecisionRowState(id = it.id, title = "Find on ${it.foundOn}", subtitle = it.ownIdentification, state = DecisionState.UNDECIDED) },
-    )
-    DecisionSection(title = "Finds", rows = rows, onSetDecision = onSetDecision)
-}
-
-@Composable
-private fun TracksSection(entry: CartographyEntry, candidates: DerivedTrip?, distanceUnit: DistanceUnit, onSetDecision: (String, Boolean) -> Unit) {
-    val rows = mergeDecisionRows(
-        decided = entry.trackDecisions,
-        decidedId = { it.trackId },
-        decidedRow = { decision ->
-            // Timestamp-filter dispatch, Item 3: when the day's live track is loaded, its own
-            // exclusion note; otherwise the snapshot's point count is the one thing that can say
-            // an empty track is empty rather than leave a blank entry map unexplained.
-            val liveTrack = candidates?.tracks?.firstOrNull { it.id == decision.trackId }
-            DecisionRowState(
-                id = decision.trackId,
-                title = decision.name ?: "Recorded track",
-                subtitle = trackSubtitle(decision.distanceMeters, decision.durationMillis, distanceUnit) +
-                    trackExclusionSuffix(liveTrack, snapshotPointCount = decision.pointCount),
-                state = decision.state,
-            )
-        },
-        candidates = candidates?.tracks.orEmpty(),
-        candidateId = { it.id },
-        candidateRow = { track ->
-            // Recomputed directly rather than cached: a day's track list is small, and this only
-            // runs while candidates are loaded, not a hot recomposition path — same one-computation-
-            // per-item scale TrackRecordingViewModel.loadWaypoints' own doc comment accepts for 4b.
-            val stats = ComputeTrackStatisticsUseCase()(track.points)
-            DecisionRowState(
-                id = track.id,
-                title = track.name ?: "Recorded track",
-                subtitle = trackSubtitle(stats.distanceMeters, stats.durationMillis, distanceUnit) + trackExclusionSuffix(track, snapshotPointCount = null),
-                state = DecisionState.UNDECIDED,
-            )
-        },
-    )
-    DecisionSection(title = "Tracks", rows = rows, onSetDecision = onSetDecision)
-}
-
-@Composable
-private fun WaypointsSection(entry: CartographyEntry, candidates: DerivedTrip?, onSetDecision: (String, Boolean) -> Unit) {
-    val rows = mergeDecisionRows(
-        decided = entry.waypointDecisions,
-        decidedId = { it.waypointId },
-        decidedRow = {
-            DecisionRowState(id = it.waypointId, title = it.name, subtitle = "${"%.4f".format(it.lat)}, ${"%.4f".format(it.lng)}", state = it.state)
-        },
-        candidates = candidates?.waypoints.orEmpty(),
-        candidateId = { it.id },
-        candidateRow = {
-            DecisionRowState(
-                id = it.id,
-                title = it.name,
-                subtitle = "${"%.4f".format(it.lat)}, ${"%.4f".format(it.lng)}",
-                state = DecisionState.UNDECIDED,
-            )
-        },
-    )
-    DecisionSection(title = "Waypoints", rows = rows, onSetDecision = onSetDecision)
-}
-
-@Composable
-private fun OfflineRegionsSection(
-    entry: CartographyEntry,
-    candidates: List<OfflineRegionSummary>,
-    distanceUnit: DistanceUnit,
-    onSetDecision: (Long, Boolean) -> Unit,
-) {
-    val rows = mergeDecisionRows(
-        decided = entry.offlineRegionDecisions,
-        decidedId = { it.offlineRegionId },
-        decidedRow = { DecisionRowState(id = it.offlineRegionId.toString(), title = it.name, subtitle = formatDistanceKm(it.radiusKm, distanceUnit), state = it.state) },
-        candidates = candidates,
-        candidateId = { it.id },
-        candidateRow = {
-            DecisionRowState(id = it.id.toString(), title = it.name, subtitle = formatDistanceKm(it.region.radiusKm, distanceUnit), state = DecisionState.UNDECIDED)
-        },
-    )
-    DecisionSection(title = "Offline Regions", rows = rows) { id, kept -> onSetDecision(id.toLong(), kept) }
-}
-
-/**
- * The three-state merge itself — Stage 2b follow-up dispatch, point 2. Every already-[decided] item
- * renders with its own persisted state (kept or withheld), regardless of whether it's still a live
- * [candidates] entry; every live candidate with no matching decision renders as
- * [DecisionState.UNDECIDED]. Decided rows come first (a stable, decision-order list you can act on
- * without them jumping around as new candidates appear), undecided rows after.
- */
-private inline fun <D, C, Id> mergeDecisionRows(
-    decided: List<D>,
-    decidedId: (D) -> Id,
-    decidedRow: (D) -> DecisionRowState,
-    candidates: List<C>,
-    candidateId: (C) -> Id,
-    candidateRow: (C) -> DecisionRowState,
-): List<DecisionRowState> {
-    val decidedIds = decided.map(decidedId).toSet()
-    val undecided = candidates.filter { candidateId(it) !in decidedIds }.map(candidateRow)
-    return decided.map(decidedRow) + undecided
-}
-
-private enum class DecisionState { KEPT, WITHHELD, UNDECIDED }
-
-private data class DecisionRowState(val id: String, val title: String, val subtitle: String?, val state: DecisionState)
-
-private val Boolean.asDecisionState: DecisionState get() = if (this) DecisionState.KEPT else DecisionState.WITHHELD
-
-// Every *Decision domain type carries the same `kept: Boolean` — this one extension property, read
-// via each concrete type below, is what mergeDecisionRows' decidedRow lambdas call `.state` through.
-private val com.zynergylabs.forager.app.domain.model.FindDecision.state: DecisionState get() = kept.asDecisionState
-private val com.zynergylabs.forager.app.domain.model.TrackDecision.state: DecisionState get() = kept.asDecisionState
-private val com.zynergylabs.forager.app.domain.model.WaypointDecision.state: DecisionState get() = kept.asDecisionState
-private val com.zynergylabs.forager.app.domain.model.OfflineRegionDecision.state: DecisionState get() = kept.asDecisionState
-
-@Composable
-private fun DecisionSection(title: String, rows: List<DecisionRowState>, onSetDecision: (String, Boolean) -> Unit) {
-    if (rows.isEmpty()) return
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        Text(title, style = MaterialTheme.typography.titleSmall)
-        rows.forEach { row -> DecisionRow(row = row, onSetKept = { kept -> onSetDecision(row.id, kept) }) }
-    }
-}
-
-/**
- * One candidate's row — the withhold/keep interaction itself. A **kept** row reads normally with a
- * single **Withhold** action; a **withheld** row reads visibly dimmed and struck through with a
- * single **Keep** action, so withholding shows as a deliberate, revisitable act rather than an
- * unchecked filter box. An **undecided** row (new since the entry was last saved) reads normally with
- * *both* actions available and a small "New" label — nothing here defaults it either way.
- */
-@Composable
-private fun DecisionRow(row: DecisionRowState, onSetKept: (Boolean) -> Unit) {
-    Card(modifier = Modifier.fillMaxWidth().alpha(if (row.state == DecisionState.WITHHELD) 0.5f else 1f)) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(Spacing.md),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        row.title,
-                        style = MaterialTheme.typography.bodyLarge,
-                        textDecoration = if (row.state == DecisionState.WITHHELD) TextDecoration.LineThrough else TextDecoration.None,
-                    )
-                    if (row.state == DecisionState.UNDECIDED) {
-                        Text("New", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                    }
-                }
-                row.subtitle?.let { subtitle -> Text(subtitle, style = MaterialTheme.typography.bodySmall) }
-            }
-            when (row.state) {
-                DecisionState.KEPT -> TextButton(onClick = { onSetKept(false) }) { Text("Withhold") }
-                DecisionState.WITHHELD -> TextButton(onClick = { onSetKept(true) }) { Text("Keep") }
-                DecisionState.UNDECIDED -> Row {
-                    TextButton(onClick = { onSetKept(true) }) { Text("Keep") }
-                    TextButton(onClick = { onSetKept(false) }) { Text("Withhold") }
-                }
-            }
-        }
-    }
-}
-
-/** Stage 2c: `internal`, not `private` — [CartographyEntryReportScreen] reuses this exact formatting for its own kept-track lines. */
 /**
  * What a track row appends when the read seam excluded most or all of it as network-provider fixes
  * (timestamp-filter dispatch, Item 3): the live track's own note when the track is at hand, else —
@@ -646,8 +492,10 @@ internal fun trackExclusionSuffix(liveTrack: Track?, snapshotPointCount: Int?): 
 }
 
 /**
- * A track's length and duration for its row — the one formatter behind all three track-length
- * sites (the edit screen's decided and candidate rows, the report screen's kept rows).
+ * A track's length and duration — once the one formatter behind all three track-length sites (the
+ * edit screen's decided and candidate rows, the report screen's kept rows). Since data part A
+ * (dispatch 2026-09-28-667) those three use [labelledTrackLine], which writes the time as "1 h 12 min";
+ * this one is left for the Journal list card's stats row, which is not one of that part's screens.
  *
  * **Why `formatDistanceMeters` and not `formatDistanceKm`** (track-distance-label dispatch): the
  * kilometre formatter exists for offline-map download ceilings, which are whole miles and whole
@@ -669,7 +517,14 @@ internal fun trackSubtitle(distanceMeters: Double, durationMillis: Long, distanc
 }
 
 private fun attachDateLabel(epochMillis: Long): String =
-    Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate().toString()
+    displayDate(Instant.ofEpochMilli(epochMillis).atZone(ZoneId.systemDefault()).toLocalDate())
+
+/**
+ * The delete confirmation on the editor and the report, in the owner's word for a kept item, "included"
+ * (RECORD -656). Before data part A it said "its kept selections" and "regions it kept".
+ */
+internal const val DELETE_ENTRY_DIALOG_TEXT =
+    "This removes the entry and the choices made in it. The finds, tracks, waypoints, and offline maps it included stay in Records."
 
 /** Stage 2c: `internal`, not `private` — [CartographyEntryReportScreen] reuses the same size for its own read-only photo grid. */
 internal const val KEPT_PHOTO_SIZE_DP = 88

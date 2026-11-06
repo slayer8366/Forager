@@ -42,6 +42,14 @@ interface TrackRepository {
     /** Creates a new track with no points yet and no end time. */
     suspend fun create(track: Track): Result<Unit>
 
+    /**
+     * Writes [track] and all its [Track.points] at once, all or nothing: plan T16's GPX import, the one
+     * caller. Not [create] then [appendPoints], whose gap could leave a row with only some of its points.
+     * The default answers "unsupported", explicitly, as [endIfOpen]'s does.
+     */
+    suspend fun createWithPoints(track: Track): Result<Unit> =
+        Result.failure(UnsupportedOperationException("createWithPoints is not supported by ${this::class.simpleName}"))
+
     /** Appends [points] to the track with id [trackId]. Never replaces previously-appended points. */
     suspend fun appendPoints(trackId: String, points: List<TrackPoint>): Result<Unit>
 

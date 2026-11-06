@@ -9,10 +9,6 @@ import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.MutableState
@@ -30,6 +26,7 @@ import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.OPEN_FIND_LABEL
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.EntryGroup
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
@@ -49,6 +46,8 @@ import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.CentrePinLocationPicker
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
+import com.zynergylabs.forager.app.ui.motion.PageSlide
+import com.zynergylabs.forager.app.ui.motion.SlideOverPage
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import java.time.LocalDate
 
@@ -134,6 +133,7 @@ internal fun JournalTab(
     onOpenCameraForCartographyEntry: () -> Unit,
     mapSlot: MapSlot,
     pickerRegion: Region,
+    modifier: Modifier = Modifier,
     /** The device's current position, if one is in hand — opens the Add/Change Location picker there instead of on [pickerRegion] (find-location-at-creation dispatch, Fix 3; see [findLocationPickerRegion]). Defaulted so callers and tests that have no fix are unchanged. */
     deviceLocation: LatLng? = null,
     basemap: Basemap,
@@ -141,11 +141,10 @@ internal fun JournalTab(
     night: Boolean = false,
     /**
      * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices the Maps tab and the entry map
-     * share, and the entry map's Layers-sheet switch. Threaded through to `CartographyEntryReportScreen`
+     * share. Threaded through to `CartographyEntryReportScreen`
      * only; nothing here reads them. Defaulted so other callers and tests are unchanged.
      */
     mapLayers: MapLayersState = MapLayersState.DEFAULT,
-    onMapLayerVisibilityChanged: (layerId: String, visible: Boolean) -> Unit = { _, _ -> },
     onOpenEntry: (String) -> Unit,
     onCloseEntry: () -> Unit,
     onStartEntry: (LatLng?, LocalDate) -> Unit,
@@ -247,6 +246,8 @@ internal fun JournalTab(
     onDownloadOfflineMaps: () -> Unit,
     onDeleteOfflineRegion: (Long) -> Unit,
     onDownloadAgain: (Long) -> Unit = {},
+    /** Try again on a region's trail routes, and signal returning while the list is on screen (dispatch 2026-10-23-03). */
+    routeActions: com.zynergylabs.forager.app.ui.availability.OfflineRouteActions = com.zynergylabs.forager.app.ui.availability.OfflineRouteActions(),
     tracks: List<Track>,
     onTracksOpened: () -> Unit,
     /** GPX full-record export dispatch — see [com.zynergylabs.forager.app.ui.track.TrackExportList]'s own doc comment. Defaults empty/no-op so no other caller of this tab changes. */
@@ -297,6 +298,9 @@ internal fun JournalTab(
      * for callers that host this tab on its own (tests).
      */
     cartographyEntryModeState: MutableState<CartographyEntryMode> = remember { mutableStateOf(CartographyEntryMode.VIEW) },
+    /** Data part A (dispatch 2026-09-28-667): see [CartographyScreen]'s parameters of the same names. Defaulted for callers that host this tab on its own (tests). */
+    onSetCartographyEntryGroupIncluded: (EntryGroup, Boolean) -> Unit = { _, _ -> },
+    cartographyOpenEntryGroupsState: MutableState<Set<EntryGroup>> = remember { mutableStateOf(emptySet()) },
     /**
      * Intent 2026-09-28-44, F3 (the owner: "Keep finds open too (Recommended)"): an open find's
      * report-or-editor mode ([mode]) and M1's find over the view ([FindOverView]), held by the caller.
@@ -308,12 +312,15 @@ internal fun JournalTab(
      */
     findEntryModeState: MutableState<JournalEntryMode> = remember { mutableStateOf(JournalEntryMode.REPORT) },
     findOverViewState: MutableState<FindOverView?> = remember { mutableStateOf(null) },
-    modifier: Modifier = Modifier,
     /** Dispatch 2026-09-28-502: Records' Navigate on a waypoint, handed to [RecordsTab]; `null` (the default) offers none. */
     onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
     /** Dispatch 2026-09-28-502, Amendment 1: a waypoint details sheet for [RecordsTab] to open again, once; see its parameters. */
     reopenWaypointDetails: String? = null,
     onReopenWaypointDetailsConsumed: () -> Unit = {},
+    /** Plan T16: Records > Tracks > "Import GPX", handed to [RecordsTab]; `null` (the default) shows no button. */
+    onGpxFilePicked: ((android.net.Uri) -> Unit)? = null,
+    /** Plan T16: the imported track a [PendingJournalDestination.VIEW_IMPORTED_TRACK] request opens, or `null` for the Tracks list alone. */
+    pendingTrackId: String? = null,
 ) {
     // The Toast below both shows the field and immediately clears it.
     val context = LocalContext.current
@@ -370,6 +377,10 @@ internal fun JournalTab(
     // only exists in the composition once selectedTopTab has already become RECORDS.
     var recordsPendingSubTab by remember { mutableStateOf<RecordsSubTab?>(null) }
 
+    // Plan T16: the same kind of latch for the imported track whose details RecordsTab opens once the
+    // track has reached its list.
+    var recordsOpenTrackId by remember { mutableStateOf<String?>(null) }
+
     // J8-4: the same kind of local latch for a VIEW_ENTRY request: CartographyScreen only exists in the
     // composition once selectedTopTab is CARTOGRAPHY, so the entry is staged here and handed to it.
     var entryOpenRequest by remember { mutableStateOf<String?>(null) }
@@ -377,9 +388,10 @@ internal fun JournalTab(
     // M1: a find opened from a map bubble, shown over whatever the Journal was showing (FindOverView).
     var findOverView by findOverViewState
     LaunchedEffect(findOverView, editing?.id) {
-        findOverView = nextFindOverView(findOverView, editing?.id)
+        findOverView = nextFindOverView(findOverView, editing?.id, editing?.draftOfEntryId)
     }
-    val findOverViewVisible = editing != null && findOverView.let { it != null && (it.shown || editing.id == it.findId) }
+    val findOverViewVisible = editing != null &&
+        findOverView.let { it != null && (it.shown || editing.id == it.findId || editing.draftOfEntryId == it.findId) }
 
     LaunchedEffect(pendingDestination) {
         when (pendingDestination) {
@@ -402,6 +414,21 @@ internal fun JournalTab(
             PendingJournalDestination.VIEW_ENTRY -> {
                 selectedTopTab = JournalTopTab.CARTOGRAPHY
                 entryOpenRequest = pendingEntryId
+                onPendingDestinationConsumed()
+            }
+            // Plan T16: after a GPX import, Records on the Tracks chip, with the first new track's
+            // details open (or the list alone when the file was not imported).
+            PendingJournalDestination.VIEW_IMPORTED_TRACK -> {
+                selectedTopTab = JournalTopTab.RECORDS
+                recordsPendingSubTab = RecordsSubTab.RECORDED_TRACKS
+                recordsOpenTrackId = pendingTrackId
+                onPendingDestinationConsumed()
+            }
+            // RECORD -868: the Tools drawer's "Offline maps", Records on the Offline maps chip. Through the same chip latch
+            // as the import above, so leaving a find mid-edit is the incidental exit a chip tap is.
+            PendingJournalDestination.VIEW_OFFLINE_MAPS -> {
+                selectedTopTab = JournalTopTab.RECORDS
+                recordsPendingSubTab = RecordsSubTab.OFFLINE_MAPS
                 onPendingDestinationConsumed()
             }
             null -> Unit
@@ -470,22 +497,33 @@ internal fun JournalTab(
     // function's own remembered state regardless of which RecordsTab sub-tab slot renders it.
     // The Finds section is two parts: the list (the gallery) and the detail (an open find's report,
     // editor and pickers); [findsSection] draws whichever applies.
-    val findsDetail: @Composable ColumnScope.() -> Unit = {
-        when {
-            editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> CentrePinLocationPicker(
+    // Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout F1, F2): the Finds section is a stack of
+    // pages (the gallery, a find's report, its editor, and the editor's two pickers), each opened page sliding in from the right
+    // and Back sliding it out again (motion/PageSlide.kt). Each page carries the find it shows, so a report still draws while it
+    // slides out after its find has closed.
+    val findsPage: FindsPage = when {
+        editing != null && mode == JournalEntryMode.EDIT && pickingLocationForEditingEntry -> FindsPage.PickLocation(editing)
+        editing != null && mode == JournalEntryMode.EDIT && pullingPhotoForEditingEntry -> FindsPage.PullPhoto(editing)
+        editing != null && mode == JournalEntryMode.EDIT -> FindsPage.Edit(editing)
+        editing != null -> FindsPage.Report(editing)
+        else -> FindsPage.Gallery
+    }
+    val findsDetail: @Composable ColumnScope.(FindsPage) -> Unit = { page ->
+        when (page) {
+            is FindsPage.PickLocation -> CentrePinLocationPicker(
                 mapSlot = mapSlot,
                 region = findLocationPickerRegion(deviceLocation, pickerRegion),
                 basemap = basemap,
                 night = night,
                 onConfirm = { location ->
                     pickingLocationForEditingEntry = false
-                    onEntryChanged(editing.copy(foundAt = location))
+                    onEntryChanged(page.entry.copy(foundAt = location))
                 },
                 onCancel = { pickingLocationForEditingEntry = false },
                 modifier = Modifier.weight(1f),
             )
 
-            editing != null && mode == JournalEntryMode.EDIT && pullingPhotoForEditingEntry -> PullPhotoPickerScreen(
+            is FindsPage.PullPhoto -> PullPhotoPickerScreen(
                 photos = uiState.galleryPhotos,
                 onPhotoSelected = { photo ->
                     pullingPhotoForEditingEntry = false
@@ -507,8 +545,8 @@ internal fun JournalTab(
                 modifier = Modifier.weight(1f),
             )
 
-            editing != null && mode == JournalEntryMode.EDIT -> LogEntryDetailScreen(
-                entry = editing,
+            is FindsPage.Edit -> LogEntryDetailScreen(
+                entry = page.entry,
                 onOpenCamera = onOpenCameraForLogEntry,
                 onEntryChanged = onEntryChanged,
                 onAddPhoto = onAddPhoto,
@@ -517,26 +555,35 @@ internal fun JournalTab(
                 onAddLocation = { pickingLocationForEditingEntry = true },
                 onSave = { onSaveEntry(); mode = JournalEntryMode.REPORT },
                 onCancel = onCancelEditing,
-                onDeleteEntry = { onDeleteEntry(editing.id) },
+                onDeleteEntry = { onDeleteEntry(page.entry.id) },
                 onBack = onLeaveEditingIncidentally,
                 onPhotoAcquisitionInFlightChanged = onPhotoAcquisitionInFlightChanged,
                 modifier = Modifier.weight(1f),
             )
 
-            editing != null -> LogEntryReportScreen(
-                entry = editing,
+            is FindsPage.Report -> LogEntryReportScreen(
+                entry = page.entry,
                 onEdit = {
                     onStartEditingEntry()
                     mode = JournalEntryMode.EDIT
                 },
-                onDeleteEntry = { onDeleteEntry(editing.id) },
+                onDeleteEntry = { onDeleteEntry(page.entry.id) },
                 onBack = onCloseEntry,
                 modifier = Modifier.weight(1f),
             )
-            else -> Unit
+            FindsPage.Gallery -> Unit
         }
     }
-    val findsList: @Composable ColumnScope.() -> Unit = {
+    // RECORD -753 (the owner: "Yes, match Entries (Recommended)"): in a short landscape window "New find" moves into the L1 row, as
+    // Entries moves "New entry" there. The gallery says whether its Log tab is showing (the button belongs to Log, as the floating
+    // one does); the row's action is built below from that. Only the gallery in Records' Finds slot writes it, never the find
+    // over the view, which shows a find, not the gallery.
+    val findsLogShownInRecords = remember { mutableStateOf(false) }
+    val startNewFind: () -> Unit = {
+        mode = JournalEntryMode.EDIT
+        onStartEntry(null, LocalDate.now())
+    }
+    val findsList: @Composable ColumnScope.(inRecords: Boolean) -> Unit = { inRecords ->
         FindsGalleryScreen(
             entries = uiState.entries,
             draftEntries = uiState.draftEntries,
@@ -553,21 +600,34 @@ internal fun JournalTab(
                 mode = JournalEntryMode.EDIT
                 onOpenEntry(id)
             },
-            onAddEntry = {
-                mode = JournalEntryMode.EDIT
-                onStartEntry(null, LocalDate.now())
-            },
+            onAddEntry = startNewFind,
+            // RECORD -753: in a short landscape window, no floating button; the L1 row carries "New find" instead.
+            newFindInHeader = if (inRecords && isLandscapeJournal()) findsLogShownInRecords else null,
             modifier = Modifier.weight(1f),
             loadErrorMessage = uiState.loadErrorMessage,
+            draftsLoadErrorMessage = uiState.draftsLoadErrorMessage,
             // J4b L1: a tile's long-press menu. Delete is the report's own pending delete (J4);
             // Edit opens the find straight into its edit form.
             onDeleteEntry = onDeleteEntry,
             onEditEntry = editFind,
         )
     }
-    val findsSection: @Composable ColumnScope.() -> Unit = {
-        if (editing != null) findsDetail() else findsList()
+    // One page stack for both places the Finds section is drawn (Records' Finds slot, and the find over the view below), each
+    // with its own slide. [page] is what it shows: the current page, or for the find over the view as it slides away, the page it
+    // last showed.
+    val findsPages: @Composable ColumnScope.(FindsPage, Boolean) -> Unit = { page, inRecords ->
+        PageSlide(
+            targetState = page,
+            depthOf = { it.depth },
+            contentKey = { it.kind },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) { shown ->
+            Column(modifier = Modifier.fillMaxSize()) {
+                if (shown == FindsPage.Gallery) findsList(inRecords) else findsDetail(shown)
+            }
+        }
     }
+    val findsSection: @Composable ColumnScope.() -> Unit = { findsPages(findsPage, true) }
 
     fun selectTopTab(tab: JournalTopTab) {
         // Leaving Records mid-find-edit for Entries is an incidental exit — see this composable's
@@ -582,6 +642,11 @@ internal fun JournalTab(
     // actions and the state they need); Records gets it from the RECORDS branch below. `null` in
     // portrait and in every window that is not short, which is exactly as before.
     val shortLandscape = isLandscapeJournal()
+    // Amendment 1: the action Entries puts in the L1 row's last slot, for the row drawn above the pages.
+    val cartographyHeaderAction = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
+    // Dispatch 2026-10-17-09, RECORD -1243: Records' filter chips, handed up by RecordsTab, for the space between the switch and
+    // the search icon on this line (landscape only; `null` while Records is not shown).
+    val recordsChipsOnSwitchLine = remember { mutableStateOf<(@Composable () -> Unit)?>(null) }
     // Any entry open, find or Cartography entry: the scaffold hides the search header then anyway
     // (its isEditingJournalEntry rule, the same two fields), so the row's search icon is left out.
     val journalEntryOpen = editing != null || cartographyUiState.editingEntry != null
@@ -594,6 +659,7 @@ internal fun JournalTab(
                 searchRevealed = journalState.searchHeaderRevealed,
                 onToggleSearch = { journalState.searchHeaderRevealed = !journalState.searchHeaderRevealed },
                 action = action,
+                middle = if (selectedTopTab == JournalTopTab.RECORDS) recordsChipsOnSwitchLine.value else null,
             )
         }
     } else {
@@ -622,6 +688,11 @@ internal fun JournalTab(
             onOpenEntry(id)
         },
         openFindLabel = OPEN_FIND_LABEL,
+        // RECORD -890 (the owner: "Waypoints only, as described"): a waypoint's bubble, and the sheet opened from it, offer
+        // Navigate, through today's waypoint navigation, with Back returning to this entry.
+        onNavigateToWaypoint = onNavigateToWaypoint?.let { navigate ->
+            { origin: WaypointNavigationOrigin -> navigate(WaypointNavigationOrigin.JournalEntryMap(origin.waypointId)) }
+        },
     )
 
     Box(modifier = modifier.fillMaxSize()) {
@@ -641,8 +712,30 @@ internal fun JournalTab(
                     .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
             )
         }
+        // Motion Part 3, Amendment 1 (RECORD -681; the owner: "Keep it still (Recommended)"): in a short window the L1 row, with
+        // the switch, is drawn here, above the pages, so it stays put while only the page below it slides. Entries hands up the
+        // action for the row's last slot (cartographyHeaderAction); Records had none (L2) until RECORD -753 gave Finds "New find" (recordsHeaderAction).
+        // RECORD -753: on Records, "New find" while the Finds gallery shows its Log tab, the same way Entries' "New entry" is there
+        // while its timeline shows; nothing on Records' other chips, on Drafts, or while a find is open.
+        val recordsHeaderAction: (@Composable () -> Unit)? =
+            if (selectedTopTab == JournalTopTab.RECORDS && journalState.recordsFilter == RecordsSubTab.FINDS &&
+                findsPage == FindsPage.Gallery && findOverView == null && findsLogShownInRecords.value
+            ) {
+                { ShortWindowNewFindButton(onClick = startNewFind) }
+            } else {
+                null
+            }
+        shortWindowHeader?.invoke(if (selectedTopTab == JournalTopTab.CARTOGRAPHY) cartographyHeaderAction.value else recordsHeaderAction)
 
-        when (selectedTopTab) {
+        // Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout J1, J2): Records, the right-hand side
+        // of the switch and the page Back steps out of to Entries, slides in from the right over Entries, and slides out to the
+        // right going back, by the switch or by Back.
+        PageSlide(
+            targetState = selectedTopTab,
+            depthOf = { it.ordinal },
+            modifier = Modifier.weight(1f).fillMaxWidth(),
+        ) { shownTopTab ->
+        when (shownTopTab) {
             JournalTopTab.CARTOGRAPHY -> CartographyScreen(
                 uiState = cartographyUiState,
                 galleryPhotos = galleryPhotos,
@@ -658,7 +751,6 @@ internal fun JournalTab(
                 night = night,
                 initialMapMode = MapMode.forBasemap(basemap),
                 mapLayers = mapLayers,
-                onMapLayerVisibilityChanged = onMapLayerVisibilityChanged,
                 getMapData = getCartographyEntryMapData,
                 getCoveringOfflineRegion = getCartographyEntryOfflineRegion,
                 getCurrentLocation = getCartographyEntryCurrentLocation,
@@ -678,7 +770,7 @@ internal fun JournalTab(
                 onDiscardEntryChanges = onDiscardCartographyEntryChanges,
                 onSaveEntryAsDraft = onSaveCartographyEntryAsDraft,
                 onDeleteEntry = onDeleteCartographyEntry,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.fillMaxSize(),
                 // J3, C4 (plan J9): one full-width column in compact portrait; `columns` stays the
                 // only width knob. A short window (a phone on its side) keeps two columns, which J5's
                 // sideways cards use (plan L4); the rule is J3's, unchanged.
@@ -697,9 +789,12 @@ internal fun JournalTab(
                 // J5: the L1 row (null outside a short landscape window), drawn by Entries itself
                 // with its own action; see CartographyScreen's shortWindowHeader.
                 shortWindowHeader = shortWindowHeader,
+                shortWindowHeaderAbove = if (shortLandscape) cartographyHeaderAction else null,
                 backEnabled = backEnabled,
                 mapBubbleSources = entryMapBubbleSources,
                 entryModeState = cartographyEntryModeState,
+                onSetEntryGroupIncluded = onSetCartographyEntryGroupIncluded,
+                openEntryGroupsState = cartographyOpenEntryGroupsState,
                 openEntryRequest = entryOpenRequest,
                 onOpenEntryRequestConsumed = { entryOpenRequest = null },
                 onSetShownOnMap = onSetCartographyEntryShownOnMap,
@@ -708,10 +803,9 @@ internal fun JournalTab(
 
             // J5: a Column in every window, so RecordsTab keeps one place in the composition when
             // the phone turns (plan L7: a rotation is not a recreation here, and a moved call site
-            // would drop its remember state); the L1 row sits above it only in a short window, with
-            // no action (portrait's Records has no floating button to move into it, L2).
-            JournalTopTab.RECORDS -> Column(modifier = Modifier.weight(1f)) {
-                shortWindowHeader?.invoke(null)
+            // would drop its remember state). The L1 row that sat above it in a short window is drawn
+            // above the pages since motion Part 3's Amendment 1, with "New find" in it on the Finds gallery (RECORD -753; L2 had none for Records).
+            JournalTopTab.RECORDS -> Column(modifier = Modifier.fillMaxSize()) {
                 RecordsTab(
                     modifier = Modifier.weight(1f),
                     waypoints = waypoints,
@@ -735,6 +829,7 @@ internal fun JournalTab(
                     onDownloadOfflineMaps = onDownloadOfflineMaps,
                     onDeleteOfflineRegion = onDeleteOfflineRegion,
                     onDownloadAgain = onDownloadAgain,
+                    routeActions = routeActions,
                     tracks = tracks,
                     onTracksOpened = onTracksOpened,
                     getFullRecord = getFullRecord,
@@ -742,15 +837,28 @@ internal fun JournalTab(
                     // so the find is composed once, in the overlay.
                     findsContent = { if (findOverView == null) findsSection() },
                     finds = uiState.entries,
-                    // The All logbook's find tap: RecordsTab has already selected the Finds chip; this
-                    // opens the report there, exactly as the Finds gallery's own tile does.
+                    // The All logbook's find tap (RECORD -874, the owner: "Find > All > Finds > out (Recommended)"):
+                    // the find opens over Records, as the entry map's "Open find" opens it (FindOverView, below), so it
+                    // slides in over All (forward, the planner's call in -874) and Back closes it to All. All stays the
+                    // selected chip. It used to select the Finds chip and open the report in the Finds slot.
                     onOpenFind = { id ->
+                        leaveFindEditingIfNeeded()
                         mode = JournalEntryMode.REPORT
+                        findOverView = FindOverView(id)
                         onOpenEntry(id)
                     },
-                    // J4b L1: the All logbook's find tiles get the same long-press menu.
+                    // J4b L1: the All logbook's find tiles get the same long-press menu. Its Edit opens the form over All,
+                    // as the tap opens the report (RECORD -876, the owner: "Yes, Edit opens over All too (Recommended)"),
+                    // so Back from the form returns to All. It used to select the Finds chip and open the form there.
                     onDeleteFind = onDeleteEntry,
-                    onEditFind = editFind,
+                    onEditFind = onOpenEntryForEditing?.let { open ->
+                        { id: String ->
+                            leaveFindEditingIfNeeded()
+                            mode = JournalEntryMode.EDIT
+                            findOverView = FindOverView(id)
+                            open(id)
+                        }
+                    },
                     onFindsTabLeft = ::leaveFindEditingIfNeeded,
                     findsEditingInProgress = findsSectionHasBackStack,
                     pendingSubTab = recordsPendingSubTab,
@@ -759,12 +867,18 @@ internal fun JournalTab(
                     // J5, L3 and L5a: in a short window the filter chips are the second row, which
                     // gets out of the way while the list scrolls, with the tighter chip spacing.
                     shortWindow = shortLandscape,
+                    // RECORD -1243: in a short window the chips go on the switch line above (recordsChipsOnSwitchLine).
+                    chipsOnSwitchLine = if (shortLandscape) recordsChipsOnSwitchLine else null,
                     backEnabled = backEnabled,
                     onNavigateToWaypoint = onNavigateToWaypoint,
                     reopenWaypointDetails = reopenWaypointDetails,
                     onReopenWaypointDetailsConsumed = onReopenWaypointDetailsConsumed,
+                    onGpxFilePicked = onGpxFilePicked,
+                    openTrackDetails = recordsOpenTrackId,
+                    onOpenTrackDetailsConsumed = { recordsOpenTrackId = null },
                     )
             }
+        }
         }
     }
 
@@ -773,8 +887,18 @@ internal fun JournalTab(
     // so Back unwinds the find first (a picker, the edit form, then the report) and only then the view.
     if (findOverViewVisible) {
         BackHandler(enabled = backEnabled) { unwindFindsSection() }
+    }
+    // Motion Part 3, item 1 (RECORD -651, Journal pages: "Slide in, slide back"; scout F3): it slides in from the right over the
+    // view and out to the right on Back, uncovering the view exactly as it was. While it comes in, nothing beneath takes a
+    // touch; while it goes, it takes none itself (SlideOverPage). As it goes it keeps showing the page it last showed (its find
+    // has closed by then), so it does not turn into the gallery on its way out.
+    val overViewPageHeld = remember { arrayOfNulls<FindsPage>(1) }
+    if (findOverViewVisible) overViewPageHeld[0] = findsPage
+    SlideOverPage(visible = findOverViewVisible) {
         Surface(modifier = Modifier.fillMaxSize().testTag(FIND_OVER_VIEW_TAG)) {
-            Column(modifier = Modifier.fillMaxSize()) { findsSection() }
+            Column(modifier = Modifier.fillMaxSize()) {
+                findsPages(if (findOverViewVisible) findsPage else overViewPageHeld[0] ?: FindsPage.Gallery, false)
+            }
         }
     }
     }
@@ -788,118 +912,8 @@ internal fun JournalTab(
     }
 }
 
-/**
- * The Entries | Records switch (journal redesign J2, T1; plan J1): one single-choice segmented
- * button. [JournalTab] draws it full width at the top in portrait; in a short window it sits at the
- * start of the L1 row ([ShortWindowJournalHeader], J5), sized to its labels. Extracted by J5 so the
- * two places draw one control with one set of tags.
- */
-@Composable
-internal fun JournalSwitch(selected: JournalTopTab, onSelect: (JournalTopTab) -> Unit, modifier: Modifier = Modifier) {
-    SingleChoiceSegmentedButtonRow(modifier = modifier.testTag(JOURNAL_SWITCH_TAG)) {
-        JournalTopTab.entries.forEachIndexed { index, tab ->
-            SegmentedButton(
-                selected = selected == tab,
-                onClick = { onSelect(tab) },
-                shape = SegmentedButtonDefaults.itemShape(index = index, count = JournalTopTab.entries.size),
-                modifier = Modifier.testTag(journalSwitchTestTag(tab)),
-                label = { Text(tab.switchLabel) },
-            )
-        }
-    }
-}
-
-/**
- * Which of the Journal's two tabs is selected — Cartography (Journal Stage 2b's new authored entity)
- * or Records (Stage 1, gained a fourth Finds submenu in 2b). Used by [JournalTab]; `internal`, not
- * `private`, since [JournalScreenState] holds it; declared once here rather than in each file, since Kotlin does
- * not allow two files in the same package to each declare a file-private top-level type of the same
- * name.
- */
-internal enum class JournalTopTab(
-    /** The on-screen label on [JournalTab]'s Entries | Records switch (J2, T1): CARTOGRAPHY reads "Entries" (plan J1). */
-    val switchLabel: String,
-) {
-    CARTOGRAPHY("Entries"),
-    RECORDS("Records"),
-}
-
 /** Entries timeline columns in compact portrait (J3, C4; plan J9). */
 private const val COMPACT_PORTRAIT_ENTRY_COLUMNS = 1
 
 /** Entries timeline columns in a short window, unchanged by J3 (stage J5 owns short windows). */
 private const val SHORT_WINDOW_ENTRY_COLUMNS = 2
-
-/** The row holding [JournalTab]'s Entries | Records switch. */
-internal const val JOURNAL_SWITCH_TAG = "journal-switch"
-
-/** One side of [JournalTab]'s Entries | Records switch: fixed strings, not enum names, so a rename cannot move a test's target. */
-internal fun journalSwitchTestTag(tab: JournalTopTab): String = when (tab) {
-    JournalTopTab.CARTOGRAPHY -> "journal-switch-entries"
-    JournalTopTab.RECORDS -> "journal-switch-records"
-}
-
-/**
- * Which screen [JournalTab]'s relocated Finds section shows for [MushroomLogUiState.editingEntry] —
- * "editing" is the accurate name for what that field means (see [MushroomLogViewModel]'s doc comment
- * on the persisted-draft model), but which of [LogEntryReportScreen]/[LogEntryDetailScreen] the
- * *user* sees for it depends on how they got there, tracked here rather than inferred from the
- * entry's own content (an entry with nothing recorded yet is a legitimate thing to view a report of
- * too, once the user backs out of editing it without filling anything in — REPORT stays correct for
- * that case where "does it have data" would not).
- */
-internal enum class JournalEntryMode { REPORT, EDIT }
-
-/**
- * A one-shot request to open a specific place inside the Journal destination, made from outside it
- * — Stage 2d's routing fix for the map "+" icon bar's "Log a find" flow. See [JournalTab]'s own doc
- * comment, "The map '+' routing bug," for the full trace and for why this is one small enum (not a
- * boolean, so a future caller wanting a different destination adds a case here rather than a second
- * flag) rather than a shared navigation abstraction. `internal`, not `private`: [JournalTab] consumes it,
- * and `AvailabilityScreen.kt` owns the single instance the map's "Log a find" closures set.
- */
-internal enum class PendingJournalDestination {
-    /** Land in Records → Finds, editing the entry [MushroomLogViewModel.onStartNewEntry] just created. */
-    EDIT_NEW_FIND,
-
-    /**
-     * M1: show the find the caller has just opened (`onOpenEntry`, with its id passed beside this) in
-     * its report, over whatever the Journal is showing, without changing the top tab or the Records
-     * chip; Back returns to them ([FindOverView]). The Maps tab's "Open in Journal".
-     */
-    VIEW_FIND,
-
-    /**
-     * J8-4: open the day entry whose id is passed beside this in its report, on Entries, the one
-     * top-tab change opening it requires (the saved Records chip is untouched). The Maps tab's "Open
-     * entry" (owner's Q1 ruling, "Open in Journal, prompt first"); [CartographyScreen]'s
-     * `openEntryRequest` asks first when another entry is open in its editor with unsaved changes.
-     */
-    VIEW_ENTRY,
-}
-
-/** The find shown over the Journal ([FindOverView]). */
-internal const val FIND_OVER_VIEW_TAG = "journal-find-over-view"
-
-/**
- * A find opened from a map bubble over whatever the Journal was showing (M1; continuation
- * `2026-09-28-30`: the owner's "Open find, Back returns" and "Open drawer to the find", and the
- * planner's ruling that the Maps route must not overwrite the saved Records filter). [findId] is the
- * find asked for; [shown] turns true once the ViewModel has opened it (opening is asynchronous,
- * `MushroomLogViewModel.onOpenEntry`), and the overlay then stays until no find is open any more
- * (Back, the report's own back arrow, a save or a delete), which leaves the view under it exactly as
- * it was: the same top tab, the same Records chip, the same day entry and its scroll.
- */
-internal data class FindOverView(val findId: String, val shown: Boolean = false)
-
-/**
- * [state] after the open find becomes [openFindId] (`MushroomLogUiState.editingEntry?.id`): shown
- * once the asked-for find is open, kept while any find stays open (starting an edit swaps the open
- * id to its draft row), and gone once none is. A request whose find never opened stays waiting.
- */
-internal fun nextFindOverView(state: FindOverView?, openFindId: String?): FindOverView? = when {
-    state == null -> null
-    !state.shown -> if (openFindId == state.findId) state.copy(shown = true) else state
-    openFindId == null -> null
-    else -> state
-}

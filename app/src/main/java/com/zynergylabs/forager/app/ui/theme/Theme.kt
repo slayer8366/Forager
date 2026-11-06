@@ -6,6 +6,7 @@ import androidx.compose.material3.MotionScheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
 import androidx.compose.runtime.Composable
+import com.zynergylabs.forager.app.ui.motion.ProvideReduceMotion
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.compositionLocalOf
 
@@ -76,12 +77,14 @@ internal val DarkColors = darkColorScheme(
     secondaryContainer = MushroomContainerDark,
     onSecondaryContainer = MushroomContainerLight,
 
-    // ForestGreen (used at this role before) is dark enough that as literal text color -- see the
-    // "not a walking route" disclaimer, the one place this role is used as a text color rather
-    // than a fill -- it read poorly against a background that's now neutral gray rather than warm
-    // brown. That reasoning stands; what changed is that the fix is no longer "reuse MossGreen,"
-    // which collided with `primary`. The cool third note comes from the map's own trip blue
-    // instead, lightened for this theme the same way the green is.
+    // ForestGreen (used at this role before) is dark enough that as literal text color it read
+    // poorly against a background that's now neutral gray rather than warm brown. It was judged on
+    // a "not a walking route" disclaimer that is no longer in the app (T19, RECORD -765; this
+    // comment corrected by T11 fixes, RECORD -766). The role is still read as text: it is the
+    // Tracks accent in RecordTypeStyle, drawn as the Journal's stat text and chip labels. That
+    // reasoning stands; what changed is that the fix is no longer "reuse MossGreen," which
+    // collided with `primary`. The cool third note comes from the map's own trip blue instead,
+    // lightened for this theme the same way the green is.
     tertiary = TrailBlueLight,
     onTertiary = TrailBlueOnContainerLight,
     tertiaryContainer = TrailBlueContainerDark,
@@ -139,22 +142,30 @@ fun ForagerTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     content: @Composable () -> Unit,
 ) {
-    val colorScheme = if (darkTheme) DarkColors else LightColors
-    CompositionLocalProvider(LocalForagerDarkTheme provides darkTheme) {
-        MaterialExpressiveTheme(
-            colorScheme = colorScheme,
-            typography = ForagerTypography,
-            shapes = ForagerShapes,
-            motionScheme = ForagerMotionScheme,
-            content = content,
-        )
+    // Dispatch 2026-09-28-652, item 1: the phone's reduce-motion setting, provided here because this is the app's one
+    // theme root (MainActivity's only one), so every screen reads it without asking. See ProvideReduceMotion.
+    ProvideReduceMotion {
+        // Motion Part 3, item 4 (RECORD -651, "Fade the colours"; RECORD -652, "fast and smooth"): a change of night mode fades
+        // the screen quickly from the old colours to the new, or changes at once under reduced motion. Since RECORD -752 the
+        // scheme switches once, under a fading picture of the old screen, rather than blending every frame (ColorSchemeFade.kt).
+        NightModeBlend(darkTheme) { shownDark ->
+            CompositionLocalProvider(LocalForagerDarkTheme provides shownDark) {
+                MaterialExpressiveTheme(
+                    colorScheme = if (shownDark) DarkColors else LightColors,
+                    typography = ForagerTypography,
+                    shapes = ForagerShapes,
+                    motionScheme = ForagerMotionScheme,
+                    content = content,
+                )
+            }
+        }
     }
 }
 
 /**
  * The [darkTheme] a [ForagerTheme] ancestor actually resolved to — for the handful of call sites
  * across the map screen (`MapIconBar`'s accent colors, the map icon stack's own surface color, the
- * compass strip, `MapModePicker`, `MapFloatingIconButton`, `AddActionTile`) that pick a color by
+ * compass strip, `MapModePicker` (removed 2026-10-19, RECORD -1392), `MapFloatingIconButton` (removed 2026-10-19, RECORD -1392), `AddActionTile`) that pick a color by
  * light/dark theme but sit too far below [AvailabilityUiState.darkTheme] in the composable tree —
  * several calls deep through `MapIconBar`/`CompactMapTab`/`MapTab` — to take it as a parameter
  * without threading it through every intermediate signature. Calling [isSystemInDarkTheme] directly

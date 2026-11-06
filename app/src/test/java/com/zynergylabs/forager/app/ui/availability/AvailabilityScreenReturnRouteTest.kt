@@ -33,6 +33,7 @@ import com.zynergylabs.forager.app.domain.CompassReading
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeclinationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.HeadingUncertainty
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -90,7 +91,7 @@ class AvailabilityScreenReturnRouteTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private val t = 1_700_000_000_000L
-    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = t)
+    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 12.5f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val start = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private val east = LatLng(45.52, -122.679)
 
@@ -106,40 +107,50 @@ class AvailabilityScreenReturnRouteTest {
         route = initial
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = true,
-                isReturning = true,
-                navigationTarget = start,
-                returnRoute = route,
-                onRetryRoute = { retries++ },
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                ),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = true,
+                    navigationTarget = start,
+                    returnRoute = route,
+                    onRetryRoute = { retries++ },
+                ),
                 compassProvider = FixedCompass(45f),
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { t + 1_000L },
                 mapSlot = map,
-                onUseCurrentLocation = {},
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
             )
         }
         composeRule.waitForIdle()
@@ -155,8 +166,9 @@ class AvailabilityScreenReturnRouteTest {
         setScreen(ReturnRoute.Ahead(east, 1_500.0))
 
         assertEquals("0.9 mi", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("Straight line 0.7 mi", textOfTag(NAVIGATION_HUD_STATUS_TAG))
-        assertEquals("Turn 45°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        // RECORD -942: on the route there is no straight-line note. Was "0.7 mi straight".
+        assertEquals("", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("right 45°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     @Test
@@ -164,7 +176,7 @@ class AvailabilityScreenReturnRouteTest {
         setScreen(ReturnRoute.Pending)
 
         assertEquals("—", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("Straight line 0.7 mi", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("0.7 mi straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
@@ -173,34 +185,36 @@ class AvailabilityScreenReturnRouteTest {
         setScreen(ReturnRoute.Unavailable(canRetry = false))
 
         assertEquals("Unable to calculate route", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("Straight line 0.7 mi", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        assertEquals("0.7 mi straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     /**
-     * The HUD is the same height on the route, pending, and withheld with no usable points; only
-     * with "Try again" offered is it taller, by the "Try again" row (the owner's choice, "Own line
-     * under it"). No new surface either way: the map-chrome fill at 80% is the HUD's existing one
-     * (`MapChromeAlphaTest`).
+     * The HUD is the same height on the route and pending. Dispatch 2026-10-12-06 (RECORD -932, step 3; RECORD -935): a withheld
+     * route's message has moved from the large slot to its own line under the columns, so withheld with no usable points the HUD
+     * is taller by that one line, and with "Try again" offered by "Try again"'s row, laid out at its 48 dp touch height, beside
+     * the message. Was: "the HUD is one row taller only while Try again is offered", withheld with no usable points the same
+     * height as on the route. No new surface either way: the map-chrome fill at 80% is the HUD's existing one.
      */
     @Test
-    fun `the HUD is one row taller only while Try again is offered`() {
+    fun `the HUD grows by the route message's line when a route is withheld, and by Try again's row when it is offered`() {
         setScreen(ReturnRoute.Ahead(east, 1_500.0))
         val onRoute = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
-        listOf(ReturnRoute.Pending, ReturnRoute.Unavailable(canRetry = false)).forEach { state ->
-            composeRule.runOnIdle { route = state }
-            composeRule.waitForIdle()
-            val h = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
-            assertEquals("the HUD's height with $state", onRoute.value, h.value, 0.5f)
-        }
+        composeRule.runOnIdle { route = ReturnRoute.Pending }
+        composeRule.waitForIdle()
+        assertEquals("pending, the HUD's height is the route's", onRoute.value, boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }.value, 0.5f)
+        composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = false) }
+        composeRule.waitForIdle()
+        val withheld = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
+        val message = boundsOf(NAVIGATION_HUD_DISTANCE_TAG)
+        val line = message.bottom - message.top
+        assertTrue("taller by the message's line, no more: $withheld against $onRoute, line $line", withheld > onRoute + 0.5.dp && withheld <= onRoute + line + 0.5.dp)
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
         composeRule.waitForIdle()
         val taller = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
         val row = boundsOf(NAVIGATION_HUD_RETRY_TAG).let { it.bottom - it.top }
-        // Taller, and by no more than the row: the top row is already 48 dp tall for the exit
-        // button, so part of the row fits in height the HUD had (measured: 40 dp taller, row 48 dp).
-        assertTrue("taller with Try again: $taller against $onRoute", taller > onRoute + 0.5.dp)
-        assertTrue("taller by no more than the row ($row): $taller against $onRoute", taller <= onRoute + row + 0.5.dp)
+        assertTrue("taller with Try again: $taller against $withheld", taller > withheld + 0.5.dp)
+        assertTrue("taller by no more than the row ($row) over the route's height: $taller against $onRoute", taller <= onRoute + row + 0.5.dp)
     }
 
     /**

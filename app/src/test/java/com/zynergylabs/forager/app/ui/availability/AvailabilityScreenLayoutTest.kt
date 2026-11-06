@@ -10,6 +10,8 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -19,6 +21,9 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.click
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
@@ -34,6 +39,8 @@ import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.SoilAvailability
+import com.zynergylabs.forager.app.domain.model.RainEvent
+import com.zynergylabs.forager.app.domain.model.TripWindow
 import com.zynergylabs.forager.app.domain.model.TripWindowReport
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.time.LocalDate
@@ -51,6 +58,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.Shadows
 import org.robolectric.annotation.Config
+import com.zynergylabs.forager.app.ui.format.displayDate
 
 /**
  * Measured layout invariants for [AvailabilityScreen], run headlessly on the JVM.
@@ -147,7 +155,7 @@ private const val MAP_SLOT_TAG = "map-slot"
  */
 private const val MIN_MAP_SHARE_OF_SCREEN = 0.33f
 
-private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
 private fun sighting(index: Int) = Sighting(
     observationId = index.toLong(),
@@ -169,6 +177,45 @@ private val SEARCHED_STATE = AvailabilityUiState(
     // Fixed explicitly — this file's assertions are hardcoded to "15 km" and "12.4mm" text, so it
     // must not drift with the default this field carries; the imperial rainfall case below opts in.
     unitSystem = UnitSystem.METRIC,
+)
+
+/**
+ * One window carrying a soil temperature, for the units-follow tests (dispatch 2026-09-28-549).
+ * Only the soil temperature is the subject; the other measurements are left null so their rows
+ * do not render.
+ */
+private val TRIP_WINDOW_REPORT_ONE_WINDOW = TripWindowReport(
+    region = REGION,
+    referenceDay = LocalDate.of(2025, 8, 14),
+    horizonEnd = LocalDate.of(2025, 8, 21),
+    rainEvents = emptyList(),
+    windows = listOf(
+        TripWindow(
+            startDate = LocalDate.of(2025, 8, 16),
+            endDate = LocalDate.of(2025, 8, 18),
+            precedingRainEvents = listOf(RainEvent(LocalDate.of(2025, 8, 5), LocalDate.of(2025, 8, 6), totalMm = 30.0, isForecast = false)),
+            daysAfterMostRecentRainAtStart = 10,
+            daysAfterMostRecentRainAtEnd = 12,
+            meanShallowSoilMoistureM3M3 = null,
+            meanDeeperSoilMoistureM3M3 = null,
+            meanSoilTemperatureC = 11.3,
+            minSoilTemperatureC = null,
+            maxSoilTemperatureC = null,
+            evapotranspirationSinceRainMm = null,
+            precipitationDuringWindowMm = 0.0,
+        ),
+    ),
+    noWindowReason = null,
+    soilAvailability = SoilAvailability(
+        shallowMoistureBand = null,
+        deeperMoistureBand = null,
+        temperatureBand = null,
+    ),
+)
+
+/** [TRIP_WINDOW_REPORT_ONE_WINDOW] with a soil moisture reading (data part C). */
+private val TRIP_WINDOW_REPORT_WITH_MOISTURE = TRIP_WINDOW_REPORT_ONE_WINDOW.copy(
+    windows = TRIP_WINDOW_REPORT_ONE_WINDOW.windows.map { it.copy(meanShallowSoilMoistureM3M3 = 0.27) },
 )
 
 private val CONDITIONS = ConditionsSummary(
@@ -223,6 +270,7 @@ abstract class AvailabilityScreenLayoutTest {
     private fun setScreen(
         uiState: AvailabilityUiState,
         onUseCurrentLocation: () -> Unit = {},
+        onSearchManualCoordinates: () -> Unit = {},
         // Navigation HUD stage one: a State so a test can open the HUD mid-composition and
         // measure the map before and after, in one setContent.
         isReturning: State<Boolean> = mutableStateOf(false),
@@ -231,33 +279,43 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.setContent {
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = onUseCurrentLocation,
-                isRecording = isReturning.value,
-                isReturning = isReturning.value,
-                navigationTarget = navigationTarget,
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                recording = AvailabilityScreenRecording(
+                    isRecording = isReturning.value,
+                ),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = isReturning.value,
+                    navigationTarget = navigationTarget,
+                ),
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = onUseCurrentLocation,
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = onSearchManualCoordinates,
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
                 mapSlot = StubMapSlot,
             )
         }
@@ -429,7 +487,8 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.runOnUiThread { returning.value = true }
         composeRule.waitForIdle()
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
-        composeRule.onNodeWithTag("compass-elevation-strip").assertDoesNotExist()
+        // Dispatch 2026-10-12-08 (RECORD -950): the strip stays while navigating. Was assertDoesNotExist().
+        composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
         val heightOpen = mapSlotBounds().height
         println("MEASURED heightClosed=$heightClosed heightOpen=$heightOpen")
         assertTrue(
@@ -441,7 +500,8 @@ abstract class AvailabilityScreenLayoutTest {
 
         composeRule.onNodeWithContentDescription("Fullscreen").performClick()
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
-        composeRule.onNodeWithTag("compass-elevation-strip").assertDoesNotExist()
+        // Dispatch 2026-10-12-08 (RECORD -950): the strip stays while navigating. Was assertDoesNotExist().
+        composeRule.onNodeWithTag("compass-elevation-strip").assertIsDisplayed()
         val heightFullscreen = mapSlotBounds().height
         assertTrue(
             "…and fullscreen with the HUD open must not change it either: $heightOpen vs $heightFullscreen.",
@@ -585,8 +645,12 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithText("Seasonal").performClick()
 
         composeRule.onNodeWithText("Current Conditions").assertIsDisplayed()
-        composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertIsDisplayed()
-        composeRule.onNodeWithText("2 days since last rain.").assertIsDisplayed()
+        // Data part C (dispatch -668): a labelled table, not sentences. Each row is one merged node,
+        // so its label and its value are found on the same node. The last rain is 2 days before the
+        // newest observed day, which is yesterday, so 3 days ago (it used to read "2 days since last
+        // rain.").
+        composeRule.onNode(hasText("Rain, last 14 days") and hasText("12.4mm")).assertIsDisplayed()
+        composeRule.onNode(hasText("Last rainy day") and hasText("3 days ago")).assertIsDisplayed()
     }
 
     /**
@@ -599,8 +663,8 @@ abstract class AvailabilityScreenLayoutTest {
 
         composeRule.onNodeWithText("Seasonal").performClick()
 
-        composeRule.onNodeWithText("0.5 in of rain in the last 14 days").assertIsDisplayed()
-        composeRule.onNodeWithText("12.4mm of rain in the last 14 days").assertDoesNotExist()
+        composeRule.onNode(hasText("Rain, last 14 days") and hasText("0.5 in")).assertIsDisplayed()
+        composeRule.onNodeWithText("12.4mm").assertDoesNotExist()
     }
 
     /** The screen's own half of the gate: no conditions in state, no card in the tree. */
@@ -650,17 +714,63 @@ abstract class AvailabilityScreenLayoutTest {
         openToolsDrawer()
         composeRule.onNodeWithText("Trip Planner").performClick()
 
-        // Scrolled to the guidance heading below both assertions, not to "Trip Windows" itself:
-        // performScrollTo() bottom-aligns its target flush with the scrollable viewport's edge, and
-        // the whole card is short enough to fit the viewport once scrolled this far — so anchoring
-        // on the last piece brings the earlier two into view with clearance instead of flush against
-        // the boundary, which at this fontScale is exactly where "Trip Windows" itself would land.
-        composeRule.onNodeWithText("Rain and fungi: the general pattern").performScrollTo()
-
-        composeRule.onNodeWithText("Trip Windows").assertIsDisplayed()
+        // Scrolled to the card's last piece, not to "Trip Windows" itself: performScrollTo()
+        // bottom-aligns its target flush with the scrollable viewport's edge, so anchoring on the last
+        // piece brings the title into view with clearance. That last piece was the guidance heading
+        // until RECORD -727 removed the guidance; the card now ends at its measurements line.
         composeRule.onNodeWithText(
             "No forecast days were returned for this location, so there's nothing to plan against.",
-        ).assertIsDisplayed()
+        ).performScrollTo().assertIsDisplayed()
+
+        composeRule.onNodeWithText("Trip Windows").performScrollTo().assertIsDisplayed()
+    }
+
+    /**
+     * Dispatch 2026-09-28-549: under Imperial (US) the window's soil temperature reads in °F to one
+     * decimal (11.3 °C × 9/5 + 32 = 52.34). The guidance band it also read (10–20 °C = 50–68 °F) went
+     * with the guidance text (RECORD -727), and that assertion with it. Driven through the real drawer
+     * as the test above is; the metric strings are the next test.
+     */
+    @Test
+    fun `under the imperial setting the trip window's soil temperature reads in Fahrenheit`() {
+        setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_ONE_WINDOW, unitSystem = UnitSystem.IMPERIAL))
+
+        openToolsDrawer()
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNode(hasText("Soil temperature") and hasText("52.3°F")).performScrollTo().assertIsDisplayed()
+        composeRule.onAllNodesWithText("°C", substring = true).assertCountEquals(0)
+    }
+
+    /** The metric half: the same window reads exactly as before (its guidance band went with RECORD -727). */
+    @Test
+    fun `under the metric setting the trip window's soil temperature reads as before`() {
+        setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_ONE_WINDOW))
+
+        openToolsDrawer()
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNode(hasText("Soil temperature") and hasText("11.3°C")).performScrollTo().assertIsDisplayed()
+    }
+
+    /**
+     * Data part C (dispatch -668): a trip window reads as dated rows. Its dates are "Aug 16, 2025"
+     * (owner, RECORD -656), and its soil moisture is the plain scale with the figure under it: 0.27
+     * m³/m³ sits between the proposed Dry (below 0.15) and Wet (0.30 and up) thresholds, so Moist.
+     * The scale is read to TalkBack as one phrase, which is what is asserted.
+     */
+    @Test
+    fun `a trip window shows its dates as Aug 16, 2025, its rain and soil as labelled rows, and soil moisture on the plain scale`() {
+        setScreen(SEARCHED_STATE.copy(tripWindowReport = TRIP_WINDOW_REPORT_WITH_MOISTURE))
+
+        openToolsDrawer()
+        composeRule.onNodeWithText("Trip Planner").performClick()
+
+        composeRule.onNodeWithText("Aug 16, 2025 – Aug 18, 2025").performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("Days after rain") and hasText("10–12")).performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("Last soaking rain") and hasText("30mm, ended Aug 6, 2025")).performScrollTo().assertIsDisplayed()
+        composeRule.onNode(hasText("Soil moisture") and hasContentDescription("Moist, 0.27 m³/m³")).performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("Shallow soil moisture", substring = true).assertDoesNotExist()
     }
 
     /**
@@ -696,60 +806,69 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * **Test 5 — the manual coordinates are open on the search bar's tap** (owner, 2026-09-28,
-     * continuation 2026-09-28-40: "Also open manual coordinates", reversing the earlier rule that
-     * "Enter coordinates manually" was the one control still gated behind Advanced search).
+     * **Test 5 — the coordinates are the first thing the search bar's tap shows** (owner, 2026-09-28,
+     * continuation 2026-09-28-40: "Also open manual coordinates"; dispatch 2026-09-28-697 put them
+     * first and removed the folds around them: "Manual can go at the top", "remove the drop down
+     * functions for the advanced search").
      *
-     * The bar's tap opens [SearchDropdown] with "Advanced search" and "Enter coordinates manually"
-     * both expanded, and where the fields do not fit, scrolls the dropdown once so they show
-     * (continuation 2026-09-28-41, "Expand and auto-scroll"). So "Search this location" is asserted
-     * displayed with no header tapped and no `performScrollTo()` in the test, on every
-     * configuration this class runs under, the 2x font scale included.
+     * Latitude and Longitude are asserted displayed with no header tapped and no `performScrollTo()`,
+     * on every configuration this class runs under, the 2x font scale included, and the two folds
+     * that used to hold them are asserted gone.
      */
     @Test
-    fun `the search bar's tap opens the manual coordinates, and Search this location shows without scrolling`() {
+    fun `the search bar's tap shows the coordinates first, with no fold, without scrolling`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Collapse Advanced search").assertExists()
-        composeRule.onNodeWithContentDescription("Collapse Enter coordinates manually").assertExists()
-        composeRule.onNodeWithText("Search this location").assertIsDisplayed()
+        composeRule.onNodeWithText("Latitude").assertIsDisplayed()
+        composeRule.onNodeWithText("Longitude").assertIsDisplayed()
+        composeRule.onAllNodesWithText("Advanced search").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Enter coordinates manually").assertCountEquals(0)
     }
 
     /**
-     * Radius, month, and — as of the map/navigation search-UI redo dispatch — the Location row
-     * ("Set on map"/"Use current location") all now live at [SearchDropdown]'s own top level.
-     * Unlike manual coordinates (the test above), these must be reachable *without* expanding
-     * "Advanced search" at all, which is the whole point of promoting them; asserting them in the
-     * same test as the still-nested "Search this location" wouldn't actually prove that.
-     * "Set on map"/"Use current location" are asserted once each with Advanced search expanded —
-     * moved, not duplicated. Since continuation 2026-09-28-40 the bar's tap opens Advanced search
-     * already expanded, so the count is taken without tapping its header (a tap would collapse it).
+     * Dispatch 2026-09-28-697's order, top to bottom: the coordinates with "Search coordinates" under
+     * them (RECORD -700: "Small button under the fields"), Month, Search radius, Recent
+     * searches, then Set on map and Search side by side, Set on map on the left (owner: "the slider
+     * should go below the month selection. Recent search below the slider", "The set on map and
+     * search button where the "Search this location" button is now", "Search on the right, set on
+     * map on the left"). Asserted by position, each from its laid-out bounds, not by tree order.
+     * "Use current location" and "Search this location" are asserted gone; Set on map appears once.
      */
     @Test
-    fun `search radius, month, and the location row are reachable after the bar's tap beside the expanded Advanced search, not duplicated in it`() {
+    fun `the search dropdown runs coordinates, Search coordinates, Month, Search radius, Recent searches, then Set on map left of Search`() {
         setScreen(SEARCHED_STATE)
 
         openSearchDropdown()
+        composeRule.waitForIdle()
 
+        fun top(node: androidx.compose.ui.test.SemanticsNodeInteraction) = node.getUnclippedBoundsInRoot().top
+        val latitude = composeRule.onNodeWithTag(SEARCH_DROPDOWN_LATITUDE_TAG).getUnclippedBoundsInRoot()
+        val longitude = composeRule.onNodeWithTag(SEARCH_DROPDOWN_LONGITUDE_TAG).getUnclippedBoundsInRoot()
         // 8 km, not SEARCHED_STATE's own REGION.radiusKm (15) -- this text reads uiState.radiusKm,
-        // the slider's own current value, a separate field from the region that actually got
-        // searched (SEARCHED_STATE leaves it at AvailabilityUiState's own default, 8).
-        listOf(
-            "Set on map",
-            "Use current location",
-            "Search radius: 8 km",
-            "Month",
-        ).forEach { label ->
-            composeRule.onNodeWithText(label).performScrollTo().assertIsDisplayed()
-        }
-        composeRule.onNodeWithText("Advanced search").performScrollTo().assertIsDisplayed()
+        // the slider's own current value (AvailabilityUiState's default, 8).
+        val searchCoordinates = composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).getUnclippedBoundsInRoot()
+        val month = top(composeRule.onNodeWithText("Month"))
+        val radius = top(composeRule.onNodeWithText("Search radius: 8 km"))
+        val recent = top(composeRule.onNodeWithText("Recent searches"))
+        val setOnMap = composeRule.onNodeWithTag(SEARCH_DROPDOWN_SET_ON_MAP_TAG).getUnclippedBoundsInRoot()
+        val search = composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_TAG).getUnclippedBoundsInRoot()
 
-        composeRule.onNodeWithContentDescription("Collapse Advanced search").assertExists()
+        assertEquals("Latitude and Longitude share the first row", latitude.top.value, longitude.top.value, 0.5f)
+        assertTrue("Latitude is left of Longitude", latitude.right <= longitude.left)
+        assertTrue("Search coordinates (${searchCoordinates.top}) is under the coordinates (${latitude.bottom})", searchCoordinates.top >= latitude.bottom)
+        assertTrue("Month ($month) is below Search coordinates (${searchCoordinates.bottom})", month >= searchCoordinates.bottom)
+        assertTrue("Search radius ($radius) is below Month ($month)", radius > month)
+        assertTrue("Recent searches ($recent) is below Search radius ($radius)", recent > radius)
+        assertTrue("the bottom row (${setOnMap.top}) is below Recent searches ($recent)", setOnMap.top > recent)
+        assertEquals("Set on map and Search share the bottom row", setOnMap.top.value, search.top.value, 0.5f)
+        assertTrue("Set on map (${setOnMap.right}) is left of Search (${search.left})", setOnMap.right <= search.left)
+
         composeRule.onAllNodesWithText("Set on map").assertCountEquals(1)
-        composeRule.onAllNodesWithText("Use current location").assertCountEquals(1)
+        composeRule.onAllNodesWithText("Use current location").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Search this location").assertCountEquals(0)
     }
 
     /**
@@ -798,7 +917,7 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithContentDescription("Directions to ${trip.name}")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Remove planned trip for ${trip.date}")
+        composeRule.onNodeWithContentDescription("Remove planned trip for ${displayDate(trip.date!!)}")
             .performScrollTo()
             .assertIsDisplayed()
     }
@@ -851,28 +970,102 @@ abstract class AvailabilityScreenLayoutTest {
     }
 
     /**
-     * "Use current location" in the drawer's promoted Location row — map/navigation search-UI
-     * redo dispatch. This used to be a shortcut icon on the species search field itself (see this
-     * test's prior version); that icon is gone now ([SearchEntryBar] passes
-     * `showLocationTrailingIcon = false` to match the reference bar exactly, which shows nothing
-     * but the magnifying glass and the text), and "Use current location" is a first-class,
-     * promoted action in the drawer instead. Still has to call the same
-     * [AvailabilityScreen.onUseCurrentLocation] callback [RegionControls]' own button calls
-     * (inside that same dropdown's nested "Advanced search" section) — not a second location-fetch
-     * path — which this proves by wiring a recorder into that single callback.
+     * Where a real touch lands, as fractions of a target's width and height: its centre and four points
+     * towards its corners. A finger is not a point (CLAUDE.md, Testing): one centre touch would miss a
+     * region of the button that something else covers.
      */
-    @Test
-    fun `the drawer's Use current location button calls onUseCurrentLocation`() {
-        var callCount = 0
-        setScreen(SEARCHED_STATE, onUseCurrentLocation = { callCount++ })
+    private val touchSamples = listOf(0.5f to 0.5f, 0.15f to 0.25f, 0.85f to 0.25f, 0.15f to 0.75f, 0.85f to 0.75f)
 
-        openSearchDropdown()
-        // Continuation 2026-09-28-42: where the manual coordinates do not fit (2x font), the bar's
-        // tap scrolls the dropdown to them, so scroll back up to the button first, as a user would.
-        composeRule.onNodeWithText("Use current location").performScrollTo().performClick()
-
-        assertTrue("onUseCurrentLocation should have been called exactly once", callCount == 1)
+    /** A real touch, at screen coordinates, on the node tagged [tag] at ([fx], [fy]) of its own bounds, after scrolling it into view. */
+    private fun touchTagged(tag: String, fx: Float, fy: Float) {
+        composeRule.onNodeWithTag(tag).performScrollTo()
+        composeRule.waitForIdle()
+        val b = composeRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
+        val at = androidx.compose.ui.geometry.Offset(b.left + b.width * fx, b.top + b.height * fy)
+        composeRule.onAllNodes(androidx.compose.ui.test.isRoot()).onFirst().performTouchInput { click(at) }
+        composeRule.waitForIdle()
     }
+
+    // One touch per test, each on a fresh screen. This class's window is out of touch mode (Robolectric's start; it sets no
+    // touch mode), where the close's clearFocus hands focus straight back to the search field, so a second tap on the field
+    // in the same test opens nothing (measured at the build, RECORD -717; it is the window's mode, not the button: Back does
+    // the same there). In touch mode, as with a finger, the bar reopens after every button: SearchDropdownReopenTest.
+
+    /**
+     * RECORD -700, the owner: "Search is the same as "Use current location" just renamed and relocated."
+     * Search, on the right of the bottom row, calls the one [AvailabilityScreen] callback "Use current
+     * location" called, `onUseCurrentLocation` (permission, one fix, the fields written, a search; see
+     * MainActivity), and never the typed-coordinates search. A real touch at screen coordinates at sample [i]
+     * of [touchSamples]; it must reach Search and close the dropdown.
+     */
+    private fun checkSearchTouch(i: Int) {
+        val (fx, fy) = touchSamples[i]
+        var currentLocation = 0
+        var coordinateSearches = 0
+        setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { coordinateSearches++ })
+        openSearchDropdown()
+        composeRule.waitForIdle()
+        touchTagged(SEARCH_DROPDOWN_SEARCH_TAG, fx, fy)
+        assertEquals("a touch at ($fx, $fy) of Search ran the current-location path", 1, currentLocation)
+        assertEquals("Search never runs the typed-coordinates search", 0, coordinateSearches)
+        composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
+    }
+
+    @Test fun `a real touch at the centre of Search runs the current-location path`() = checkSearchTouch(0)
+    @Test fun `a real touch at Search's upper left runs the current-location path`() = checkSearchTouch(1)
+    @Test fun `a real touch at Search's upper right runs the current-location path`() = checkSearchTouch(2)
+    @Test fun `a real touch at Search's lower left runs the current-location path`() = checkSearchTouch(3)
+    @Test fun `a real touch at Search's lower right runs the current-location path`() = checkSearchTouch(4)
+
+    /**
+     * RECORD -700, the owner on typed coordinates: "Small button under the fields". "Search coordinates"
+     * calls `onSearchManualCoordinates`, the path "Search this location" called, and never the
+     * current-location path. A real touch at sample [i] of [touchSamples].
+     */
+    private fun checkSearchCoordinatesTouch(i: Int) {
+        val (fx, fy) = touchSamples[i]
+        var currentLocation = 0
+        var coordinateSearches = 0
+        setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { coordinateSearches++ })
+        openSearchDropdown()
+        composeRule.waitForIdle()
+        touchTagged(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG, fx, fy)
+        assertEquals("a touch at ($fx, $fy) of Search coordinates ran the coordinate search", 1, coordinateSearches)
+        assertEquals("Search coordinates never runs the current-location path", 0, currentLocation)
+        composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
+    }
+
+    @Test fun `a real touch at the centre of Search coordinates runs the coordinate search`() = checkSearchCoordinatesTouch(0)
+    @Test fun `a real touch at Search coordinates' upper left runs the coordinate search`() = checkSearchCoordinatesTouch(1)
+    @Test fun `a real touch at Search coordinates' upper right runs the coordinate search`() = checkSearchCoordinatesTouch(2)
+    @Test fun `a real touch at Search coordinates' lower left runs the coordinate search`() = checkSearchCoordinatesTouch(3)
+    @Test fun `a real touch at Search coordinates' lower right runs the coordinate search`() = checkSearchCoordinatesTouch(4)
+
+    /**
+     * Set on map, on the left of the bottom row, keeps its behaviour (dispatch 2026-09-28-697: "Keep
+     * everything that works today ... Set on map's behaviour"): the dropdown closes and the centre-pin
+     * picker's OK and Cancel come up over the map. A real touch at sample [i] of [touchSamples].
+     */
+    private fun checkSetOnMapTouch(i: Int) {
+        val (fx, fy) = touchSamples[i]
+        var searches = 0
+        var currentLocation = 0
+        setScreen(SEARCHED_STATE, onUseCurrentLocation = { currentLocation++ }, onSearchManualCoordinates = { searches++ })
+        openSearchDropdown()
+        composeRule.waitForIdle()
+        touchTagged(SEARCH_DROPDOWN_SET_ON_MAP_TAG, fx, fy)
+        composeRule.onAllNodesWithTag(SEARCH_DROPDOWN_TAG).assertCountEquals(0)
+        composeRule.onNodeWithText("OK").assertIsDisplayed()
+        composeRule.onNodeWithText("Cancel").assertIsDisplayed()
+        assertEquals("a touch at ($fx, $fy) of Set on map ran no coordinate search", 0, searches)
+        assertEquals("a touch at ($fx, $fy) of Set on map ran no current-location search", 0, currentLocation)
+    }
+
+    @Test fun `a real touch at the centre of Set on map opens the centre-pin picker`() = checkSetOnMapTouch(0)
+    @Test fun `a real touch at Set on map's upper left opens the centre-pin picker`() = checkSetOnMapTouch(1)
+    @Test fun `a real touch at Set on map's upper right opens the centre-pin picker`() = checkSetOnMapTouch(2)
+    @Test fun `a real touch at Set on map's lower left opens the centre-pin picker`() = checkSetOnMapTouch(3)
+    @Test fun `a real touch at Set on map's lower right opens the centre-pin picker`() = checkSetOnMapTouch(4)
 }
 
 /**

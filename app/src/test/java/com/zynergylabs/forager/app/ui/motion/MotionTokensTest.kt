@@ -55,17 +55,20 @@ class MotionTokensTest {
     private lateinit var feedback: FiniteAnimationSpec<Float>
     private lateinit var panel: FiniteAnimationSpec<Float>
     private lateinit var navigation: FiniteAnimationSpec<Float>
-    private lateinit var markerEntrance: FiniteAnimationSpec<Float>
-    private lateinit var selectionPulse: FiniteAnimationSpec<Float>
-    private lateinit var narrativeReveal: FiniteAnimationSpec<Float>
-    private lateinit var routeMorph: FiniteAnimationSpec<Float>
-    private lateinit var dataLayerOverlay: FiniteAnimationSpec<Float>
+    private lateinit var tabCrossfade: FiniteAnimationSpec<Float>
+    private lateinit var mapPopUpFade: FiniteAnimationSpec<Float>
+    private lateinit var mapPopUpGrow: FiniteAnimationSpec<Float>
+    private lateinit var navigationViewChrome: FiniteAnimationSpec<Float>
+    private lateinit var wordSwap: FiniteAnimationSpec<Float>
+    private lateinit var pageSlide: FiniteAnimationSpec<Float>
+    private lateinit var listRow: FiniteAnimationSpec<Float>
+    private lateinit var nightModeFade: FiniteAnimationSpec<Float>
+    private lateinit var schemeFastEffects: FiniteAnimationSpec<Float>
 
     private lateinit var schemeDefaultSpatial: FiniteAnimationSpec<Float>
     private lateinit var schemeFastSpatial: FiniteAnimationSpec<Float>
     private lateinit var schemeSlowSpatial: FiniteAnimationSpec<Float>
     private lateinit var schemeDefaultEffects: FiniteAnimationSpec<Float>
-    private lateinit var schemeSlowEffects: FiniteAnimationSpec<Float>
 
     @Before
     fun resolveAllSpecsInsideForagerTheme() {
@@ -74,24 +77,28 @@ class MotionTokensTest {
                 feedback = MotionTokens.feedbackMotionSpec()
                 panel = MotionTokens.panelMotionSpec()
                 navigation = MotionTokens.navigationMotionSpec()
-                markerEntrance = MotionTokens.markerEntranceSpec()
-                selectionPulse = MotionTokens.selectionPulseSpec()
-                narrativeReveal = MotionTokens.narrativeRevealSpec()
-                routeMorph = MotionTokens.routeRecalculationMorphSpec()
-                dataLayerOverlay = MotionTokens.dataLayerOverlaySpec()
+                tabCrossfade = MotionTokens.tabCrossfadeSpec()
+                mapPopUpFade = MotionTokens.mapPopUpFadeSpec()
+                mapPopUpGrow = MotionTokens.mapPopUpGrowSpec()
+                navigationViewChrome = MotionTokens.navigationViewChromeSpec()
+                wordSwap = MotionTokens.wordSwapSpec()
+                pageSlide = MotionTokens.pageSlideSpec()
+                listRow = MotionTokens.listRowSpec()
+                // Read above the theme in production, from the scheme the theme provides: the same scheme here.
+                nightModeFade = MotionTokens.nightModeFadeSpec(MaterialTheme.motionScheme)
+                schemeFastEffects = MaterialTheme.motionScheme.fastEffectsSpec()
 
                 schemeDefaultSpatial = MaterialTheme.motionScheme.defaultSpatialSpec()
                 schemeFastSpatial = MaterialTheme.motionScheme.fastSpatialSpec()
                 schemeSlowSpatial = MaterialTheme.motionScheme.slowSpatialSpec()
                 schemeDefaultEffects = MaterialTheme.motionScheme.defaultEffectsSpec()
-                schemeSlowEffects = MaterialTheme.motionScheme.slowEffectsSpec()
             }
         }
         composeRule.waitForIdle()
     }
 
     private fun allExposedSpecs() = listOf(
-        feedback, panel, navigation, markerEntrance, selectionPulse, narrativeReveal, routeMorph, dataLayerOverlay,
+        feedback, panel, navigation, tabCrossfade, mapPopUpFade, mapPopUpGrow, wordSwap, pageSlide, listRow, nightModeFade,
     )
 
     /** Every exposed spec must actually be a spring at runtime before its damping ratio means anything. */
@@ -127,36 +134,11 @@ class MotionTokensTest {
     }
 
     @Test
-    fun `marker entrance maps to defaultSpatialSpec`() {
-        assertEquals(schemeDefaultSpatial.assertIsSpringAndReturnIt(), markerEntrance.assertIsSpringAndReturnIt())
-    }
-
-    @Test
-    fun `selection pulse maps to slowSpatialSpec`() {
-        assertEquals(schemeSlowSpatial.assertIsSpringAndReturnIt(), selectionPulse.assertIsSpringAndReturnIt())
-    }
-
-    @Test
-    fun `narrative reveal maps to slowEffectsSpec`() {
-        assertEquals(schemeSlowEffects.assertIsSpringAndReturnIt(), narrativeReveal.assertIsSpringAndReturnIt())
-    }
-
-    @Test
-    fun `route recalculation morph maps to slowEffectsSpec`() {
-        assertEquals(schemeSlowEffects.assertIsSpringAndReturnIt(), routeMorph.assertIsSpringAndReturnIt())
-    }
-
-    @Test
-    fun `data layer overlay maps to defaultEffectsSpec`() {
-        assertEquals(schemeDefaultEffects.assertIsSpringAndReturnIt(), dataLayerOverlay.assertIsSpringAndReturnIt())
-    }
-
-    @Test
     fun `effects-category specs are critically damped, so interruption can never overshoot`() {
         // docs/adr/0002-motion-scheme-adoption.md, "R1": dampingRatio >= 1.0 is what makes the
         // interruption-safety proof hold. Guards against a future scheme substitution quietly
         // reintroducing overshoot on an alpha/colour animation.
-        for (spec in listOf(narrativeReveal, routeMorph, dataLayerOverlay)) {
+        for (spec in listOf(tabCrossfade, mapPopUpFade, wordSwap, pageSlide, listRow, nightModeFade)) {
             val spring = spec.assertIsSpringAndReturnIt()
             assertTrue("$spring is not critically damped", spring.dampingRatio >= 1.0f)
         }
@@ -169,17 +151,63 @@ class MotionTokensTest {
         // exposed categories really are drawing from the scheme's spatial family rather than
         // something stricter -- not a claim about a specific ratio, which is provisional pending
         // Gate G.
-        for (spec in listOf(feedback, panel, navigation, markerEntrance, selectionPulse)) {
+        for (spec in listOf(feedback, panel, navigation, mapPopUpGrow)) {
             val spring = spec.assertIsSpringAndReturnIt()
             assertTrue("$spring has an unexpectedly high damping ratio for a spatial spec", spring.dampingRatio <= 1.0f)
         }
     }
 
+    // Motion Part 2 (dispatch 2026-09-28-666): the five categories it adds, each onto the scheme spec its comment names.
+
     @Test
-    fun `selection pulse scale range is low-amplitude`() {
-        // "low-amplitude breathing pulse" -- guards against a future edit turning this into a
-        // large, alarm-style scale swing.
-        val amplitude = MotionTokens.SELECTION_PULSE_MAX_SCALE - MotionTokens.SELECTION_PULSE_MIN_SCALE
-        assertTrue("selection pulse amplitude $amplitude is not low-amplitude", amplitude in 0.0f..0.15f)
+    fun `the tab crossfade and the word swap map to fastEffectsSpec`() {
+        assertEquals(schemeFastEffects.assertIsSpringAndReturnIt(), tabCrossfade.assertIsSpringAndReturnIt())
+        assertEquals(schemeFastEffects.assertIsSpringAndReturnIt(), wordSwap.assertIsSpringAndReturnIt())
+    }
+
+    @Test
+    fun `a map pop-up fades on defaultEffectsSpec and grows on defaultSpatialSpec`() {
+        assertEquals(schemeDefaultEffects.assertIsSpringAndReturnIt(), mapPopUpFade.assertIsSpringAndReturnIt())
+        assertEquals(schemeDefaultSpatial.assertIsSpringAndReturnIt(), mapPopUpGrow.assertIsSpringAndReturnIt())
+    }
+
+    /**
+     * The one exception to ADR-0002 (Amendment 1 to motion Part 2, RECORD -672; the owner: "Allow one exception"): a tween exactly
+     * as long as the map's navigation tilt, read from the constant the map's camera uses. Left out of [allExposedSpecs], which
+     * holds every other category to "no TweenSpec".
+     */
+    @Test
+    fun `the navigation view's chrome is the one tween, exactly as long as the map's tilt`() {
+        assertTrue("$navigationViewChrome is the timed exception", navigationViewChrome is TweenSpec<Float>)
+        assertEquals(
+            com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TRANSITION_MILLIS.toInt(),
+            (navigationViewChrome as TweenSpec<Float>).durationMillis,
+        )
+    }
+
+    @Test
+    fun `a map pop-up's grow is slight`() {
+        assertTrue("grows from ${MotionTokens.MAP_POPUP_ENTER_SCALE}", MotionTokens.MAP_POPUP_ENTER_SCALE in 0.7f..0.95f)
+    }
+
+    // Motion Part 3 (dispatch 2026-09-28-676): the three categories it adds.
+
+    @Test
+    fun `a Journal page slides, and a list row moves, on defaultEffectsSpec, which cannot overshoot`() {
+        assertEquals(schemeDefaultEffects.assertIsSpringAndReturnIt(), pageSlide.assertIsSpringAndReturnIt())
+        assertEquals(schemeDefaultEffects.assertIsSpringAndReturnIt(), listRow.assertIsSpringAndReturnIt())
+    }
+
+    @Test
+    fun `night mode's colours blend on fastEffectsSpec, the quick one`() {
+        assertEquals(schemeFastEffects.assertIsSpringAndReturnIt(), nightModeFade.assertIsSpringAndReturnIt())
+    }
+
+    @Test
+    fun `night mode's spec read from the app's own motion scheme is the one the theme provides`() {
+        assertEquals(
+            schemeFastEffects.assertIsSpringAndReturnIt(),
+            MotionTokens.nightModeFadeSpec<Float>(com.zynergylabs.forager.app.ui.theme.ForagerMotionScheme).assertIsSpringAndReturnIt(),
+        )
     }
 }

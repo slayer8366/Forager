@@ -60,6 +60,11 @@ class ComputeTrackStatisticsUseCase {
         // change spanning missing data is never compared as if it were adjacent.
         var referenceAltitude: Double? = null
 
+        // RECORD -867, part 4: Climb and Descent read the walk's heights as [trackHeights] gives them (smoothed GPS
+        // height today), not each point's raw GPS altitude, on the journal entry and the Records sheet alike. A point
+        // with no height still has none, so the gap rule below is unchanged.
+        val heights = trackHeights(points)
+
         for (i in 1 until points.size) {
             val previous = points[i - 1]
             val current = points[i]
@@ -68,8 +73,8 @@ class ComputeTrackStatisticsUseCase {
                 LatLng(current.lat, current.lng),
             )
 
-            val previousAltitude = previous.altitude
-            val currentAltitude = current.altitude
+            val previousAltitude = heights[i - 1]
+            val currentAltitude = heights[i]
             if (previousAltitude == null || currentAltitude == null) {
                 referenceAltitude = null
                 continue

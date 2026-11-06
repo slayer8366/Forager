@@ -85,7 +85,7 @@ class AvailabilityScreenJournalStateTest {
 
     @Test
     fun `leaving the Journal tab and returning keeps the top tab and the Records selection`() {
-        composeRule.setContent { journalStateScreen() }
+        composeRule.setContent { JournalStateScreenUnderTest() }
         chooseRecordsAndANonDefaultSelection()
 
         openBottomTab("List")
@@ -97,7 +97,7 @@ class AvailabilityScreenJournalStateTest {
     @Test
     fun `the top tab and the Records selection survive a saved-instance-state round trip`() {
         val restorationTester = StateRestorationTester(composeRule)
-        restorationTester.setContent { journalStateScreen() }
+        restorationTester.setContent { JournalStateScreenUnderTest() }
         chooseRecordsAndANonDefaultSelection()
 
         restorationTester.emulateSavedInstanceStateRestore()
@@ -114,33 +114,39 @@ private const val OFFLINE_MAPS_CHIP_TAG = "records-chip-offline-maps"
 private val JOURNAL_STATE_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
 @androidx.compose.runtime.Composable
-private fun journalStateScreen() {
+private fun JournalStateScreenUnderTest() {
     AvailabilityScreen(
         uiState = AvailabilityUiState(),
-        onUseCurrentLocation = {},
-        onManualLatChanged = {},
-        onManualLngChanged = {},
-        onSearchManualCoordinates = {},
-        onRadiusChanged = {},
-        onMonthSelected = {},
-        onMapTabSelected = {},
-        onSeasonalTabSelected = {},
-        onTaxonSearchQueryChanged = {},
-        onTaxonSearchResultSelected = {},
-        onDismissTaxonSuggestions = {},
-        onReopenTaxonSuggestions = {},
-        onPlaceTripPin = { _, _, _ -> },
-        onDeletePlannedTrip = {},
-        onRecentSearchSelected = {},
-        onOfflineMapLatChanged = {},
-        onOfflineMapLngChanged = {},
-        onOfflineMapRadiusChanged = {},
-        onOfflineMapNameChanged = {},
-        onOfflineMapsOpened = {},
-        onDownloadOfflineMaps = {},
-        onDeleteOfflineRegion = {},
-        onNightModeMapsChanged = {},
-        onThemeModeChanged = {},
+        searchInputs = AvailabilityScreenSearchInputs(
+            onUseCurrentLocation = {},
+            onManualLatChanged = {},
+            onManualLngChanged = {},
+            onSearchManualCoordinates = {},
+            onRadiusChanged = {},
+            onMonthSelected = {},
+            onMapTabSelected = {},
+            onSeasonalTabSelected = {},
+            onTaxonSearchQueryChanged = {},
+            onTaxonSearchResultSelected = {},
+            onDismissTaxonSuggestions = {},
+            onReopenTaxonSuggestions = {},
+            onPlaceTripPin = { _, _, _ -> },
+            onDeletePlannedTrip = {},
+            onRecentSearchSelected = {},
+        ),
+        offlineMaps = AvailabilityScreenOfflineMaps(
+            onOfflineMapLatChanged = {},
+            onOfflineMapLngChanged = {},
+            onOfflineMapRadiusChanged = {},
+            onOfflineMapNameChanged = {},
+            onOfflineMapsOpened = {},
+            onDownloadOfflineMaps = {},
+            onDeleteOfflineRegion = {},
+        ),
+        settings = AvailabilityScreenSettings(
+            onNightModeMapsChanged = {},
+            onThemeModeChanged = {},
+        ),
         mapSlot = JOURNAL_STATE_STUB_MAP,
     )
 }

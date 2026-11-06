@@ -23,6 +23,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.PendingDelete
 import com.zynergylabs.forager.app.ui.log.RecordType
 import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
@@ -147,6 +148,7 @@ class AvailabilityScreenWaypointFlowTest {
             unitSystemPreferenceRepository = WaypointFlowStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = WaypointFlowStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(WaypointFlowStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -154,52 +156,60 @@ class AvailabilityScreenWaypointFlowTest {
             var pendingWaypoint by remember { mutableStateOf<PendingDelete<Waypoint>?>(null) }
             AvailabilityScreen(
                 uiState = uiState,
-                onUseCurrentLocation = viewModel::useCurrentLocation,
-                onManualLatChanged = viewModel::onManualLatChanged,
-                onManualLngChanged = viewModel::onManualLngChanged,
-                onSearchManualCoordinates = viewModel::searchManualCoordinates,
-                onRadiusChanged = viewModel::onRadiusChanged,
-                onMonthSelected = viewModel::onMonthSelected,
-                onMapTabSelected = viewModel::onMapTabSelected,
-                onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
-                onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
-                onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
-                onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
-                onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
-                onPlaceTripPin = viewModel::onPlaceTripPin,
-                onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
-                onRecentSearchSelected = viewModel::onRecentSearchSelected,
-                onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
-                onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
-                onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
-                onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
-                onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
-                onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
-                onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
-                onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
-                onThemeModeChanged = viewModel::onThemeModeChanged,
-                waypoints = waypoints,
-                waypointsErrorMessage = waypointsErrorMessage,
-                onDropWaypoint = { location, name ->
-                    droppedWaypoints += location to name
-                    waypoints = waypoints + Waypoint(
-                        id = "waypoint-${waypoints.size + 1}",
-                        lat = location.lat,
-                        lng = location.lng,
-                        altitude = null,
-                        name = name,
-                        note = "",
-                        createdAtEpochMillis = 0L,
-                    )
-                },
-                onDeleteWaypoint = { id ->
-                    deletedWaypointIds += id
-                    pendingWaypoint = waypoints.firstOrNull { it.id == id }?.let { PendingDelete(it, entryReferenceCount = 0, token = deletedWaypointIds.size.toLong()) }
-                    waypoints = waypoints.filterNot { it.id == id }
-                },
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = viewModel::useCurrentLocation,
+                    onManualLatChanged = viewModel::onManualLatChanged,
+                    onManualLngChanged = viewModel::onManualLngChanged,
+                    onSearchManualCoordinates = viewModel::searchManualCoordinates,
+                    onRadiusChanged = viewModel::onRadiusChanged,
+                    onMonthSelected = viewModel::onMonthSelected,
+                    onMapTabSelected = viewModel::onMapTabSelected,
+                    onSeasonalTabSelected = viewModel::onSeasonalTabSelected,
+                    onTaxonSearchQueryChanged = viewModel::onTaxonSearchQueryChanged,
+                    onTaxonSearchResultSelected = viewModel::onTaxonSearchResultSelected,
+                    onDismissTaxonSuggestions = viewModel::onDismissTaxonSuggestions,
+                    onReopenTaxonSuggestions = viewModel::onReopenTaxonSuggestions,
+                    onPlaceTripPin = viewModel::onPlaceTripPin,
+                    onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
+                    onRecentSearchSelected = viewModel::onRecentSearchSelected,
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = viewModel::onOfflineMapLatChanged,
+                    onOfflineMapLngChanged = viewModel::onOfflineMapLngChanged,
+                    onOfflineMapRadiusChanged = viewModel::onOfflineMapRadiusChanged,
+                    onOfflineMapNameChanged = viewModel::onOfflineMapNameChanged,
+                    onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
+                    onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
+                    onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                    onThemeModeChanged = viewModel::onThemeModeChanged,
+                ),
                 mapSlot = TriggerableWaypointMapSlot,
-                pendingDeleteNotices = listOfNotNull(
-                    waypointDeleteNotice(pendingWaypoint, onUndo = { pendingWaypoint = null }, onCommit = { pendingWaypoint = null }),
+                records = AvailabilityScreenRecords(
+                    waypoints = waypoints,
+                    waypointsErrorMessage = waypointsErrorMessage,
+                    onDropWaypoint = { location, name ->
+                        droppedWaypoints += location to name
+                        waypoints = waypoints + Waypoint(
+                            id = "waypoint-${waypoints.size + 1}",
+                            lat = location.lat,
+                            lng = location.lng,
+                            altitude = null,
+                            name = name,
+                            note = "",
+                            createdAtEpochMillis = 0L,
+                        )
+                    },
+                    onDeleteWaypoint = { id ->
+                        deletedWaypointIds += id
+                        pendingWaypoint = waypoints.firstOrNull { it.id == id }?.let { PendingDelete(it, entryReferenceCount = 0, token = deletedWaypointIds.size.toLong()) }
+                        waypoints = waypoints.filterNot { it.id == id }
+                    },
+                    pendingDeleteNotices = listOfNotNull(
+                        waypointDeleteNotice(pendingWaypoint, onUndo = { pendingWaypoint = null }, onCommit = { pendingWaypoint = null }),
+                    ),
                 ),
             )
         }
@@ -217,12 +227,12 @@ class AvailabilityScreenWaypointFlowTest {
      * one call reach the real, live button again.
      */
     private fun searchAReferenceRegion() {
-        // The bar's tap opens "Advanced search" and "Enter coordinates manually" expanded (owner,
-        // continuation 2026-09-28-40, "Also open manual coordinates"), so no header is tapped here.
+        // Latitude and Longitude are the dropdown's first row, with no fold (dispatch
+        // 2026-09-28-697), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
-        composeRule.onNodeWithText("Search this location").performScrollTo().performClick()
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.3736")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
 
@@ -354,9 +364,8 @@ class AvailabilityScreenWaypointFlowTest {
 
         composeRule.onNodeWithText("Reachable Waypoint").performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithText("45.4000, -122.7000").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Directions to Reachable Waypoint")
-            .performScrollTo()
-            .assertIsDisplayed()
+        // Dispatch 2026-10-29-09 (RECORD -1819): was "performScrollTo().assertIsDisplayed()"; the row's Directions is gone.
+        composeRule.onNodeWithContentDescription("Directions to Reachable Waypoint").assertDoesNotExist()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "reachable-waypoint"))
             .performScrollTo()
             .performTouchInput { swipeLeft() }

@@ -4,7 +4,7 @@
 
 **Asked for by the owner,** verbatim (2026-10-02): "We can also research how and when Google determines off-track behavior for their walking navigation to see where we can improve our methods."
 
-**How it was made, and how far to trust it.** A research agent run by the planner searched public sources on 2026-10-02 and read the open-source files it cites from GitHub. **The planner has not re-checked the claims below**; each carries its source, and each is marked as documented, observed by a third party, read in code, or inferred. Some pages could not be fetched (HTTP 403): a widely used hiking app and a route-planning app help and the current Mapbox off-route guide; for those only search snippets were seen. **No patent or patent application was consulted.**
+**How it was made, and how far to trust it.** A research agent run by the planner searched public sources on 2026-10-02 and read the open-source files it cites from GitHub. **The planner has not re-checked the claims below**; each carries its source, and each is marked as documented, observed by a third party, read in code, or inferred. Some pages could not be fetched (HTTP 403): a widely used hiking app's and a route-planning app's help and the current Mapbox off-route guide; for those only search snippets were seen. **No patent or patent application was consulted.**
 
 **Why it matters here.** Forager's current off-track rule compares the straight-line distance to the start across the last three readings, about one second apart, and alerts when it grew by more than 25 m, with a 120 s cooldown (`domain/DetectOffTrackUseCase.kt`, `domain/ReturnWatch.kt`). By arithmetic, steady walking cannot trip it and one jumpy reading can (dispatch `2026-09-28-400`, Part 1 report, flag 2). The owner ruled that its meaning is to be redefined to fit the user (`RECORD.md` decision `2026-09-28-402`; plan task T21). The way-back route (plan task T5, dispatch `-417`) separately withholds the route when the walker is far from the walked path.
 
@@ -14,13 +14,13 @@
 - **Documented:** the SDK's positions are "road-snapped" and "may be different from the location returned by the fused location provider"; its events page lists no off-route threshold. https://developers.google.com/maps/documentation/navigation/android-sdk/events
 - **Documented:** Google's 2019 research post on Live View says city GPS can be "a few blocks away" and the compass "can be inaccurate by up to 180 degrees"; it says nothing about rerouting. https://research.google/blog/using-global-localization-to-improve-navigation/
 - **Observed by a third party, attributed to Google:** a 2019 India taxi feature alerts at 0.5 km off route. A vehicle feature. https://yourstory.com/2019/06/google-maps-off-route-alert-feature-india
-- **Unknown:** when a mainstream maps app walking navigation decides a walker is off route. No official source was found, and no number is guessed.
+- **Unknown:** when a mainstream maps app's walking navigation decides a walker is off route. No official source was found, and no number is guessed.
 
 ## (b) Open-source rules (read in code by the research agent)
 
-**an offline maps app** (`RoutingHelper.java`, `RoutingHelperUtils.java`, master as fetched 2026-10-02): https://github.com/offline-maps-app/an offline maps app/blob/master/an offline maps app/src/net/an offline maps app/plus/routing/RoutingHelper.java
+**An offline maps app** (`RoutingHelper.java`, `RoutingHelperUtils.java`, master as fetched 2026-10-02, from its public source repository)
 - Tolerance 30 m plus the reported accuracy, or 60 m with no accuracy (`POS_TOLERANCE = 60`).
-- Default deviation limit twice that: 60 m + 2 × accuracy. User-settable ("Minimal distance to recalculate route", https://docs.an offline maps app.net/docs/user/navigation/guidance/navigation-settings).
+- Default deviation limit twice that: 60 m + 2 × accuracy. User-settable ("Minimal distance to recalculate route", in its navigation settings documentation).
 - A single fix past the limit triggers a reroute; no persistence. A code comment says a delay was left out because "late detection is worse than false positive".
 - A wrong-direction test (bearing more than 90° from the route) applies only when the fix carries a bearing and is beyond the limit.
 
@@ -39,10 +39,10 @@
 
 Evidence:
 - Android documents reported accuracy as a 68%-confidence radius, so about one fix in three falls outside its own radius even when honest. https://developer.android.com/reference/android/location/Location#getAccuracy() (search snippet; page not fetched)
-- The engines handle noise three ways: **widen the corridor by accuracy** (an offline maps app, Organic Maps); **require persistence** (Organic Maps); **rate-limit by distance moved** (Mapbox).
-- Heading is used only with a real bearing (an offline maps app) or at 3 m/s and above (Mapbox).
+- The engines handle noise three ways: **widen the corridor by accuracy** (the offline maps app, Organic Maps); **require persistence** (Organic Maps); **rate-limit by distance moved** (Mapbox).
+- Heading is used only with a real bearing (the offline maps app) or at 3 m/s and above (Mapbox).
 - **Observed by third parties:** off-route warnings under tree cover where no other path exists. https://wahoox.forum.wahoofitness.com/t/off-route-warning-when-in-wooded-area/29495
-- a widely used hiking app (search snippet only): alerts about 50 m off the planned route, can be silenced for the outing, less reliable where GPS is weak. a route-planning app (snippet only): alerts need recalculation switched on. a widely used backcountry map app: no documented settings found.
+- A widely used hiking app (search snippet only): alerts about 50 m off the planned route, can be silenced for the outing, less reliable where GPS is weak. A route-planning app (snippet only): alerts need recalculation switched on. A widely used backcountry map app: no documented settings found.
 
 Inferred by the research agent, for the owner and the planner to weigh:
 - Measure distance to the **walked path**, not distance to the start.
@@ -56,7 +56,7 @@ Inferred by the research agent, for the owner and the planner to weigh:
 
 Each needs the same per-fix log on recorded return walks (distance from the walked path, accuracy, provider, time), with the stretches the walker was really on the path and the deliberate detours labelled by the walker.
 
-1. **Accuracy-scaled corridor** (an offline maps app style): outside when the distance from the path exceeds max(25 m, 15 m + 2 × accuracy). Confirm: under 5% of on-path fixes outside, and detours over 50 m flagged. Reject: a fixed 50 m line does as well.
+1. **Accuracy-scaled corridor** (offline maps app style): outside when the distance from the path exceeds max(25 m, 15 m + 2 × accuracy). Confirm: under 5% of on-path fixes outside, and detours over 50 m flagged. Reject: a fixed 50 m line does as well.
 2. **Persistence gate:** alert only after at least 15 s and 5 GPS fixes all outside. Test: the longest run of outside fixes on on-path stretches against the time a real detour takes to show.
 3. **Fix filter:** network fixes and fixes with accuracy over 40 m freeze the count. Count against the log's total of fixes, so none is silently dropped (the parser failure recorded in `CLAUDE.md`).
 4. **Hysteresis, one alert per episode:** enter "strayed" at rule 1's line; leave only after 10 s below 60% of it; alert once per entry. Target: exactly one alert per labelled detour.
@@ -66,4 +66,4 @@ Each needs the same per-fix log on recorded return walks (distance from the walk
 
 ## Unverified
 
-Google's walking thresholds; a widely used backcountry map app; the current Mapbox native logic; the full a widely used hiking app and a route-planning app pages; every claim above that the planner has not re-checked against its source.
+Google's walking thresholds; the backcountry map app; the current Mapbox native logic; the full hiking app and route-planning app pages; every claim above that the planner has not re-checked against its source.

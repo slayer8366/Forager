@@ -33,6 +33,8 @@ internal object MapKeepOutIds {
     const val BOTTOM_NAV = "bottom-nav"
     const val RAIL = "navigation-rail"
     const val TOP_STRIP = "compass-strip-or-hud"
+    /** Dispatch 2026-10-12-08: the landscape navigation card, hanging under the compass strip (which keeps [TOP_STRIP]). */
+    const val NAVIGATION_CARD = "navigation-card"
     const val SEARCH_BAR = "search-bar"
     /** Dispatch 2026-09-28-430: "Return to Route", while it shows. */
     const val RETURN_TO_ROUTE = "return-to-route"

@@ -7,6 +7,9 @@ import com.zynergylabs.forager.app.domain.CommitDraftEntryUseCase
 import com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase
 import com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCase
 import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
@@ -15,6 +18,7 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.PhotoStore
 import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
 import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
@@ -85,9 +89,8 @@ class MushroomLogViewModelTest {
         locationProvider: FakeLocationProvider = FakeLocationProvider(),
         currentFix: () -> LocationFix.Update? = { null },
         autoSaveLocationToPhotos: suspend () -> Boolean = { true },
-        recordCaptureWithoutEditingEntry: (String?, Throwable?) -> Unit = { _, _ -> },
         pendingDeleteCommitScope: CoroutineScope? = null,
-        getPhotoEntryReferenceCount: suspend (String) -> Int = { 0 },
+        entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
     ) = MushroomLogViewModel(
         getEntries = GetMushroomLogEntriesUseCase(repository),
         getDraftEntries = GetDraftEntriesUseCase(repository),
@@ -107,15 +110,14 @@ class MushroomLogViewModelTest {
         currentFix = currentFix,
         now = { NOW },
         autoSaveLocationToPhotos = autoSaveLocationToPhotos,
-        recordCaptureWithoutEditingEntry = recordCaptureWithoutEditingEntry,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: PendingDeleteCommitScope,
-        getPhotoEntryReferenceCount = getPhotoEntryReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
     )
 
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
     // (loaded via getEntries()/GetMushroomLogEntriesUseCase, which excludes drafts) unless it
     // specifically exercises the draft lifecycle itself, in which case it says so.
-    private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+    private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
     /**
      * Reworked for Workstream L4b-R (was: called `onEntryEdited` directly on the committed [entry]
@@ -1529,48 +1531,30 @@ class MushroomLogViewModelTest {
         assertFalse("the spinner does not stay up", vm.uiState.value.isSavingPhoto)
     }
 
+    /** The save is the user's remedy; a failed save still tells the user. */
     @Test
-    fun `a capture with no editing entry writes the diagnostic entry, with the photo's id`() = runTest(dispatcher) {
-        val photoStore = FakePhotoStore()
-        val rescued = LogPhoto(id = "rescued-photo", relativePath = "photos/rescued-photo.jpg", createdAtEpochMillis = 2_000L)
-        photoStore.persistResult = Result.success(rescued)
-        val recorded = mutableListOf<Pair<String?, Throwable?>>()
-        val vm = viewModel(photoStore = photoStore, recordCaptureWithoutEditingEntry = { id, error -> recorded += id to error })
-        advanceUntilIdle()
-
-        vm.onAddPhoto(object : PhotoSource {})
-        advanceUntilIdle()
-
-        assertEquals(listOf<Pair<String?, Throwable?>>("rescued-photo" to null), recorded)
-    }
-
-    /** The save is the user's remedy, not evidence that nothing went wrong — so a failed save still records, and still tells the user. */
-    @Test
-    fun `a capture with no editing entry records the anomaly even when the album save fails`() = runTest(dispatcher) {
+    fun `a capture with no editing entry tells the user when the album save fails`() = runTest(dispatcher) {
         val photoStore = FakePhotoStore()
         val failure = IllegalStateException("disk full")
         photoStore.persistResult = Result.failure(failure)
-        val recorded = mutableListOf<Pair<String?, Throwable?>>()
-        val vm = viewModel(photoStore = photoStore, recordCaptureWithoutEditingEntry = { id, error -> recorded += id to error })
+        val vm = viewModel(photoStore = photoStore)
         advanceUntilIdle()
 
         vm.onAddPhoto(object : PhotoSource {})
         advanceUntilIdle()
 
-        assertEquals(listOf<Pair<String?, Throwable?>>(null to failure), recorded)
         assertEquals("Couldn't save that photo.", vm.uiState.value.saveErrorMessage)
         assertFalse(vm.uiState.value.isSavingPhoto)
     }
 
-    /** The working path is untouched: with an entry open, the photo still attaches and nothing is recorded. */
+    /** The working path is untouched: with an entry open, the photo still attaches. */
     @Test
-    fun `a capture with an editing entry attaches as before and records no anomaly`() = runTest(dispatcher) {
+    fun `a capture with an editing entry attaches as before`() = runTest(dispatcher) {
         val repository = FakeMushroomLogRepository(initial = listOf(entry))
         val photoStore = FakePhotoStore()
         val newPhoto = LogPhoto(id = "new-photo", relativePath = "photos/new-photo.jpg", createdAtEpochMillis = 2_000L)
         photoStore.persistResult = Result.success(newPhoto)
-        val recorded = mutableListOf<Pair<String?, Throwable?>>()
-        val vm = viewModel(repository, photoStore, recordCaptureWithoutEditingEntry = { id, error -> recorded += id to error })
+        val vm = viewModel(repository, photoStore)
         advanceUntilIdle()
         vm.onOpenEntry(entry.id)
         vm.onStartEditingEntry()
@@ -1580,7 +1564,6 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         assertEquals("attached, as before", listOf(newPhoto), vm.uiState.value.editingEntry?.photos)
-        assertEquals("nothing recorded on the path that works", emptyList<Pair<String?, Throwable?>>(), recorded)
         assertNull("and no rescue message", vm.uiState.value.saveErrorMessage)
     }
 
@@ -1724,7 +1707,7 @@ class MushroomLogViewModelTest {
     fun `a requested photo delete hides it from the gallery and from its find, carries its journal count, and deletes nothing`() = runTest(dispatcher) {
         val repository = photoRepository()
         val photoStore = FakePhotoStore()
-        val vm = viewModel(repository, photoStore, getPhotoEntryReferenceCount = { id -> if (id == photoA.id) 2 else 0 })
+        val vm = viewModel(repository, photoStore, entryReferenceCounts = FakeEntryReferenceCountSource(photos = mapOf(photoA.id to 2)))
         advanceUntilIdle()
         assertEquals("positive control: both photos loaded", setOf(photoA.id, photoB.id), vm.uiState.value.galleryPhotos.map { it.photo.id }.toSet())
 
@@ -2028,4 +2011,4 @@ private class FakeLocationProvider(
 private const val NOW = 1_700_000_000_000L
 
 private fun fixAgedMillis(ageMillis: Long, lat: Double = 45.5, lng: Double = -122.6) =
-    LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 8f, timestampEpochMillis = NOW - ageMillis)
+    LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 8f, timestampEpochMillis = NOW - ageMillis, provider = FixProvider.GPS)

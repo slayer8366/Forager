@@ -45,7 +45,13 @@ import com.zynergylabs.forager.app.domain.model.TrackPoint
  * the trip-report question `docs/beta/trip-report.md` asks (see that file and its README) is no
  * longer the only one.
  */
-fun TrackPoint.isNetworkProviderFix(): Boolean = timestampEpochMillis % 1_000L != 0L
+fun TrackPoint.isNetworkProviderFix(): Boolean = isNetworkProviderTimestamp(timestampEpochMillis)
+
+/**
+ * The timestamp rule itself, on a bare timestamp: [isNetworkProviderFix] for a stored point, and
+ * [disagreesWithTimestampRule] for a live fix whose provider is known (dispatch 2026-09-28-527).
+ */
+fun isNetworkProviderTimestamp(timestampEpochMillis: Long): Boolean = timestampEpochMillis % 1_000L != 0L
 
 /**
  * The identifier [isNetworkProviderFix] is named by, in a GPX full record's `rule` provenance

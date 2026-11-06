@@ -35,6 +35,7 @@ import com.zynergylabs.forager.app.domain.CompassReading
 import com.zynergylabs.forager.app.domain.ComputeTrueHeadingUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeclinationProvider
+import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.HeadingUncertainty
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -89,7 +90,7 @@ class AvailabilityScreenNavigationViewTest {
 
     private val t = 1_700_000_000_000L
     private var now = t + 1_000L
-    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t)
+    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val start = Waypoint(id = "origin", lat = 45.53, lng = -122.68, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     private var returning by mutableStateOf(false)
@@ -109,40 +110,50 @@ class AvailabilityScreenNavigationViewTest {
         val set: (@Composable () -> Unit) -> Unit = restoration?.let { r -> { content: @Composable () -> Unit -> r.setContent(content) } } ?: { content -> composeRule.setContent(content) }
         set {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
-                isRecording = true,
-                isReturning = returning,
-                tripStartWarning = tripStartWarning,
-                onToggleReturning = { returning = !returning },
-                navigationTarget = start,
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
+                recording = AvailabilityScreenRecording(
+                    isRecording = true,
+                    tripStartWarning = tripStartWarning,
+                ),
+                navigation = AvailabilityScreenNavigation(
+                    isReturning = returning,
+                    onToggleReturning = { returning = !returning },
+                    navigationTarget = start,
+                ),
                 compassProvider = object : CompassProvider { override val heading: Flow<CompassReading?> = compass },
                 computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
                 currentTime = CurrentTimeProvider { now },
                 mapSlot = map,
-                onUseCurrentLocation = {},
-                onManualLatChanged = {},
-                onManualLngChanged = {},
-                onSearchManualCoordinates = {},
-                onRadiusChanged = {},
-                onMonthSelected = {},
-                onMapTabSelected = {},
-                onSeasonalTabSelected = {},
-                onTaxonSearchQueryChanged = {},
-                onTaxonSearchResultSelected = {},
-                onDismissTaxonSuggestions = {},
-                onReopenTaxonSuggestions = {},
-                onPlaceTripPin = { _, _, _ -> },
-                onDeletePlannedTrip = {},
-                onRecentSearchSelected = {},
-                onOfflineMapLatChanged = {},
-                onOfflineMapLngChanged = {},
-                onOfflineMapRadiusChanged = {},
-                onOfflineMapNameChanged = {},
-                onOfflineMapsOpened = {},
-                onDownloadOfflineMaps = {},
-                onDeleteOfflineRegion = {},
-                onNightModeMapsChanged = {},
-                onThemeModeChanged = {},
+                searchInputs = AvailabilityScreenSearchInputs(
+                    onUseCurrentLocation = {},
+                    onManualLatChanged = {},
+                    onManualLngChanged = {},
+                    onSearchManualCoordinates = {},
+                    onRadiusChanged = {},
+                    onMonthSelected = {},
+                    onMapTabSelected = {},
+                    onSeasonalTabSelected = {},
+                    onTaxonSearchQueryChanged = {},
+                    onTaxonSearchResultSelected = {},
+                    onDismissTaxonSuggestions = {},
+                    onReopenTaxonSuggestions = {},
+                    onPlaceTripPin = { _, _, _ -> },
+                    onDeletePlannedTrip = {},
+                    onRecentSearchSelected = {},
+                ),
+                offlineMaps = AvailabilityScreenOfflineMaps(
+                    onOfflineMapLatChanged = {},
+                    onOfflineMapLngChanged = {},
+                    onOfflineMapRadiusChanged = {},
+                    onOfflineMapNameChanged = {},
+                    onOfflineMapsOpened = {},
+                    onDownloadOfflineMaps = {},
+                    onDeleteOfflineRegion = {},
+                ),
+                settings = AvailabilityScreenSettings(
+                    onNightModeMapsChanged = {},
+                    onThemeModeChanged = {},
+                ),
             )
         }
         settle()
@@ -206,12 +217,12 @@ class AvailabilityScreenNavigationViewTest {
     }
 
     /**
-     * A move away shows "Return to Route"; a real touch on it brings the view back and it follows
+     * A move away shows "Re-center"; a real touch on it brings the view back and it follows
      * again. Five touches across the pill's own bounds, each after its own move away (CLAUDE.md: a
      * finger is not a point; a semantic click asserts wiring, not routing).
      */
     @Test
-    fun `a move away shows Return to Route, and a real touch anywhere on it brings the view back`() {
+    fun `a move away shows Re-center, and a real touch anywhere on it brings the view back`() {
         setScreen()
         switchReturning(true)
         val firstId = view()!!.restoreRequestId
@@ -219,7 +230,7 @@ class AvailabilityScreenNavigationViewTest {
             userMovesTheMapAway()
             assertTrue("move $index shows the pill", pillShown())
             assertFalse(view()!!.following)
-            composeRule.onNodeWithText("Return to Route").assertExists()
+            composeRule.onNodeWithText("Re-center").assertExists()
             val b = boundsOf(RETURN_TO_ROUTE_TAG)
             val inset = 4.dp
             val samples = listOf(
@@ -238,7 +249,7 @@ class AvailabilityScreenNavigationViewTest {
 
     /** CLAUDE.md, the `Surface` pitfall: real long-presses beside the pill, either side of it along its height, reach the map. */
     @Test
-    fun `long-presses beside Return to Route reach the map`() {
+    fun `long-presses beside Re-center reach the map`() {
         setScreen()
         switchReturning(true)
         userMovesTheMapAway()
@@ -258,7 +269,7 @@ class AvailabilityScreenNavigationViewTest {
         assertTrue("the pill is still there", pillShown())
     }
 
-    /** Ruling D: locate while navigating brings the navigation view back, as "Return to Route" does. A real touch on it. */
+    /** Ruling D: locate while navigating brings the navigation view back, as "Re-center" does. A real touch on it. */
     @Test
     fun `locate while navigating asks for the navigation view again`() {
         setScreen()
@@ -341,9 +352,9 @@ class AvailabilityScreenNavigationViewTest {
         assertEquals("Compass unavailable · north up", headingLabel())
     }
 
-    /** Continuation -432: a notice shown while "Return to Route" is up sits above it, not over it. */
+    /** Continuation -432: a notice shown while "Re-center" is up sits above it, not over it. */
     @Test
-    fun `a snackbar shown while Return to Route is up sits above it`() {
+    fun `a snackbar shown while Re-center is up sits above it`() {
         setScreen()
         switchReturning(true)
         userMovesTheMapAway()
@@ -385,7 +396,7 @@ class AvailabilityScreenNavigationViewTest {
     }
 
     @Test
-    fun `Return to Route brings the view back at the walker's zoom, without asking for the set one`() {
+    fun `Re-center brings the view back at the walker's zoom, without asking for the set one`() {
         setScreen()
         switchReturning(true)
         theMapAppliesTheStartZoom()
@@ -430,7 +441,7 @@ class AvailabilityScreenNavigationViewTest {
 
     /** "Nothing fully obstructs the map view": the pill's fill is the map chrome's 80%. */
     @Test
-    fun `Return to Route has the map chrome's 80 percent fill`() {
+    fun `Re-center has the map chrome's 80 percent fill`() {
         setScreen()
         switchReturning(true)
         userMovesTheMapAway()

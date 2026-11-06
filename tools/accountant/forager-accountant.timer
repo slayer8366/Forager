@@ -1,0 +1,12 @@
+[Unit]
+Description=Forager accountant, daily at 06:47 Pacific (RECORD -1644)
+
+[Timer]
+OnCalendar=*-*-* 06:47:00 America/Los_Angeles
+# Catch up once on the next start of the user manager (next login) if a run
+# was missed while it was not running. A catch-up covers yesterday UTC as of
+# the catch-up, not the missed day.
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,13 @@
+# Baseline for scripts/verify-dex-register-budget.sh (report only, not a guard): "<registers> <class>.<method>".
+# Recorded 2026-10-08 (RECORD -741) from the launch-verifyerror branch's debug APK at dc4b6c2e, D8/R8 9.3.31. That build
+# launches on the S22 (scripts/s22-launch-check.sh PASS). Lambda numbers ($lambda$53 and so on) are assigned by the
+# compiler and shift when a function body changes, so a renumbered lambda shows as NEW without having grown.
+385 com.zynergylabs.forager.app.ui.availability.AvailabilityCompactScaffoldKt.CompactMainScaffold
+396 com.zynergylabs.forager.app.ui.availability.AvailabilityCompactScaffoldKt.CompactMainScaffold$lambda$53
+341 com.zynergylabs.forager.app.ui.availability.AvailabilityCompactScaffoldKt.CompactMainScaffold$lambda$53$0$1$4
+300 com.zynergylabs.forager.app.ui.availability.AvailabilityCompactScaffoldKt.CompactMainScaffold$lambda$53$0$1$4$0
+353 com.zynergylabs.forager.app.ui.availability.AvailabilityCompactScaffoldKt.CompactMainScaffold$lambda$54
+402 com.zynergylabs.forager.app.ui.availability.AvailabilityScreenKt.AvailabilityScreen
+331 com.zynergylabs.forager.app.ui.availability.AvailabilityScreenKt.AvailabilityScreen$lambda$220
+323 com.zynergylabs.forager.app.ui.availability.AvailabilityScreenKt.AvailabilityScreen$lambda$226
+289 com.zynergylabs.forager.app.ui.log.JournalTabKt.JournalTab

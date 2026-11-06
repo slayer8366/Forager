@@ -1,8 +1,11 @@
 package com.zynergylabs.forager.app.map
 
+import android.content.Context
 import com.zynergylabs.forager.app.net.AppUserAgent
 import okhttp3.Dispatcher
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
+import org.maplibre.android.MapLibre
 import org.maplibre.android.module.http.HttpRequestUtil
 
 /**
@@ -18,13 +21,17 @@ import org.maplibre.android.module.http.HttpRequestUtil
  * What is kept from MapLibre's own default client (`getOrCreateDefaultClient`): a plain
  * [OkHttpClient] with a [Dispatcher] allowing 20 requests per host (its `getDispatcher` gives 10
  * below API 21; minSdk here is 26). It sets no timeouts and no cache of its own, and neither does this.
+ *
+ * [tileRetry] comes after the User-Agent, so every resend it makes carries the app's header: in the app it is
+ * [tileRetryInterceptor], which holds a failed tile and sends it again (dispatch 2026-10-23-06).
  */
-internal fun mapHttpClient(userAgent: String): OkHttpClient =
+internal fun mapHttpClient(userAgent: String, tileRetry: Interceptor): OkHttpClient =
     OkHttpClient.Builder()
         .dispatcher(Dispatcher().apply { maxRequestsPerHost = 20 })
         .addInterceptor { chain ->
             chain.proceed(chain.request().newBuilder().header("User-Agent", userAgent).build())
         }
+        .addInterceptor(tileRetry)
         .build()
 
 /**
@@ -32,6 +39,10 @@ internal fun mapHttpClient(userAgent: String): OkHttpClient =
  * `HttpRequestImpl`, whose static initialiser reads `MapLibre.getApplicationContext()`. Safe to
  * call again; the client is read per request, so a call before the first request is enough.
  */
-internal fun installMapHttpClient(userAgent: String = AppUserAgent.forThisApp()) {
-    HttpRequestUtil.setOkHttpClient(mapHttpClient(userAgent))
+internal fun installMapHttpClient(context: Context, userAgent: String = AppUserAgent.forThisApp()) {
+    // Each request MapLibre makes is marked as an offline-area download's or the map's (MapRequestUsage.kt), so the
+    // tile retry holds only the map's (dispatch 2026-10-23-06 Amendment 3). MapLibre reads the provider per request.
+    val provider = MapLibre.getModuleProvider()
+    if (provider !is UsageMarkingModuleProvider) MapLibre.setModuleProvider(UsageMarkingModuleProvider(provider))
+    HttpRequestUtil.setOkHttpClient(UsageTaggingCallFactory(mapHttpClient(userAgent, tileRetryInterceptor(context))))
 }

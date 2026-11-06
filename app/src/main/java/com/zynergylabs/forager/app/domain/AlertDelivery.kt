@@ -1,23 +1,91 @@
 package com.zynergylabs.forager.app.domain
 
 /**
- * Which alert is being delivered. One kind today; the turnaround alert (light-budget work, not
- * built) is the second this was shaped for.
+ * Which alert is being delivered.
  */
 enum class AlertKind {
     OFF_TRACK,
 
     /**
-     * The darkness margin has been reached: time to start heading back. Passes
-     * `overridesSilence = true` — owner ruling, 2026-09-11: this is the alert that stops someone
-     * being stranded in the dark, so it is an alarm. Anyone who does not want it turns the feature
-     * off in settings, which is a choice about the feature rather than a side effect of having
-     * silenced the phone for something else.
+     * Thirty minutes before the leave-by time (dispatch 2026-09-28-516, RECORD -515). Passes
+     * `overridesSilence = true`, as all three sundown alerts do — owner ruling, 2026-09-11: these
+     * are the alerts about not being stranded after dark, so they are alarms. Anyone who does not
+     * want them turns the feature off in settings.
      */
-    TURNAROUND,
+    HEADS_UP,
 
-    /** The sun has set. Same reasoning and the same override as [TURNAROUND]. */
+    /**
+     * The leave-by time: sunset, minus the darkness margin, minus the walk back. Replaced the
+     * turnaround alert ("Time to head back"): the alerts inform and never order the walker back
+     * (the owner: "instead of 'turn around now' just tell them when sundown is").
+     */
+    LEAVE_BY,
+
+    /** The sun has set. Same override as [HEADS_UP]. */
     SUNSET,
+
+    /**
+     * The walker's "Back by" time has passed (dispatch 2026-09-28-645, plan task T15): "You planned
+     * to be back by 3:30 PM", with "I'm back" and "+30 min". Overrides silence, like the sunset alert
+     * (the owner: "Strong alert + two buttons (Recommended)"). See [BackByWatch].
+     */
+    BACK_BY,
+}
+
+/** What a back-by alert says and acts on: the time, and the recording its two buttons address. */
+data class BackByAlertDetail(
+    val trackId: String,
+    val backByAtEpochMillis: Long,
+)
+
+/**
+ * The walk back as a sundown alert states it (dispatch 2026-09-28-516; the owner's copy rulings,
+ * 2026-10-04). Only [About] — a measured estimate — may say anything about getting back.
+ */
+sealed interface WalkBack {
+    /** A measured estimate ([ReturnWalkingTime.Estimate.isAtLeast] false). */
+    data class About(val millis: Long) : WalkBack
+
+    /** An estimate on thin data: a floor, never a promise. */
+    data class AtLeast(val millis: Long) : WalkBack
+
+    /** Withheld ([ReturnWalkingTime.Withheld]) or unreadable: no number is honest. */
+    data object Unknown : WalkBack
+
+    val millisOrNull: Long?
+        get() = when (this) {
+            is About -> millis
+            is AtLeast -> millis
+            Unknown -> null
+        }
+}
+
+/**
+ * What a sundown alert says: the sunset time, the walk back it was decided on, and the leave-by
+ * time as a clock time ("start by 5:42 PM"), so a notification read late stays true (the owner,
+ * 2026-10-05).
+ */
+data class SundownAlertDetail(
+    val sunsetAtEpochMillis: Long,
+    val walkBack: WalkBack,
+    val leaveByAtEpochMillis: Long,
+    /**
+     * When the alert was decided ([SundownWatch]'s clock), so its text can tell a start-by time
+     * already gone (dispatch 2026-09-28-685, fix 4). `null` from a caller that does not say, which
+     * keeps the clock time as before.
+     */
+    val decidedAtEpochMillis: Long? = null,
+) {
+    /**
+     * The start-by time is already gone: its clock minute, the one the text would name, is before the
+     * minute the alert was decided in. Happens when the leave-by alert fires late: a margin change or
+     * a longer walk back moved leave-by behind now, or the recording started after it (the
+     * 2026-10-07 S22 walk: "start by 5:07 PM" sent at 5:08). Whole minutes since the epoch match the
+     * local clock's minutes in every zone whose offset is whole minutes, which is all in use today.
+     * The heads-up cannot reach this: once leave-by has passed, the leave-by alert fires in its place.
+     */
+    val leaveByHasPassed: Boolean
+        get() = decidedAtEpochMillis != null && Math.floorDiv(leaveByAtEpochMillis, 60_000L) < Math.floorDiv(decidedAtEpochMillis, 60_000L)
 }
 
 /**
@@ -29,7 +97,7 @@ enum class AlertKind {
  * 2026-09-11).** It first passed `true`, on the reasoning that someone who started track recording
  * and walked into the woods has opted into being told they have strayed. The owner's revised
  * reading: straying is often deliberate, so off-track is the kind of thing a person may reasonably
- * want to hear only if their notifications are audible, whereas [AlertKind.TURNAROUND] and
+ * want to hear only if their notifications are audible, whereas [AlertKind.HEADS_UP], [AlertKind.LEAVE_BY] and
  * [AlertKind.SUNSET] are about not being stranded after dark and override silence. The parameter
  * existing per call is what made this a one-line reversal rather than a redesign. **Do not
  * hard-code this inside an implementation**; that is the one thing it exists to prevent.
@@ -37,6 +105,10 @@ enum class AlertKind {
 data class Alert(
     val kind: AlertKind,
     val overridesSilence: Boolean,
+    /** The sundown alerts' content; `null` for off-track, which has none. */
+    val sundown: SundownAlertDetail? = null,
+    /** The back-by alert's content ([AlertKind.BACK_BY]); `null` for every other kind. */
+    val backBy: BackByAlertDetail? = null,
 )
 
 /**
@@ -75,6 +147,9 @@ data class Alert(
  * still alerts for as long as the service runs. What is still open: a reopened app does not yet
  * show the recording it left (Part 3 of that dispatch), and the two sundown alerts have no caller
  * (plan task T2).
+ *
+ * **The sundown alerts now have one (dispatch 2026-09-28-516):** [SundownWatch], held by
+ * `AppContainer` and driven by `TrackRecordingService` the same way, and three of them, not two.
  */
 fun interface AlertDelivery {
     fun deliver(alert: Alert)
@@ -92,11 +167,77 @@ fun interface AlertDelivery {
 /**
  * What an alert's delivery did: whether its notification was posted and its vibration issued, and
  * if not, why ([notificationProblem], [vibrationProblem]: a permission denied, or the exception's
- * class). For the Return record; nothing a walker sees.
+ * class). Read by the watches' partial-delivery log lines; nothing a walker sees.
+ *
+ * [vibrationSkipped] (dispatch 2026-09-28-685, fix 3; the owner, RECORD -678: "Fix: record it as
+ * skipped (Recommended)"): the vibration was issued without error but Android does not play it, and
+ * why, in words ([VIBRATION_SKIPPED_PHONE_ON_SILENT]). [vibrated] is then `false`. Until that
+ * dispatch the outcome said the vibration was done for an off-track buzz a silenced phone dropped
+ * (`ignored_for_ringer_mode` in Android's own vibrator history, the 2026-10-07 S22 walk): a failure
+ * reported as success. Defaulted so a caller that cannot tell says nothing it does not know.
  */
 data class AlertDeliveryOutcome(
     val notificationPosted: Boolean,
     val notificationProblem: String?,
     val vibrated: Boolean,
     val vibrationProblem: String?,
+    val vibrationSkipped: String? = null,
 )
+
+/** Why a vibration was skipped: the phone is on silent and the alert does not override it. */
+const val VIBRATION_SKIPPED_PHONE_ON_SILENT = "phone on silent"
+
+/** Why a vibration was skipped: Do Not Disturb drops this kind of alert (dispatch 2026-09-28-685, Amendment 1). */
+const val VIBRATION_SKIPPED_DO_NOT_DISTURB = "Do Not Disturb"
+
+/**
+ * Android's interruption filter, the Do Not Disturb state, as the delivery outcome cares about it (dispatch 2026-09-28-685,
+ * Amendment 1, RECORD -694; the owner: "Yes, cover Do Not Disturb (Recommended)"). [UNKNOWN] is a filter the platform
+ * could not report.
+ */
+enum class DoNotDisturbFilter { OFF, PRIORITY, ALARMS_ONLY, TOTAL_SILENCE, UNKNOWN }
+
+/** Owned seam over `NotificationManager.getCurrentInterruptionFilter`; the Android implementation is `AndroidDoNotDisturbSource`. */
+fun interface DoNotDisturbSource {
+    fun current(): DoNotDisturbFilter
+}
+
+/**
+ * Why Android will not play an alert's vibration, or `null` when nothing here says it won't
+ * (dispatch 2026-09-28-685, fix 3). Only one case is known from the ringer alone: a silenced ringer
+ * and an alert that does not override silence ([Alert.overridesSilence] `false`, the off-track
+ * alert by the owner's 2026-09-11 ruling), which Android drops as `ignored_for_ringer_mode`. Vibrate
+ * and normal modes play it; an alert that overrides silence carries alarm usage and plays on silent
+ * (both seen on the S22, 2026-10-07). This decides what is recorded, never what is delivered: the
+ * vibration is still issued either way, so the alert's behaviour is unchanged.
+ */
+fun vibrationSkippedBecause(overridesSilence: Boolean, ringerMode: RingerMode): String? =
+    if (!overridesSilence && ringerMode == RingerMode.SILENT) VIBRATION_SKIPPED_PHONE_ON_SILENT else null
+
+/**
+ * Why Do Not Disturb drops an alert's vibration, or `null` when it does not (dispatch 2026-09-28-685, Amendment 1).
+ * An alert that overrides silence vibrates with alarm usage; one that does not, with notification usage.
+ *
+ * - Total silence drops both.
+ * - Alarms only drops notification usage and lets alarms through.
+ * - Priority only drops notification usage unless this app or its channel was made an exception, which this app does
+ *   not read (that needs notification-policy access it does not ask for). So it is recorded as skipped: inferred from
+ *   Android's defaults, not observed. It lets alarms through, Android's default for that mode, also not read.
+ * - Off or unknown drops nothing this can tell.
+ *
+ * Ahead of the ringer in [vibrationSkipReason], as in the trip-start warning (`alertAudibilityWarning`).
+ */
+fun vibrationSkippedByDoNotDisturb(overridesSilence: Boolean, filter: DoNotDisturbFilter): String? = when (filter) {
+    DoNotDisturbFilter.TOTAL_SILENCE -> VIBRATION_SKIPPED_DO_NOT_DISTURB
+    DoNotDisturbFilter.ALARMS_ONLY, DoNotDisturbFilter.PRIORITY -> if (overridesSilence) null else VIBRATION_SKIPPED_DO_NOT_DISTURB
+    DoNotDisturbFilter.OFF, DoNotDisturbFilter.UNKNOWN -> null
+}
+
+/**
+ * The one reason recorded, Do Not Disturb first, then the ringer; `null` when neither drops the vibration. A `null`
+ * input was unreadable and says nothing. Not covered: a phone-level setting that turns vibration off (Android's
+ * vibration and haptics settings), which no reading here can see.
+ */
+fun vibrationSkipReason(overridesSilence: Boolean, filter: DoNotDisturbFilter?, ringerMode: RingerMode?): String? =
+    filter?.let { vibrationSkippedByDoNotDisturb(overridesSilence, it) }
+        ?: ringerMode?.let { vibrationSkippedBecause(overridesSilence, it) }

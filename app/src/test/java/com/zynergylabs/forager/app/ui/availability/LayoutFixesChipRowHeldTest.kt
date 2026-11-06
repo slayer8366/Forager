@@ -47,7 +47,7 @@ import org.robolectric.shadows.ShadowDisplay
  * the cluster is moved by the real long-press drag of its handle. Every touch is a real coordinate touch.
  *
  * At `ROTATION_90` the punch-hole (and search bar) side is the left and the cluster's default is the
- * left; at `ROTATION_270` both are the right. Robolectric reports no cut-out, so the S22's margins are
+ * left; since RECORD -956 the same at `ROTATION_270` (was: both the right there). Robolectric reports no cut-out, so the S22's margins are
  * device items.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -149,16 +149,19 @@ class LayoutFixesChipRowLandscapeTest {
         assertChipRowAwayFromCluster()
     }
 
+    // RECORD -956 (the owner: "One should look exactly line the other"): the cluster's default at 270 is the left, as at 90, so the snap that
+    // exercises "follows" goes right. Was: default right, `snapClusterAcross((-500).dp)` to the left; under -956 that snap would
+    // be a no-op and the second case a copy of the first.
     @Test
-    fun `T7 at ROTATION_270 with the cluster on its default right side the chip row is at the bar's left end, clear of it`() {
+    fun `T7 at ROTATION_270 with the cluster on its default left side the chip row is at the bar's right end, clear of it`() {
         setScreen(Surface.ROTATION_270)
         assertChipRowAwayFromCluster()
     }
 
     @Test
-    fun `T7 at ROTATION_270 with the cluster snapped to the left the chip row follows to the bar's right end`() {
+    fun `T7 at ROTATION_270 with the cluster snapped to the right the chip row follows to the bar's left end`() {
         setScreen(Surface.ROTATION_270)
-        snapClusterAcross((-500).dp)
+        snapClusterAcross(500.dp)
         assertChipRowAwayFromCluster()
     }
 
@@ -190,10 +193,11 @@ class LayoutFixesChipRowLandscapeTest {
         assertChipRowAwayFromCluster()
     }
 
+    // RECORD -956 (the owner: "One should look exactly line the other"). Was `snapClusterAcross((-500).dp)`, "snapped left", a no-op under -956.
     @Test
-    fun `T7 at ROTATION_270 with the cluster snapped left a long label follows it to the bar's right end`() {
+    fun `T7 at ROTATION_270 with the cluster snapped right a long label follows it to the bar's left end`() {
         setScreen(Surface.ROTATION_270, LONG_LABEL)
-        snapClusterAcross((-500).dp)
+        snapClusterAcross(500.dp)
         assertChipRowAwayFromCluster()
     }
 
