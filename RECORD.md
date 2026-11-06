@@ -36286,6 +36286,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - the keep list adds tools/s22-combined and dev (if it exists) to the owner's list;
     - unmerged work with no open PR is neither merged nor throwaway, so it comes to the owner as a list.
   - Also scanned: tools/s22-combined holds no home value at its tip.
+- **Branch deletion, Phase 1 stop (2026-11-06T16:12:31Z):**
+  - **Found:** 1,316 heads. The bundle ~/Zynergy/forager-repo-backups/all-branches-2026-11-06.bundle (184 MB) verifies "okay, complete history" and matched ls-remote exactly at about 15:55Z. Its manifest sits beside it.
+  - **Draft classes:** keep 12, merged 543, merged by content 18, throwaway 500, unmerged 243.
+  - **The stop:** live work not on the keep list, the G and H Hazel's nav-card-gh-wip.
+  - **The planner's calls:**
+    - "keep (live)" for any branch whose tip is from 2026-11-06, ahead of the other rules;
+    - pi-build kept, as the Pi's live build line;
+    - a second bundle just before the hand-back, with the first kept, and Phase 2 skipping any changed SHA;
+    - "merged" means contained in main, pre-main, records-after-173 or another kept branch;
+    - branches whose work dev's rebase lost, name-only PR matches with later commits, and self-marked probes all stay unmerged for the owner, grouped.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
