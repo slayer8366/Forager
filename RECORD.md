@@ -36111,6 +36111,15 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - A fresh Hazel builds B3, B4 and F2 from nav-card-kind-line 50808417f, under Amendment 1 at 44a6476ee.
   - **One coder per file:** before editing a file she checks it against home-location-out, and stops if it is shared.
 - **The owner, verbatim (2026-11-06T11:15:06Z):** **"And that's all. Now start the new coder"**. So B3, B4 and F2 are the whole of Phase 3. The Phase 3 Hazel had already started, just before this message, on the owner's "Start her (Recommended)". No second one was started.
+- **Changed (2026-11-06T11:23:11Z), the owner, verbatim,** with two screenshots from their own phone (an "Arrived" card, and "616 ft by trail" over "right 109° ▶ ▲ 113° SE" with "Approaching" under it; their location details are not recorded): **"While we're at it, have all words, figures, and metrics have their own space, centered, so that jumping can be reduced. It's difficult to focus on a compass that jitters from one spot to the next based on how right I need to turn. Maybe remove the words "right/slight right/sharp right" and so on. The compass already points in the direction they need to go"**.
+  - To "The turn words: what stays on the turn line?": **"Drop the words, keep the degrees (Recommended)"**. The option read: "\"right 109°\" becomes \"109°\". The needle shows which way, and the number how far. No \"slight right\", \"sharp left\" and so on." The others: "Drop words and degrees"; "Keep the words".
+  - To "Which parts get their own fixed space, centred, so they don't move as the values change?" (several could be chosen): all four, **"The turn line"**, **"The top line"**, **"The status line"**, **"The evening line"**. Their option texts are quoted in Amendment 1, G3.
+  - So "meet at the middle" (A2) is replaced on the top line. A4 to A6 follow by the planner's reading, recorded in Amendment 1 as G3's reading, open to the owner.
+  - Amendment 1 gains category G (G1 to G3) and E7.
+  - This follows "And that's all"; the owner widened Phase 3 themselves.
+- **Phase 3 stop (2026-11-06T11:23:11Z), from Hazel:** F2 needs TripNavigateTest.kt (:390-404 pins WAY_IN_BLOCKED's trip words), and home-location-out's commit B changed one line of it (:97).
+  - **The planner's call:** the file goes to Phase 3 (Amendment 1, E8). The home-location Hazel was told not to edit it again. The second branch to land merges the other.
+  - **Also from her report, read and accepted:** the 11 notes reach the screen through one path only (NavigationReadout.kt:195 and :212 into NavigationCardLines.kt:144, shared by the card and the portrait strip). No TalkBack or notification reads them, and the log names only the note. "Arrived" and "—" are the only words ever alone on the top line.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
