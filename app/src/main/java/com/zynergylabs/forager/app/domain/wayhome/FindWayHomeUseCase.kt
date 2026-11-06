@@ -123,19 +123,19 @@ class FindWayHomeUseCase(
         // The stored points from the leave point to the entry point as walked, not joined: the joints' heights (-1842).
         val walked = trackPartHeights(stored, (leave.index downTo entry.index).toList(), heights)
         val originLeg = origin?.let { LatLng(it.lat, it.lng) }
-        return WayHomeResult.AlongTrails(
-            WayHome(
-                trackBack = trackPart(stored, from = points.lastIndex, to = leave.index, kind = WayHomePartKind.TRACK_BACK, heights = heights),
-                trail = WayHomePart(WayHomePartKind.TRAIL, trailPoints, trailMeters, trailHeights(route, trailPoints, trailMeters, standIn, walked)),
-                trackToStart = if (originLeg == null) {
-                    toStart
-                } else {
-                    toStart.copy(points = toStart.points + originLeg, meters = toStart.meters + GeoDistance.metersBetween(points.first(), originLeg))
-                },
-                trailJointMeters = joints,
-                regionId = routes.regionId,
-            ),
+        val wayHome = WayHome(
+            trackBack = trackPart(stored, from = points.lastIndex, to = leave.index, kind = WayHomePartKind.TRACK_BACK, heights = heights),
+            trail = WayHomePart(WayHomePartKind.TRAIL, trailPoints, trailMeters, trailHeights(route, trailPoints, trailMeters, standIn, walked)),
+            trackToStart = if (originLeg == null) {
+                toStart
+            } else {
+                toStart.copy(points = toStart.points + originLeg, meters = toStart.meters + GeoDistance.metersBetween(points.first(), originLeg))
+            },
+            trailJointMeters = joints,
+            regionId = routes.regionId,
         )
+        trailRouteFound(wayHome, routes.folder)
+        return WayHomeResult.AlongTrails(wayHome)
     }
 
     /** Which region's routes the way home is routed on, or the fallback when there are none to route on. See step 1. */

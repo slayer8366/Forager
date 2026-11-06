@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.domain.nextturn
 
+import kotlin.math.abs
+
 /**
  * What one junction along a route is (dispatch 2026-11-06-01, Phase 2a): the turn rule B1, the forks B3 and the bands C1
  * of Amendment 1, on directions already measured. Pure: no data, no line.
@@ -48,11 +50,35 @@ data class JunctionJudgement(
  * there ([otherBearings], from the node to [TURN_MEASURE_METERS] along it, or to its end if it is shorter). Bearings in
  * degrees clockwise from north.
  */
-internal fun judgeJunction(inBearing: Double, outBearing: Double, otherBearings: List<Double>): JunctionJudgement =
-    JunctionJudgement(JunctionClass.STRAIGHT_ON)
+internal fun judgeJunction(inBearing: Double, outBearing: Double, otherBearings: List<Double>): JunctionJudgement {
+    val turn = normDegrees(outBearing - inBearing)
+    val bend = abs(turn)
+    // Each other way's turn from the way in, signed as the route's is.
+    val deviations = otherBearings.map { normDegrees(it - inBearing) }
+    // A junction of three or more ways always has another way; said plainly, as no turn and no margin, if one comes without.
+    val straightestOther = deviations.minOfOrNull { abs(it) } ?: return JunctionJudgement(JunctionClass.STRAIGHT_ON, turn)
+    val margin = straightestOther - bend
+    // B1: "another way there is straighter than the route's way, or ... the route bends at least 30° and is the
+    // straightest by less than 30°".
+    val isTurn = straightestOther < bend || (bend >= TURN_MIN_BEND_DEGREES && margin < TURN_MAX_MARGIN_DEGREES)
+    // A turn's turn is never 0: either another way is straighter, so the bend is above 0, or the bend is at least S.
+    if (isTurn) return JunctionJudgement(JunctionClass.TURN, turn, margin, band = bandOf(turn), side = if (turn < 0.0) TurnSide.LEFT else TurnSide.RIGHT)
+    // B3: the nearest other way within 45 degrees of the route's own way out says which side the branch leaves on, and
+    // the arrow keeps to the other. A branch exactly along the way out (measure zero) is taken as leaving right.
+    val branch = otherBearings.map { normDegrees(it - outBearing) }.filter { abs(it) <= FORK_WITHIN_DEGREES }.minByOrNull { abs(it) }
+    if (branch != null) return JunctionJudgement(JunctionClass.FORK, turn, margin, keep = if (branch >= 0.0) TurnSide.LEFT else TurnSide.RIGHT)
+    return JunctionJudgement(JunctionClass.STRAIGHT_ON, turn, margin, leftPaths = deviations.count { it < 0.0 }, rightPaths = deviations.count { it > 0.0 })
+}
 
-/** The band of a turn of [turnDegrees] (C1). */
-internal fun bandOf(turnDegrees: Double): TurnBand = TurnBand.PLAIN
+/** The band of a turn of [turnDegrees] (C1), either side. */
+internal fun bandOf(turnDegrees: Double): TurnBand {
+    val bend = abs(turnDegrees)
+    return when {
+        bend < SLIGHT_BELOW_DEGREES -> TurnBand.SLIGHT
+        bend < SHARP_FROM_DEGREES -> TurnBand.PLAIN
+        else -> TurnBand.SHARP
+    }
+}
 
 /** [degrees] as an angle in (-180, 180]. */
 internal fun normDegrees(degrees: Double): Double {

@@ -119,16 +119,16 @@ class FindWayToWaypointUseCase(
         }
         val nearWalker = route.points.first()
         val nearWaypoint = route.points.last()
-        return WayToWaypointResult.AlongTrails(
-            WayHome(
-                trackBack = WayHomePart(WayHomePartKind.STRAIGHT, listOf(from, nearWalker), GeoDistance.metersBetween(from, nearWalker)),
-                trail = WayHomePart(WayHomePartKind.TRAIL, route.points, route.lengthMetres.toDouble()),
-                trackToStart = WayHomePart(WayHomePartKind.STRAIGHT, listOf(nearWaypoint, waypoint), GeoDistance.metersBetween(nearWaypoint, waypoint)),
-                // The straight legs are their own parts here, so the trail part has no joints inside it.
-                trailJointMeters = 0.0,
-                regionId = routes.regionId,
-            ),
+        val way = WayHome(
+            trackBack = WayHomePart(WayHomePartKind.STRAIGHT, listOf(from, nearWalker), GeoDistance.metersBetween(from, nearWalker)),
+            trail = WayHomePart(WayHomePartKind.TRAIL, route.points, route.lengthMetres.toDouble()),
+            trackToStart = WayHomePart(WayHomePartKind.STRAIGHT, listOf(nearWaypoint, waypoint), GeoDistance.metersBetween(nearWaypoint, waypoint)),
+            // The straight legs are their own parts here, so the trail part has no joints inside it.
+            trailJointMeters = 0.0,
+            regionId = routes.regionId,
         )
+        trailRouteFound(way, routes.folder)
+        return WayToWaypointResult.AlongTrails(way)
     }
 
     /**

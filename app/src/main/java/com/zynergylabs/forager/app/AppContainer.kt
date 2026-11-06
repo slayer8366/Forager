@@ -40,6 +40,8 @@ import com.zynergylabs.forager.app.routing.RoutingProfile
 import com.zynergylabs.forager.app.routing.TrailRoutingEngine
 import com.zynergylabs.forager.app.routing.WayHomeRouting
 import com.zynergylabs.forager.app.domain.wayto.FindWayToWaypointUseCase
+import com.zynergylabs.forager.app.domain.nextturn.RouteKind
+import com.zynergylabs.forager.app.domain.nextturn.RouteTurnsLog
 import com.zynergylabs.forager.app.domain.wayto.StreetDropOffEnds
 import com.zynergylabs.forager.app.domain.mapdata.LayeredOfflineBasemap
 import com.zynergylabs.forager.app.domain.mapdata.ReadNearbyMapData
@@ -497,7 +499,20 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     // BRouter runs one route at a time in the whole process, so a second engine would gain nothing. Built, and the routing
     // profile installed, on first use by either (TrailRoutingEngine).
     private val trailRoutingEngine = TrailRoutingEngine(installProfile = { RoutingProfile.install(context) }, errorLog = errorLog)
-    private val wayHomeRouting = WayHomeRouting(engines = trailRoutingEngine, offlineMapRepository = offlineMapRepository, errorLog = errorLog)
+    // Dispatch 2026-11-06-01, Phase 2a: the next turn's M1 line, written at info level for every trail route the way home
+    // and the way to a waypoint find, with no position, once its junctions are read off the main thread. Nothing a user sees.
+    private val routeTurnsLog = RouteTurnsLog(
+        scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
+        routeWays = BRouterRouteWays(profileDir = { routeWaysProfileDir }),
+        info = { tag, message -> Log.i(tag, message) },
+        errorLog = errorLog,
+    )
+    private val wayHomeRouting = WayHomeRouting(
+        engines = trailRoutingEngine,
+        offlineMapRepository = offlineMapRepository,
+        errorLog = errorLog,
+        trailRouteFound = { wayHome, routeData -> routeTurnsLog.trailRouteFound(RouteKind.WAY_HOME, wayHome, routeData) },
+    )
 
     /**
      * The way to a waypoint along trails (dispatch 2026-10-26-10, step 6 PR 2), on the shared engine. Called since step 6
@@ -519,6 +534,8 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         ),
         // Dispatch 2026-11-05-07: the line naming what each end of a search became, at info level (RECORD -2149, F1).
         info = { tag, message -> Log.i(tag, message) },
+        // Dispatch 2026-11-06-01, Phase 2a: the next turn's M1 line, as for the way home above.
+        trailRouteFound = { way, routeData -> routeTurnsLog.trailRouteFound(RouteKind.WAY_TO_WAYPOINT, way, routeData) },
     )
 
     /** The profile folder the route-square reader takes lookups.dat from: installed once, on its first read, off the main thread. */

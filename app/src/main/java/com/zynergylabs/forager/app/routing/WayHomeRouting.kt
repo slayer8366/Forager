@@ -51,7 +51,7 @@ class WayHomeRouting(
             errorLog.w(TAG, "The routing profile could not be installed; the way home follows the track.", e)
             return WayHomeResult.TrackOnly(WayHomeNote.NO_ROUTE_FOUND)
         }
-        return FindWayHomeUseCase(offlineMapRepository, engine.router, engine.snapper, errorLog)(track, origin)
+        return FindWayHomeUseCase(offlineMapRepository, engine.router, engine.snapper, errorLog, trailRouteFound)(track, origin)
     }
 
     private companion object {
