@@ -36236,6 +36236,23 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The renders (2026-11-06T13:02:04Z):** the topo-night folder also holds the 17 region-scale map images the owner chose the night paint from, with the 43 tiles used to draw them. The test doesn't read them.
   - **The owner, verbatim,** to "That folder also holds the 17 map images you chose the night map's paint from, drawn around the old town (zoomed out, region scale), and the tiles used to draw them. Remove those too?": **"Remove them (Recommended)"**. The option read: "Images and their tiles go. The written figures from them stay, marked as made on images since removed. The images can still be recovered from git history if ever needed, though not from the current files." The others: "Keep them"; "Remake them from Asheville".
   - So the images and their tiles are deleted. The render scripts point at Asheville but aren't re-run. The figures stay, marked, and their place references get the marker.
+- **Phase 2 finished (2026-11-06T14:00:00Z):** Hazel's hand-back is preserved at prompts/preserved/2026-11-05-11-phase2-report.md. Her full report is on the branch.
+  - **PR #499,** home-location-out into pre-main, is ready and not merged. Its head is 4819f6f40, with pre-main d02d2e74a merged in, and all 8 checks pass (run 42226927435).
+  - **Tests:** by name, 6838 against pre-main's 6836, with none missing and no status changed; the 2 new ones are MadeUpPlaceTest. There is no device check, because nothing a user sees changes; the app code's changes are 3 comments.
+- **The planner's check:**
+  - No @Ignore added; the two matches are in the report's text.
+  - **An independent scan of the PR's whole tree** found pairs 242 to 0, grid references 5 to 0, and tile numbers 11 to 0.
+    - One starting-grep line is left, a ruled exception.
+    - The single values left are the ruled exceptions, listed by kind and count only.
+    - The scan agrees with Hazel's final search.
+- **A planner error, corrected here:** the private file is a written description of the box, every line of it a comment. So the planner's own "private 0" pre-push checks with grep -f all day could match nothing; the check could not fail.
+  - It was caught when the same check read 0 on pre-main, which still held the values.
+  - A scanner built from the file's own rule (kept beside it, off GitHub) was proved first on old pre-main, where it finds 193 pairs in the tests alone.
+  - Run over everything the planner pushed since 2026-11-05 (RECORD.md, prompts/preserved, the audit index, known bugs and CLAUDE.md), it finds no pair, grid reference or starting-grep value added.
+  - Two single values in a preserved Phase 1 report are of the ruled-exception kind.
+  - One tile number in prompts/preserved/2026-11-04-08-report.md is real. Phase 1 had already listed it for the planner's sweep.
+  - The Hazels' own checks used the box rule, not grep -f, so theirs stand.
+- **Next:** the owner's merge word for #499. Then the planner's sweep of RECORD.md and prompts/preserved, pre-main merged into records-after-173, and the branch-deletion dispatch.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
