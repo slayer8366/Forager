@@ -53,10 +53,39 @@ data class TripMapsOpening(
  * so a page already on screen moves its pin here even after a pan (B3). A second trip tapped before leaving keeps the first
  * one's [TripMapsOpening.before], so leaving still puts back the page as the user left it.
  */
-internal fun AvailabilityUiState.withTripOpened(trip: PlannedTrip, area: TripDownloadArea): AvailabilityUiState = this // STUB: tests first
+internal fun AvailabilityUiState.withTripOpened(trip: PlannedTrip, area: TripDownloadArea): AvailabilityUiState {
+    val before = offlineMapsTripOpening?.before
+        ?: OfflineMapsEntry(offlineMapLatText, offlineMapLngText, offlineMapNameText, offlineMapRadiusKm, offlineMapRadiusTouched)
+    val route = area as? TripDownloadArea.AroundRoute
+    val note = when {
+        route == null -> null
+        route.stopsOutside -> TripAreaNote.STOPS_OUTSIDE
+        !route.lineCovered -> TripAreaNote.TRAIL_OUTSIDE
+        else -> null
+    }
+    return copy(
+        offlineMapLatText = area.center.lat.toString(),
+        offlineMapLngText = area.center.lng.toString(),
+        offlineMapNameText = trip.name,
+        offlineMapRadiusKm = route?.radiusKm ?: before.radiusKm,
+        offlineMapRadiusTouched = if (route != null) true else before.radiusTouched,
+        offlineMapPinRequest = offlineMapPinRequest + 1,
+        offlineMapsTripOpening = TripMapsOpening(before = before, startingRadiusKm = route?.radiusKm, note = note),
+    )
+}
 
 /** The page as it was before the trip's tap (A2), or unchanged when no trip opened it. */
-internal fun AvailabilityUiState.withTripForgotten(): AvailabilityUiState = this // STUB: tests first
+internal fun AvailabilityUiState.withTripForgotten(): AvailabilityUiState {
+    val before = offlineMapsTripOpening?.before ?: return this
+    return copy(
+        offlineMapLatText = before.latText,
+        offlineMapLngText = before.lngText,
+        offlineMapNameText = before.nameText,
+        offlineMapRadiusKm = before.radiusKm,
+        offlineMapRadiusTouched = before.radiusTouched,
+        offlineMapsTripOpening = null,
+    )
+}
 
 /**
  * A trip's Download Maps in the Trip Planner: the Offline Maps page's pin, name and (for a route) radius are set for [trip]

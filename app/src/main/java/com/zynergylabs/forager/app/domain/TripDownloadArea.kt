@@ -58,4 +58,22 @@ sealed interface TripDownloadArea {
  * cover the continental United States only (`OFFLINE_US_CONTINENTAL_NOTE`); such a route would open at 24 km with its stops
  * outside, and say so with the note.
  */
-fun tripDownloadArea(trip: PlannedTrip): TripDownloadArea = TripDownloadArea.AtTrip(trip.location) // STUB: tests first
+fun tripDownloadArea(trip: PlannedTrip): TripDownloadArea {
+    val route = trip.route ?: return TripDownloadArea.AtTrip(trip.location)
+    val line = route.legs.flatMap { it.line }
+    val center = LatLng(
+        lat = (line.minOf { it.lat } + line.maxOf { it.lat }) / 2,
+        lng = (line.minOf { it.lng } + line.maxOf { it.lng }) / 2,
+    )
+    val radiusKm = (Region.MIN_RADIUS_KM..OfflineMapRepository.MAX_RADIUS_KM).firstOrNull { r ->
+        val box = GeoDistance.boundingBox(center, r)
+        line.all { box.contains(it) }
+    } ?: OfflineMapRepository.MAX_RADIUS_KM
+    val area = GeoDistance.boundingBox(center, radiusKm)
+    return TripDownloadArea.AroundRoute(
+        center = center,
+        radiusKm = radiusKm,
+        lineCovered = line.all { area.contains(it) },
+        stopsOutside = route.stops.any { !area.contains(it.position) },
+    )
+}

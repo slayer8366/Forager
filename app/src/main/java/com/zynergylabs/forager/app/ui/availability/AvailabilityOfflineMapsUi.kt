@@ -162,7 +162,7 @@ internal fun OfflineMapsPanel(
     // One pin for both layouts below (L1): turning the phone swaps the layout, not the pin. Started again on each trip's Download
     // Maps (dispatch 2026-11-05-08, B3), which a pin the user has panned would otherwise ignore (CentrePinState's "follow until
     // you touch it"). The picker's map is rebuilt with it, since pickerMap is remembered on the pin.
-    val pinState = rememberCentrePinState(pickerRegion) // STUB: tests first
+    val pinState = key(uiState.offlineMapPinRequest) { rememberCentrePinState(pickerRegion) }
     // Dispatch 2026-10-18-03: Download Maps downloads wherever the pin sits, so the tile figures read the pin too (the line under
     // the slider and the confirmation's). They read the last confirmed point while OK existed; with OK gone that point would lag.
     val pin = pinState.cameraCenter

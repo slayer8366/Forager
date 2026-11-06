@@ -77,7 +77,22 @@ internal fun buildOpenTripOfflineMaps(actions: TripDownloadMapsActions?, openOff
  */
 @Composable
 internal fun TripOfflineMapsLeaveWatch(opened: Boolean, tabSelections: ScreenTabSelections, onLeft: (() -> Unit)?) {
-    // STUB: tests first
+    val currentOnLeft by rememberUpdatedState(onLeft)
+    val compactTab by tabSelections::compactTab
+    val journalScreenState = tabSelections.journalScreenState
+    LaunchedEffect(opened) {
+        if (!opened) return@LaunchedEffect
+        var arrived = false
+        snapshotFlow { Triple(compactTab, journalScreenState.topTab, journalScreenState.recordsFilter) }.collect { (tab, top, filter) ->
+            val onOfflineMaps = tab == CompactTab.JOURNAL && top == JournalTopTab.RECORDS && filter == RecordsSubTab.OFFLINE_MAPS
+            if (onOfflineMaps) {
+                arrived = true
+            } else if (arrived) {
+                arrived = false
+                currentOnLeft?.invoke()
+            }
+        }
+    }
 }
 
 /**
@@ -89,7 +104,16 @@ internal fun TripOfflineMapsLeaveWatch(opened: Boolean, tabSelections: ScreenTab
  */
 @Composable
 internal fun TripAreaNoteLine(opening: TripMapsOpening?, radiusKm: Int, pinMoved: Boolean) {
-    // STUB: tests first
+    val note = opening?.note ?: return
+    if (pinMoved || radiusKm != opening.startingRadiusKm) return
+    Text(
+        when (note) {
+            TripAreaNote.STOPS_OUTSIDE -> TRIP_STOPS_OUTSIDE_NOTE
+            TripAreaNote.TRAIL_OUTSIDE -> TRIP_TRAIL_OUTSIDE_NOTE
+        },
+        style = MaterialTheme.typography.bodySmall,
+        modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm).testTag(TRIP_AREA_NOTE_TAG),
+    )
 }
 
 /** The owner's words (A6), exactly. */
