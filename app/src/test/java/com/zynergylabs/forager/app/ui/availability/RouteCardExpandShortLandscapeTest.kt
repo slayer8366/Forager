@@ -125,8 +125,8 @@ abstract class RouteCardExpandShortLandscapeTests(private val clock: com.zynergy
 }
 
 /**
- * D43 (RECORD -2020): at fixed clocks. Pre-main's push run 41747193319 failed this class at 00:57 UTC, just after the rig's sunset,
- * when the sundown line ("Sunset was …") fits the navigation card here and takes the room; it had passed earlier in the day.
+ * D43 (RECORD -2020): at fixed clocks. Pre-main's push run 41747193319 failed this class with the sundown line ("Sunset was …")
+ * showing, which fits the navigation card here and takes the room; it had passed earlier in the day.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)

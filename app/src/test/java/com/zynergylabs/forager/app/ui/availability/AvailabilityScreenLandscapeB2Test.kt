@@ -584,7 +584,7 @@ class AvailabilityScreenLandscapeB2Test {
         assertCentreClear(listOf(SEARCH_ENTRY_BAR_TAG, MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG))
     }
 
-    // RECORD -621: S10 with the sundown line in the HUD, at dusk (41 min before the fixture's sunset).
+    // RECORD -621: S10 with the sundown line in the HUD, at dusk (37 min before the fixture's sunset).
     // Under NATIVE graphics, as S10's chip case (the owner's "Option B", RECORD -119): the default
     // graphics mode measures each text row far taller than the phone does (the HUD reads 124 dp
     // without the line there, 80 dp under NATIVE; the S22's own dump at 90, device evidence
@@ -614,7 +614,7 @@ class AvailabilityScreenLandscapeB2Test {
             return
         }
         val text = nodes.singleOrNull()?.config?.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.joinToString()
-        assertTrue("the HUD's sundown line at dusk reads sunset, 41 min and dark; was <$text>", text != null && B2_DUSK_LINE.matches(text))
+        assertTrue("the HUD's sundown line at dusk reads sunset, 37 min and dark; was <$text>", text != null && B2_DUSK_LINE.matches(text))
         val line = composeRule.onNodeWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
         val hud = tagBounds(NAVIGATION_HUD_TAG)
         assertTrue("the sundown line $line is laid out inside the HUD $hud", line.isInside(hud) && line.height > 0.dp)
@@ -952,25 +952,21 @@ private val B2_SEARCHED_STATE = AvailabilityUiState(
 )
 
 /**
- * The clock every test in this file runs at unless it names another: 10:56:13 PDT on 2026-10-06 at the
- * fixture's position, 7 h 41 min before sunset, so the sundown line is hidden (its window opens
- * 2 h 30 min before sunset). The screen and the fix both read it, so the fix is fresh. Moved from 11:00 PDT
- * with the fixture's position (dispatch 2026-11-05-11), keeping to the second the offset it had there.
+ * The clock every test in this file runs at unless it names another: 11:00 PDT on 2026-10-06 at the
+ * fixture's position, 7 h 37 min before sunset, so the sundown line is hidden (its window opens
+ * 2 h 30 min before sunset). The screen and the fix both read it, so the fix is fresh.
  */
-private val B2_DAY_NOW: Long = java.time.Instant.parse("2026-10-06T17:56:13Z").toEpochMilli()
+private val B2_DAY_NOW: Long = java.time.Instant.parse("2026-10-06T18:00:00Z").toEpochMilli()
 
-/**
- * 17:56:13 PDT the same day, 41 minutes before the fixture's sunset: the sundown line is shown. Moved from 18:00 PDT with the
- * fixture's position (dispatch 2026-11-05-11), keeping to the second the offset it had there.
- */
-private val B2_DUSK_NOW: Long = java.time.Instant.parse("2026-10-07T00:56:13Z").toEpochMilli()
+/** 18:00 PDT the same day, 37 minutes before the fixture's sunset: the sundown line is shown. */
+private val B2_DUSK_NOW: Long = java.time.Instant.parse("2026-10-07T01:00:00Z").toEpochMilli()
 
 /**
  * What the HUD says at [B2_DUSK_NOW] with no recording: sunset and dark only (RECORD -593), e.g.
- * "Sunset 6:37 PM · in 41 min · dark 7:06" in Pacific time. The clock times follow the JVM's zone
+ * "Sunset 6:37 PM · in 37 min · dark 7:06" in Pacific time. The clock times follow the JVM's zone
  * (a laptop in PDT, CI in UTC), so only the countdown, which depends on instants alone, is exact.
  */
-private val B2_DUSK_LINE = Regex("Sunset .+ · in 41 min · dark .+")
+private val B2_DUSK_LINE = Regex("Sunset .+ · in 37 min · dark .+")
 
 /** A live fix, so the strip shows heading, elevation and coordinates rather than its no-fix line. */
 private fun b2FixStateAt(now: Long) = B2_SEARCHED_STATE.copy(
