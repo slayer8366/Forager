@@ -599,3 +599,101 @@ Built against Amendment 1's I8 (`records-after-173` at `8e68f34d7`). The owner, 
   - The forecast-colours test is now held under the number.
   - The log-line test now expects "below reference_fs_number (layer 116 of 182)".
 - **`AppLinesUnderNames.kt`: its doc comment only.** It said v4 draws the number at index 84 and that the anchor would stay at `address_label`. Both are now wrong for v4. No code line changed, so the app's placement rule is the same, and on v4 it now finds the number as its anchor.
+
+### Evidence
+
+Every Kotlin run was read by the category I session's `results.py`, copied unchanged to `/mnt/work/scratch/hazel-i8`. It refuses a run that is incomplete, on another commit, or whose log is empty, short, or has a compile error. The filter is category I's, 71 tests with the new one. The style checks ran locally on Node 24.21.0, against dependencies installed from the lockfile and assets fetched and checked by `fetch-assets.sh`. CI runs them on Node 24.22.1. No Gradle ran on the laptop.
+
+- **Locally, before the change:** `generate:trail` reproduced every committed file exactly, and `check:trail` and `check:trail:v4` passed.
+- **Red, locally and on CI 42303182875** on `ee6386581` (tests only, old style):
+  - Check 10 failed with exactly one problem: "reference_fs_number is layer 84 of 182, between roads_path_hard_faint and roads_link; I8 rules it first in the top run of labels (layer 117), directly under address_label". The regeneration step passed, and the Worker's job was green.
+  - Kotlin: no compile errors; 71 tests, 4 failed, all in `AppLinesUnderNamesTest`, as predicted:
+    - the anchor `expected:<[reference_fs_number]> but was:<[address_label]>`;
+    - the trail number "directly under address_label expected:<142> but was:<84>";
+    - `forecast-chicken-of-the-woods-layer must draw under the names`;
+    - the log line still reading "below address_label (layer 117 of 182)".
+- **After the change, locally:** with only the style moved, the one problem was the three street-v4 sums. With the locks updated, both check suites passed, and regeneration left nothing changed.
+- **Full CI, green: PR run 42304139052** on `19fa03166` (I8 with pre-main `5c623a8ba`, PR #502, merged in). Every job passed: 6,953 tests, 0 failed, 24 skipped. No compile errors.
+- **Compared by name:**
+  - With the last green run, 42298652902 on `f3c4a07b7` (6,952 tests): none missing, none changed status, the same 24 skips, and 1 new test (the trail-number test).
+  - With pre-main's latest, push run 42303916388 on `944eb8de1` (6,838 tests): none missing, none changed status, the same 24 skips, and 115 new tests (next-turn's earlier 114 and this one).
+- **sha256, before and after:**
+
+| File | Before | After |
+|---|---|---|
+| street-v1, its Worker copy | `b2ec485d…` | unchanged |
+| street-v1 preview | `4fc2e14f…` | unchanged |
+| street-v2, its Worker copy | `7547507b…` | unchanged |
+| street-v3, its Worker copy | `e2a25982…` | unchanged |
+| street-v3 preview | `beb40e3a…` | unchanged |
+| offline-style.json | `357e2603…` | unchanged |
+| street-v4, its Worker copy | `d27d42d1…` | `8032de2c…` |
+| street-v4 preview | `bf389ab3…` | `35572d32…` |
+| trail-v4, its Worker copy (pinned nowhere; held equal to street-v4) | `d34fb590…` | `e8a8b705…` |
+| trail-v4 preview | `4df087d0…` | `424f590e…` |
+
+### The revert
+
+- **The edit.** One line of `generate-trail.mjs` on `5dca17f05`, in its own scratch worktree: v4's layers without `withTrailNumberUnderLabels`. The styles were then regenerated, which the change itself requires. The regenerated v4 files came back to exactly the pre-I8 sums (`d27d42d1…`, `bf389ab3…`).
+- **Prediction, written before reading:**
+  - the map-style job red on the three street-v4 sums and on check 10's I8 message;
+  - the Worker job red on the street-v4 sum test only;
+  - the same 4 Kotlin failures.
+- **CI 42303229923** on `0b85cd99a`:
+  - Kotlin: no compile errors; 71 tests, 4 failed, the same four messages as the red run.
+  - The Worker: 80 tests, 1 failed, "street-v4 is held to I8's v4 …", `actual 'd27d42d1…'`, `expected '8032de2c…'`.
+  - The map-style job: regeneration passed, then v2's checks failed on the three street-v4 sums. CI stopped at that step, so v4's checks did not run there. Check 10's I8 message on the reverted files was read locally, from the same files: "reference_fs_number is layer 84 of 182 … directly under address_label".
+- **Restored.** The file was restored from the copy saved before the edit, and compared equal with `5dca17f05`'s. Afterwards `next-turn` was clean, with the forward line present and street-v4 at `8032de2c…`.
+- **What it means.** The Kotlin failures are identical in the red run and the revert because the reverted output is byte for byte the old style. Each message names the trail number's place or the anchor it decides, which nothing but this change moves.
+
+### Confirmed and inferred
+
+- **[observed]**
+  - The runs, counts, messages and sums above.
+  - The layer order of all six v4 files before and after, and that only `reference_fs_number`'s index changed.
+  - v1 to v3 and offline byte for byte.
+- **[read]**
+  - The number's layer is a symbol layer from zoom 14 (`forager-reference.mjs`, `labelLayers`).
+  - The app finds its anchor from the style's layers alone (`AppLinesUnderNames.kt`, `namesAnchorOf`), so it now goes under the number on v4 with no code change.
+  - The app's night pass recolours by layer id (`TrailNightTables.kt`), so the move does not change night colours.
+- **[inferred, not verified]** The number keeps its collision priority among the labels. It stays the lowest symbol layer in the style, as before, and MapLibre places symbols in layer order. This is not checked on a phone.
+- **[not verified]** Anything on a phone.
+
+### Could not determine
+
+- **How the S22 step can be checked before promotion.**
+  - The app loads `TRAIL_STYLE_URL`, the Worker's `/style/trail-v4.json`. The Worker deploys from main, so a phone sees the new v4 only after promotion.
+  - I found no way on pre-main for an app build to load a style file instead. `TrailNightTables.kt` names the repository's file names for "a test build loading a file", which suggests such a build exists, but I did not find or check it, on dev or anywhere.
+  - What can be seen before promotion is the map-style preview (`map-style/./start.sh`, `forager-trail-v4.preview.json`), in the web engine. It shows the number drawn over roads and bridges from zoom 14, but it draws none of the app's lines. So it is no check of the claim itself.
+- **Whether a downloaded Trail Map area picks up the new v4.** The area keeps its address, and whether MapLibre refreshes a stored style for that address is a device question. This was the same for the first zooms.
+
+### Premises that were wrong
+
+None found. The three locks were as the stop described (`check-trail-night.mjs:56-58`, check 10 at `:431`, `worker.test.mjs:530`). trail-v4's own sum is pinned nowhere: it is held only by the equality test, which needed no change.
+
+### Decided beyond scope
+
+- **Where in the labels the number goes: the bottom of the top run, directly under `address_label`.** I8 says "up among the labels" and names no place. The bottom keeps it below every other label, as it was before, so its collision priority does not change. Any higher place would let it win space from names it lost to before.
+- **What a user sees beyond the lines: the trail number now also draws over roads, rail, bridges and boundaries**, where before it drew under them. This follows from I5 and cannot be separated from it: the lines draw over the roads (I5, "roads stay under the lines"), and the number draws over the lines. Recorded so the owner sees it named.
+- **The function went into `forager-reference.mjs`, not a new file**, so v4's `forager:generated-from` text stays the same.
+- **How this differs from the first-zooms change (821fa67d6):**
+  - One layer moved, against 78 clones added.
+  - No new override file, and no metadata change.
+  - The first zooms rewrote rulings in `check-trail-night.mjs` and `check-trail-footpaths.mjs`. I8 adds one exception to check 10, together with a check of the new place, and leaves the footpath checks alone.
+  - Both updated street-v4's sums in the same two places.
+- **`AppLinesUnderNames.kt`'s doc comment was corrected.** It named v4's old index and said the anchor would stay at `address_label`. Only the comment changed.
+
+### S22 steps (for the owner at the phone, after the next promotion; the coder does not run it)
+
+1. **Trail Map, day.** On a Forest Service trail with a number, set a waypoint further along it, start the way to it, and zoom to 14 to 16.
+   - The violet trail number draws over the blue line.
+   - Road and trail names also draw over the line.
+   - The roads themselves stay under the line.
+   - Markers, waypoint names and the position dot stay on top.
+2. **The same at night.**
+3. **logcat, tag `SightingsMap`, on Trail Map:** "App lines under the map's names: … below reference_fs_number (layer 116 of 182)". Before the promotion, it reads "below address_label (layer 117 of 182)", and step 1 shows the number under the line. That is the old v4, not a failure.
+4. **Topographical, and Street day and night:** unchanged.
+
+### Clean-up
+
+The throwaway branches `next-turn-i8-red` and `next-turn-i8-rev` are deleted from origin at the end, and the revert worktree is removed. Their runs stay readable by number. Scratch: `/mnt/work/scratch/hazel-i8` (mode 700). The worktree's `map-style/node_modules` and `map-style/assets` are links into scratch, ignored by git, and are removed at the end.
