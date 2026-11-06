@@ -135,7 +135,7 @@ class FindWayHomeUseCase(
             regionId = routes.regionId,
         )
         trailRouteFound(wayHome, routes.folder)
-        return WayHomeResult.AlongTrails(wayHome)
+        return WayHomeResult.AlongTrails(wayHome) // STUB: no folder yet
     }
 
     /** Which region's routes the way home is routed on, or the fallback when there are none to route on. See step 1. */

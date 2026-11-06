@@ -151,6 +151,13 @@ private fun judgeAt(
     val back = pointAlong(points, along, alongHere - TURN_MEASURE_METERS)
     val ahead = pointAlong(points, along, alongHere + TURN_MEASURE_METERS)
     if (GeoDistance.metersBetween(back, p) < NO_LEG_METERS || GeoDistance.metersBetween(p, ahead) < NO_LEG_METERS) return ways to JunctionJudgement(JunctionClass.NO_LEG)
+    // H3: a join's own leg, the line before the first join or after the last, shorter than the measure is not judged.
+    val legMeters = when (kind) {
+        JunctionKind.JUNCTION -> null
+        JunctionKind.JOIN_START -> alongHere
+        JunctionKind.JOIN_END -> along.last() - alongHere
+    }
+    if (legMeters != null && legMeters < 0.0 /* STUB: H3 not yet */) return ways to JunctionJudgement(JunctionClass.SHORT_LEG)
     val others = branches.filter { it !== wayIn && it !== wayOut }.map { OtherWay(it.bearing(), countsAsPath(it.tags)) }
     return ways to judgeJunction(GeoDistance.initialBearingDegrees(back, p), GeoDistance.initialBearingDegrees(p, ahead), others)
 }

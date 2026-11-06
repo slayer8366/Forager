@@ -128,7 +128,7 @@ class FindWayToWaypointUseCase(
             regionId = routes.regionId,
         )
         trailRouteFound(way, routes.folder)
-        return WayToWaypointResult.AlongTrails(way)
+        return WayToWaypointResult.AlongTrails(way) // STUB: no folder yet
     }
 
     /**

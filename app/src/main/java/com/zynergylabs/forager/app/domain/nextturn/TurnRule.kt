@@ -22,6 +22,14 @@ enum class JunctionClass {
      */
     NO_LEG,
 
+    /**
+     * Not judged (Amendment 1, H3, the planner's call, open to the owner): a join whose lead-in, or final leg, is shorter
+     * than [TURN_MEASURE_METERS], the distance a direction is measured over, so the leg cannot give one. Never a turn, and no
+     * side for its ways, as [NO_LEG]. On the S22 a walker standing almost on the trail got a "sharp left" of -179° from a
+     * lead-in a few metres long (session 21, RECORD -2183).
+     */
+    SHORT_LEG,
+
     /** The route's own way in or out could not be found among the data's ways there, so the junction is unknown. */
     UNMATCHED,
 }

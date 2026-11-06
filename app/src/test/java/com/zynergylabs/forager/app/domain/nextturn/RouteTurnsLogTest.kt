@@ -46,7 +46,7 @@ class RouteTurnsLogTest {
         assertEquals(
             listOf(
                 "M1 next turns, way to a waypoint: ways read in 12 ms (2 reads, 9 ways); 7 judged: 2 turns, 1 fork, 2 straight on, " +
-                    "1 no leg, 1 unmatched. " +
+                    "1 no leg, 0 short legs, 1 unmatched. " +
                     "#1 node 3, 31 m, join (start) of 3 ways: NO_LEG | " +
                     "#2 node 12, 119 m, junction of 4 ways: turn 4°, margin 86°, STRAIGHT_ON, paths 1 left 0 right, not paths 1 left 0 right | " +
                     "#3 node 20, 201 m, junction of 4 ways: turn -2°, margin 88°, STRAIGHT_ON, paths 1 left 1 right, not paths 0 left 0 right | " +

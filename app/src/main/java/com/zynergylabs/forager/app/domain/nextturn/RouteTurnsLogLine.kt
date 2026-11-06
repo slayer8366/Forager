@@ -34,7 +34,7 @@ internal fun routeTurnsLogLines(kind: RouteKind, turns: RouteTurns): List<String
         }
         val angles = "turn ${whole(j.routeTurnDegrees)}°, margin ${whole(j.marginDegrees)}°"
         val body = when (j.junctionClass) {
-            JunctionClass.NO_LEG, JunctionClass.UNMATCHED -> j.junctionClass.name
+            JunctionClass.NO_LEG, JunctionClass.SHORT_LEG, JunctionClass.UNMATCHED -> j.junctionClass.name
             JunctionClass.TURN -> {
                 val same = if (j.side == TurnSide.LEFT) left else right
                 val notCounted = if (j.side == TurnSide.LEFT) leftNot else rightNot
@@ -56,7 +56,7 @@ internal fun routeTurnsLogLines(kind: RouteKind, turns: RouteTurns): List<String
                 leftNot = 0
                 rightNot = 0
             }
-            JunctionClass.NO_LEG -> Unit
+            JunctionClass.NO_LEG, JunctionClass.SHORT_LEG -> Unit
         }
         "#${i + 1} node ${junction.node}, ${whole(junction.alongMeters)} m, $where of ${count(junction.ways, "way")}: $body"
     }
