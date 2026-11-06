@@ -35898,3 +35898,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - "This release": the owner asked for it while the promotion is being assembled.
 - **Still waiting on the owner:** the look at #495 on the S22, its merge word, and whether #496 gets a phone check first.
 **Notes:** Written by the planner by hand. Next free ID -2181.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2181
+**Timestamp:** 2026-11-06T04:50:04Z
+**Continues:** 2026-09-28-2180
+**Title:** The drawer outline goes into PR #495
+**Decision:**
+- **The owner, verbatim:** **"Add it to 495"**. This answers the planner's "it's built after the edge shade (#495) merges, because it uses #495's outline pieces" and "After your look, should I merge #495?".
+- **So:**
+  - dispatch 2026-11-05-09's Phase 2 builds on branch edge-shade (PR #495). The dispatch is marked in place.
+  - #495 isn't merged until the drawer is in, has its own S22 check, and the owner gives the word.
+  - The S22 check of -2178 stands for everything else in #495.
+- **Told to Hazel** (drawer outline, Phase 1, still read-only) by message, with the words quoted.
+- **Still open:** whether #496, bug 14's warning, gets a phone check before merging. Its tools build is CI run 42163222455.
+**Notes:** Written by the planner by hand. Next free ID -2182.
