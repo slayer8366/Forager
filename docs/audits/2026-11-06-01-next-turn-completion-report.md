@@ -419,3 +419,47 @@ The folder run's run log came back at 1,232 lines. Its job log, read through the
 ### Clean-up
 
 The four revert branches and `next-turn-2b1-red` are deleted from origin, their worktrees removed. Their runs stay readable by the numbers above. My scratch is `/mnt/work/scratch/hazel-2b1b` (mode 700). The previous session's `/mnt/work/scratch/hazel-2b1` is left as found, less `wt-red`.
+
+## Category I, names and icons over the lines: pre-build report, stopped (Hazel, 2026-11-06)
+
+Nothing is built. Read at `744d96821`, with pre-main at `61f99fbe2`; `nav-card-kind-line` (`5427954d2`) changes no file under `ui/map/` or `map-style/`. The owner, verbatim: "Add to 500: can we have street and trail names overlap the navigation line rather than be written under?"; "All lines the app draws"; "Names and icons on top". Three of the planner's premises do not hold as written, and two choices change what a user sees beyond I. That is a stop.
+
+### What the app draws today [read]
+
+- **One map, one setup.** `SightingsMap` is the only `MapView`, at `SightingsMap.kt:268`. On every style load, `MapStyleReload.kt` calls `initializeOverlayLayers` (`OverlayLayerSetup.kt`). That function puts every app layer on top of the whole basemap, in this order:
+  1. the registry (`MAP_LAYER_REGISTRY`, `layers/MapLayers.kt`), in its bands, bottom to top: colour fields, areas, decorations, lines, markers;
+  2. then the way home and the way to a waypoint;
+  3. the plotted route;
+  4. the waypoint names;
+  5. the fan-out.
+- **Every app line, with its production caller.** Each is reached through `initializeOverlayLayers` from `MapStyleReload.kt`.
+  - The registry's lines, each a `LineLayer` from `OverlayLineSpecs.kt:213`:
+    - the offline region's night border and its outline;
+    - the recording breadcrumb and its casing;
+    - the journal halos of an offline region and of the kept tracks;
+    - the kept tracks and their casing.
+  - The way home and the way to a waypoint (`RouteHomeLayers.kt:223-273`, added at `:284-290`): passed, ahead casing, ahead, ahead dotted, ahead straight legs, the straight line, and the straight line kept offline.
+  - The plotted route (`PlottedRouteLayers.kt:104-139`): casing, straight casing, trail and straight.
+  - The fan-out's legs and their casing (`FanOutLayers.kt:90-96`). These are drawn with the fanned-out markers, above every registry layer.
+- **Not lines, beside them:**
+  - the plotted route's stop dots, a circle layer directly under the way home (`PlottedRouteLayers.kt:148`);
+  - the journal marker rings, symbol layers in the decorations band, below every line. The owner put them there: "1 A", to "Move marker rings below all lines".
+- **The puck** is MapLibre's location component, activated after the overlays.
+
+### Premises that were wrong
+
+1. **"Below the basemap's first symbol layer" on Trail Map would put roads over the app's lines.** In Trail Map v4 (`trail-style-v4.json`, the same layer ids as `map-style/forager-trail-v4.json`), the first symbol layer is `reference_fs_number`, the Forest Service trail number, at index 84 of 182. Above it come 32 line layers before the labels begin at `address_label` (117): every road, rail line, bridge and boundary. v3 is the same shape (first symbol 61, roads up to 81). v1 and v2 have no symbol below a line. So, placed literally, a way home along a road would be drawn under the road.
+2. **Topo and Street have no symbol layers.** Both are raster pictures (`a.tile.opentopomap.org`, `tile.openstreetmap.org`), with their names part of the image. On them the names can only go over the line by putting the line under the picture, which hides it. So on Topo by day and on Street, day and night, the ask cannot be done, and I's own fallback applies: today's placement, logged. Only Trail Map has names as separate layers. The offline style (`offline-style.json`, 57 layers) has none either.
+3. **Topo at night is Trail Map under a Topo picture.** It is `TrailWithTopoOver` (`TrailStyleApply.kt:26`): the Topo raster is the top style layer from zoom 9.5, and Trail Map's labels stop at 9.5. Its first symbol layer is under the picture. Lines placed below it would be covered by the Topo picture at every walking zoom, so this map also has to keep today's placement.
+
+### For the owner (stop)
+
+- **Q1. Where do the app's lines go on Trail Map?**
+  - (a) **Recommended:** just under the block of names and icons. Roads, rail, bridges and boundaries stay under the lines, as today, and every name, road number and icon draws over them. One label stays under the lines, as it does today: the Forest Service trail number, because Trail Map's style draws it among the roads.
+  - (b) Under the first label of any kind. The trail number goes over too, but every road, railway, bridge and boundary also draws over the lines.
+  - (c) As (a), and move the trail number up among the other labels in Trail Map's own style. That is a style change the Worker serves from main, beyond I.
+- **Q2. What moves with the lines?** Under the lines today are the forecast colours, the offline area's tint and the journal rings.
+  - (a) **Recommended:** all of them move down together, so they stay under the lines as now. Names and icons then also draw over the forecast colours and the offline tint.
+  - (b) Lines only. The forecast colours, the offline tint and the journal rings would then draw over the lines, which undoes "Move marker rings below all lines".
+  - Either way, the plotted route's stop dots move with the plotted route, staying under the way home. The fan-out's legs stay on top with the fanned-out markers, since they are part of that gesture and not a route. Say if the legs should move too.
+- **Q3. Is this right for the other maps?** Topo by day and Street, day and night, keep today's placement, logged, because their names are part of the picture. Topo at night keeps it too, because the Topo picture covers Trail Map there. So the change shows only on Trail Map, day and night, and on downloaded Trail Map areas.
