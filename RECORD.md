@@ -35891,6 +35891,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **Left:** the snapshot end-s18 matches before-install except cached_searches, 2 to 3 rows. A coordinate search the planner made (the search panel's Latitude/Longitude, which sets the forage search, not the picker) was cleared from the bar, but its row stays in Recent searches. It is test data on the test phone, not edited out by hand.
   - Session folder ~/s22-2026-11-04/s18, off GitHub, because the logs hold tile addresses.
   - **Waiting on:** the owner's merge word for #496.
+- **Merged (2026-11-06T05:15:09Z), the owner, verbatim:** "Merge 496".
+  - Before: pre-main a0535ece1 and the head 1904e35ad, as checked; all 8 checks passed. Bundle ~/Zynergy/forager-repo-backups/pre-main-before-496.bundle verified "okay", its one head a0535ece1.
+  - Merged with `--match-head-commit 1904e35ad3c32dbce12bc5ccff10bf62629f61a4`. The merge commit is cd3fd2730, with parents a0535ece1 and 1904e35ad.
+  - On pre-main as 779599c3f (docs only): the audit index row, and known bug 14's row marked "Open, warned". That row's description gained the land-only case north of 15.92°N outside the data (-2150).
+  - The edge-shade Hazel was told pre-main moved; she doesn't merge it in. Download Maps from a trip (2026-11-05-08) can start its Phase 2 now, as Amendment 1 B1 set.
 **Notes:** Written by the planner by hand. Next free ID -2180.
 
 ---
