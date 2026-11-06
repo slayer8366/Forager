@@ -35998,4 +35998,21 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Phase 2 is one PR into pre-main. main follows by promotion. The planner sweeps RECORD.md and prompts/preserved.
 - **The search patterns** are kept only in a private file on the laptop, outside every repository, and are never published. The planner's first draft of the dispatch spelled out the ranges around the home; the push was blocked, and the draft was rewritten without them.
 - **History:** the old values stay in git history, as the owner was told. No rewrite was asked for.
+- **Phase 1 (2026-11-06T06:11:38Z):** Hazel's read-only inventory is preserved at prompts/preserved/2026-11-05-11-phase1-report.md, with counts and kinds only.
+  - **pre-main:** 248 occurrences in 119 files (source comments 6, tests 199, docs 41, scripts 2), plus MGRS 5 and tile numbers 12, with 7 more tile numbers in file names. 129 files in all.
+  - Nothing a user sees: both source files hold them only in comments.
+  - Corrected here: the "about 98 files" told to the owner was one grep's count, and the true figure is larger. "The old values would stay in git history" was also incomplete: all 1,315 branches carry them in their current files.
+  - records-after-173 carries a copy of the app from 2026-10-05, with 70 files holding them.
+  - The private patterns missed four forms (2-decimal pairs, comma decimals, easting-only grid references, tile numbers in file names). The planner added them to the private file.
+  - edge-shade (PR #495) adds 2 more pairs, copied from a shared test fixture.
+- **Added (2026-11-06T06:11:38Z), the owner, verbatim:**
+  - To "Cleaning pre-main and main removes your home location from the app's current code. But GitHub also has 1,315 older branches (merged work, test branches, reverts), and each still shows the values in its current files, not only in history. What should happen to those?": **"Delete the old branches (Recommended)"**. The option read: "After the clean-up, delete merged and throwaway branches on GitHub, keeping the working ones (main, pre-main, the records branch and open PRs). A full local backup bundle is made first, so nothing is lost. A separate dispatch." The others: "Make the repo private"; "Only pre-main and main".
+  - To "One audit folder has 7 map tiles saved from a public town centre near home (the files are named by tile number) for a night-map colour check. They're public map tiles, but their numbers place the general area. Keep or remove?": **"Remove them"**. The option read: "Delete the 7 tile images and their checksum lines, with a note. That old colour measurement can't then be re-run from the saved files." The other: "Keep them".
+- **The planner's calls:**
+  - **Timing:** Phase 2 runs after #495 merges, so the 2 new pairs are in scope.
+  - **The made-up point:** P is a public mountain summit more than 50 km away (in the report).
+  - **records-after-173:** pre-main is merged into it after Phase 2, a merge and never a rebase, so its app copy is clean.
+  - **The doc line** calling a town-centre point "the owner's coordinates" is reworded.
+  - **Branches:** the deletion is its own dispatch after Phase 2, with a full local bundle of every branch made and verified first.
+  - **The three Hazels building now** (drawer, Download Maps, navigation card) were told by message not to copy any coordinate from existing tests, and to use P for any new point.
 **Notes:** Written by the planner by hand. Next free ID -2183.
