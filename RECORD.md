@@ -35963,6 +35963,24 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The edge shade (PR #495) touches none of the navigation card's files, so this runs on its own branch.
 - **Read before writing:** the kind word sits in a fitted status line (NavigationHudFit.kt statusLineFit, with kindLead; NavigationInfo.kt:182). It can lead other status words, and a route message takes its own line.
 - **Added (2026-11-06T05:21:09Z), the owner, verbatim:** **"Keep the text size the same size"**. The distance, the kind word, the turn line and the rest keep today's text styles and sizes in the new layout; nothing is shrunk or auto-fitted to make the top line hold both. Where it can't hold both at today's sizes, the answer is a layout choice, not a smaller font. Told to Hazel (Phase 1) by message, with the words quoted.
+- **Phase 1 (2026-11-06T05:45:53Z):** Hazel's read-only report is preserved at prompts/preserved/2026-11-05-10-phase1-report.md.
+  - On the card, the kind is the left part's own third line (NavigationCardParts.kt:171-172), not part of the fitted status line. kindLead is never set in production, so "by trail · Approaching" never appears.
+  - Nothing on the live card scales text to fit; every fit changes words.
+  - The card gets one line shorter wherever the left part sets its height.
+  - It shares no files with the edge shade. Five tests that pin today's layout get updated, never silenced.
+  - Corrected here: the "kindLead" and "route message" premises in this entry and the dispatch were wrong as she shows. The note "The trip is in another area · straight line" is a status note.
+- **Added (2026-11-06T05:45:53Z), the owner, verbatim, to three questions:**
+  - To "On the navigation card's top line, how should \"2.2 mi\" and \"by trail\" sit together?": **"Meet at the middle (Recommended)"**. The option read: "\"2.2 mi\" ends at the middle and \"by trail\" starts there, so it reads as one phrase, \"2.2 mi by trail\". Distance in the left half, \"by trail\" in the right half." The other: "Each centred in its half".
+  - To "When there's no \"by trail\" or \"straight\" (for example \"Arrived\", or a dash while there's no GPS fix or no route yet), where does that word sit?": **"In the left half"**. The option read: "It stays in the left half, with the right half empty." The other was "Centred, as today (Recommended)".
+    - The planner's reading: in the distance's own slot, ending at the middle, so the word stands where the number stood.
+  - To "When the two can't fit on one line at today's text size (a long distance like \"≈ 1250 ft\", a narrow phone, or large phone text), what moves?": typed, **"Option 1 but stack by on top of trail first, then just shorten it to trail, and then drop it down"**. Option 1 was "\"by trail\" just under it (Recommended)": "\"by trail\" drops to its own line just under the distance, above the turn line …".
+    - So when "2.2 mi by trail" won't fit on one line, the steps are:
+      1. "by" stacked over "trail" in the right half, beside the distance;
+      2. then "trail" alone;
+      3. then the kind on its own line just under the distance, above the turn line.
+    - Each step is chosen for the longest distance the card could show, so the layout doesn't jump while walking.
+    - The planner's reading: "straight" is one word and can't stack or shorten, so it goes straight to step 3. The owner was told this reading.
+  - **Next:** Phase 2 by a fresh Hazel, from pre-main as it is then.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
