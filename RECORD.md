@@ -35658,6 +35658,10 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Merge word (2026-11-06T10:20:58Z), the owner, verbatim,** to "Merge #497, Download Maps from a trip?": **"Merge it (Recommended)"**. The option read: "Merged the same way, after #495." The other: "Not yet".
   - Before the merge: head 4c645fba8 as tested, mergeable and clean, all 8 checks passing.
 - **The note under the pin, the owner, verbatim,** to "After you move the pin or change the size, should the note under the pin go away?": **"Hide it once moved (Recommended)"**. The option read: "As built: the note describes the trip's own area, so once you change the area it no longer applies." The other: "Keep it showing", reading "The note stays until you leave the page." So #497 stays as built.
+- **Merged (2026-11-06T10:22:53Z):** PR #497, with `--match-head-commit 4c645fba8560ca9813f17cbfc31eff26da8b63e1`, after #495. The merge commit is c8cb6162a, with parents e7c85dd9d and 4c645fba8.
+  - Before: bundle ~/Zynergy/forager-repo-backups/pre-main-before-497.bundle verified "okay", its one head e7c85dd9d. No @Ignore and no removed assertion.
+  - **The tree is the one tested:** git merge-tree of e7c85dd9d and 4c645fba8 gave tree 1845a0f76, and the merge commit has that tree. The tested tools build d99eee0d3 differs from it only in the debug tooling, file for file the same changes as before session 19. No edge-shade or Download Maps file differs.
+  - On pre-main as 6cfcd8d6c (docs only): the audit index row.
 **Notes:** Written by the planner by hand. Next free ID -2172.
 
 ---
@@ -35990,6 +35994,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **All pass.** #495 now waits on the owner's merge word.
 - **Merge word (2026-11-06T10:20:58Z), the owner, verbatim,** to "Merge #495, the edge shade with the Tools drawer outline?": **"Merge it (Recommended)"**. The option read: "Back up pre-main, merge only if #495 is still on the commit tested, then add the audit row. After that, start removing the home location from the repo." The other: "Not yet".
   - Before the merge: head d31170fa4 as tested, mergeable and clean, all 8 checks passing.
+- **Merged (2026-11-06T10:21:38Z):** PR #495, with `--match-head-commit d31170fa4fa92f750c2b4eae7e966b5c77cd0567`. The merge commit is e7c85dd9d, with parents 779599c3f and d31170fa4.
+  - Before: bundle ~/Zynergy/forager-repo-backups/pre-main-before-495.bundle verified "okay", its one head 779599c3f.
+  - No @Ignore. Four assertion lines are replaced, not dropped. The bubble's colour check went from assertSameColourShadowed to assertSame, which is stricter. The strip-corner walk gained the bare-map reference the owner allowed ("Allow it (Recommended)", -2160).
+  - On pre-main as 6cfcd8d6c (docs only): the audit index row, shared with #497.
+  - **Next:** the home-location Phase 2 (dispatch 2026-11-05-11, -2182) can start from pre-main as it is now.
 **Notes:** Written by the planner by hand. Next free ID -2181.
 
 ---
