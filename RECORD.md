@@ -35964,3 +35964,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Read before writing:** the kind word sits in a fitted status line (NavigationHudFit.kt statusLineFit, with kindLead; NavigationInfo.kt:182). It can lead other status words, and a route message takes its own line.
 - **Added (2026-11-06T05:21:09Z), the owner, verbatim:** **"Keep the text size the same size"**. The distance, the kind word, the turn line and the rest keep today's text styles and sizes in the new layout; nothing is shrunk or auto-fitted to make the top line hold both. Where it can't hold both at today's sizes, the answer is a layout choice, not a smaller font. Told to Hazel (Phase 1) by message, with the words quoted.
 **Notes:** Written by the planner by hand. Next free ID -2182.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2182
+**Timestamp:** 2026-11-06T05:33:20Z
+**Title:** The owner's home location replaced with made-up points across the public repository: dispatch 2026-11-05-11
+**Decision:**
+- **The planner's finding, as told to the owner:** "the repository on GitHub is public, and it contains coordinates matching your home to about 10 metres. They're in about 98 files on pre-main and 91 on main: test fixtures, two source files and some audit documents. Removing them would mean swapping in made-up test points across all those files, as a separate dispatch, and the old values would stay in git history. Do you want that done, or left as it is?"
+- **The owner, verbatim:** **"Replace them in the repo"**.
+- **Dispatch 2026-11-05-11** is at prompts/preserved/2026-11-05-11-home-location-out.md. It covers decimal coordinates, grid references and tile numbers at zoom 13 or more that place the home within about 2 km. Nearby names are counted, for the owner, but not changed.
+  - Phase 1 is a read-only inventory, with a proposed made-up point and recomputed test values.
+  - Anything a user would see is a stop for the owner.
+  - Phase 2 is one PR into pre-main. main follows by promotion. The planner sweeps RECORD.md and prompts/preserved.
+- **The search patterns** are kept only in a private file on the laptop, outside every repository, and are never published. The planner's first draft of the dispatch spelled out the ranges around the home; the push was blocked, and the draft was rewritten without them.
+- **History:** the old values stay in git history, as the owner was told. No rewrite was asked for.
+**Notes:** Written by the planner by hand. Next free ID -2183.
