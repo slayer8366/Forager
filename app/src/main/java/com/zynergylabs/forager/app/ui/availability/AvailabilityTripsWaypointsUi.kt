@@ -100,6 +100,8 @@ private fun PlannedTripsList(
             )
         } else {
             val today = LocalDate.now()
+            // Dispatch 2026-11-05-08: each trip's Download Maps, from the screen; none without a provider (TripDownloadMapsUi.kt).
+            val downloadMaps = LocalDownloadMapsForTrip.current
             rows.forEach { row ->
                 key(row.key) {
                     ListRowMotion(row) { trip ->
@@ -111,12 +113,14 @@ private fun PlannedTripsList(
                                 distanceUnit = distanceUnit,
                                 onOpen = onOpenPlannedRoute?.let { open -> { open(trip) } },
                                 onDelete = { onDeletePlannedTrip(trip.id) },
+                                onDownloadMaps = downloadMaps?.let { open -> { open(trip) } },
                             )
                         } else {
                             PlannedTripRow(
                                 trip = trip,
                                 isToday = trip.date == today,
                                 onDelete = { onDeletePlannedTrip(trip.id) },
+                                onDownloadMaps = downloadMaps?.let { open -> { open(trip) } },
                             )
                         }
                     }
@@ -133,10 +137,11 @@ private fun PlannedTripsList(
  * (the format asked for on this screen; see [MgrsConverter]) with decimal degrees kept alongside
  * since some readers still want them and MGRS can't cover every point (see
  * [MgrsCoordinate.Unsupported]), a "Directions" action that hands the location to whatever
- * navigation app is installed (see [launchDirections]), and delete.
+ * navigation app is installed (see [launchDirections]), and delete. Left of Directions, the trip's Download Maps when
+ * [onDownloadMaps] is set (dispatch 2026-11-05-08, A5: "Plain trip: maps, Directions, Delete").
  */
 @Composable
-private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> Unit) {
+private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> Unit, onDownloadMaps: (() -> Unit)? = null) {
     val context = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -175,6 +180,7 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
+            onDownloadMaps?.let { TripDownloadMapsIcon(trip = trip, onClick = it) }
             BouncingIconButton(onClick = { launchDirections(context, trip) }) {
                 Icon(Icons.Filled.Directions, contentDescription = "Directions to ${trip.name}")
             }

@@ -372,6 +372,8 @@ internal fun MapLayersTestScreen(
             onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
             onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
             onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+            // Dispatch 2026-11-05-08: a Trip Planner trip's Download Maps, as MainActivity wires it.
+            tripDownloadMaps = TripDownloadMapsActions(onOpen = viewModel::onDownloadMapsForTrip, onLeft = viewModel::onLeftTripOfflineMaps),
         ),
         settings = AvailabilityScreenSettings(
             onNightModeMapsChanged = viewModel::onNightModeMapsChanged,

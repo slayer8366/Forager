@@ -29,7 +29,8 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * A planned trip with a route, in the Trip Planner (dispatch 2026-10-30-08, step 3): its name, its distance and its date when
  * it has one; no MGRS or coordinates (Amendment 1, Q12: "No, keep it clean (Recommended)"). Climb joins it in step 3b. Tapping
  * the row's body opens the route on the map ([onOpen]); Delete only deletes. Directions to the first stop is on the route's
- * card (Amendment 1, Q7), so the row has none.
+ * card (Amendment 1, Q7), so the row has none. Left of Delete, outside the body that opens the route, the trip's Download Maps
+ * when [onDownloadMaps] is set (dispatch 2026-11-05-08, A5: "Route trip: maps, then Delete"), so a tap on it only opens Offline Maps.
  */
 @Composable
 internal fun PlannedRouteRow(
@@ -38,6 +39,7 @@ internal fun PlannedRouteRow(
     distanceUnit: DistanceUnit,
     onOpen: (() -> Unit)?,
     onDelete: () -> Unit,
+    onDownloadMaps: (() -> Unit)? = null,
 ) {
     val route = trip.route ?: return
     Card(
@@ -59,6 +61,7 @@ internal fun PlannedRouteRow(
                 Text(routeTotalDistanceText(route.legs.map { it.meters }, distanceUnit), style = MaterialTheme.typography.bodyMedium)
                 trip.date?.let { Text(displayDate(it), style = MaterialTheme.typography.bodyMedium) }
             }
+            onDownloadMaps?.let { TripDownloadMapsIcon(trip = trip, onClick = it) }
             BouncingIconButton(onClick = onDelete, modifier = Modifier.padding(end = Spacing.sm).testTag(plannedRouteDeleteTag(trip.id))) {
                 Icon(Icons.Filled.Delete, contentDescription = plannedTripDeleteLabel(trip))
             }
