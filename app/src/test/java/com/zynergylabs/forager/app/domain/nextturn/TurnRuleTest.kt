@@ -51,7 +51,8 @@ class TurnRuleTest {
 
     @Test
     fun `B1 - winding through a junction, bending under 30 degrees and the straightest, is no turn`() {
-        val j = judge(25.0, 260.0)
+        // The other way is 15 degrees further round than the route, inside M, so only S keeps this from being a turn.
+        val j = judge(25.0, 320.0)
         assertEquals(JunctionClass.STRAIGHT_ON, j.junctionClass)
         assertEquals(null, j.side)
     }
