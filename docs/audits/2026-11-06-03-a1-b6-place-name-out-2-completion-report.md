@@ -46,7 +46,20 @@ occurrences: `RECORD.md` (1), the 2026-10-28 S22 audit (1), the `records-pi-afte
 **Name and tile** (fixed-string grep, which finds both in the PR's removed lines): 0 in every added
 line, message and PR text.
 
-**CI.** Pending.
+**CI. Green.** Run 42309269100 on `1c3bc65c9`: all eight jobs succeeded. Its log (9 843 lines,
+fetched) has no compile errors. Compared by test name, from each run's own `unit-test-report` JUnit
+XML (downloaded fresh into empty directories), against pre-main's run 42308597327 on `b6f0b464d`
+(green):
+
+| Run | test cases | passed | skipped | failed |
+|---|---|---|---|---|
+| pre-main `b6f0b464d` | 6 838 | 6 814 | 24 | 0 |
+| this branch `1c3bc65c9` | 6 838 | 6 814 | 24 | 0 |
+
+Same 6 838 names in both, and every name has the same result. `EstimateOfflineTileCountTest` (7)
+and `MapCameraMovesTest` (1) pass. The served-ceiling test passing at the new point is the check
+that the model's per-zoom counts hold on the JVM. It would fail if any of the three counts had
+moved.
 
 ## Disclosure
 
