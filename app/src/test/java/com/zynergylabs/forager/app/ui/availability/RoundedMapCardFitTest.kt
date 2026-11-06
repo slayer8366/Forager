@@ -116,7 +116,7 @@ class RoundedMapCardFitTest {
     }
 
     @Test
-    fun `the steps do not place the kind: that is decided on the width they leave (dispatch 2026-11-05-10)`() {
+    fun `the steps do not place the kind, which is decided on the width they leave (dispatch 2026-11-05-10)`() {
         assertEquals(KindPlace.NONE, fit(widths(136)).kindPlace)
         assertEquals(KindPlace.NONE, fit(widths(50, figurePx = 100, figureShortPx = 30)).kindPlace)
     }
