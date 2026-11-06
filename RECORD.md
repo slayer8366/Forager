@@ -36168,6 +36168,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **H9 (2026-11-06T17:16:46Z), the owner, verbatim,** to "With no compass, \"Compass unavailable · north up\" won't fit on one line at larger text sizes. The card grows and, in landscape, the route card on it loses its buttons. What should the notice do?": **"Shorten to \"No compass\" (Recommended)"**. The option read: "One short line, like \"Off trail\". The map turning north-up already shows what it means. The card keeps its height and the route card its buttons." The others: "Crossed-out compass icon"; "Let the card grow".
   - **The planner's readings:** "Compass calibrating…" and the strip's own words keep theirs, and the G and H Hazel stops if calibrating can't fit.
   - **Also from her:** H7 and H8 are built (73b5c0812). Under H8, 6 of the 13 route-card reds went green. The other 10 were H3's two-line notice, which H9 answers.
+- **Phase 3 (G and H) hand-back (2026-11-06T17:47:00Z):** preserved at prompts/preserved/2026-11-05-10-phase3-gh-report.md.
+  - G2, G3 and H1 to H9 are built on #498, head ba0724ead, with pre-main 61f99fbe2 merged in, and the 15 reverts each fail only their own cases.
+  - **9 tests are still red,** all one case: at font 2.0, in landscape, with no fix and no compass, two status lines under the card leave the route card on it without its rows or Save.
+- **The owner, verbatim (2026-11-06T17:47:00Z),** to "At the largest text in landscape, when the phone has had no GPS fix for minutes and has no compass, \"No fix 6 min\" and \"No compass\" take two lines and the route card on top loses its buttons. What should show?": **"The more urgent one (Recommended)"**. The option read: "Where status words take their own line (large text), only one shows: \"No fix 6 min\" ahead of \"No compass\". The card stays one line taller at most, and the route card keeps its buttons. At normal text both show as now." The others: "Both on one line"; "Let the card grow".
+  - Amendment 1 gains H10.
+- **The planner's call (H7, refined again):** at 320 dp the heading appeared and dropped out as the phone turned. Whether the heading stays on the strip is now decided on its widest reading, so it never flickers. At 320 it stays off, as before this dispatch ("It fit before, so it should still fit now").
+- **Next:** a fresh Hazel builds H10 and this H7 call to a fully green CI. Then comes the S22 check, then the owner's merge word.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
