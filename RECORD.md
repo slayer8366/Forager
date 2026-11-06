@@ -36175,6 +36175,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Amendment 1 gains H10.
 - **The planner's call (H7, refined again):** at 320 dp the heading appeared and dropped out as the phone turned. Whether the heading stays on the strip is now decided on its widest reading, so it never flickers. At 320 it stays off, as before this dispatch ("It fit before, so it should still fit now").
 - **Next:** a fresh Hazel builds H10 and this H7 call to a fully green CI. Then comes the S22 check, then the owner's merge word.
+- **E13 hand-back (2026-11-06):** H10 and H7 refined again built at 160d4c6b3 (report 03930b1e3); each revert failed for its own reason. CI run 42282412164: 6,957 tests, 2 red, both stops. The hand-off's "9 red, all one case" was 8 of that case plus one other.
+  - **Changed (2026-11-06T20:38Z), the owner, verbatim,** to "On a 360 dp phone, the compass strip can only keep the heading steady if the \"Alt\" label goes for good. The height number itself stays. Which should it do?": **"(b) Keep \"Alt\" when room"**. The option read: "\"Alt\" shows when the heading leaves room, so it comes and goes as you turn, as it did before this update". This limits the H7 call above: the widest-reading rule doesn't take "Alt" off at 360 dp. The other: "(a) Drop \"Alt\" there".
+  - To "Landscape, largest text, no compass, after sunset: there isn't room for both the \"Dark since…\" line and \"by trail\" on its own line ... Which should win?": **"(a) Leave out \"Dark since\""**. The option read: "In that one case the evening line doesn't show; \"by trail\" keeps its own line". The other: "(b) Keep \"Dark since\"".
+  - To "the S22's landscape window (largest text, evening) has room for the evening line, which it used to leave out. The coder let it show. Keep that?": **"Keep it showing"**. The option read: "The evening line shows there now, and steps aside when the route card opens".
+  - Amendment 1 gains H11 to H13.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
@@ -36437,6 +36442,14 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - To "Which lines should street and trail names sit on top of?": **"All lines the app draws"**. The option read: "The way to a waypoint, the way home, a planned route and recorded tracks: names sit on top of every one".
   - To "should the map's small icons (parking, trailheads, viewpoints) also go on top of it, or only the names?": **"Names and icons on top"**. The option read: "Everything the map writes or marks sits over the line, the way most navigation apps do it".
   - Amendment 1, category I. The screenshot stays off GitHub.
+- **2b-1 verified (2026-11-06):** green CI run 42281418807, 6,943 tests, 0 failed; no pre-main test missing or changed; the four reverts each failed for their own reason (runs 42284711550, 42284725439, 42284739412, 42284755068). Report at 744d96821.
+  - **The first 2b-1 Hazel's three calls beyond scope, for the owner** (from her hand-back; not in the branch's report): within the fix's own circle gives no card state of its own, because the top line reads "Arrived" there; SHORT_LEG is a class of its own, so the M1 line shows it; the holders and the M1 line each read the junctions, so each route is read twice, cost on the phone not measured.
+- **Category I stopped before building (fd6eaa643), three premises wrong:** Topo and Street are pictures with their names drawn in, so lines can't go under names there; Topo at night lays the Topo picture over Trail Map from zoom 9.5; and Trail Map's first label sits below all its roads.
+  - **Corrected here:** "below the basemap's first symbol layer" in the planner's reading of I would have put every road over the lines.
+  - **The owner (2026-11-06T20:38Z),** to "On Trail Map, where should the app's lines go?": **"Under all names, trail no. too"**. The option read: "Lines sit just under every name and icon, roads stay under the lines. The Forest Service trail number is moved up in the map's own style so it goes on top too. That style change goes live only when pre-main is next promoted to main".
+  - To "When the lines move down, what happens to those?" (the forecast colours, the downloaded-area tint and the journal rings): **"Move down with the lines (Recommended)"**. The option read: "They stay under the lines, so nothing changes in how the app's own layers stack, and your earlier ruling to keep the rings below all lines holds".
+  - To the fan-out legs: **"Stay with the markers"**. The option read: "The legs stay on top with the fanned-out markers they belong to".
+  - Amendment 1 gains I4 to I7.
 **Notes:** Written by the planner by hand. Next free ID -2184.
 
 ---
