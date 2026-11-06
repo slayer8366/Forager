@@ -35877,3 +35877,24 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **S22 build started:** tools/s22-combined moved 57e1a5ed3 → 1f5717a37 (merge of bug-14-picker-warning 1904e35ad, clean), CI run 42163222455. It is for her device check, D1 to D8. D6 and D7 toggle airplane mode, a phone setting under -2129, restored after.
 - **Known bug 14's row:** to be updated with the merge, as -2150 said.
 **Notes:** Written by the planner by hand. Next free ID -2180.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2180
+**Timestamp:** 2026-11-06T04:49:19Z
+**Continues:** 2026-09-28-2177, 2026-09-28-2178
+**Title:** The Tools drawer gets the map-chrome outline: dispatch 2026-11-05-09
+**Decision:**
+- **The owner, verbatim,** with a screenshot of the open Tools drawer over the map from their own phone: **"Give the tools drawer an outline also please"**.
+  - The screenshot shows the drawer see-through over the map, with no line at its map-facing edge. The edge shade (PR #495) didn't list the drawer.
+- **Dispatch 2026-11-05-09** is at prompts/preserved/2026-11-05-09-drawer-outline.md:
+  - The line goes on the edge that faces the map, in both directions, as #495's hairline.
+  - Only on the Maps tab, where the drawer is see-through.
+  - Nothing else changes, and the drawer's shadow, if any, is only reported.
+  - Phase 1 is read-only now. Phase 2 is built after #495 merges, from pre-main as it is then.
+- **The planner's readings, open to the owner:**
+  - Over the other tabs the drawer stays solid with no line, per the owner's "In the places that aren't covering a map, they can stay solid" (CLAUDE.md, the 80% rule).
+  - "This release": the owner asked for it while the promotion is being assembled.
+- **Still waiting on the owner:** the look at #495 on the S22, its merge word, and whether #496 gets a phone check first.
+**Notes:** Written by the planner by hand. Next free ID -2181.
