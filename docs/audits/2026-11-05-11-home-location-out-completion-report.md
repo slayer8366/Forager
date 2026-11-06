@@ -21,7 +21,8 @@ Claims are marked [read] (from the code or a log), [observed] (from a run or a c
 | `9ad46f6b0` D, `f723e6057` D2 | me | The derived-value sweep: times and heights taken at the owner's home, and one grid reference on a line D edited |
 | `0889b4924` F | me | Docs, the two source comments, both scripts, and the 7 topo-night tile images removed |
 | `9dab3e3c8` E | me | Two-place test values keep their two places (planner's (a)), including `TripNavigateTest.kt:97` |
-| this commit | me | This report |
+| `17dea9d5d` H | me | The topo-night test sample rebuilt over Asheville, and the renders removed (the owner's rulings) |
+| `157ad1fe4`, this commit | me | This report: work in progress, then final |
 
 Nothing a user sees changed. The app-code changes are comments only. Everything else is test code, docs and
 scripts [read: `git diff --stat 6cfcd8d6c` lists no file under `app/src/main` except the 3 commented files].
@@ -76,7 +77,9 @@ scripts [read: `git diff --stat 6cfcd8d6c` lists no file under `app/src/main` ex
 | 42210996620 | throwaway: C with B2's old countdown | **Red:** exactly the 2 B2 dusk tests, each rejecting P's line, "Sunset 1:37 AM · in 37 min · dark 2:06", against the old countdown. Clean compile [read: the build log has no `e:` lines and no failed compile task] |
 | 42210999406 | throwaway at C `3b82f1271` | C green |
 | 42213599513 | throwaway: exactly E's change, on top of D2 | Green, with every test name pre-main has (below), so no expected value changes for E |
-| 42216233654 | home-location-out `9dab3e3c8` | **Red in 3 tests, all in `TopoNightStreetSwitchTest`**, which reads the topo-night folder and pins its sample size. Removing the 7 tiles shortened that sample. Clean compile, and the other 6787 passed. A stop to the planner, pending a ruling (see open items) |
+| 42216233654 | home-location-out `9dab3e3c8` | **The guard red before the refill:** 3 tests, all in `TopoNightStreetSwitchTest`, "a short directory would make every check below vacuous expected:<81> but was:<75>". That test reads the topo-night folder and pins its sample size. Clean compile, and the other 6787 passed. A stop, ruled by the owner (below) |
+| 42223533171 | throwaway: H with the old sample's colour totals | <RED_H> |
+| 42223536949 | home-location-out `17dea9d5d`, the code head | <GREEN_H> |
 
 - **C's red check.** It is a separate commit in a separate worktree, so the forward change was never edited. The
   forward change is present at the head [observed: grep for the new countdown].
@@ -133,6 +136,43 @@ These are its own counts [observed].
 These figures are this scanner's, at `6cfcd8d6c`. Phase 1's figures were taken at `779599c3f` with its own
 classifier. I have not reconciled the two line by line [not verified]. Two pairs came in with #495 after Phase 1.
 
+## The topo-night sample, rebuilt (the owner's rulings)
+
+- **The stop.** F removed the 7 tiles on the owner's "Remove them". That turned `TopoNightStreetSwitchTest` red:
+  it reads `docs/audits/data/2026-09-30-topo-night/` and pins its sample size against a vacuous pass [read:
+  `TopoNightStreetSwitchTest.kt:72-79`]. Nobody had known a test read the folder.
+- **The owner, verbatim:**
+  - to "What should replace the 7 you removed?": **"Replace the whole set (Recommended)"**;
+  - to the renders and their tiles: **"Remove them (Recommended)"**.
+  - The city was the planner's choice: downtown Asheville, North Carolina, at Wikipedia's city point [read: the
+    Wikipedia article, 2026-11-06].
+- **The fetch** [observed]:
+  - 96 requests, made once, one at a time, 1.5 s apart, with a User-Agent naming the project;
+  - 81 OpenTopoMap tiles (a 3 x 3 block at each tile zoom 7 to 15) and 15 OSM Standard tiles (the centre tile at
+    each zoom, and the 2 x 2 block at zooms 8 and 10), the same zooms and counts as before;
+  - `fetch_tiles.py` and `fetch_osm.py` now choose exactly these files [observed: each script's own choice,
+    computed without fetching, equals the files present];
+  - `SHA256SUMS` verifies [observed].
+- **Totals, recounted independently with Pillow:** 17,319 distinct colours summed per zoom for OpenTopoMap and
+  3,637 for OSM. The method was first checked on the old sample: it reproduces the test's old pins, 17,832 and 3,652
+  [observed]. <TEST_READING>
+- **Limits, unchanged** [observed: the folder's Python mirror of the shader, then CI]:
+  - The darkness limit is still read from the sample (the zoomed-in means' maximum plus 0.03). It is 0.375 on the
+    new sample.
+  - Every checked value is also under the original sample's 0.345: Street below 9.5 at 0.12 to 0.15, and the
+    crossfade at most 0.232.
+  - Labels clear the ground by more than 0.15 at every zoom.
+  - The sample-size guard keeps 81 and 15.
+- **Removed:** the 24 render images (17 views and 7 sheets and switch pairs) and their 43 render-only tiles (30
+  OpenTopoMap and 13 DEM). The render scripts and the needed-DEM list point at the same Asheville point. They were
+  not re-run, so no tiles were fetched for them.
+  - The measurement's docs keep their figures, marked as made on files since removed. Their place references and
+    town names get the marker.
+  - The audit doc has a dated note with the rebuilt sample's figures.
+- **Privacy check** over the folder, the test and the audit doc, file names included: 143 files [observed]. It
+  found 0 hits for the private patterns and 0 for the starting grep. No tile name from the old sample is left, as a
+  file or as text, anywhere in the tree.
+
 ## Exceptions, by kind and count only, for privacy
 
 - **Ruling 4, values whose partner coordinate is outside the box: 133 at the head**, from 129 at pre-main.
@@ -141,10 +181,9 @@ classifier. I have not reconciled the two line by line [not verified]. Two pairs
   - 93 have two decimals, from 89.
   - In addition, there are the 4 single latitudes above, 4 at pre-main too.
   - The planner chose to list these by kind and count only, for privacy. That replaces "by file and count".
-- **Derived values left, the planner's (B):**
-  - 7 tile-count lines for areas at the old place;
-  - the topo-night folder's zoom-8 to 12 files, their checksum lines and its needed-tiles list. They come from a
-    public town centre, outside the dispatch's (c).
+- **Derived values left, the planner's (B):** 7 tile-count lines for areas at the old place.
+- **The topo-night folder's remaining files from the public town centre** (the zoom-8 to 12 tiles, checksum lines and
+  needed-tiles list) were first left under (B). They are now **replaced**, with the whole sample (below).
 - **Fixed time strings in formatting tests**, about 20 lines, are left as test data on the planner's word. I found no
   evidence that any was computed from the old place [read: the ones checked are fixed strings, not computed].
 - **(d) nearby names:** these are out of scope. I did not recount them; Phase 1's figure is 31 lines in 17 files, at
@@ -200,6 +239,9 @@ None. Nothing a user sees changed, and no claim here rests on hardware [read].
   planner's own first wording, which I had checked against the code.
 - Phase 1's clock method, keeping each offset, was carried out to the second. It was replaced by the planner's (1b).
 - My own first sweep counts were low: 26 lines became 29, and the starburst altitudes were missed (above).
+- I told the planner the renders were 17 images; there were 24 (17 views, plus 7 sheets and switch pairs of the same
+  views). All 24 went under the owner's "Remove them", which named the images, not a count.
+- No one, Phase 1 included, knew a unit test read the topo-night folder (above).
 
 ### Decided beyond scope
 
@@ -211,17 +253,22 @@ None. Nothing a user sees changed, and no claim here rests on hardware [read].
 - The USGS script's labels and comment now name Mount Hood (P), and the lichen script's comment says what its search is.
 - C also reworded run-history comments in 2 test files A had not touched. They named the old place's sunset.
 - The rig's two "fixed step from MadeUpPlace" comments now say "a two-place point near MadeUpPlace", since E moved it.
-- The topo-night note is a new file, `REMOVED.md`, in that folder. No tile numbers appear in it.
+- The topo-night note is a new file, `REMOVED.md`, in that folder. It was rewritten after the rebuild, and no tile
+  numbers appear in it.
+- How the OSM extras were chosen: the 2 x 2 block around the tile corner nearest the centre, which is how the original
+  extras fell. `fetch_osm.py` now fetches them too.
+- The fetch User-Agent names the project's URL. The original scripts named the owner's email, and I did not send it.
+- In the renders README, a state name is kept (the made-up place is in the same state), and a regional range is
+  reworded to "the foothills". The town names and the centre get the marker.
 
 ## Clean-up and open items
 
 - **Throwaway refs, all deleted:** `hlo-throwaway-red-a` (the earlier Hazel's), `hlo-throwaway-red-c`,
-  `hlo-throwaway-green-c` and `hlo-throwaway-discover-e`. Their runs are kept.
-- My two temporary worktrees are removed. The earlier Hazel's worktree, `~/.cache/forager-wt/home-location-out`, is
+  `hlo-throwaway-green-c`, `hlo-throwaway-discover-e` and `hlo-throwaway-red-h`. Their runs are kept.
+- My three temporary worktrees are removed. The earlier Hazel's worktree, `~/.cache/forager-wt/home-location-out`, is
   untouched, with its 18 uncommitted files. Whether to remove it is the planner's call.
 - The private scratch folder is deleted at the end of the dispatch; the hand-back message confirms it.
 - **Open items:**
-  - **`TopoNightStreetSwitchTest`** reads the 7 removed tiles' folder and pins its sample size, so it is red since F. It is a stop to the planner, with options to shrink the sample, refill it from elsewhere, or restore the files. It is not silenced and not changed.
   - the PR's own run on its final head;
   - the planner's sweep of RECORD.md and prompts/preserved, and pre-main merged into records-after-173;
   - the branch-deletion dispatch;
