@@ -35655,6 +35655,9 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **D8:** not observed.
   - The test trip and route were made and deleted; the Trip Planner reads "No trips planned yet".
   - **All pass.** #497 now waits on the owner's merge word.
+- **Merge word (2026-11-06T10:20:58Z), the owner, verbatim,** to "Merge #497, Download Maps from a trip?": **"Merge it (Recommended)"**. The option read: "Merged the same way, after #495." The other: "Not yet".
+  - Before the merge: head 4c645fba8 as tested, mergeable and clean, all 8 checks passing.
+- **The note under the pin, the owner, verbatim,** to "After you move the pin or change the size, should the note under the pin go away?": **"Hide it once moved (Recommended)"**. The option read: "As built: the note describes the trip's own area, so once you change the area it no longer applies." The other: "Keep it showing", reading "The note stays until you leave the page." So #497 stays as built.
 **Notes:** Written by the planner by hand. Next free ID -2172.
 
 ---
@@ -35985,6 +35988,8 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **Landscape:** at both rotations the drawer opens from the right. Its map-facing left edge carries the line, 138 to 145 against a fill of 60, and the map outside is unchanged.
   - Night Mode was set to Dark and back to Light. Rotation was restored to auto-rotate on (accelerometer_rotation 1, user_rotation 0).
   - **All pass.** #495 now waits on the owner's merge word.
+- **Merge word (2026-11-06T10:20:58Z), the owner, verbatim,** to "Merge #495, the edge shade with the Tools drawer outline?": **"Merge it (Recommended)"**. The option read: "Back up pre-main, merge only if #495 is still on the commit tested, then add the audit row. After that, start removing the home location from the repo." The other: "Not yet".
+  - Before the merge: head d31170fa4 as tested, mergeable and clean, all 8 checks passing.
 **Notes:** Written by the planner by hand. Next free ID -2181.
 
 ---
