@@ -36298,6 +36298,14 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - To "Your words cover turn, sharp, keep (fork) and straight. What should TalkBack say for a slight turn (under 45°)?", typed: **"Option 2. It's probably not a good idea to mention "bear" in a forest no matter our intent."** Option 2 was "\"slight left\"": "\"slight left in 400 feet\"". The others: "\"bear left\" (Recommended)"; "\"keep left\"".
   - To "When should it say \"take the first left\" rather than \"turn left\"?": **"When paths come first (Recommended)"**. The option read: "If other paths leave on the same side before your turn, it counts them: \"take the second left\". Otherwise \"turn left\". The arrow on screen is the same either way." The others: "Always for plain turns"; "Just an example".
   - Amendment 1 gains G3 and G4. Phase 2a was told: each turn carries its count of same-side paths before it. The planner's reading, open to the owner: the counting applies to plain turns only.
+- **Phase 2a note (2026-11-06T13:50:35Z), from Hazel, not a stop:** draft PR #500 is on branch next-turn, at 8051a72f4 with pre-main d02d2e74a merged in.
+  - Her fixture probe found the same-side path count works. Of 2,016 side paths, 0 were put on the wrong side.
+  - "Every way" counted driveways and motorway slips.
+  - It also brought out that the dispatch's Q3 answer, the straight-ahead arrow where "the way is a straight line", disagrees with E2's "keep it blank".
+- **The owner, verbatim (2026-11-06T13:50:35Z):**
+  - To "For \"take the second left\", which side ways count as paths you pass?": **"Walkable ways only (Recommended)"**. The option read: "Footpaths, trails, tracks and streets count. Driveways, parking-lot lanes and motorway slips don't, so a driveway never makes it \"the second left\"." The other: "Every way".
+  - To "When the way to a waypoint is a straight line because there's no trail route, what shows in the next-turn space?": **"Blank"**. The option read: "Nothing, as for places with no trails or routing data. \"straight\" beside the distance already says it." The other: "Straight-ahead arrow (Recommended)".
+  - Amendment 1 gains B5 and E3. The planner's tag reading leaves out service, motorway and trunk ways and their links, and the turn rule itself still counts every way.
 **Notes:** Written by the planner by hand. Next free ID -2184.
 
 ---
