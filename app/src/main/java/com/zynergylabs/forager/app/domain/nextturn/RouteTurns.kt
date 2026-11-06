@@ -157,7 +157,7 @@ private fun judgeAt(
         JunctionKind.JOIN_START -> alongHere
         JunctionKind.JOIN_END -> along.last() - alongHere
     }
-    if (legMeters != null && legMeters < 0.0 /* STUB: H3 not yet */) return ways to JunctionJudgement(JunctionClass.SHORT_LEG)
+    if (legMeters != null && legMeters < TURN_MEASURE_METERS) return ways to JunctionJudgement(JunctionClass.SHORT_LEG)
     val others = branches.filter { it !== wayIn && it !== wayOut }.map { OtherWay(it.bearing(), countsAsPath(it.tags)) }
     return ways to judgeJunction(GeoDistance.initialBearingDegrees(back, p), GeoDistance.initialBearingDegrees(p, ahead), others)
 }

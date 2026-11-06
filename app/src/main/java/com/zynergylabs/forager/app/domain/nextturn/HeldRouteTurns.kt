@@ -17,12 +17,10 @@ import java.io.File
  * rule (the watch's lock, the ViewModel's one thread).
  */
 class HeldRouteTurns(private val reader: RouteTurnsReader) {
-    private val STUB = true
     private var job: Job? = null
 
     /** Reads [wayHome]'s junctions on [scope], cancelling any read in flight, and hands the answer to [deliver]. */
     fun read(scope: CoroutineScope, wayHome: WayHome, line: WayHomeLine, routeData: File?, deliver: (RouteTurns) -> Unit) {
-        if (STUB) return // STUB: not yet read
         job?.cancel()
         job = scope.launch { deliver(reader.turnsFor(wayHome, line, routeData)) }
     }

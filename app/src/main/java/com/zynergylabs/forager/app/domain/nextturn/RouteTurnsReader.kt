@@ -30,7 +30,6 @@ class RouteWaysTurnsReader(
     private val nanoTime: () -> Long = System::nanoTime,
 ) : RouteTurnsReader {
     override suspend fun turnsFor(wayHome: WayHome, line: WayHomeLine, routeData: File?): RouteTurns {
-        if (STUB) return RouteTurns.Unread("stub", NOTHING_READ)
         if (routeData == null) {
             val why = "no route data folder"
             errorLog.w(TAG, "A route's junctions were not read for the next turn: $why.", RouteTurnsLog.RouteTurnsNotRead(why, null))
@@ -56,6 +55,5 @@ class RouteWaysTurnsReader(
     private companion object {
         const val TAG = RouteTurnsLog.TAG
         val NOTHING_READ = WaysReading(millis = 0L, reads = 0, ways = 0)
-        var STUB = true
     }
 }

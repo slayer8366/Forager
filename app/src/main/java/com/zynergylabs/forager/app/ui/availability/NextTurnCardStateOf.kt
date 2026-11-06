@@ -23,7 +23,6 @@ import com.zynergylabs.forager.app.domain.nextturn.NextTurnCardState
  * value, [NextTurnCardState.WITHIN_FIX_CIRCLE], is kept for the day those rules part.
  */
 internal fun nextTurnCardState(readout: NavigationHudReadout, hasFix: Boolean): NextTurnCardState = when {
-    readout.distanceText.isNotEmpty() || readout.distanceText.isEmpty() -> NextTurnCardState.SHOWS_DISTANCE // STUB
     !hasFix -> NextTurnCardState.NO_FIX
     readout.distanceText == ARRIVED_TEXT -> NextTurnCardState.ARRIVED
     readout.distanceText == ROUTE_UNAVAILABLE_TEXT -> NextTurnCardState.ROUTE_WITHHELD

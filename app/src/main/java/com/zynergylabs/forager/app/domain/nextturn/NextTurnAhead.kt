@@ -103,5 +103,5 @@ fun nextTurnSpace(card: NextTurnCardState, ahead: NextTurn): NextTurn = when (ca
     NextTurnCardState.NO_DISTANCE -> NextTurn.Blank(NextTurnBlank.NO_DISTANCE)
     NextTurnCardState.NO_FIX -> NextTurn.Blank(NextTurnBlank.NO_FIX)
     NextTurnCardState.WITHIN_FIX_CIRCLE -> NextTurn.Blank(NextTurnBlank.WITHIN_FIX_CIRCLE)
-    NextTurnCardState.ROUTE_WITHHELD -> ahead // STUB
+    NextTurnCardState.ROUTE_WITHHELD -> NextTurn.Blank(NextTurnBlank.ROUTE_WITHHELD)
 }
