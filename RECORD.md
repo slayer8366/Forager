@@ -36296,6 +36296,19 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - a second bundle just before the hand-back, with the first kept, and Phase 2 skipping any changed SHA;
     - "merged" means contained in main, pre-main, records-after-173 or another kept branch;
     - branches whose work dev's rebase lost, name-only PR matches with later commits, and self-marked probes all stay unmerged for the owner, grouped.
+- **Branch deletion, Phase 1 done (2026-11-06T17:15:34Z):** the report is preserved at prompts/preserved/2026-11-06-02-phase1-report.md.
+  - **Backups:** two bundles of every branch, verified and matched to the remote: A with 1,316 heads, and B with 1,319 heads at 16:13:38Z.
+  - **Classes:** keep 26, merged 539, merged by content 23, throwaway 495, unmerged 236. The unmerged split into reports and records 150, self-marked probes 45, and other 41.
+  - **Privacy:** every branch name and tip subject scanned clean with the working scanner.
+- **The owner, verbatim (2026-11-06T17:15:34Z), to four questions:**
+  - **"Delete them (Recommended)"** for the 1,057 merged and throwaway.
+  - **"Copy, then delete (Recommended)"** for the 150 report branches.
+  - **"Delete (Recommended)"** for the 45 probes.
+  - **"Keep for now (Recommended)"** for the 41 other.
+  - The questions and option texts are quoted in the dispatch's Phase 2 go.
+  - **The planner's readings:**
+    - the 9 kept only because they were pushed today are finished, so they go too;
+    - only the reports' text is copied, scrubbed of home values, and their images stay in the bundles.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---

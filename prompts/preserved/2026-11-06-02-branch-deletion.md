@@ -46,3 +46,25 @@ The clean-up is done: PR #499 merged into pre-main as 05d0ab53a, and pre-main wa
 - Commits are none. If you need any, they end with `Co-Authored-By: Claude <noreply@anthropic.com>`, with no model name.
 - Never read, name or quote what CLAUDE.md calls the Restricted Object.
 - **Stops:** a count that doesn't add up; a bundle that doesn't verify or doesn't match; a branch that fits no class or two; anything that looks like live work not on the keep list.
+
+## Phase 2 go (2026-11-06T17:15:34Z): the owner's rulings on Phase 1
+Phase 1's report is at prompts/preserved/2026-11-06-02-phase1-report.md, with manifest B: 1,319 branches, fetched 2026-11-06T16:13:38Z.
+
+The owner, verbatim:
+- To "Delete the 1,057 merged and throwaway branches now, as you ruled? Both full backups are made and verified on the laptop.": **"Delete them (Recommended)"**. The option read: "In batches, skipping any branch that changed since the backup. main, pre-main, the records branch, open PRs and today's work aren't touched."
+- To "150 unmerged branches each hold a report, review or S22 record that may exist nowhere else on GitHub. What should happen to them?": **"Copy, then delete (Recommended)"**. The option read: "Each report is checked for home values, copied to the records branch, then its branch is deleted. Nothing is lost, and the old app files on those branches go."
+- To "45 unmerged branches mark themselves as probes (\"revert check, throwaway, never merge\"). Delete them?": **"Delete (Recommended)"**.
+- To "41 other unmerged branches hold work that exists nowhere else (route-navigate, the legal drafts, camera experiments, dev rebases and the like). What should happen?": **"Keep for now (Recommended)"**.
+
+**So Phase 2:**
+1. **Delete** the merged (539), merged-by-content (23) and throwaway (495) classes and the 45 self-marked probes.
+2. **Also delete** the 9 kept only by the live rule that are finished: bug-14-picker-warning, bug-14-r1, bug-14-r2a, bug-14-r2b, bug-14-r3, bug-14-r4, edge-shade, home-location-out, trip-download-maps. This is the planner's call: their work is merged or was throwaway, and no one is working on them.
+3. **The 150 report branches,** for each branch:
+   - find the text files it holds that are on neither pre-main nor records-after-173 (reports, reviews, records: .md, .txt, .csv, .json and the like);
+   - scan each with ~/.forager-private/scan.py;
+   - where a file has a home value, replace it with the marker using ~/.forager-private/sweep.py, and record the count;
+   - copy the files to records-after-173 at their own paths. Where a different file already has that path, use docs/audits/from-branches/BRANCH/PATH instead;
+   - after the copy is on origin and checked byte-for-byte against the scrubbed copies, delete the branch.
+   **The planner's reading:** images (screenshots and the like) are not copied, because many show the map near the owner's home and pixels can't be scanned. Count them per branch in the report; they stay in the bundles.
+4. **Keep** the 26 kept branches (less the 9 above) and the 41 "other" branches.
+- **Every batch:** re-fetch, and skip any branch whose SHA differs from manifest B or which is not in it. Afterwards, count what remains against the keep and other lists, plus anything new since B.
