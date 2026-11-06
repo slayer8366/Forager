@@ -20,7 +20,15 @@ package com.zynergylabs.forager.app.domain.nextturn
  * **The count is for plain turns only** (the planner's reading in G3, as the dispatch for 2b-2 restates it): a sharp or
  * slight turn says its band's words whatever paths come first.
  */
-fun nextTurnWords(space: NextTurn, spokenDistance: String): String? = null // stub, tests first
+fun nextTurnWords(space: NextTurn, spokenDistance: String): String? {
+    val words = when (space) {
+        is NextTurn.Turn -> turnWords(space)
+        is NextTurn.Fork -> "keep ${sideWord(space.keep)}"
+        NextTurn.NoTurnLeft -> "keep straight"
+        is NextTurn.Blank -> return null
+    }
+    return "$words in $spokenDistance"
+}
 
 private fun turnWords(turn: NextTurn.Turn): String {
     val side = sideWord(turn.side)
@@ -34,7 +42,17 @@ private fun turnWords(turn: NextTurn.Turn): String {
 private fun sideWord(side: TurnSide): String = if (side == TurnSide.LEFT) "left" else "right"
 
 /** "second" to "tenth" in words; past that, the figure with its suffix ("11th", "21st"), which TalkBack reads as an ordinal. */
-internal fun ordinalWord(n: Int): String = "" // stub, tests first
+internal fun ordinalWord(n: Int): String {
+    ORDINAL_WORDS.getOrNull(n - 1)?.let { return it }
+    val suffix = when {
+        n % 100 in 11..13 -> "th"
+        n % 10 == 1 -> "st"
+        n % 10 == 2 -> "nd"
+        n % 10 == 3 -> "rd"
+        else -> "th"
+    }
+    return "$n$suffix"
+}
 
 private val ORDINAL_WORDS = listOf("first", "second", "third", "fourth", "fifth", "sixth", "seventh", "eighth", "ninth", "tenth")
 
@@ -44,7 +62,14 @@ private val ORDINAL_WORDS = listOf("first", "second", "third", "fourth", "fifth"
  * "412 meters", "1.2 kilometers"; a figure of exactly 1 takes the singular ("1 foot"). `null` for a figure in any other form,
  * so the caller can say so rather than guess.
  */
-fun spokenFigure(figure: String): String? = null // stub, tests first
+fun spokenFigure(figure: String): String? {
+    val space = figure.lastIndexOf(' ')
+    if (space <= 0) return null
+    val number = figure.substring(0, space)
+    if (number.toDoubleOrNull() == null) return null
+    val (one, many) = UNIT_WORDS[figure.substring(space + 1)] ?: return null
+    return "$number ${if (number == "1") one else many}"
+}
 
 private val UNIT_WORDS = mapOf(
     "ft" to ("foot" to "feet"),

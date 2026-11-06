@@ -33,7 +33,19 @@ internal data class NextTurnSpaceShown(val arrow: NextTurnArrow?, val figure: St
  * - **G3**: [spoken] from [nextTurnWords]. A figure whose unit cannot be spelled out ([spokenFigure] says `null`) is spoken as
  *   it is written, and logged.
  */
-internal fun nextTurnSpaceShown(readout: NavigationHudReadout, hasFix: Boolean, ahead: NextTurn, unit: DistanceUnit): NextTurnSpaceShown =
-    NextTurnSpaceShown.BLANK // stub, tests first
+internal fun nextTurnSpaceShown(readout: NavigationHudReadout, hasFix: Boolean, ahead: NextTurn, unit: DistanceUnit): NextTurnSpaceShown {
+    val space = nextTurnSpace(nextTurnCardState(readout, hasFix), ahead)
+    val arrow = nextTurnArrow(space) ?: return NextTurnSpaceShown.BLANK
+    val figure = when (space) {
+        is NextTurn.Turn -> formatDistanceMeters(space.metersAway, unit)
+        is NextTurn.Fork -> formatDistanceMeters(space.metersAway, unit)
+        NextTurn.NoTurnLeft -> readout.distanceText
+        is NextTurn.Blank -> return NextTurnSpaceShown.BLANK
+    }
+    val spokenDistance = spokenFigure(figure) ?: figure.also {
+        android.util.Log.w(NEXT_TURN_SPACE_LOG_TAG, "the next turn's figure has no unit to spell out; TalkBack reads it as written")
+    }
+    return NextTurnSpaceShown(arrow, figure, nextTurnWords(space, spokenDistance))
+}
 
 private const val NEXT_TURN_SPACE_LOG_TAG = "NextTurn"

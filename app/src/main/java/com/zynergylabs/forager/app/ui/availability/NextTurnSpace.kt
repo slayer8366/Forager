@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ForkLeft
-import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material.icons.filled.ForkRight
 import androidx.compose.material.icons.filled.Straight
 import androidx.compose.material.icons.filled.TurnLeft
@@ -57,7 +56,25 @@ internal fun NextTurnSpace(
     style: TextStyle = MaterialTheme.typography.labelMedium,
     arrowSize: Dp = COMPASS_ICON_SIZE,
 ) {
-    Box(modifier = modifier) {} // stub, tests first
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val widestFigurePx = remember(measurer, style, unit, density) {
+        NEXT_TURN_WIDEST_FIGURES.getValue(unit).maxOf { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width }
+    }
+    val spaceWidth = with(density) { arrowSize + Spacing.xs + widestFigurePx.toDp() }
+    Box(
+        modifier = modifier
+            .width(spaceWidth)
+            .heightIn(min = arrowSize)
+            .clearAndSetSemantics { nextTurnSemantics(shown) },
+        contentAlignment = Alignment.Center,
+    ) {
+        val arrow = shown.arrow ?: return@Box
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Icon(imageVector = nextTurnIcon(arrow), contentDescription = null, modifier = Modifier.size(arrowSize))
+            if (shown.figure != null) Text(text = shown.figure, style = style, maxLines = 1, softWrap = false)
+        }
+    }
 }
 
 private fun SemanticsPropertyReceiver.nextTurnSemantics(shown: NextTurnSpaceShown) {
@@ -71,7 +88,17 @@ private fun SemanticsPropertyReceiver.nextTurnSemantics(shown: NextTurnSpaceShow
  * The Material icon for [arrow] (C1 to C3): Material's TurnSlightLeft/Right, TurnLeft/Right and TurnSharpLeft/Right, ForkLeft/Right
  * and Straight, the Filled set, not mirrored (C1: "not mirrored"), so a left arrow points left in a right-to-left language too.
  */
-internal fun nextTurnIcon(arrow: NextTurnArrow): ImageVector = Icons.Filled.Navigation // stub, tests first
+internal fun nextTurnIcon(arrow: NextTurnArrow): ImageVector = when (arrow) {
+    NextTurnArrow.SLIGHT_LEFT -> Icons.Filled.TurnSlightLeft
+    NextTurnArrow.LEFT -> Icons.Filled.TurnLeft
+    NextTurnArrow.SHARP_LEFT -> Icons.Filled.TurnSharpLeft
+    NextTurnArrow.SLIGHT_RIGHT -> Icons.Filled.TurnSlightRight
+    NextTurnArrow.RIGHT -> Icons.Filled.TurnRight
+    NextTurnArrow.SHARP_RIGHT -> Icons.Filled.TurnSharpRight
+    NextTurnArrow.FORK_LEFT -> Icons.Filled.ForkLeft
+    NextTurnArrow.FORK_RIGHT -> Icons.Filled.ForkRight
+    NextTurnArrow.STRAIGHT -> Icons.Filled.Straight
+}
 
 /**
  * The widest figures each unit can show, measured for the space's width. Phase 1's (section 6): "the widest arrow plus "88.8 mi" or

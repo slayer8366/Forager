@@ -24,7 +24,12 @@ enum class NextTurnArrow {
 }
 
 /** The arrow for [space], or `null` where the space is blank (E1 to E3: it keeps its place, empty). */
-fun nextTurnArrow(space: NextTurn): NextTurnArrow? = null // stub, tests first
+fun nextTurnArrow(space: NextTurn): NextTurnArrow? = when (space) {
+    is NextTurn.Turn -> turnArrow(space.band, space.side)
+    is NextTurn.Fork -> if (space.keep == TurnSide.LEFT) NextTurnArrow.FORK_LEFT else NextTurnArrow.FORK_RIGHT
+    NextTurn.NoTurnLeft -> NextTurnArrow.STRAIGHT
+    is NextTurn.Blank -> null
+}
 
 private fun turnArrow(band: TurnBand, side: TurnSide): NextTurnArrow = when (side) {
     TurnSide.LEFT -> when (band) {
