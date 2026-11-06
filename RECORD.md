@@ -36091,6 +36091,12 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **The planner's reading, open to the owner:** only "Arrived" changes, and the dash keeps ending at the middle, because the option including it wasn't chosen.
 - **Amendment 1** is at prompts/preserved/2026-11-05-10-amendment-1.md. It arranges the rulings by category (A the top line, B a word on its own, C text size, D the planner's calls), adds B3, and sets Phase 3 (E) for a fresh Hazel on nav-card-kind-line, because the last one passed 200k.
   - Phase 3 merges pre-main first, then builds tests first, a revert check, full CI, and the report's Phase 3 section with the session 20 findings. #498 stays open.
+- **Withdrawn by the owner (2026-11-06T11:10:44Z):** a further message about the status lines and the dash, and their answers to three questions the planner asked about it. They were followed by "Do not proceed", then "Starting over entirely:". None of it was acted on or passed to Hazel.
+- **Changed (2026-11-06T11:10:44Z), the owner, verbatim:** **"In the same PR, remove the lines "No trails routed here - straight line"/"The waypoint is in another area - straight line" the straight line is the explanation"**.
+  - **The planner's reading:** only those two lines go: "No trail routes here · straight line" and "The waypoint is in another area · straight line", with its trip wording, which is the same note. The notes still choose straight, retry and log; only their words on the card go.
+  - The other 16 "· straight line" lines stay, as do the way home's "· following your track" line and the Plot Route card's note.
+  - B3 ("Arrived" centred) stands. The dash keeps ending at the middle.
+  - Added to Amendment 1 as F1, with E6, and sent to the Phase 3 Hazel by message.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
