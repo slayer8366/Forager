@@ -35619,3 +35619,43 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The note shows only when a stop falls outside the area. A route whose stops fit but whose line doesn't is a stop, because the words would be untrue there.
 - **Written as Amendment 1:** prompts/preserved/2026-11-05-08-amendment-1.md, with categories A (the owner's), B (the planner's) and C (stops).
 **Notes:** Written by the planner by hand. Next free ID -2172.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2172
+**Timestamp:** 2026-11-06T02:13:59Z
+**Continues:** 2026-09-28-2168, 2026-09-28-2169
+**Title:** The walk read: the pick-up chooser seen working on good fixes (rank 2 for the first time); the way home's off-trail part not run; one re-search burst to explain
+**Outcome:**
+- **The owner:** "Walk finished, S22 plugged in".
+- **What came back:**
+  - The log writer survived unplugging (running since 17:09:15) and holds 6 files, 117 MB, 17:09 to 18:07 local.
+  - A track was recorded, 17:44:59 to 18:04:14 local, with 171 points, plus a walk-logger file of 30 MB.
+  - One screenshot, at 17:50:05.
+  - One screen recording, 820.9 s long, saved 18:04:15. By the clock in its frames it began at 17:50:33 to 17:50:36.
+  - All of it is in the session's local folder (s16/walk), with no positions, tile numbers or place names on GitHub.
+- **Part 1, the pick-up chooser, read from the log (L1, L2):** there was one Navigate, at 17:39:13, to **Waypoint 1** rather than Test trip B. Its end settled every time as "moves to a drop-off at the nearest public street (rank 3 of 3, FRONTAGE), its leg 11 m". Every fix before a search was GPS at 3.79 to 3.83 m, so all were eligible.
+  - The walker's end moved to a pick-up four times:
+    - 17:39:15, "at the addressed street (rank 2 of 3, ADDRESS_STREET), its leg 24 m";
+    - 17:41:07, rank 2, 3 m;
+    - 17:41:53, rank 2, 15 m;
+    - 17:43:24, "at the nearest public street (rank 3 of 3, FRONTAGE), its leg 8 m".
+    - **This is the chooser seen working on good fixes, and rank 2 is seen for the first time.**
+  - "keeps the engine's end and gates its lead-in: not a street end" came 5 times, from 17:41:49 to 17:42:15, as expected away from houses.
+  - "goes by trail: a stored tile in reach has no fence mark" came twice, at 17:42:19 and 17:42:25.
+    - The tile belongs to no downloaded area: MapLibre's region tiles put it just outside the home area's zoom-15 block, and it is held only from browsing. No area's copy has it.
+    - So near the home area's edge, the 350 m read reached a browsed tile without fence data, and the walker's end went by trail, logged. That is A1, A4 and A5 as ruled, and the plan's D3(d) edge warning.
+  - **Not evidenced:** the screen side of Part 1. No screenshot was taken during it (17:39 to 17:43).
+  - **Open, to explain:** from 17:41:07 to 17:43:24 the way to the waypoint searched again 9 times, 8 of them at 4 to 6 s intervals from 17:41:49 to 17:42:25. Each followed "The walker strayed from the way to the waypoint and it was not re-routed: SEARCHING". A walk can't stray 50 m in 5 s, so this isn't explained.
+    - The stray rule (WayToStray.kt) and AvailabilityWaypointRoute.kt's onFix are pre-main's. #494 changed only the target's plumbing in that file.
+    - No positions exist for that period, because the walk logger runs only while recording. CLAUDE.md: more data, not a hypothesis.
+- **Part 2, the way home's off-trail walk: not run as planned.**
+  - WayHomeWatch logged "The walker is over the far band from the way home; sundown reads the track …" at 17:53:26, 17:56:31 and 18:02:32. That is the way home the sundown countdown keeps during a recording.
+  - The recording's frames from 60 s before to 24 s after the first and third of those show the navigation to Waypoint 1 ("by trail", then "Approaching"), not Return. Nothing in the log shows Return.
+  - So the dim on the way home, and its order against the re-route (-1726, -1729, -2136's "Walk first"), is still unjudged.
+- **Seen:** the way to Waypoint 1 ran for about 25 minutes, by trail, while recording, with no crash. In the frames the HUD read "Dark since 5:23 PM".
+- **The phone:** the log writer is still running, for any second walk. Test trip B and the Test s16 area are still there (-2165).
+- **A planner slip, caught before it was published:** the first draft of this entry quoted the tile's zoom-15 numbers and the home area's tile block. Those locate the home, so the push was blocked. It is rewritten here without them.
+**Waiting on:** the owner. Was Return tapped at any point? Should Part 2 be done on another short walk? Also the clean-up, #494's merge word, and someone to look into the re-search burst.
+**Notes:** Written by the planner by hand. Next free ID -2173.
