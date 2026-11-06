@@ -33947,18 +33947,18 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The journal entry map:** not checked. The phone has no journal entries (cartography_entries 0), and making one would change the owner's data.
 - **Waypoint drop-off,** on a 9.9 m GPS fix (24 satellites) at the phone's spot, to Waypoint 1 (742 m):
   - Records, "Navigate to Waypoint 1", tapped at 20:08:58.34 local. The card read "0.5 mi", "left 62°", "by trail"; session 12, on a 47-50 m fix, had "straight".
-  - The log at 20:09:00.126: "FindWayToWaypoint: ... the waypoint's end: tile 15/5222/11744 has no barrier mark: it was built before fences were carried". That is A1 ("Trail route, no drop-off") working as ruled, and logged.
+  - The log at 20:09:00.126: "FindWayToWaypoint: ... the waypoint's end: tile [the zoom-15 tile at Waypoint 1; its number removed, -2173] has no barrier mark: it was built before fences were carried". That is A1 ("Trail route, no drop-off") working as ruled, and logged.
   - The navigation view was applied at 20:09:00.577: about 1.8 s from the tap to the decision, about 2.2 s to the view.
   - No SQLite or database error appears in the app's log, so the read-only open of mbgl-offline.db worked alongside MapLibre on this phone (dispatch 2026-11-04-04 B3, #435).
   - Not seen: a street drop-off, the second engine run's time, or the pick-up choice at the walker's end. There was no fallback line for that end, and a successful choice isn't logged.
   - Navigation was stopped with "Stop navigating".
 - **The server, read from the laptop:**
   - /style/trail-v4.json gives the basemap source /us.json, whose vector_layers include "barriers".
-  - Tile us/15/5222/11744 (HTTP 200, gzip, 30,708 bytes) carries a "barriers" layer with 2 features.
+  - Tile [the zoom-15 tile at Waypoint 1; its number removed, -2173] (HTTP 200, gzip, 30,708 bytes) carries a "barriers" layer with 2 features.
   - So basemap patch 0004's fence mark is served (B3, #439).
 - **The test area:**
   - "Test s13" (1 mi, about 17 tiles) was downloaded at the owner's word, as app region 12 and MapLibre region 12 (35 tiles).
-  - All 17 of its basemap tiles kept their old modified dates (2026-10-27 to 2026-11-03), and us/15/5222/11744 stayed at 2026-10-28 with no barrier mark. The download reused the stored tiles; it did not fetch current ones.
+  - All 17 of its basemap tiles kept their old modified dates (2026-10-27 to 2026-11-03), and [the zoom-15 tile at Waypoint 1; its number removed, -2173] stayed at 2026-10-28 with no barrier mark. The download reused the stored tiles; it did not fetch current ones.
   - Deleted with "Delete Test s13". The tile budget is back to 832 / 6000, and Region 1 and Region 2 remain. Both now show "Older map style. Download again to update."
     *Correction (planner, 2026-11-04, on Hazel's report for dispatch 2026-11-04-08, prompts/preserved/2026-11-04-08-report.md):* "Both now show" reads as if the test caused it. It didn't. The notice is decided by the region's style URL alone (TrailStyle.kt:111-114), and both regions were built against street-v3 in every snapshot, so both showed it before the test too. Also, "kept their old modified dates" is weaker evidence than it reads: `modified` is a carried-over server header, not a write time. What shows the reuse is the log (17 requests, all reference-trails, all 204, none for us/) and the unchanged `expires` and bytes.
 - **A finding for the owner, inferred, not confirmed in code:**
@@ -34062,7 +34062,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Change:** dispatch A1 to A4. The app keeps its own copy of each downloaded area's zoom-15 basemap tiles for the way-to's drop-off. It is behind the existing OfflineBasemap interface, refreshed by itself with signal, and rides the route fetch. MapLibre's store and drawing are unchanged. A1 of dispatch 2026-11-04-04 (by trail, logged) is unchanged where the mark is absent.
 **Scope boundary:** dispatch's Scope: new files; the wiring; the route-fetch trigger; area deletion; tests; the report. Not MapLibre's store, the Worker, Theme.kt, Color.kt, pre-main, main, RECORD.md, the audit index or the phone.
 **Baseline:** pre-main 949ad8183; records-after-173 dea53a561; ForagerDatabase version 23.
-**Prediction (outcome — planner):** opening Offline maps with signal fills the app's copy with the S22's areas' zoom-15 tiles, all carrying barriers. Navigate to Waypoint 1 then no longer logs "has no barrier mark" for 15/5222/11744.
+**Prediction (outcome — planner):** opening Offline maps with signal fills the app's copy with the S22's areas' zoom-15 tiles, all carrying barriers. Navigate to Waypoint 1 then no longer logs "has no barrier mark" for [the zoom-15 tile at Waypoint 1; its number removed, -2173].
 **Prediction (mechanism — coder):** to come from Hazel's Phase 1 report.
 **Finish line:** a PR into pre-main, green, merged on the owner's word; then the planner's S22 phone check.
 **Abort conditions:** dispatch Stops: a Room version number; a server change; new words; a change to MapLibre's store; an owner-level choice; a wrong premise; a weakened test; two failed attempts at one symptom.
@@ -34267,7 +34267,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - On reopening (04:21:50 local), the first pass failed at once for both areas: "Drop-off map for region 3 not fetched: MapLibre's store could not be read." and the same for region 8, with "SQLiteReadOnlyDatabaseException: attempt to write a readonly database (code 776 SQLITE_READONLY_ROLLBACK[776]): , while compiling: PRAGMA cache_size".
   - A second pass followed: 04:21:53.152 "Drop-off map for region 3: whole. 6 requests; 6 stored, 0 empty."; 04:22:57.714 "Drop-off map for region 8: whole. 598 requests; 598 stored, 0 empty." That is R = S + E for both, 0 unmarked, about 64 s for region 8.
     *Correction (planner, 2026-11-05, on Hazel's Phase 1 report for dispatch 2026-11-05-01, prompts/preserved/2026-11-05-01-phase1-report.md):* that second pass was not a retry. Nothing in the code retries a failed pass. It was the doubled opening's second launch (step 2's finding), released by the drop-off lock. Its first request was at 04:21:51.881, 148 ms after the first launch's last refusal.
-  - Folders: region 3 has 7 files (6 tiles plus whole), 80 KB; region 8 has 599, 3,224 KB. 15-5222-11744.mvt is present.
+  - Folders: region 3 has 7 files (6 tiles plus whole), 80 KB; region 8 has 599, 3,224 KB. [the zoom-15 tile at Waypoint 1; its number removed, -2173] is present.
 - **Step 4, pass:** Region 1 went from 6.6 to 6.7 MB, Region 2 from 10.1 to 12.1 MB, and the tile budget stayed at 832 / 6000.
 - **Step 5:**
   - Pass on the store: region_tiles are 34 and 1,630 before and after, and none of the 603 region-linked zoom-15 us rows changed length.
@@ -34610,7 +34610,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Title:** The signal-return pass works on the S22: one pass, as signal is declared back, while Offline maps is open
 **Outcome:**
 - **Build:** 4626, as installed (-2127). The log is ~/s22-2026-11-04/s15b/logs/logcat-s15b.txt.
-- **Data changed for the check:** files/offline_basemap/3/whole and 15-5222-11744.mvt removed with run-as rm, leaving 5 tiles and no whole record.
+- **Data changed for the check:** files/offline_basemap/3/whole and [the zoom-15 tile at Waypoint 1; its number removed, -2173] removed with run-as rm, leaving 5 tiles and no whole record.
 - **No signal:**
   - Airplane mode on; the app's "No validated network (5 s)…" line at 11:03:12.959 local.
   - Tools > Offline Maps at 11:03:24 gave one line, "Offline maps opened with no signal: no drop-off map pass this time." (11:03:24.804), and no DropOffMap line.
@@ -34618,7 +34618,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Airplane mode off at 11:03:38. ConnectivityService "+VALIDATED" for net 117 at 11:03:48.135. The app's "Validated network (30 s, or at start)…" at 11:04:18.154, 30.0 s later.
   - Then exactly one pass: 11:04:18.481 "Drop-off map for region 3: whole. 1 requests; 1 stored, 0 empty."
   - No other DropOffMap line, and no "could not be read" in the log.
-  - Region 3's folder again holds 6 tiles plus whole, with 15-5222-11744.mvt back.
+  - Region 3's folder again holds 6 tiles plus whole, with [the zoom-15 tile at Waypoint 1; its number removed, -2173] back.
 - **So:** P2's signal-return trigger (RECORD -2110) works on the phone as ruled (-2121, A9). It fires on the app's own signal, 30 s after validation, while Offline maps is open. This closes -2116's and -2127's "not run".
 - **End state:** airplane_mode_on 0, wifi_on 1, mobile_data 1, no app services, the Maps tab. Region 3's copy is whole again; the removed tile was refetched from the server.
 **Notes:** Written by the planner by hand. Next free ID -2131.
@@ -35659,3 +35659,26 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **A planner slip, caught before it was published:** the first draft of this entry quoted the tile's zoom-15 numbers and the home area's tile block. Those locate the home, so the push was blocked. It is rewritten here without them.
 **Waiting on:** the owner. Was Return tapped at any point? Should Part 2 be done on another short walk? Also the clean-up, #494's merge word, and someone to look into the re-search burst.
 **Notes:** Written by the planner by hand. Next free ID -2173.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2173
+**Timestamp:** 2026-11-06T02:18:02Z
+**Continues:** 2026-09-28-2172
+**Title:** Return was tapped before the screen recording; the off-trail check waits for the next outing; the home tile's number taken out of the record
+**Decision:**
+- **The owner, verbatim:**
+  - To "Did you tap Return during the walk? The screen recording only shows the navigation to Waypoint 1.": **"Yes, before 5:50"**. The option read: "Then it was before the screen recording started. I'll look for it in the walk log."
+  - To "How should the off-trail check get done?": **"Next outing"**. The option read: "Wait for your next walk. The promotion waits too, since \"Walk first\" needs it." The other: "Short walk soon (Recommended)".
+  - To "Older record entries on GitHub (sessions 13 to 15) contain one map tile number near home. It places the home area to within about a kilometre. What should I do?": **"Remove it going forward"**. The option read: "Edit those entries to drop the tile number. The old text stays in git history." The others: "Leave them" and "Remove it from history too".
+- **Return, looked for:**
+  - The walk logger's file records sensors and fixes only, no app events. Nothing in the log names Return: a Return that starts successfully isn't logged.
+  - The navigation view shows the first navigation ended by 17:47:02 ("navigating=false"), and a navigation started at 17:49:49 ("start zoom 18.0", "navigating=true"). That fits a Return tapped then.
+  - The planner can't tell from the frames whether the card at the far-band moments was Return's or the way to Waypoint 1, because the two cards look alike. Around 17:53:26 it read "by trail" throughout, with no "Off trail" and no "… straight". So -2172's "not run as planned" stands only as "not judged".
+  - The next outing's steps will tell Return's card apart.
+- **The tile number:** removed from the 7 lines in sessions 13 to 15 (-2059 onward, about lines 33950 to 34621) and replaced with "[the zoom-15 tile at Waypoint 1; its number removed, -2173]". The old text stays in git history, as ruled.
+  - **Not done, for the owner:** the same number also appears in four preserved reports (2026-11-04-08-offline-refresh-check.md, 2026-11-04-08-report.md, 2026-11-04-09-drop-off-map-copy.md and 2026-11-04-09-phase1-report.md). Those are Hazel's words preserved verbatim, so changing them waits for the owner.
+  - scripts/verify-usgs-basemap.sh carries a zoom-15 tile labelled "Portland" as a test point. That's code, not a record, and is left alone.
+- **The phone:** the walk's log writer is stopped. It is restarted for the next outing.
+**Notes:** Written by the planner by hand. Next free ID -2174.
