@@ -92,7 +92,7 @@ class LogEntryDetailScreenTest {
 
         setScreen(entry)
 
-        composeRule.onNodeWithText("Found at 45.3260, -122.6340").assertIsDisplayed()
+        composeRule.onNodeWithText("Found at 45.3736, -121.6959").assertIsDisplayed()
     }
 
     @Test

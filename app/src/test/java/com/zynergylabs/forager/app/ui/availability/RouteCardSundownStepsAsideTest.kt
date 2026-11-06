@@ -35,7 +35,7 @@ import org.robolectric.shadows.ShadowDisplay
  * "6 Waypoints", its buttons squeezed to 28 px, no leg row when expanded. The sundown line now leaves the navigation card only while the
  * route card rests on it and would not otherwise fit, decided by measurement, and comes back when it closes or the room is there.
  *
- * At [ROUTE_CARD_EVENING_CLOCK] (22:45 UTC, the sundown line due), the S22's insets and rotation, navigating, real touches on the handle.
+ * At [ROUTE_CARD_EVENING_CLOCK] (22:41:09 UTC, the sundown line due), the S22's insets and rotation, navigating, real touches on the handle.
  */
 abstract class RouteCardSundownStepsAsideTests(legHeights: Boolean = true, clock: com.zynergylabs.forager.app.domain.CurrentTimeProvider = ROUTE_CARD_EVENING_CLOCK) {
 

@@ -9,6 +9,7 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.testing.MadeUpPlace
 import com.zynergylabs.forager.app.ui.availability.layoutFixesHostActivityRule
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import org.junit.Assert.assertEquals
@@ -71,7 +72,7 @@ class CrowdedBubbleCapTest {
     fun `the crowded bubble's cap is the Maps tab's waypoint bubble with every line and action, at font 1_0`() {
         val tallest = MapBubbleContent.WaypointContent(
             waypoint = waypoint,
-            mgrs = "10T ER 28697 19253",
+            mgrs = MadeUpPlace.MGRS,
             hasDetails = true,
             keptIn = listOf(
                 JournalEntryOnMap("e1", LocalDate.of(2026, 10, 29)),

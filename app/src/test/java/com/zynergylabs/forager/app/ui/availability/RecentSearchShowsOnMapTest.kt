@@ -57,7 +57,7 @@ class RecentSearchShowsOnMapTest {
         rig.searchCoordinates("44.0521", "-123.0868")
         assertEquals("positive control: search B is on the map", listOf(RealSearchScreenRig.sightingAt(regionB)), rig.mapSightings)
 
-        touchRecentRow("45.3260, -122.6340")
+        touchRecentRow("45.3736, -121.6959")
 
         assertFalse("the row's touch closed the dropdown", rig.dropdownShown())
         assertEquals("the ViewModel's region is the recent search's", regionA, rig.viewModel.uiState.value.region)
@@ -70,7 +70,7 @@ class RecentSearchShowsOnMapTest {
         rig.searchCoordinates("45.326", "-122.634")
         assertEquals("positive control: search A is on the map", listOf(RealSearchScreenRig.sightingAt(regionA)), rig.mapSightings)
 
-        touchRecentRow("45.3260, -122.6340")
+        touchRecentRow("45.3736, -121.6959")
 
         assertFalse("the row's touch closed the dropdown", rig.dropdownShown())
         assertEquals("the map is handed search A's observations", listOf(RealSearchScreenRig.sightingAt(regionA)), rig.mapSightings)

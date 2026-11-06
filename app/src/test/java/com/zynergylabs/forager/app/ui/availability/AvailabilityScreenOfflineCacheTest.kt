@@ -169,7 +169,7 @@ class AvailabilityScreenOfflineCacheTest {
         composeRule.onNodeWithText("Recent searches").performClick()
 
         composeRule.onNodeWithText("Fungi · ${monthName(8)}").assertIsDisplayed()
-        composeRule.onNodeWithText("45.3260, -122.6340 · 15 km").assertIsDisplayed()
+        composeRule.onNodeWithText("45.3736, -121.6959 · 15 km").assertIsDisplayed()
         composeRule.onNodeWithText("cached 3 hours ago").assertIsDisplayed()
         composeRule.onNodeWithText("Plants · ${monthName(10)}").assertIsDisplayed()
         composeRule.onNodeWithText("47.6060, -122.3320 · 25 km").assertIsDisplayed()

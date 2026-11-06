@@ -1189,7 +1189,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()
 
-        assertEquals(LatLng(45.326, -122.634), startedLogEntryAt)
+        assertEquals(LatLng(45.3736, -121.6959), startedLogEntryAt)
     }
 
     /**

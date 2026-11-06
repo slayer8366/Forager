@@ -9,10 +9,11 @@ import org.junit.Test
  * against the tile budget by its own estimate, recomputed from its stored centre and radius, never by MapLibre's count,
  * which on Trail Map v3 also counts the official-trails band's tiles (about one per basemap tile).
  *
- * The expected figures are literals already pinned elsewhere, not recomputed here from the code under test: 1774 for a
- * 15 km area at 45.326, -122.634 (the "~1774 tiles" the tile-estimate dispatch recorded, `OfflineMapRepository`'s
- * SERVED_MAX_ZOOM comment), and 5120 for a 24 km area at 49.60, -122.607 (`AvailabilityViewModelOfflineMapsTest`, from the
- * two-data-corrections pre-build report).
+ * The expected figures are literals, not recomputed here from the code under test: 1795 for a 15 km area at
+ * `MadeUpPlace` (dispatch 2026-11-05-11, RECORD -2182: a Python re-derivation of the slippy-map grid, the method of
+ * the tile-cost pre-build report, which gives the "~1774 tiles" the tile-estimate dispatch recorded at the
+ * area's previous place, `OfflineMapRepository`'s SERVED_MAX_ZOOM comment), and 5120 for a 24 km area at
+ * 49.60, -122.607 (`AvailabilityViewModelOfflineMapsTest`, from the two-data-corrections pre-build report).
  */
 class OfflineTileBudgetTest {
 
@@ -33,10 +34,10 @@ class OfflineTileBudgetTest {
 
     @Test
     fun `a downloaded area counts by its estimate, not by MapLibre's count of both sources' tiles`() {
-        // 3548 is what MapLibre would report for a v3 download of this area: the basemap's 1774 and one band tile each.
-        assertEquals(1774, area(1, ridge, mapLibreCount = 3548).budgetTileCount())
+        // 3590 is what MapLibre would report for a v3 download of this area: the basemap's 1795 and one band tile each.
+        assertEquals(1795, area(1, ridge, mapLibreCount = 3590).budgetTileCount())
         // A v2 area whose count already matched its estimate reads the same as before.
-        assertEquals(1774, area(2, ridge, mapLibreCount = 1774).budgetTileCount())
+        assertEquals(1795, area(2, ridge, mapLibreCount = 1795).budgetTileCount())
     }
 
     @Test
@@ -47,10 +48,10 @@ class OfflineTileBudgetTest {
     @Test
     fun `the used side is the sum of each area's estimate`() {
         val areas = listOf(
-            area(1, ridge, mapLibreCount = 3548),
+            area(1, ridge, mapLibreCount = 3590),
             area(2, northEdge, mapLibreCount = 10240),
             area(3, northEdge, mapLibreCount = 0, downloaded = false),
         )
-        assertEquals(1774L + 5120L, areas.budgetTilesUsed())
+        assertEquals(1795L + 5120L, areas.budgetTilesUsed())
     }
 }

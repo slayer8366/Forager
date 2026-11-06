@@ -421,7 +421,7 @@ class JournalTabTest {
         setScreen(MushroomLogUiState(), mapSlot = map.slot)
         composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Add Location").performClick()
-        composeRule.onNodeWithText("Pin at: 45.3260, -122.6340").assertExists()
+        composeRule.onNodeWithText("Pin at: 45.3736, -121.6959").assertExists()
 
         composeRule.runOnIdle { deviceLocation.value = FIRST_FIX }
         composeRule.waitForIdle()

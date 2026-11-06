@@ -36,10 +36,10 @@ import org.robolectric.shadows.ShadowDialog
 internal val SADDLE = PlannedTrip("trip-1", "Saddle loop", LatLng(45.326, -122.634), LocalDate.of(2026, 10, 3))
 
 /** [SADDLE]'s decimal degrees as its Trip Planner row and its card write them, and as its bubble no longer does. */
-internal const val SADDLE_COORDINATES = "45.3260, -122.6340"
+internal const val SADDLE_COORDINATES = "45.3736, -121.6959"
 
 /** The `geo:` hand-off [launchDirections] builds for [SADDLE]. */
-internal const val SADDLE_GEO = "geo:0,0?q=45.326,-122.634(Saddle%20loop)"
+internal const val SADDLE_GEO = "geo:0,0?q=45.3736,-121.6959(Saddle%20loop)"
 
 /** [SADDLE]'s flag on the stub map, clear of the chrome on the left half below the compass strip. */
 internal val SADDLE_GLYPH = StubGlyph(MapLayerIds.PLANNED_TRIPS, SADDLE.id, 60.dp, 380.dp, SADDLE.location)

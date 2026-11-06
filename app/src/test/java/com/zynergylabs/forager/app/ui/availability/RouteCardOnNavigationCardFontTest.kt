@@ -177,7 +177,7 @@ class RouteCardOnNavigationCardShortFont20Test : RouteCardOnNavigationCardFontTe
 /**
  * Pre-main's push run 41728736456 (671b669bf) and tools/s22-combined's 41734379417 failed RouteCardOnNavigationCardFont20Test at
  * "1 stops, expanded: D37 ... expected 8.0 but was 16.666666", the navigation card at 186..384 dp where the green runs had 266..384.
- * The class read the real clock: both red runs ran inside the 150 minutes before the rig's sunset (45.32 N, 122.63 W, about 00:53 UTC
+ * The class read the real clock: both red runs ran inside the 150 minutes before the rig's sunset (at the rig's place then, [a point near the owner's home; removed 2026-11-06], about 00:53 UTC
  * on 2026-11-04), when the navigation card carries its sundown line; the green ones ran at 18:36 to 19:36 UTC. Every class here now
  * runs at a fixed clock, noon ([ROUTE_CARD_NOON_CLOCK]) by default, and each window also at [ROUTE_CARD_EVENING_CLOCK].
  */
@@ -202,8 +202,11 @@ class RouteCardOnNavigationCardFont13EveningTest : RouteCardOnNavigationCardFont
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardOnNavigationCardShortFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = false)
 
-/** 2026-11-03 12:00 PST (20:00 UTC): 4 h 53 min before sunset at the rig's place, so no sundown line. */
-internal val ROUTE_CARD_NOON_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-03T20:00:00Z").toEpochMilli() }
+/**
+ * 2026-11-03 11:56:09 PST (19:56:09 UTC): 4 h 54 min before sunset at the rig's place (00:50:57 UTC by the app's own sunset), so no
+ * sundown line. Moved from 12:00 PST with the rig's place (dispatch 2026-11-05-11), keeping to the second the offset it had there.
+ */
+internal val ROUTE_CARD_NOON_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-03T19:56:09Z").toEpochMilli() }
 
 /**
  * Font 2.0 in the short landscape window, just after sunset: pre-main's push run 41747193319 failed ShortFont20Test at 00:57 UTC, its
@@ -214,8 +217,14 @@ internal val ROUTE_CARD_NOON_CLOCK = com.zynergylabs.forager.app.domain.CurrentT
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardOnNavigationCardShortFont20AfterSunsetTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_AFTER_SUNSET_CLOCK, sundownLineShown = true)
 
-/** 2026-11-04 00:57 UTC, pre-main's run 41747193319's hour: just after sunset at the rig's place. */
-internal val ROUTE_CARD_AFTER_SUNSET_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-04T00:57:00Z").toEpochMilli() }
+/**
+ * 2026-11-04 00:53:09 UTC: just after sunset at the rig's place, 28 min before dark. Moved from 00:57 UTC, pre-main's run 41747193319's
+ * hour, with the rig's place (dispatch 2026-11-05-11), keeping to the second the offset from sunset it had there.
+ */
+internal val ROUTE_CARD_AFTER_SUNSET_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-04T00:53:09Z").toEpochMilli() }
 
-/** 2026-11-03 22:45 UTC: 2 h 8 min before sunset at the rig's place, so the sundown line shows where it fits. */
-internal val ROUTE_CARD_EVENING_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-03T22:45:00Z").toEpochMilli() }
+/**
+ * 2026-11-03 22:41:09 UTC: 2 h 9 min before sunset at the rig's place, so the sundown line shows where it fits. Moved from 22:45 UTC with
+ * the rig's place (dispatch 2026-11-05-11), keeping to the second the offset it had there.
+ */
+internal val ROUTE_CARD_EVENING_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-03T22:41:09Z").toEpochMilli() }
