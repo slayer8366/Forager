@@ -35790,3 +35790,51 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - pixel reads for the five other menus (inferred possible).
 **Waiting on:** the owner. Check on the S22 first or merge now; then the merge word.
 **Notes:** Written by the planner by hand. Next free ID -2178.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2178
+**Timestamp:** 2026-11-06T04:32:57Z
+**Continues:** 2026-09-28-2177
+**Title:** S22 session 17: the edge shade's device check (B3) on 4667 passes by day and at night; three parts not covered
+**Outcome:**
+- **The owner, verbatim**, to "PR #495, the edge shade, is ready and green. … Check it on the S22 before merging?": **"Phone check first (Recommended)"**. The option read: "When the build is green, I install it on the S22 and read the edges by pixel, by day and at night: the search bar, a bubble and its tail, the + tile, the map type panel, a menu, the notice bar and the navigation card. Then you look, and I merge on your word." The other: "Merge now".
+- **Build:** 1.0.4667+g57e1a5ed (versionCode 4667, signer cb2f6da5…1626), from CI 42158853771, all jobs green.
+  - Before installing, the data was snapshotted; its app tables matched end-s16. adb install -r gave Success.
+- **How it was read:**
+  - With PNG screenshots, measured at 3.75 px per dp. Each read is a line of pixels from the bare map, through the window's edge, to its middle.
+  - Most reads were over the flat land colour near home, zoomed in, so map features don't land in the samples. Reads that started on a road or text are discarded and not counted.
+  - Screenshots are in ~/s22-2026-11-04/s17/shots. They stay off GitHub.
+- **By day:** the line is Bark at 40% over the fill, reading 0.58 to 0.63 luminance, about 1 dp (3 to 4 px) everywhere.
+  1. **Search bar and strip: pass.**
+     - The bar's top and bottom carry the line (0.645), and the strip's bottom does too (0.63). Fill flat within 1/255 where the map under it is plain.
+     - The map 10 dp below the strip equals the map 60 dp below within 2/255, so no shadow.
+     - The tuck shadow under the bar is still there, as ruled.
+  2. **Bubble: pass.** Line 0.615, fill 0.898 to 0.895 flat (about 1/255), the map just outside equal to the map further off within 1 to 2/255.
+     - **Tail:** a clean triangle with the line along both sides to the tip and none across the join, the fill 80% like the card. A test waypoint pin showed through it.
+  3. **+ tile: pass.** Line 0.584 top, bottom and left; fill flat (0 to 1/255); outside equal.
+  4. **Map type panel: pass.** Line 0.584, fill flat, outside equal. Over the icon bar, the bar's own right outline shows through as one line, with no doubled line inside the panel.
+  5. **The strip's three-dot menu: pass.** Line 0.615 left and bottom, fill 0/255, outside equal.
+  6. **Notice: pass on its edges.**
+     - Over the map it reads "Stopped navigating: that trip was deleted.", from a test trip deleted mid-navigation. Line 0.611 left, top and bottom, fill 0/255, the map just outside equal to the map beside it.
+     - The waypoint's Undo notice shows only on the Journal tab (old look), so the action colour wasn't measured over the map (-2166's #D0BCFF).
+  7. **Pin row: pass.** Line on top (0.631) and right (0.63), fill flat, one line where it meets the bottom bar. The left line reads lighter (0.74), likely because it sits at the screen's edge.
+  8. **Navigation card: pass.**
+     - Portrait: bottom and both sides lined, no shadow below. The line inside the bottom edge (0.597) happened to match the dark map under it (0.593).
+     - Landscape, with auto-rotate set off and the screen turned, then restored: line 0.611 on top and left, outside equal.
+- **At night (Night Mode set to Dark, then back to Light):** the line is white at 40% over the dark fill, reading 129 to 140 (red channel) against fills of 45 to 62, about 1 dp everywhere.
+  - Bubble 137/57, tail as by day. + tile 130/47. Panel 129 to 130. Menu 135 to 137. Notice 140/62. Pin row 132 to 137, one line at the bottom bar. Navigation card 136 to 137.
+  - The map just outside equals the map elsewhere in each. One darker strip under the menu at one column (x=800) is a map feature: absent at x=500.
+- **Not covered:**
+  - night in landscape;
+  - the bubble's entry-count menu (C2), which needs four journal entries keeping one record;
+  - the notice's action colour over the map;
+  - no band was found anywhere, so the owner's crop's 19.5 dp band is gone on the phone.
+- **Test data, made and removed:**
+  - test waypoints "Test edge" and "Test edge 2", each deleted in Records after its Undo ran out;
+  - test trips "Test trip C" and "Test trip D", each deleted mid-navigation for the notice.
+  - Snapshot end-s17: every forager.db table hash identical to before-install (offline_regions 2, planned_trips 0, waypoints 13).
+  - Rotation is back to auto-rotate on (accelerometer_rotation 1, user_rotation 0). It read 0 once after the first restore and was set again. Night Mode is back to Light.
+**Waiting on:** the owner's look at the phone, then the merge word for #495.
+**Notes:** Written by the planner by hand. Next free ID -2179.
