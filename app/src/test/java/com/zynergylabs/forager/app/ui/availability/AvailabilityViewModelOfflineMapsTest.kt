@@ -483,14 +483,14 @@ class AvailabilityViewModelOfflineMapsTest {
         val vm = viewModel(repository)
         advanceUntilIdle()
         vm.onOfflineMapLatChanged("49.60")
-        vm.onOfflineMapLngChanged("-122.607")
+        vm.onOfflineMapLngChanged("-121.903875")
         vm.onOfflineMapRadiusChanged(OfflineMapRepository.MAX_RADIUS_KM)
 
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
         assertTrue("expected the pre-flight gate to let a ${OfflineMapRepository.MAX_RADIUS_KM} km region through to the repository", repository.downloadCalled)
-        assertEquals(Region(lat = 49.60, lng = -122.607, radiusKm = 24), repository.lastRegion)
+        assertEquals(Region(lat = 49.60, lng = -121.903875, radiusKm = 24), repository.lastRegion)
         assertTrue(vm.uiState.value.offlineDownloadStatus !is OfflineMapStatus.Failed)
     }
 
@@ -533,7 +533,7 @@ class AvailabilityViewModelOfflineMapsTest {
     @Test
     fun `a last-picked radius from before the ceiling shrank is restored at the ceiling`() = runTest(dispatcher) {
         val fiftyKmLastPicked = object : MapPreferencesRepository by OfflineMapsStubMapPreferencesRepository {
-            override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(Region(lat = 45.357, lng = -122.607, radiusKm = 50))
+            override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(Region(lat = 45.357, lng = -121.903875, radiusKm = 50))
         }
         val vm = viewModel(RecordingOfflineMapRepository(), mapPreferencesRepository = fiftyKmLastPicked)
         advanceUntilIdle()
@@ -740,7 +740,7 @@ class AvailabilityViewModelOfflineMapsTest {
     // ---- T1 (dispatch 2026-10-26-21 Amendment 1, RECORD -1703): each area counts by its own estimate ----
 
     /** A 24 km Trail Map v3 area: estimate 5120 (the literal above), MapLibre's count double that with the band's tiles. */
-    private val v3Area = REFERENCE_REGION_SUMMARY.copy(id = 9L, region = Region(lat = 49.60, lng = -122.607, radiusKm = 24), tileCount = 10_240)
+    private val v3Area = REFERENCE_REGION_SUMMARY.copy(id = 9L, region = Region(lat = 49.60, lng = -121.903875, radiusKm = 24), tileCount = 10_240)
 
     @Test
     fun `after one 24 km v3 area the next download is gated on its estimate, so a second 24 km one is refused and a small one goes`() = runTest(dispatcher) {
@@ -749,7 +749,7 @@ class AvailabilityViewModelOfflineMapsTest {
         val vm = viewModel(repository)
         advanceUntilIdle()
         vm.onOfflineMapLatChanged("49.60")
-        vm.onOfflineMapLngChanged("-122.607")
+        vm.onOfflineMapLngChanged("-121.903875")
         vm.onOfflineMapRadiusChanged(24)
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()

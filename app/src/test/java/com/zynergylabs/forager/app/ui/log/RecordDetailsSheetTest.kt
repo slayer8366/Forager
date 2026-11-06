@@ -355,7 +355,7 @@ class RecordDetailsSheetTest {
         openRecords()
         touch(waypointRow("W2"), Offset(0.4f, 0.5f))
         composeRule.onNodeWithTag(TITLE).assertTextEquals("Oak pin")
-        field("coordinates").assertTextEquals("Coordinates", "45.4000, -122.7000")
+        field("coordinates").assertTextEquals("Coordinates", "45.4000, -121.8000")
         assertTrue("a waypoint dropped with no recording has no Track line", !exists("record-details-field-track"))
         field("used-in").assertTextEquals("Used in", "no journal entries")
         pressBackOnSheet()
@@ -762,9 +762,9 @@ private val TRACK_T1 = Track(
     endedAtEpochMillis = NOW - 3 * DAY + 75 * MINUTE,
     // Three points 0.01 degrees of latitude apart: 2 x 1111.95 m = 2223.9 m, 1.38 mi; 70 minutes first to last.
     points = listOf(
-        TrackPoint(lat = 45.00, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY),
-        TrackPoint(lat = 45.01, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY + 30 * MINUTE),
-        TrackPoint(lat = 45.02, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY + 70 * MINUTE),
+        TrackPoint(lat = 45.00, lng = -121.1, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY),
+        TrackPoint(lat = 45.01, lng = -121.1, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY + 30 * MINUTE),
+        TrackPoint(lat = 45.02, lng = -121.1, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY + 70 * MINUTE),
     ),
     // 12 of 15 stored points excluded as network fixes: past the 75% line, so the row and the sheet carry the note.
     excludedPointCount = 12,
@@ -776,8 +776,8 @@ private val TRACK_T2 = Track(
     startedAtEpochMillis = NOW - 5 * DAY,
     endedAtEpochMillis = null,
     points = listOf(
-        TrackPoint(lat = 45.10, lng = -122.1, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 5 * DAY),
-        TrackPoint(lat = 45.11, lng = -122.1, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 5 * DAY + 20 * MINUTE),
+        TrackPoint(lat = 45.10, lng = -121.2, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 5 * DAY),
+        TrackPoint(lat = 45.11, lng = -121.2, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 5 * DAY + 20 * MINUTE),
     ),
 )
 
@@ -788,22 +788,22 @@ private val CREEK = Waypoint(
     createdAtEpochMillis = NOW - 2 * DAY, trackId = "T1",
 )
 private val OAK = Waypoint(
-    id = "W2", lat = 45.4000, lng = -122.7000, altitude = null, name = "Oak pin", note = "",
+    id = "W2", lat = 45.4000, lng = -121.8000, altitude = null, name = "Oak pin", note = "",
     createdAtEpochMillis = NOW - 1 * DAY,
 )
 private val RIDGE = Waypoint(
-    id = "W3", lat = 45.4500, lng = -122.6500, altitude = null, name = "Ridge pin", note = "",
+    id = "W3", lat = 45.4500, lng = -121.7500, altitude = null, name = "Ridge pin", note = "",
     createdAtEpochMillis = NOW - 4 * DAY, trackId = "T-not-in-the-list",
 )
 private val DETAILS_WAYPOINTS = listOf(OAK, CREEK, RIDGE)
 
 // Dispatch -616: T1's start and end markers, and a second waypoint dropped on it, older than Creek pin.
 private val T1_ORIGIN = Waypoint(
-    id = "W-origin", lat = 45.00, lng = -122.0, altitude = null, name = "Start pin", note = "",
+    id = "W-origin", lat = 45.00, lng = -121.1, altitude = null, name = "Start pin", note = "",
     createdAtEpochMillis = NOW - 3 * DAY + MINUTE, trackId = "T1", designation = WaypointDesignation.ORIGIN,
 )
 private val T1_END = Waypoint(
-    id = "W-end", lat = 45.02, lng = -122.0, altitude = null, name = "End pin", note = "",
+    id = "W-end", lat = 45.02, lng = -121.1, altitude = null, name = "End pin", note = "",
     createdAtEpochMillis = NOW - 3 * DAY + 75 * MINUTE, trackId = "T1", designation = WaypointDesignation.END,
 )
 private val SPRING = Waypoint(

@@ -57,11 +57,11 @@ class MushroomLogMigrationTest {
         // Build a real version-3 database, using the same production entity classes — not a
         // reimplementation of their schema that could quietly drift from what version 3 actually
         // wrote to disk.
-        val legacyTrip = PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -122.66, date = "2026-09-01")
+        val legacyTrip = PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -121.76, date = "2026-09-01")
         val legacySearch = CachedSearchEntity(
-            key = "45.51|-122.66|15|8|iconic:Fungi:without=54743",
+            key = "45.51|-121.76|15|8|iconic:Fungi:without=54743",
             lat = 45.51,
-            lng = -122.66,
+            lng = -121.76,
             radiusKm = 15,
             month = 8,
             filterLabel = "Fungi",
@@ -100,7 +100,7 @@ class MushroomLogMigrationTest {
             val logRepository = RoomMushroomLogRepository(migrated.mushroomLogDao())
             assertTrue("mushroom log table should start empty after migrating a v3 database", logRepository.getAll().getOrThrow().isEmpty())
 
-            val newEntry = MushroomLogEntry.draft(id = "post-migration-1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 8, 20))
+            val newEntry = MushroomLogEntry.draft(id = "post-migration-1", location = LatLng(45.0, -121.1), date = LocalDate.of(2026, 8, 20))
             logRepository.save(newEntry).getOrThrow()
             assertEquals(listOf(newEntry), logRepository.getAll().getOrThrow())
         } finally {

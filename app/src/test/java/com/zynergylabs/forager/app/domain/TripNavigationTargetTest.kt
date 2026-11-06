@@ -16,8 +16,8 @@ import org.junit.Test
 class TripNavigationTargetTest {
 
     private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
-    private val saddle = PlannedTrip("trip-1", "Saddle loop", LatLng(45.56, -122.66), LocalDate.of(2026, 10, 3))
-    private val other = PlannedTrip("trip-2", "Ridge day", LatLng(45.40, -122.50), null)
+    private val saddle = PlannedTrip("trip-1", "Saddle loop", LatLng(45.56, -121.76), LocalDate.of(2026, 10, 3))
+    private val other = PlannedTrip("trip-2", "Ridge day", LatLng(45.40, -121.60), null)
     private val toSaddle = WaypointNavigation("trip-1", resumesReturn = false, kind = NavigationTargetKind.TRIP)
     private val toCreek = WaypointNavigation("wp-1", resumesReturn = false)
 
@@ -31,7 +31,7 @@ class TripNavigationTargetTest {
         assertEquals("trip-1", point.id)
         assertEquals("Saddle loop", point.name)
         assertEquals(45.56, point.lat, 0.0)
-        assertEquals(-122.66, point.lng, 0.0)
+        assertEquals(-121.76, point.lng, 0.0)
         assertNull("no height of its own: a trip stores none", point.altitude)
         assertNull("an ordinary target, never the start or the end of a track", point.designation)
     }

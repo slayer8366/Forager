@@ -112,7 +112,7 @@ import org.robolectric.shadows.ShadowToast
 private typealias EntriesOnMapRule = AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>
 
 // The records: one saved find and one waypoint, each drawn by the stub map as a glyph.
-private val FIND_AT = LatLng(45.51, -122.61)
+private val FIND_AT = LatLng(45.51, -121.71)
 private val FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = FIND_AT, date = LocalDate.of(2026, 9, 12))
     .copy(isDraft = false, ownIdentification = "Golden chanterelle")
 private val WAYPOINT = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
@@ -837,8 +837,8 @@ internal class JournalEntriesOnMapShortLandscapeTest : JournalEntriesOnMapCompac
 // ── J8 follow-ups (dispatch 2026-09-28-70, widened by continuation 2026-09-28-87) ──
 
 private val KEPT_PHOTO_AT = LatLng(BUBBLE_PHOTO.photo.latitude!!, BUBBLE_PHOTO.photo.longitude!!)
-private val ORIGIN_WAYPOINT = Waypoint("wp-origin", 45.40, -122.70, null, "Track start", "", 1_000L, designation = WaypointDesignation.ORIGIN)
-private val END_WAYPOINT = Waypoint("wp-end", 45.41, -122.71, null, "Track end", "", 1_000L, designation = WaypointDesignation.END)
+private val ORIGIN_WAYPOINT = Waypoint("wp-origin", 45.40, -121.80, null, "Track start", "", 1_000L, designation = WaypointDesignation.ORIGIN)
+private val END_WAYPOINT = Waypoint("wp-end", 45.41, -121.81, null, "Track end", "", 1_000L, designation = WaypointDesignation.END)
 
 /** A saved entry that keeps only [BUBBLE_PHOTO], attached to it (J8 highlights an entry's attached photos). */
 private fun entryKeepingPhoto(id: String, date: LocalDate, text: String, shown: Boolean) =
