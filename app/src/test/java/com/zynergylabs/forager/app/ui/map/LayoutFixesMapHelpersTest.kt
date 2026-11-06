@@ -22,7 +22,7 @@ class LayoutFixesMapHelpersTest {
         bearing = 30.0,
         tilt = 10.0,
         following = following,
-        appliedTarget = region to LatLng(45.3776, -121.7019),
+        appliedTarget = region to LatLng(45.38, -121.70),
     )
 
     // ── Item 4: cameraRestoreFor ──

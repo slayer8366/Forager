@@ -75,13 +75,13 @@ abstract class CrowdedListBubbleTests(
 
     private val map = CrowdedStackStubMap(spotXDp, spotYDp, VIEW_DP, VIEW_DP)
     private val finds = (0 until 10).map { i -> BUBBLE_FIND.copy(id = "find-$i", ownIdentification = "Chanterelle %02d".format(i)) }
-    private val waypoints = (1..3).map { i -> Waypoint("wp-$i", 45.3676, -121.6919, null, "Waypoint $i", "", 1_700_000_000_000L + i) }
+    private val waypoints = (1..3).map { i -> Waypoint("wp-$i", 45.37, -121.69, null, "Waypoint $i", "", 1_700_000_000_000L + i) }
 
     private val density get() = composeRule.density.density
 
     private val t = 1_700_000_000_000L
-    private val fix = LocationFix.Update(lat = 45.3676, lng = -121.6919, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
-    private val origin = Waypoint(id = "origin", lat = 45.3776, lng = -121.6919, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1")
+    private val fix = LocationFix.Update(lat = 45.37, lng = -121.69, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
+    private val origin = Waypoint(id = "origin", lat = 45.38, lng = -121.69, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1")
 
     private fun settle() {
         composeRule.waitForIdle()

@@ -159,8 +159,8 @@ private val MATCHING_SIGHTING = Sighting(
     taxonId = 47348,
     scientificName = "Cantharellus formosus",
     commonName = "Pacific Golden Chanterelle",
-    lat = 45.3776,
-    lng = -121.7019,
+    lat = 45.38,
+    lng = -121.70,
     observedOn = LocalDate.of(2026, 8, 1),
     photoUrl = null,
 )
@@ -170,8 +170,8 @@ private val OTHER_SIGHTING = Sighting(
     taxonId = 99999,
     scientificName = "Amanita muscaria",
     commonName = "Fly Agaric",
-    lat = 45.3876,
-    lng = -121.7119,
+    lat = 45.39,
+    lng = -121.71,
     observedOn = LocalDate.of(2026, 8, 2),
     photoUrl = null,
 )

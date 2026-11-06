@@ -162,11 +162,11 @@ internal fun saveEdgeCapture(name: String, image: ImageBitmap) {
     File(dir, "$name.png").outputStream().use { image.asAndroidBitmap().compress(Bitmap.CompressFormat.PNG, 100, it) }
 }
 
-/** Where navigating returns to: a track's start, as RouteCardBarRig's origin (a fixed step from MadeUpPlace). */
-internal val EDGE_SHADE_ORIGIN = Waypoint(id = "origin", lat = 45.3776, lng = -121.6919, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1_700_000_000_000L, trackId = "t1")
+/** Where navigating returns to: a track's start, as RouteCardBarRig's origin (a two-place point near MadeUpPlace). */
+internal val EDGE_SHADE_ORIGIN = Waypoint(id = "origin", lat = 45.38, lng = -121.69, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1_700_000_000_000L, trackId = "t1")
 
 private val EDGE_SHADE_FIX = LocationFix.Update(
-    lat = 45.3676, lng = -121.6919, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = 1_700_000_000_000L, provider = FixProvider.GPS,
+    lat = 45.37, lng = -121.69, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = 1_700_000_000_000L, provider = FixProvider.GPS,
 )
 
 /**

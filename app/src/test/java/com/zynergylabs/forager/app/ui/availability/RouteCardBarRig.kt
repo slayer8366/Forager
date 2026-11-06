@@ -113,9 +113,9 @@ internal class RouteCardBarRig(
     private var plotted = 0
 
     private val t = 1_700_000_000_000L
-    // The rig's place: fixed steps from MadeUpPlace, so its sundown clocks (ROUTE_CARD_*_CLOCK) are pinned to the sunset at [fix].
-    private val fix = LocationFix.Update(lat = 45.3676, lng = -121.6919, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
-    private val origin = Waypoint(id = "origin", lat = 45.3776, lng = -121.6919, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1")
+    // The rig's place: a two-place point near MadeUpPlace, so its sundown clocks (ROUTE_CARD_*_CLOCK) are pinned to the sunset at [fix].
+    private val fix = LocationFix.Update(lat = 45.37, lng = -121.69, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
+    private val origin = Waypoint(id = "origin", lat = 45.38, lng = -121.69, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1")
 
     fun setScreen(withLegend: Boolean = false, reduceMotion: Boolean = false, navigating: Boolean = false, trips: List<PlannedTrip> = emptyList()) {
         val store = OneCellStore()

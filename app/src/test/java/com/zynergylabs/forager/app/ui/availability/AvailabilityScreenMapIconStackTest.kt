@@ -3254,8 +3254,8 @@ private val TAPPED_SIGHTING = Sighting(
     taxonId = 47348L,
     scientificName = "Cantharellus formosus",
     commonName = "Chanterelle",
-    lat = 45.3776,
-    lng = -121.7019,
+    lat = 45.38,
+    lng = -121.70,
     observedOn = LocalDate.of(2026, 8, 1),
     photoUrl = null,
 )
