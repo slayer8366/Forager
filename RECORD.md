@@ -36171,4 +36171,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - the final search;
     - the report and the PR.
   - **One coder per file:** she checks any new file against nav-card-kind-line, and stops if it is shared.
+- **Phase 2 stop (2026-11-06T11:28:23Z), from the continuing Hazel's review of commits A and B:**
+  - Commit A, pushed at about 11:01Z, carries at the branch tip a value derived from the old place, not a coordinate. With P public, it places the home within the dispatch's 2 km. The pattern search can't see that kind of value.
+  - A throwaway ref pointing at A was also on origin.
+  - **The planner's word:**
+    - A forward commit puts the affected test values back to pre-main's own and recomputes their comments for P. One expected value changes, tests first.
+    - Then the branch tip is swept for any other value derived from the old place, by kind.
+    - The throwaway ref is deleted.
+    - No history rewrite: commit A stays in the branch's history, as pre-main's history keeps the old values themselves, which reveal more.
+  - **Two further planner calls, for privacy:**
+    - the exceptions are listed by kind and count only, with no files, in place of "by file and count";
+    - each translated value keeps its own number of decimals, with expected values recomputed tests first.
+  - **For the owner:** told in plain words.
 **Notes:** Written by the planner by hand. Next free ID -2183.
