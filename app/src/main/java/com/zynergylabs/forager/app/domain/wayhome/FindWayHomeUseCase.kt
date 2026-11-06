@@ -56,6 +56,12 @@ class FindWayHomeUseCase(
     private val router: TrailRouter,
     private val snapper: TrailSnapper,
     private val errorLog: ErrorLog,
+    /**
+     * Told of every trail route this finds, with the route data it was found on (dispatch 2026-11-06-01, Phase 2a): the
+     * next turn's M1 line (`domain/nextturn/RouteTurnsLog`) in production, nothing by default. Called once per call that
+     * returns [WayHomeResult.AlongTrails], just before it returns; never for the track.
+     */
+    private val trailRouteFound: (wayHome: WayHome, routeData: File) -> Unit = { _, _ -> },
 ) {
 
     suspend operator fun invoke(track: Track, origin: Waypoint?): WayHomeResult {
