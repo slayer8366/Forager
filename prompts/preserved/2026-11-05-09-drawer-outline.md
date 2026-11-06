@@ -5,7 +5,7 @@ Written by Rowan Waymark, 2026-11-05. RECORD -2180. Every fact below was read at
 ## Authorisation
 The owner, verbatim, with a screenshot of the open Tools drawer over the map: **"Give the tools drawer an outline also please"**.
 
-**Changed (2026-11-06T04:50:04Z, RECORD -2181):** the owner, verbatim: "Add it to 495". Phase 2 builds on branch `edge-shade` (PR #495) and doesn't wait for #495 to merge. Where this file says "a new branch `drawer-outline`, cut from pre-main after PR #495 has merged", "after #495 merges" or "a PR into pre-main", read: commits on `edge-shade`, its completion report updated with a section for the drawer, and #495's body updated. #495 then waits for the drawer's S22 check and the owner's word.
+**Changed (2026-11-06T04:50:04Z, RECORD -2180):** the owner, verbatim: "Add it to 495". Phase 2 builds on branch `edge-shade` (PR #495) and doesn't wait for #495 to merge. Where this file says "a new branch `drawer-outline`, cut from pre-main after PR #495 has merged", "after #495 merges" or "a PR into pre-main", read: commits on `edge-shade`, its completion report updated with a section for the drawer, and #495's body updated. #495 then waits for the drawer's S22 check and the owner's word.
 
 ## Writing rule
 Describe products generically. Commits end with `Co-Authored-By: Claude <noreply@anthropic.com>` and no model name. No coordinates or place names in anything pushed.

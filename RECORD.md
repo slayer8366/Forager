@@ -35884,7 +35884,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **ID:** 2026-09-28-2180
 **Timestamp:** 2026-11-06T04:49:19Z
 **Continues:** 2026-09-28-2177, 2026-09-28-2178
-**Title:** The Tools drawer gets the map-chrome outline: dispatch 2026-11-05-09
+**Title:** The Tools drawer gets the map-chrome outline, in PR #495: dispatch 2026-11-05-09
 **Decision:**
 - **The owner, verbatim,** with a screenshot of the open Tools drawer over the map from their own phone: **"Give the tools drawer an outline also please"**.
   - The screenshot shows the drawer see-through over the map, with no line at its map-facing edge. The edge shade (PR #495) didn't list the drawer.
@@ -35896,22 +35896,8 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The planner's readings, open to the owner:**
   - Over the other tabs the drawer stays solid with no line, per the owner's "In the places that aren't covering a map, they can stay solid" (CLAUDE.md, the 80% rule).
   - "This release": the owner asked for it while the promotion is being assembled.
-- **Still waiting on the owner:** the look at #495 on the S22, its merge word, and whether #496 gets a phone check first.
+- **Changed (2026-11-06T04:50:39Z), the owner, verbatim:** **"Add it to 495"**. This answers "it's built after the edge shade (#495) merges" and "should I merge #495?".
+  - So Phase 2 builds on branch edge-shade (PR #495), and the dispatch is marked in place. #495 isn't merged until the drawer is in, has its own S22 check, and the owner gives the word. The S22 check of -2178 stands for the rest of #495.
+  - Told to Hazel (Phase 1, still read-only) by message, with the words quoted.
+  - The owner then, verbatim: "Keep it on the same record line, do not add a new record line". This change was first written as a separate entry, -2181. It is folded in here, and -2181 is removed. That ID is unused now, and its text stays in git history (706bd25b2).
 **Notes:** Written by the planner by hand. Next free ID -2181.
-
----
-
-**Kind:** decision
-**ID:** 2026-09-28-2181
-**Timestamp:** 2026-11-06T04:50:04Z
-**Continues:** 2026-09-28-2180
-**Title:** The drawer outline goes into PR #495
-**Decision:**
-- **The owner, verbatim:** **"Add it to 495"**. This answers the planner's "it's built after the edge shade (#495) merges, because it uses #495's outline pieces" and "After your look, should I merge #495?".
-- **So:**
-  - dispatch 2026-11-05-09's Phase 2 builds on branch edge-shade (PR #495). The dispatch is marked in place.
-  - #495 isn't merged until the drawer is in, has its own S22 check, and the owner gives the word.
-  - The S22 check of -2178 stands for everything else in #495.
-- **Told to Hazel** (drawer outline, Phase 1, still read-only) by message, with the words quoted.
-- **Still open:** whether #496, bug 14's warning, gets a phone check before merging. Its tools build is CI run 42163222455.
-**Notes:** Written by the planner by hand. Next free ID -2182.
