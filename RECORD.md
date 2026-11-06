@@ -35761,3 +35761,32 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Download Maps from a trip, after bug 14 ("This release", -2167);
   - then Elder's re-check of the added work, the promotion PR, main's cold start on the S22, the owner's upgrade check over the Play build, and the owner's approval.
 **Notes:** Written by the planner by hand. Next free ID -2177.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2177
+**Timestamp:** 2026-11-06T03:50:22Z
+**Continues:** 2026-09-28-2166
+**Title:** The edge shade finished: PR #495 ready, green, C2 bites; an S22 build with it started
+**Outcome:**
+- **The fresh Hazel's C2 report** is preserved at prompts/preserved/2026-11-05-06-report.md.
+  - pre-main a0535ece1 was merged in at 09ee656f0, keeping both sides; run 42151105727 green.
+  - C2 adds the menu's hairline and no shadow at MapFeatureBubble.kt:208-210 (57adcd4eb).
+  - A new day/night pixel test reads the menu's own window through UiAutomation.takeScreenshot. It failed first (2 of 51), and the revert failed only those two, with messages specific to the edit.
+  - Head 4728bbe42: 6732 tests, 0 failures, 24 skipped, every job green (run 42156737251).
+- **The planner's own check** at 2026-11-06T03:50:22Z:
+  - PR #495 is open, ready and mergeable, with 8 checks passing. Pre-main a0535ece1 is contained.
+  - No @Ignore or Assume was added.
+  - The three removed test lines:
+    - the outline walk's signature and its strip-end call, changed as the owner allowed (O-1, -2160; K-2a, -2164);
+    - and the bubble's "token at 0.8", tightened from assertSameColourShadowed to assertSame: "with no band under its edge".
+- **S22 build started:**
+  - tools/s22-combined moved 4670712fa → 37591fa89, merging pre-main a0535ece1, then → 57e1a5ed3, merging edge-shade 4728bbe42. Both merges were clean.
+  - CI run 42158853771, for the device check (B3, in the completion report) and the owner's look.
+- **Left for later, not decided:**
+  - the notice's action colour (#D0BCFF, -2166);
+  - the other outline walks' daytime blind spot (-2166);
+  - pixel reads for the five other menus (inferred possible).
+**Waiting on:** the owner. Check on the S22 first or merge now; then the merge word.
+**Notes:** Written by the planner by hand. Next free ID -2178.
