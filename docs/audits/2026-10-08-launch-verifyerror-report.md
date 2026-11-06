@@ -87,7 +87,7 @@ Then on the phone, same process (pid 23519 throughout):
 
 | Step | Result | Evidence |
 |---|---|---|
-| Maps tab, portrait | Map, bar ("October · Search a location"), strip ("279° W · Alt 381 ft · 10T ER 28689 19261"), icon cluster, bottom nav. Strip [0,271][1440,406]: 135 px = 36 dp at density 3.75, -736's portrait figure | `12-portrait-launch.png/.xml` |
+| Maps tab, portrait | Map, bar ("October · Search a location"), strip ("279° W · Alt [an elevation at the owner's home; removed 2026-11-06] · 10T ER 28689 19261"), icon cluster, bottom nav. Strip [0,271][1440,406]: 135 px = 36 dp at density 3.75, -736's portrait figure | `12-portrait-launch.png/.xml` |
 | Journal tab and back to Maps | Journal shows Records/Entries; back on Maps the strip and bar are there again | `13-journal-tab.*`, `14-maps-after-switch.*` |
 | Landscape, ROTATION_90 (`user_rotation 1`) | Bar [100..1287], strip [1287..2608], both y 113 to 248 (135 px, the portrait height). Line visible at the meeting edge. Heading "266° W" whole, then "381 ft" and the coordinates whole | `15-landscape-rot1.png/.xml`, `15b-rot1-join-crop.png` |
 | Landscape, ROTATION_270 (`user_rotation 3`) | Mirrored: strip [480..1801], bar's node [1824..2988], both 135 px. Heading whole. The line sits at the strip's end, and the bar's fill and divider run to it in the pixels; see the note below | `16-landscape-rot3.png/.xml`, `16b-rot3-join-crop.png` |
