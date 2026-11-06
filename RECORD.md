@@ -36279,6 +36279,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **docs/audits/README.md:** pre-main's index, with this branch's one row (2026-11-01, the pre-main release sort) kept in date order.
   - **Scan of the whole merged tree:** no coordinate pair, grid reference, tile number or tile-named file from the home. One starting-grep line and the single values left are ruled exceptions.
 - **Next:** the branch-deletion dispatch (the owner's "Delete the old branches (Recommended)"), with a full local bundle of every branch first, keeping main, pre-main, records-after-173 and the open PRs' branches.
+- **Branch deletion (2026-11-06T15:51:16Z):** dispatch 2026-11-06-02 is at prompts/preserved/2026-11-06-02-branch-deletion.md.
+  - **Phase 1:** a full local bundle of every branch, verified against the remote, and every branch sorted into keep, merged, throwaway or unmerged. Nothing is deleted.
+  - **Phase 2,** on the planner's go: the merged and throwaway branches are deleted.
+  - **The planner's readings:**
+    - the keep list adds tools/s22-combined and dev (if it exists) to the owner's list;
+    - unmerged work with no open PR is neither merged nor throwaway, so it comes to the owner as a list.
+  - Also scanned: tools/s22-combined holds no home value at its tip.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
