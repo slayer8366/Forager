@@ -36107,6 +36107,9 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Amendment 1 gains B4, B5 and F2.
 - **The Phase 3 Hazel was stopped by the owner** before any change. Branch nav-card-kind-line is at 50808417f, the merge of pre-main 6cfcd8d6c only, pushed, and PR #498 follows it. The planner launches no new Hazel without the owner's word.
   - **Unknown:** whether the home-location Hazel (-2182) was stopped too. Branch home-location-out is at 4e8b01106 (commits A and B), and CI run 42207752188 is on it.
+- **Phase 3 restarted (2026-11-06T11:14:44Z), the owner, verbatim,** to "Start a fresh Hazel on PR #498 to build these: \"Arrived\" and the \"—\" centred, and the 11 why-only \"straight line\" lines removed?": **"Start her (Recommended)"**. The option read: "A fresh Hazel on #498 builds all three, with tests failing first and a revert check for each, then full CI. #498 stays unmerged; then the S22 check and your merge word." The other: "Not yet".
+  - A fresh Hazel builds B3, B4 and F2 from nav-card-kind-line 50808417f, under Amendment 1 at 44a6476ee.
+  - **One coder per file:** before editing a file she checks it against home-location-out, and stops if it is shared.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
@@ -36151,4 +36154,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - The private file is pointed at by path only, never copied.
   - **Out of her scope:** nearby names (counted only), RECORD.md and prompts/preserved, records-after-173's app copy, the branch deletion (its own dispatch), and main.
   - **Overlap:** PR #498 holds no home value, so either can land first, and the second merges pre-main (never a rebase).
+- **Phase 2 continued (2026-11-06T11:14:44Z), the owner, verbatim,** to "The home-location clean-up Hazel had pushed her first two commits when the other Hazel was stopped. Was she meant to stop too?": **"Keep her going (Recommended)"**. The option read: "If she's still running, leave her. If she was stopped, start a fresh one to continue from her branch's last push, as the dispatch says." The other: "Stop her".
+  - A message to her came back "stopped by the user", so a fresh Hazel continues from home-location-out 4e8b01106. That is commits A (1a0ce0ed1, expected values first) and B (4e8b01106, fixtures to P), with CI run 42207752188.
+  - She reviews A and B as unreviewed work before building on them, and owes:
+    - A's red run, the docs, scripts and tiles;
+    - the final search;
+    - the report and the PR.
+  - **One coder per file:** she checks any new file against nav-card-kind-line, and stops if it is shared.
 **Notes:** Written by the planner by hand. Next free ID -2183.
