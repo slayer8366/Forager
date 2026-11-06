@@ -92,9 +92,12 @@ fun AvailabilityViewModel.onOfflineMapsSignalReturned() {
  * area, and the line shows if any part is outside it (the owner, RECORD -2144: "If any part is outside"). With no signal it
  * is not asked: no line, logged (the owner: "With no signal it can't ask, so no warning, logged").
  */
-@Suppress("UNUSED_PARAMETER")
 fun AvailabilityViewModel.onOfflineAreaSettled(area: Region) {
-    // Fail-first stub (B2): nothing is asked until the next commit.
+    if (noSignal()) {
+        offlineMaps.detail.noteNoSignal(area)
+        return
+    }
+    offlineMaps.detail.ask(area)
 }
 
 /**

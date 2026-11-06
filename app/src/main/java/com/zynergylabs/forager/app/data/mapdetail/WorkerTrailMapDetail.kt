@@ -136,7 +136,7 @@ internal class WorkerTrailMapDetail(
                         }
                     }
                     // The server holds no tile there: south of the archive's bound (the Phase 1b report's F1).
-                    204 -> TileDetail.Detail // Fail-first stub (B2): a 204 reads as detail until the next commit.
+                    204 -> TileDetail.NoDetail
                     else -> TileDetail.Unread("HTTP ${response.code}")
                 }
             }

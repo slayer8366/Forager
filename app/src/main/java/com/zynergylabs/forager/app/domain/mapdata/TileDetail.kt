@@ -41,7 +41,25 @@ object TileDetailReader {
         TileDetail.Unread("not a vector tile (${e.message})")
     }
 
-    // Fail-first stub (dispatch 2026-11-02-02, B2): every tile reads as detail until the next commit.
-    @Suppress("UNUSED_PARAMETER")
-    fun read(tile: MvtTile): TileDetail = TileDetail.Detail
+    fun read(tile: MvtTile): TileDetail {
+        var land = 0
+        var sea = 0
+        var other = 0
+        for (layer in tile.layers) {
+            for (feature in layer.features) {
+                when {
+                    layer.name == LAND_FILL_LAYER -> land++
+                    layer.name == SEA_FILL_LAYER && feature.string("kind") == SEA_FILL_KIND -> sea++
+                    else -> other++
+                }
+            }
+        }
+        return when {
+            other > 0 -> TileDetail.Detail
+            land > 0 -> TileDetail.NoDetail
+            sea > 0 -> TileDetail.Sea
+            // Not a class A7 names: a 200 with nothing in it. Said so, rather than read as either (CLAUDE.md: never a guess).
+            else -> TileDetail.Unread("a tile with no features")
+        }
+    }
 }

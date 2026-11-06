@@ -18,8 +18,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  */
 @Composable
 internal fun OfflineDetailNote(answer: OfflineDetailAnswer?, area: Region) {
-    // Fail-first stub (B2): nothing is drawn until the next commit.
-    if (answer == null || answer.area != area || !answer.someOutside || OFFLINE_DETAIL_NOTE_TAG.isNotEmpty()) return
+    if (answer == null || answer.area != area || !answer.someOutside) return
     Text(
         OFFLINE_DETAIL_NOT_HERE_NOTE,
         style = MaterialTheme.typography.bodySmall,
