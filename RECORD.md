@@ -36097,6 +36097,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The other 16 "· straight line" lines stay, as do the way home's "· following your track" line and the Plot Route card's note.
   - B3 ("Arrived" centred) stands. The dash keeps ending at the middle.
   - Added to Amendment 1 as F1, with E6, and sent to the Phase 3 Hazel by message.
+- **Changed (2026-11-06T11:12:49Z), the owner, verbatim:**
+  - With the screenshot of "Arrived" again: **"make Arrived center"**. This confirms B3.
+  - With a screenshot of two of the withdrawn answers: **"These two still apply"**. They are:
+    - To "There are 18 lines ending \"· straight line\" on the navigation card: 15 for waypoints, 3 for trips. Which go?": **"Keep the ones asking something"**. The option read: "Remove the ones that only say why (no routes here, another area, far from any trail, no clear way in…). Keep \"Trail routes not downloaded\" and \"Trail routes need an app update\", since you could act on them." The other: "All 18 (Recommended)".
+    - To "Before the phone has a GPS fix or a route, the card shows \"—\" where the distance goes (not beside \"Arrived\"). What should it do?": **"Centre it like Arrived (Recommended)"**. The option read: "The \"—\" sits centred in the left part, the same as \"Arrived\", so a word or mark on its own is always centred." The other: "Leave it as built".
+  - So F1 widens: 11 of the 13 way-to notes go from the card, with their trip wordings, and the two that ask something stay. The dash is centred too. Both readings recorded above, "only those two lines go" and "the dash keeps ending at the middle", are replaced.
+  - **Corrected here:** the question's "18 … 15 for waypoints" was the planner's miscount. There are 13 notes and 16 wordings with the trips'. The other two matches were the shared tail constant and the Plot Route card's note.
+  - Amendment 1 gains B4, B5 and F2.
+- **The Phase 3 Hazel was stopped by the owner** before any change. Branch nav-card-kind-line is at 50808417f, the merge of pre-main 6cfcd8d6c only, pushed, and PR #498 follows it. The planner launches no new Hazel without the owner's word.
+  - **Unknown:** whether the home-location Hazel (-2182) was stopped too. Branch home-location-out is at 4e8b01106 (commits A and B), and CI run 42207752188 is on it.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
