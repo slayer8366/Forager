@@ -36272,6 +36272,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Two single values of the ruled-exception kind stay, listed by kind only.
   - This removal is the owner's order, the one exception to the append rule. History keeps the old lines.
   - **Next:** pre-main merged into this branch, so that its old app copy matches pre-main's cleaned files.
+- **pre-main merged into this branch (2026-11-06T15:50:09Z):** merge commit 3ece9d49b, with parents 28178be1d (the sweep) and pre-main 61f99fbe2. Before it, bundle ~/Zynergy/forager-repo-backups/records-after-173-before-premain-merge.bundle was verified "okay".
+  - **Kept as on this branch,** so the merge rewrites no record: RECORD.md and prompts/preserved.
+    - pre-main's 2026-10-10 change "Replace other products' names in the tree with generic descriptions" had reworded two old RECORD lines and four preserved prompts, and is not carried here.
+    - **For the owner, later:** whether those six get the same rewording, appended as the owner orders.
+  - **docs/audits/README.md:** pre-main's index, with this branch's one row (2026-11-01, the pre-main release sort) kept in date order.
+  - **Scan of the whole merged tree:** no coordinate pair, grid reference, tile number or tile-named file from the home. One starting-grep line and the single values left are ruled exceptions.
+- **Next:** the branch-deletion dispatch (the owner's "Delete the old branches (Recommended)"), with a full local bundle of every branch first, keeping main, pre-main, records-after-173 and the open PRs' branches.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
