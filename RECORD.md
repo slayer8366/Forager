@@ -34767,7 +34767,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Change:** dispatch A1, the owner's step path and words (-1951): "Detailed offline maps aren't available here yet. A download here will be blank when you're offline." under the area when the pin is south of 15.92°N; Download still works.
 **Scope boundary:** the dispatch's, with Amendment 1's C1 to C3: branch bug-14-picker-warning from pre-main ee0651fe0, a PR into pre-main, no merge, no store read.
 **Baseline:** pre-main ee0651fe0.
-**Prediction (outcome — planner):** the line shows at 14.7°N 91.5°W and not at 45.3°N 122.6°W, through the real picker, with Download enabled in both. One bound feeds the app's check.
+**Prediction (outcome — planner):** the line shows at 14.7°N 91.5°W and not at [a point near the owner's home; removed 2026-11-06], through the real picker, with Download enabled in both. One bound feeds the app's check.
 **Prediction (mechanism — coder):** to come from Hazel's Phase 1 report.
 **Finish line:** a PR into pre-main, green, merged on the owner's word, before the promotion.
 **Abort conditions:** the straddle question (owner-level); a wrong premise; new words; a weakened test; two failed attempts at one symptom.

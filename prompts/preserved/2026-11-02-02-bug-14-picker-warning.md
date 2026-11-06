@@ -22,6 +22,6 @@ Written by Rowan Waymark, 2026-11-02. RECORD -1943, -1950, -1951. Starts after d
 - **A1** (2026-11-02, -1951). The step path: Tools > Offline Maps > choose an area > the pin is south of 15.92°N > under the area, the line "Detailed offline maps aren't available here yet. A download here will be blank when you're offline." > Download still works. Pin moved north of the line > the line goes. The words are the owner's, exactly. Style it as the picker's other notes; propose nothing new visually; if there is no matching style, stop and ask.
 
 ## B. Tests
-- **B1** (2026-11-02, -1951). Through the real picker: the line shows, as literal text, with the pin at 14.7°N 91.5°W (the S22 case, -1950); it doesn't at 45.3°N 122.6°W; Download stays enabled in both. Fail first, then a revert check.
+- **B1** (2026-11-02, -1951). Through the real picker: the line shows, as literal text, with the pin at 14.7°N 91.5°W (the S22 case, -1950); it doesn't at [a point near the owner's home; removed 2026-11-06]; Download stays enabled in both. Fail first, then a revert check.
 
 Known bugs row 14 is updated by the planner, not the coder.
