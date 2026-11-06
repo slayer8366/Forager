@@ -134,10 +134,18 @@ abstract class NavigationCardKindLineScreen {
         APPROACHING("1280 ft", "by trail"),
         /** Amendment 1, H4: the way to the waypoint along trails, off the trail line ("Off trail"). */
         OFF_TRAIL("1280 ft", "by trail"),
+        /** Amendment 1, H14: the way home counting down, from the owner's screenshot's "1.5 mi" (2420 m) to "98 ft" (30 m). */
+        TRAIL_MILES("1.5 mi", "by trail"),
+        TRAIL_SHORT("98 ft", "by trail"),
+        /** H14: the straight line 30 m from the waypoint, rounded for the fix's 3.79 m to "≈ 100 ft". */
+        STRAIGHT_SHORT("≈ 100 ft", "straight"),
         ;
 
         /** Navigating to the waypoint, the straight line: with no route given, or with a note's straight line ([note]). */
-        val straight: Boolean get() = this == STRAIGHT || note != null
+        val straight: Boolean get() = this == STRAIGHT || this == STRAIGHT_SHORT || note != null
+
+        /** The way home's route along trails, metres: H14's countdown, else 390 m ("1280 ft"). */
+        val routeMeters: Double get() = when (this) { TRAIL_MILES -> 2_420.0; TRAIL_SHORT -> 30.0; else -> 390.0 }
 
         /** Navigating to the waypoint rather than home: the straight line, or [OFF_TRAIL]'s way along trails. */
         val toWaypoint: Boolean get() = straight || this == OFF_TRAIL
@@ -171,6 +179,8 @@ abstract class NavigationCardKindLineScreen {
             State.ARRIVED -> 377.0
             // 50 m from the start: inside the 100 m approach zone, outside the arrival radius.
             State.APPROACHING -> 330.0
+            // H14: 30 m short of the waypoint (381 m north).
+            State.STRAIGHT_SHORT -> 351.0
             else -> 0.0
         }
         return LocationFix.Update(lat = here.lat + north / metresPerDegreeLat, lng = here.lng, altitude = altitudeNow, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
@@ -197,7 +207,7 @@ abstract class NavigationCardKindLineScreen {
                         navigation = AvailabilityScreenNavigation(
                             isReturning = !straight && on,
                             navigationTarget = start.takeIf { !straight && on },
-                            returnRoute = if (state == State.DASH) ReturnRoute.Pending else ReturnRoute.Ahead(east, 390.0),
+                            returnRoute = if (state == State.DASH) ReturnRoute.Pending else ReturnRoute.Ahead(east, state.routeMeters),
                         ),
                         records = AvailabilityScreenRecords(waypoints = listOf(waypoint), waypointsLoaded = true),
                         compassProvider = object : CompassProvider { override val heading: Flow<CompassReading?> = compass },
