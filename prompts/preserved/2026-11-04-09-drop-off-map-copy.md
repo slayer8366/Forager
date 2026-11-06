@@ -69,7 +69,7 @@ pre-main 949ad8183. ForagerDatabase is at version 23 (data/local/ForagerDatabase
 - **Outcome (planner):**
   - After this, opening Offline maps with signal on the S22 fetches the zoom-15 basemap tiles of Region 1 and Region 2 into the app's own copy, within your operating limit.
   - All of those copied tiles carry the `barriers` layer, since the server has carried it since about 2026-11-03 (report section 4).
-  - Navigate to Waypoint 1 then no longer logs "has no barrier mark" for tile 15/5222/11744.
+  - Navigate to Waypoint 1 then no longer logs "has no barrier mark" for tile [a zoom-15 tile; its number removed, -2174].
   - MapLibre's store keeps its old tiles, and the map looks the same.
 - **Mechanism (coder):** in your Phase 1 report.
 

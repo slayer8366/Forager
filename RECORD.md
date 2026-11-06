@@ -35682,3 +35682,28 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - scripts/verify-usgs-basemap.sh carries a zoom-15 tile labelled "Portland" as a test point. That's code, not a record, and is left alone.
 - **The phone:** the walk's log writer is stopped. It is restarted for the next outing.
 **Notes:** Written by the planner by hand. Next free ID -2174.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2174
+**Timestamp:** 2026-11-06T02:32:32Z
+**Continues:** 2026-09-28-2173
+**Title:** PR #494 merged; the tile numbers taken out of four preserved reports; the test trip and test area deleted; three Hazels started
+**Decision:**
+- **The owner, verbatim:** "1 test trip bubble looks good, merge 494 when ready / 2 yes / 3 delete them / 4 yes investigate". Item 2 answers whether to take the tile number out of Hazel's four preserved reports. Item 3 answers deleting the test trip and the test area. Item 4 answers the read-only investigation.
+- **PR #494 merged:**
+  - Before: pre-main 3a3d85089, PR head 05ccb60d2, all 8 checks passed. The merge was clean in git merge-tree, and the same combination passed full CI as the S22 build (run 42131356768, -2163).
+  - Bundle ~/Zynergy/forager-repo-backups/pre-main-before-494.bundle verified "okay", its one head 3a3d85089.
+  - Merged with `--match-head-commit 05ccb60d2354760c40c52aed249a709834968e98`. The merge commit is 7357524b7, with parents 3a3d85089 and 05ccb60d2.
+  - The audit index row, the planner's and docs only, is on pre-main as a0535ece1.
+- **Tile numbers removed from the preserved reports,** as -2173 did for the record: 18 in all.
+  - 3 in 2026-11-04-08-offline-refresh-check.md, 9 in 2026-11-04-08-report.md, 1 in 2026-11-04-09-drop-off-map-copy.md and 5 in 2026-11-04-09-phase1-report.md.
+  - Each is replaced by "[a zoom-15 tile; its number removed, -2174]". Those reports are otherwise verbatim, and the old text stays in git history.
+  - Both the near-home tile and one Region 2 tile in the Phase 1 report were taken out, since either locates the owner's area.
+- **Started, each a fresh Hazel:**
+  - the edge shade's C2 and close (PR #495), after pre-main is merged in;
+  - bug 14's Phase 2 (dispatch 2026-11-02-02, Amendments 1-3), branch bug-14-picker-warning from pre-main a0535ece1;
+  - a read-only investigation. It covers -2172's re-search burst, and whether today's data can judge the way home's off-trail check. After 17:43:24 the log has no way-to search, yet a navigation started at 17:49:49, which fits Return.
+- **Download Maps from a trip** (2026-11-05-08) waits for bug 14 to merge, as set in -2170 and Amendment 1 B1.
+**Notes:** Written by the planner by hand. Next free ID -2175.

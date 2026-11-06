@@ -11,9 +11,9 @@ Describe products generically. Commits end with `Co-Authored-By: Claude <noreply
 ## Change
 **Nothing changes.** This is a read-only check, answered by a report.
 
-**Why it's asked.** In session 13 the S22 had a 9.9 m fix. Navigate to Waypoint 1 went by trail and logged: "the waypoint's end: tile 15/5222/11744 has no barrier mark: it was built before fences were carried". That is A1 of dispatch 2026-11-04-04, working as ruled.
+**Why it's asked.** In session 13 the S22 had a 9.9 m fix. Navigate to Waypoint 1 went by trail and logged: "the waypoint's end: tile [a zoom-15 tile; its number removed, -2174] has no barrier mark: it was built before fences were carried". That is A1 of dispatch 2026-11-04-04, working as ruled.
 
-The live server's copy of that tile (us/15/5222/11744.mvt) carries a `barriers` layer with 2 features. But a new 1 mi test area downloaded on the phone ("Test s13", MapLibre region 12, 35 tiles) kept all 17 of its basemap tiles at their old modified dates (2026-10-27 to 2026-11-03). That tile stayed at 2026-10-28 with no barrier mark. The test area was then deleted.
+The live server's copy of that tile ([a zoom-15 tile; its number removed, -2174]) carries a `barriers` layer with 2 features. But a new 1 mi test area downloaded on the phone ("Test s13", MapLibre region 12, 35 tiles) kept all 17 of its basemap tiles at their old modified dates (2026-10-27 to 2026-11-03). That tile stayed at 2026-10-28 with no barrier mark. The test area was then deleted.
 
 **The planner's inference, not confirmed:** an area downloaded before the fence data may never get it from "Download again", so the street drop-off would never appear there.
 
@@ -40,7 +40,7 @@ pre-main 949ad8183; records-after-173 cc2691b68. The "Older map style" notice is
 4. **The map seen online:**
    - When the Trail Map is viewed online over a stored tile past its expiry, does MapLibre refresh the stored copy?
    - Would `ReadNearbyMapData` (domain/mapdata/NearbyMapData.kt) then read the refreshed one? Say which URL template and tile JSON it reads.
-   - The session 13 copy of us/15/5222/11744 shows modified 2026-10-28 and accessed 2026-11-03: say what that implies, if anything.
+   - The session 13 copy of [a zoom-15 tile; its number removed, -2174] shows modified 2026-10-28 and accessed 2026-11-03: say what that implies, if anything.
 5. **So, for someone whose areas were downloaded before the fence data:** which actions, if any, bring the fence mark to their phone today. Mark each as confirmed from code or library, or inferred.
 6. **If none do:** the options for the owner, priced by what each asks the user to notice, decide or do ("Don't make me think", CLAUDE.md), with what each changes in the code. Don't choose; nothing is built.
 
