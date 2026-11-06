@@ -409,6 +409,10 @@ data class AvailabilityUiState(
     val offlineRouteFailedIds: Set<Long> = emptySet(),
     /** Known bug 14 (dispatch 2026-11-02-02): the map server's last answer on the Offline Maps picker's area; see [OfflineDetailAnswer]. */
     val offlineDetail: OfflineDetailAnswer? = null,
+    /** Dispatch 2026-11-05-08: the trip a Trip Planner Download Maps opened Offline Maps for, until the user leaves; see [TripMapsOpening]. */
+    val offlineMapsTripOpening: TripMapsOpening? = null,
+    /** Counts each trip's Download Maps, so a picker already on screen, panned or not, starts again on the trip's pin (B3). */
+    val offlineMapPinRequest: Int = 0,
 ) {
     /**
      * [offlineRegions] without [pendingOfflineRegionDelete]: what the Journal's region rows, the All

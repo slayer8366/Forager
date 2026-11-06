@@ -23,9 +23,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.platform.testTag
@@ -33,12 +35,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import com.zynergylabs.forager.app.ui.availability.rectEdgeIntersection
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
-import kotlin.math.abs
-import kotlin.math.atan2
 
 /**
  * M1's bubble shell and the layer every map host puts over its map (`prompts/preserved/2026-09-28-29.md`
@@ -125,7 +124,8 @@ internal fun AnchoredAtScreenPoint(
 /**
  * The bubble's card (B2): the same theme-aware 80% fill as every control over the map, a tail from
  * the card's edge to [tipInBubble], [content] beside a close button, at most 280 dp wide. [cardTag]
- * is the card's test tag and [closeTag] the close button's.
+ * is the card's test tag and [closeTag] the close button's. The card and the tail are one shape, with
+ * no shadow, outlined in the map-chrome hairline (dispatch 2026-11-05-06; MapBubbleOutline.kt).
  *
  * The card consumes its own taps with a plain `pointerInput` (no ripple, no click action to fake),
  * so a touch anywhere on it is never also the map's "tap elsewhere" dismiss; the buttons inside it
@@ -142,33 +142,18 @@ internal fun MapBubbleShell(
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val fillColor = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight
+    val outline = mapChromeOutline()
     Box(
         modifier = modifier
-            .drawBehind {
-                val tip = tipInBubble.value ?: return@drawBehind
-                val tailPx = BUBBLE_TAIL_LENGTH.toPx()
-                val center = Offset(size.width / 2f, size.height / 2f)
-                val toTip = tip - center
-                val cardHalfWidth = center.x - tailPx
-                val cardHalfHeight = center.y - tailPx
-                // A tip inside the card (the clamp pushed the card over the point) needs no tail.
-                if (abs(toTip.x) <= cardHalfWidth && abs(toTip.y) <= cardHalfHeight) return@drawBehind
-                val angleDeg = Math.toDegrees(atan2(toTip.x.toDouble(), -toTip.y.toDouble())).toFloat()
-                val base = center + rectEdgeIntersection(cardHalfWidth, cardHalfHeight, angleDeg)
-                val length = (tip - base).getDistance().takeIf { it > 0f } ?: return@drawBehind
-                val dir = (tip - base) / length
-                val half = BUBBLE_TAIL_BASE_HALF_WIDTH.toPx()
-                val base1 = Offset(base.x - dir.y * half, base.y + dir.x * half)
-                val base2 = Offset(base.x + dir.y * half, base.y - dir.x * half)
-                drawPath(
-                    Path().apply {
-                        moveTo(base1.x, base1.y)
-                        lineTo(tip.x, tip.y)
-                        lineTo(base2.x, base2.y)
-                        close()
-                    },
-                    color = fillColor,
-                )
+            // Dispatch 2026-11-05-06 (RECORD -2156): the card and its tail are one shape (MapBubbleOutline.kt), filled once here
+            // under the card's content and outlined once over it, so the line runs round the card and out along the tail to its
+            // tip with none where they join. The card's Surface draws no fill of its own (Color.Transparent below), so nowhere is
+            // the 0.8 laid twice. Before, the Surface filled the card and this drew the tail under it, and the sliver of the tail
+            // under the card's edge read 0.96.
+            .drawBehind { drawPath(shellShape(tipInBubble), fillColor) }
+            .drawWithContent {
+                drawContent()
+                drawBubbleOutline(outline, shellShape(tipInBubble))
             }
             .padding(BUBBLE_TAIL_LENGTH),
     ) {
@@ -178,10 +163,12 @@ internal fun MapBubbleShell(
                 .testTag(cardTag)
                 .mapChromeContainerColor(fillColor)
                 .pointerInput(Unit) { detectTapGestures {} },
-            shape = RoundedCornerShape(20.dp),
-            color = fillColor,
+            shape = RoundedCornerShape(BUBBLE_CORNER_RADIUS),
+            // Filled by the shell's Box with the tail, as one shape (above). Dispatch 2026-11-05-06 (RECORD -2154, the owner: "Thin
+            // outline (Recommended)"): no shadow. It had 6 dp, which under the 0.8 fill showed as a band darker than the fill inside
+            // the card's edges (Phase 1 report, prompts/preserved/2026-11-05-06-phase1-report.md, section 1).
+            color = Color.Transparent,
             contentColor = if (isDarkTheme) Color.White else Bark,
-            shadowElevation = 6.dp,
             tonalElevation = 3.dp,
         ) {
             Row(
@@ -199,4 +186,15 @@ internal fun MapBubbleShell(
             }
         }
     }
+}
+
+/** The card's corner radius. */
+private val BUBBLE_CORNER_RADIUS = 20.dp
+
+/** The shell's card and tail as one shape, for the tip as it is now ([bubbleShape]). */
+private fun DrawScope.shellShape(tipInBubble: State<Offset?>): Path {
+    val tailPx = BUBBLE_TAIL_LENGTH.toPx()
+    val cornerPx = BUBBLE_CORNER_RADIUS.toPx()
+    val tail = tipInBubble.value?.let { bubbleTail(size, it, tailPx, BUBBLE_TAIL_BASE_HALF_WIDTH.toPx(), cornerPx) }
+    return bubbleShape(size, tailPx, cornerPx, tail)
 }

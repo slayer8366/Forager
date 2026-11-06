@@ -246,6 +246,8 @@ internal class AvailabilityOfflineMaps(
                             offlineMapLatText = "",
                             offlineMapLngText = "",
                             offlineMapNameText = "",
+                            // Dispatch 2026-11-05-08 (A2): a trip's area downloaded is not forgotten on leaving; this clearing stands.
+                            offlineMapsTripOpening = null,
                         )
                     }
                     loadOfflineRegions()

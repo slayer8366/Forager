@@ -111,7 +111,8 @@ internal fun MapTypePanel(
                 shape = RoundedCornerShape(Spacing.md),
                 color = fill,
                 contentColor = if (isDarkTheme) Color.White else Bark,
-                shadowElevation = 4.dp,
+                // No shadow (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"): under the 0.8 fill it
+                // showed as a band darker than the fill inside the edges. It had 4 dp; its hairline was already here.
                 border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),
             ) {
                 MapModeChipRow(
