@@ -55,8 +55,11 @@ class NavigationWayToWaypointNoteTest {
             assertEquals("$note: the needle at the waypoint, as today", today.targetArrowDegrees, r.targetArrowDegrees)
             assertEquals("$note", today.targetText, r.targetText)
             if (note in asking) {
-                assertEquals("$note: the note, whole", note.text, r.statusText)
-                assertEquals("$note", listOf(note.text, note.text.removeSuffix(" · straight line")), r.statusForms())
+                // Amendment 1, H4 (the planner's reading): on the card the two that stay lose "· straight line", and wrap where they do
+                // not fit, so they have no other form. Was `assertEquals("$note: the note, whole", note.text, r.statusText)` and
+                // `assertEquals("$note", listOf(note.text, note.text.removeSuffix(" · straight line")), r.statusForms())`.
+                assertEquals("$note: the note without its tail", note.text.removeSuffix(" · straight line"), r.statusText)
+                assertEquals("$note", listOf(note.text.removeSuffix(" · straight line")), r.statusForms())
             } else {
                 assertEquals("$note: no status line (F2)", "", r.statusText)
                 assertEquals("$note: no short form either", listOf(""), r.statusForms())
@@ -77,8 +80,10 @@ class NavigationWayToWaypointNoteTest {
         }
         assertEquals("Trail routes not downloaded", wayToWaypointNoteShortText(WayToWaypointNote.ROUTES_NOT_DOWNLOADED))
         assertEquals("Trail routes need an app update", wayToWaypointNoteShortText(WayToWaypointNote.ROUTES_NEED_APP_UPDATE))
+        // H4: the card shows the short form alone. Was `listOf("Trail routes not downloaded · straight line", "Trail routes not
+        // downloaded")`.
         assertEquals(
-            listOf("Trail routes not downloaded · straight line", "Trail routes not downloaded"),
+            listOf("Trail routes not downloaded"),
             readout(ReturnRoute.Straight(WayToWaypointNote.ROUTES_NOT_DOWNLOADED)).statusForms(),
         )
     }
@@ -94,6 +99,7 @@ class NavigationWayToWaypointNoteTest {
             assertEquals("$note, a trip: no status line", "", r.statusText)
             assertEquals("$note, a trip: no short form", listOf(""), r.statusForms())
         }
-        for (note in asking) assertEquals("$note, a trip", note.text, readout(ReturnRoute.Straight(note, NavigationTargetKind.TRIP)).statusText)
+        // H4: without the tail. Was `note.text`.
+        for (note in asking) assertEquals("$note, a trip", note.text.removeSuffix(" · straight line"), readout(ReturnRoute.Straight(note, NavigationTargetKind.TRIP)).statusText)
     }
 }

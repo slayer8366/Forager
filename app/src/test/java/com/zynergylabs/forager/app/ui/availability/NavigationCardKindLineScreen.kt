@@ -35,6 +35,7 @@ import com.zynergylabs.forager.app.domain.WaypointNavigation
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
+import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import java.text.SimpleDateFormat
@@ -129,19 +130,50 @@ abstract class NavigationCardKindLineScreen {
         STRAIGHT_NOTE_GONE("≈ 1250 ft", "straight", WayToWaypointNote.NO_TRAIL_ROUTES),
         /** F2: the straight line with a note that asks something, "Trail routes not downloaded". */
         STRAIGHT_NOTE_KEPT("≈ 1250 ft", "straight", WayToWaypointNote.ROUTES_NOT_DOWNLOADED),
+        /** Amendment 1, H2: the way home along a route within 100 m of the start, "Approaching" in the status space. */
+        APPROACHING("1280 ft", "by trail"),
+        /** Amendment 1, H4: the way to the waypoint along trails, off the trail line ("Off trail"). */
+        OFF_TRAIL("1280 ft", "by trail"),
         ;
 
         /** Navigating to the waypoint, the straight line: with no route given, or with a note's straight line ([note]). */
         val straight: Boolean get() = this == STRAIGHT || note != null
+
+        /** Navigating to the waypoint rather than home: the straight line, or [OFF_TRAIL]'s way along trails. */
+        val toWaypoint: Boolean get() = straight || this == OFF_TRAIL
     }
 
     private var state by mutableStateOf(State.TRAIL)
     private var evening by mutableStateOf(Evening.NONE)
+    /** Amendment 1, H1: navigating (the state's own navigation) or not, so the strip can be read both ways. */
+    private var navigatingNow by mutableStateOf(true)
+
+    /** The fix's height, metres; `null` reports none ("Alt unavailable"). Amendment 1, H7 changes it to read the strip's windows. */
+    private var altitudeNow by mutableStateOf<Double?>(120.0)
+
+    /** H7: the fix's height, and settles it (3 s of the test clock). */
+    protected fun setAltitude(meters: Double?) {
+        composeRule.runOnIdle { altitudeNow = meters }
+        composeRule.mainClock.advanceTimeBy(3_000)
+        composeRule.waitForIdle()
+    }
+
+    /** H1: stops or restarts the navigation the state shows, and settles it (3 s of the test clock). */
+    protected fun setNavigating(on: Boolean) {
+        composeRule.runOnIdle { navigatingNow = on }
+        composeRule.mainClock.advanceTimeBy(3_000)
+        composeRule.waitForIdle()
+    }
     private val compass = MutableStateFlow<CompassReading?>(CompassReading(281f, HeadingUncertainty.Estimated(2f), 0L))
 
     private fun fix(): LocationFix.Update {
-        val north = if (state == State.ARRIVED) 377.0 else 0.0
-        return LocationFix.Update(lat = here.lat + north / metresPerDegreeLat, lng = here.lng, altitude = 120.0, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
+        val north = when (state) {
+            State.ARRIVED -> 377.0
+            // 50 m from the start: inside the 100 m approach zone, outside the arrival radius.
+            State.APPROACHING -> 330.0
+            else -> 0.0
+        }
+        return LocationFix.Update(lat = here.lat + north / metresPerDegreeLat, lng = here.lng, altitude = altitudeNow, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
     }
 
     private var composed = false
@@ -150,18 +182,21 @@ abstract class NavigationCardKindLineScreen {
         composeRule.setContent {
             CompositionLocalProvider(LocalSundownClock provides clock) {
                 ForagerTheme(darkTheme = false) {
-                    val straight = state.straight
+                    val straight = state.toWaypoint
+                    val on = navigatingNow
                     AvailabilityScreen(
                         uiState = AvailabilityUiState(
                             liveFix = fix(),
-                            waypointNavigation = WaypointNavigation(waypoint.id, resumesReturn = false).takeIf { straight },
+                            waypointNavigation = WaypointNavigation(waypoint.id, resumesReturn = false).takeIf { straight && on },
                             // F2: a note's straight line, as the way to a waypoint publishes it (AvailabilityWaypointRoute).
-                            waypointRoute = state.note?.let { WaypointRouteShown(hud = ReturnRoute.Straight(it), line = null) },
+                            waypointRoute = state.note?.let { WaypointRouteShown(hud = ReturnRoute.Straight(it), line = null) }
+                                // H4: off the trail line on the way to the waypoint, as AvailabilityWaypointRoute publishes it.
+                                ?: WaypointRouteShown(hud = ReturnRoute.Ahead(east, 390.0, offTrail = OffTrailState.OFF, toWaypoint = true), line = null).takeIf { state == State.OFF_TRAIL },
                         ).withFixHeight(),
                         recording = AvailabilityScreenRecording(isRecording = true, recordingSundownLine = evening.line?.invoke(t)),
                         navigation = AvailabilityScreenNavigation(
-                            isReturning = !straight,
-                            navigationTarget = start.takeIf { !straight },
+                            isReturning = !straight && on,
+                            navigationTarget = start.takeIf { !straight && on },
                             returnRoute = if (state == State.DASH) ReturnRoute.Pending else ReturnRoute.Ahead(east, 390.0),
                         ),
                         records = AvailabilityScreenRecords(waypoints = listOf(waypoint), waypointsLoaded = true),
@@ -232,8 +267,12 @@ abstract class NavigationCardKindLineScreen {
         val needle: DpRect,
         val heading: Laid?,
         val status: String,
-        /** The status line's node: zero height where it is empty (CardRouteAndStatusLines). */
+        /** The status words' node: zero height where it is empty (StatusSpace, since Amendment 1, H2, in the right part). */
         val statusBox: DpRect?,
+        /** The status words as laid out, `null` with none; [Laid.layout] tells how they wrapped (H4). */
+        val statusLaid: Laid?,
+        /** H3: the compass notice in the status space, `null` with none. */
+        val notice: Laid?,
         val eveningPieces: Int,
         /** The top line, the left part's whole width. */
         val topLine: DpRect,
@@ -248,8 +287,11 @@ abstract class NavigationCardKindLineScreen {
         /** The turn row's left: its words, or the needle where the words are empty (an empty text reports no place). */
         val turnRowLeft: Dp get() = if (turn == null || turn.text.isEmpty()) needle.left else turn.bounds.left
         val turnRowRight: Dp get() = heading?.bounds?.right ?: northArrow?.right ?: needle.right
-        /** The left part's middle: its lines' centre, since the turn row is centred in it (NavigationInfoLayoutTest). */
-        val middle: Dp get() = (turnRowLeft + turnRowRight) / 2
+        /**
+         * The left part's middle, the top line's centre (the top line is the left part's width). Was the turn row's centre, which
+         * the row was centred on; since Amendment 1, G3, the row starts with the degrees' fixed space, which has no node of its own.
+         */
+        val middle: Dp get() = (topLine.left + topLine.right) / 2
         val turnRowTop: Dp get() = needle.top
         val turnRowBottom: Dp get() = listOfNotNull(needle.bottom, heading?.bounds?.bottom, turn?.bounds?.bottom?.takeIf { turn.text.isNotEmpty() }).max()
         /** The left part's right edge: the divider less its 6 dp gap (CARD_DIVIDER_GAP). */
@@ -290,6 +332,9 @@ abstract class NavigationCardKindLineScreen {
             heading = nodes(NAVIGATION_HUD_HEADING_TAG).singleOrNull()?.let(::laid),
             status = nodes(NAVIGATION_HUD_STATUS_TAG).singleOrNull()?.let { laid(it).text } ?: "",
             statusBox = nodes(NAVIGATION_HUD_STATUS_TAG).singleOrNull()?.let(::rect),
+            statusLaid = nodes(NAVIGATION_HUD_STATUS_TAG).singleOrNull()?.let(::laid)?.takeIf { it.text.isNotEmpty() },
+            // The tag's own string, so this rig compiles before H3 (tests first): NAVIGATION_HUD_COMPASS_NOTICE_TAG.
+            notice = nodes("navigation-hud-compass-notice").singleOrNull()?.let(::laid),
             eveningPieces = nodes(NAVIGATION_HUD_EVENING_PIECE_TAG).size,
             topLine = rect(single(NAVIGATION_HUD_TOP_LINE_TAG, where)),
             kindWords = nodes(NAVIGATION_HUD_DISTANCE_KIND_WORD_TAG).map(::laid).sortedBy { it.bounds.top },
@@ -300,11 +345,19 @@ abstract class NavigationCardKindLineScreen {
     }
 
     /** [text]'s width in pixels in [like]'s own type, measured as the card measures (one line, no wrapping). */
-    protected fun widthPx(like: Laid, text: String): Int {
+    protected fun widthPx(like: Laid, text: String, tabular: Boolean = false): Int {
         val input = checkNotNull(like.layout) { "<${like.text}> reports no text layout to measure in" }.layoutInput
+        val style = if (tabular) input.style.copy(fontFeatureSettings = "tnum") else input.style
         return TextMeasurer(input.fontFamilyResolver, input.density, input.layoutDirection)
-            .measure(text, input.style, maxLines = 1, softWrap = false).size.width
+            .measure(text, style, maxLines = 1, softWrap = false).size.width
     }
+
+    /**
+     * Amendment 1, H5 and the planner's reading of Q3: the right part's width with no evening piece wider, the wider line of the
+     * broken "Sunset: … ▪︎ Dark: …" at its widest on the test clock (12-hour, "h:mm a"), in the evening's tabular type, by [like]'s.
+     */
+    protected fun eveningFloorPx(like: Laid): Int = listOf("Sunset: 10:58 PM", "Dark: 10:58 PM", "Sunset: 10:58 AM", "Dark: 10:58 AM")
+        .maxOf { widthPx(like, it, tabular = true) }
 
     protected val densityPx: Float get() = composeRule.density.density
 
@@ -312,56 +365,10 @@ abstract class NavigationCardKindLineScreen {
         "TOPLINE|$where|$s|figure=<${c.figure.text}> ${c.figure.bounds} base ${c.figure.baseline}|kind=<${c.kind?.text}> ${c.kind?.bounds} base ${c.kind?.baseline}|" +
             "words=${c.kindWords.map { "<${it.text}> ${it.bounds} base ${it.baseline}" }}|top line ${c.topLine}|" +
             "middle ${c.middle}|turn row ${c.turnRowLeft}..${c.turnRowRight}, ${c.turnRowTop}..${c.turnRowBottom}|turn <${c.turn?.text}>|heading <${c.heading?.text}>|" +
-            "divider ${c.divider}|exit ${c.exit}|card height ${c.hud.bottom - c.hud.top}|status <${c.status}>|pieces ${c.pieces.map { "<${it.text}> ${it.bounds.right - it.bounds.left}" }}",
+            "divider ${c.divider}|exit ${c.exit}|card height ${c.hud.bottom - c.hud.top}|status <${c.status}> ${c.statusBox} lines ${c.statusLaid?.layout?.lineCount}|" +
+            "notice <${c.notice?.text}>|pieces ${c.pieces.map { "<${it.text}> ${it.bounds.right - it.bounds.left}" }}",
     )
 
-    /** The word gap, centred on the middle (Spacing.xs): the figure ends this far left of it, the kind starts this far right. */
-    private val halfGap = 2.dp
-
-    /**
-     * Each problem with [s]'s top line as the owner's "Meet at the middle" has it: one line, meeting at the middle; with no kind, the
-     * word or mark centred on the middle (B3, B4).
-     */
-    protected fun meetsAtTheMiddle(where: String, s: State, withEvening: Boolean = false): List<String> {
-        show(s, withEvening)
-        val c = card(where)
-        printed(where, s, c)
-        val problems = mutableListOf<String>()
-        fun near(a: Dp, b: Dp, tolerance: Float = 1f) = abs((a - b).value) <= tolerance
-        // Positive controls: the state is the one named, and the right part is as the case says.
-        if (c.figure.text != s.figure) problems += "positive control: the distance reads <${c.figure.text}>, not <${s.figure}>"
-        if ((c.eveningPieces > 0) != withEvening) problems += "positive control: ${c.eveningPieces} evening pieces drawn, evening=$withEvening"
-        if (c.status.isNotEmpty() && s != State.DASH) problems += "positive control: the status line reads <${c.status}>, expected none"
-        if (s.kind == null) {
-            // B3 ("Arrived is simply centered with no extras") and B4 ("Centre it like Arrived (Recommended)"): a word or mark on its
-            // own is centred on the middle. Was (B1, "In the left half"): ending at the middle less the half gap, as the distance.
-            val centre = (c.figure.bounds.left + c.figure.bounds.right) / 2
-            if (!near(centre, c.middle)) problems += "<${c.figure.text}> ${c.figure.bounds} is not centred on the middle ${c.middle}: its centre $centre"
-        } else if (!near(c.figure.bounds.right, c.middle - halfGap)) {
-            // "on the left half": the distance ends at the middle.
-            problems += "the distance ${c.figure.bounds} does not end at the middle ${c.middle} (less the half gap)"
-        }
-        if (c.figure.bounds.left < c.hud.left - 0.5.dp) problems += "the distance ${c.figure.bounds} starts outside the card ${c.hud}"
-        if (s.kind == null) {
-            if (c.kind != null) problems += "a kind <${c.kind.text}> is drawn where there is none"
-        } else {
-            val kind = c.kind
-            if (kind == null) {
-                problems += "no kind drawn"
-            } else {
-                if (kind.text != s.kind) problems += "the kind reads <${kind.text}>, not <${s.kind}>"
-                // "the top right half, on the same line as 2.2 mi": one baseline, the kind starting at the middle.
-                if (!near(kind.baseline, c.figure.baseline, 0.5f)) problems += "the kind's baseline ${kind.baseline} is not the distance's ${c.figure.baseline}"
-                if (!near(kind.bounds.left, c.middle + halfGap)) problems += "the kind ${kind.bounds} does not start at the middle ${c.middle} (plus the half gap)"
-                if (kind.bounds.right > c.leftPartRight + 0.5.dp) problems += "the kind ${kind.bounds} runs past the left part's right ${c.leftPartRight}"
-                if (kind.bounds.bottom > c.turnRowTop + 0.5.dp) problems += "the kind ${kind.bounds} is not above the turn row (top ${c.turnRowTop})"
-                // "Keep the text size the same size": the kind is in the turn words' type, as it was.
-                if (c.turn != null && c.turn.text.isNotEmpty() && kind.fontSp != c.turn.fontSp) problems += "the kind is ${kind.fontSp} sp, the turn words ${c.turn.fontSp} sp"
-            }
-        }
-        // Nothing in the left part below the turn row: the parts end with it (with no evening stack, the divider is the left part's height).
-        if (!withEvening && c.divider.bottom > c.turnRowBottom + 1.dp) problems += "the left part ends at ${c.divider.bottom}, below the turn row's bottom ${c.turnRowBottom}"
-        if (c.figure.bounds.bottom > c.turnRowTop + 0.5.dp) problems += "the distance ${c.figure.bounds} is not above the turn row (top ${c.turnRowTop})"
-        return problems.map { "$where $s: $it" }
-    }
+    // `meetsAtTheMiddle`, Phase 2's check of "Meet at the middle (Recommended)" for the portrait and landscape cases with no evening
+    // time, went with Amendment 1, G3: those cases are checked by NavigationCardTopLineRules, which holds G3's placements.
 }

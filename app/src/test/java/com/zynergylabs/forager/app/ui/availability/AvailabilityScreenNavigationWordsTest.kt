@@ -197,7 +197,8 @@ class AvailabilityScreenNavigationWordsTest {
             // NAVIGATION_HUD_COORDINATES_TAG and NAVIGATION_HUD_ELEVATION_TAG, and its "Alt".
             "coordinates" to COMPASS_STRIP_COORDINATES_TAG,
         ).forEach { (name, tag) -> assertWhole(name, node(tag)) }
-        if (drawn(NAVIGATION_HUD_HEADING_TAG)) assertWhole("heading", node(NAVIGATION_HUD_HEADING_TAG))
+        // Amendment 1, H1: the heading is the strip's; the card draws none. Was `if (drawn(NAVIGATION_HUD_HEADING_TAG)) assertWhole("heading", …)`.
+        assertFalse("the card draws no heading (H1)", drawn(NAVIGATION_HUD_HEADING_TAG))
         if (drawn(COMPASS_STRIP_ELEVATION_TAG)) assertWhole("elevation", node(COMPASS_STRIP_ELEVATION_TAG))
         // RECORD -728: the heading has no label any more ("Facing" removed), so only "Alt" can be drawn.
         if (labelDrawn(STRIP_TAG_FOR_WORDS, ALTITUDE_LABEL)) assertWhole("altitude label", label(STRIP_TAG_FOR_WORDS, ALTITUDE_LABEL))
@@ -212,7 +213,7 @@ class AvailabilityScreenNavigationWordsTest {
     fun `on the route the display reads the turn in words, the route by trail, the straight line straight, and its heading and altitude, labelled where they fit`() {
         setScreen(facing = 45f, route = ReturnRoute.Ahead(east, 1_500.0))
 
-        assertEquals("right 45°", textOf(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("45°", textOf(NAVIGATION_HUD_TARGET_TAG)) // G2 (Amendment 1): the degrees alone. Was "right 45°".
         assertEquals("0.9 mi", textOf(NAVIGATION_HUD_DISTANCE_TAG))
         // Dispatch 2026-10-12-08 (RECORD -945, the owner: "Full dividers + by trail under figure (Recommended)"): the kind is a
         // small line of its own under the turn line, always "by trail". Was (dispatch 2026-10-12-06): "by trail" beside the figure,
@@ -220,7 +221,8 @@ class AvailabilityScreenNavigationWordsTest {
         assertEquals("by trail", textOf(NAVIGATION_HUD_DISTANCE_KIND_TAG))
         // RECORD -942: no straight-line note on the route. Was "≈ 1250 ft straight".
         assertEquals("", textOf(NAVIGATION_HUD_STATUS_TAG))
-        assertEquals("45° NE", textOf(NAVIGATION_HUD_HEADING_TAG))
+        // Amendment 1, H1: the heading on the strip's line, as out of navigation. Was textOf(NAVIGATION_HUD_HEADING_TAG).
+        assertEquals("45° NE", textOf(COMPASS_STRIP_HEADING_TAG))
         // RECORD -950: the height is on the strip's line while navigating. Was NAVIGATION_HUD_ELEVATION_TAG in the card.
         assertEquals("9843 ft", textOf(COMPASS_STRIP_ELEVATION_TAG))
         // Each label that is drawn sits before its own reading, on its line.
@@ -260,9 +262,11 @@ class AvailabilityScreenNavigationWordsTest {
         setScreen(facing = 281f, route = ReturnRoute.Ahead(east, 390.0))
 
         val turn = textOf(NAVIGATION_HUD_TARGET_TAG)
-        assertTrue("the turn is whole or its degrees: <$turn>", turn == "sharp right 169°" || turn == "169°")
+        // Amendment 1, G2: the degrees alone, always. Was "the turn is whole or its degrees", "sharp right 169°" or "169°".
+        assertEquals("the turn is its degrees", "169°", turn)
         assertEquals("1280 ft", textOf(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("281° W", textOf(NAVIGATION_HUD_HEADING_TAG))
+        // Amendment 1, H1: the heading on the strip's line. Was textOf(NAVIGATION_HUD_HEADING_TAG).
+        assertEquals("281° W", textOf(COMPASS_STRIP_HEADING_TAG))
         assertDisplayWhole()
     }
 
@@ -277,7 +281,7 @@ class AvailabilityScreenNavigationWordsTest {
      * difference is the claim in their place.
      */
     @Test
-    fun `the longest lines leave the display exactly one status line shorter than the dash before the first route`() {
+    fun `the longest lines leave the display as tall as the dash before the first route, its status words in the right part`() {
         setScreen(facing = 281f, route = ReturnRoute.Ahead(east, 390.0))
         assertEquals("positive control: the longest lines have no status line", "", textOf(NAVIGATION_HUD_STATUS_TAG))
         val long = bounds(node(NAVIGATION_HUD_TAG)).let { it.bottom - it.top }
@@ -291,7 +295,10 @@ class AvailabilityScreenNavigationWordsTest {
         assertTrue("positive control: the dash has a status line <${textOf(NAVIGATION_HUD_STATUS_TAG)}>, $status tall", status > 0.dp)
         val short = bounds(node(NAVIGATION_HUD_TAG)).let { it.bottom - it.top }
         println("MEASURED display height: long lines $long, short lines $short, the short state's status line $status")
-        assertEquals("the display with the longest lines is the dash's less its status line", (short - status).value, long.value, 0.5f)
+        // Dispatch 2026-11-05-10, Amendment 1, H2: the status words are in the right part, beside the left part's two lines, so the
+        // dash's status line takes no height of its own and the two are as tall. Was `assertEquals("the display with the longest
+        // lines is the dash's less its status line", (short - status).value, long.value, 0.5f)`.
+        assertEquals("the display with the longest lines is as tall as the dash's, its status words in the right part", short.value, long.value, 0.5f)
     }
 
     /** A real touch at the centre of [interaction], as a finger switches the coordinate format. */
@@ -377,7 +384,8 @@ class AvailabilityScreenNavigationWordsTest {
     @Test
     fun `the word Facing is never drawn on the navigation display, and its heading stays`() {
         setScreen(facing = 45f, route = ReturnRoute.Ahead(east, 1_500.0))
-        assertEquals("the display's heading stays", "45° NE", textOf(NAVIGATION_HUD_HEADING_TAG))
+        // Amendment 1, H1: the heading stays, on the strip's line. Was `textOf(NAVIGATION_HUD_HEADING_TAG)`, "the display's heading".
+        assertEquals("the heading stays, on the strip", "45° NE", textOf(COMPASS_STRIP_HEADING_TAG))
         assertNoFacing()
     }
 
@@ -489,11 +497,13 @@ class AvailabilityScreenNavigationWordsLandscapeTest {
         // Dispatch 2026-10-12-06 (RECORD -934, -936): at the landscape display's width the turn words may shrink to the degrees,
         // the owner's second step. Was: "sharp right 169°" (then "Sharp right · 169°") in full.
         val turnShown = node(NAVIGATION_HUD_TARGET_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
-        assertTrue("the turn is whole or its degrees: <$turnShown>", turnShown == "sharp right 169°" || turnShown == "169°")
+        // Amendment 1, G2: the degrees alone, always. Was "the turn is whole or its degrees", "sharp right 169°" or "169°".
+        assertEquals("the turn is its degrees", "169°", turnShown)
         val assertAllWhole = { format: String ->
             listOf(
                 NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG, NAVIGATION_HUD_STATUS_TAG,
-                NAVIGATION_HUD_HEADING_TAG, COMPASS_STRIP_ELEVATION_TAG, COMPASS_STRIP_COORDINATES_TAG,
+                // Amendment 1, H1: the heading is the strip's. Was NAVIGATION_HUD_HEADING_TAG.
+                COMPASS_STRIP_HEADING_TAG, COMPASS_STRIP_ELEVATION_TAG, COMPASS_STRIP_COORDINATES_TAG,
             ).forEach { tag ->
                 val interaction = node(tag)
                 val results = mutableListOf<TextLayoutResult>()

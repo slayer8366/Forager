@@ -78,11 +78,14 @@ class NavigationCardKindLineLargeTextTest : NavigationCardTopLineRules() {
         val readings = turning(where)
         assertClean(*readings.toTypedArray())
         val widths = readings.map { it.leftPartPx }
-        // Positive controls: the phone faced as each case says (169° off, 1° off, no compass), and that changed the left part's
-        // width, so the step had a reason to move.
-        assertEquals("$where: the headings drawn", listOf("281° W", "89° E", null), readings.map { it.heading })
+        // Positive controls: the phone faced as each case says (169° off, 1° off, no compass). Since Amendment 1, H1, the card draws no
+        // heading (was `listOf("281° W", "89° E", null)`), so the turn alone shows it.
+        assertEquals("$where: no heading in the card", listOf<String?>(null, null, null), readings.map { it.heading })
         assertEquals("$where: the turn as drawn", listOf("169°", "1°", ""), readings.map { it.turn })
-        assertTrue("$where: the left part's width did not change as the phone turned: $widths", widths.distinct().size > 1)
+        // G3: the turn line is one width in every state, so the left part keeps one width as the phone turns, and the needle one place.
+        // Was a positive control that the width did change (`widths.distinct().size > 1`), which gave the step a reason to move.
+        assertEquals("$where: the left part's width as the phone turned", 1, widths.distinct().size)
+        assertEquals("$where: the needle's place as the phone turned", 1, readings.map { it.needleLeft }.distinct().size)
         assertEquals("$where: the kind's step as the phone turned (left part $widths px)", List(readings.size) { readings.first().drawn }, readings.map { it.drawn })
         assertEquals("$where: the step it holds", Step.OWN_LINE, readings.first().drawn)
     }

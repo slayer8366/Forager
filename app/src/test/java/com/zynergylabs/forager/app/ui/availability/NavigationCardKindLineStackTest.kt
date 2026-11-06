@@ -9,8 +9,9 @@ import org.robolectric.annotation.GraphicsMode
 
 /**
  * Dispatch 2026-11-05-10 (RECORD -2181): the owner's first step where "by trail" doesn't fit right of the meeting point, "stack by
- * on top of trail first", and how it lines up, "On the distance's line (Recommended)": both words start at the meeting point,
- * "trail" on the distance's baseline and "by" just above it. Reached at normal text size on a 320 dp phone with an evening time a
+ * on top of trail first", and how it lines up, "On the distance's line (Recommended)": "trail" on the distance's baseline and "by"
+ * just above it. Since Amendment 1, G3, the stack is centred in the kind's space, each word centred in it (the planner's reading);
+ * was: both words start at the meeting point. "Moved right" in the names below is the distance's space grown past its half. Reached at normal text size on a 320 dp phone with an evening time a
  * digit wider than the owner's screenshot's, "Dark since 10:23 PM"; straight, which cannot stack, takes its own line there.
  *
  * Then the two moments in a walk when the evening time changes its words, sunset and dusk (the planner: report what moves, don't

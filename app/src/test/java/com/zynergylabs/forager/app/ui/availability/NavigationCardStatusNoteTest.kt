@@ -6,6 +6,7 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import androidx.compose.ui.unit.dp
 import kotlin.math.abs
 
 /**
@@ -27,7 +28,13 @@ import kotlin.math.abs
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class NavigationCardStatusNoteTest : NavigationCardKindLineScreen() {
 
-    private fun assertOneLineShorter(where: String) {
+    /**
+     * Since Amendment 1, H2 and H4, the note that stays reads without "· straight line", in the right part's status space, wrapping
+     * there; where that space holds it beside the left part's two lines ([twoLines]), the card is exactly as tall as with no note. Was
+     * `assertOneLineShorter`'s claim for it: whole or short ("Trail routes not downloaded · straight line") on a line of its own under
+     * the parts, the card "exactly that line taller".
+     */
+    private fun assertNoteGoesAndStays(where: String, twoLines: Boolean) {
         val problems = mutableListOf<String>()
         fun height(c: Card) = c.hud.bottom - c.hud.top
         show(State.STRAIGHT, Evening.NONE)
@@ -41,36 +48,34 @@ class NavigationCardStatusNoteTest : NavigationCardKindLineScreen() {
             if (c.figure.text != "≈ 1250 ft" || c.kind?.text != "straight") problems += "positive control: $name reads <${c.figure.text}> <${c.kind?.text}>, not the straight line"
         }
         if (plain.status.isNotEmpty()) problems += "positive control: the straight line with no route has a status line <${plain.status}>"
-        // The note that stays still shows, whole or without "· straight line".
-        val keptWords = listOf("Trail routes not downloaded · straight line", "Trail routes not downloaded")
-        if (kept.status !in keptWords) problems += "the note that asks something reads <${kept.status}>, not one of $keptWords"
+        // The note that stays still shows, without "· straight line" (H4).
+        if (kept.status != "Trail routes not downloaded") problems += "the note that asks something reads <${kept.status}>, not <Trail routes not downloaded>"
         val line = kept.statusBox?.let { it.bottom - it.top }
-        if (line == null || line.value < 1f) problems += "positive control: the note that stays has no status line's height ($line)"
+        if (line == null || line.value < 1f) problems += "positive control: the note that stays has no height ($line)"
+        if (kept.statusBox != null && kept.statusBox.left < kept.divider.right - 0.5.dp) problems += "the note that stays ${kept.statusBox} is not in the right part (divider ${kept.divider})"
         // F2: the note that only says why leaves no status line, and the card is the plain straight line's.
         if (gone.status.isNotEmpty()) problems += "the note that only says why still reads <${gone.status}>: F2 leaves no status line"
         if (abs((height(gone) - height(plain)).value) > 0.5f) problems += "the card with the note gone is ${height(gone)}, not the plain straight line's ${height(plain)}"
-        if (line != null && abs((height(kept) - height(gone) - line).value) > 0.5f) {
-            problems += "the card with the note that stays is ${height(kept)}, not the note gone's ${height(gone)} plus its status line $line"
-        }
-        println("STATUSNOTE|$where|plain ${height(plain)}|kept ${height(kept)} <${kept.status}>|gone ${height(gone)} <${gone.status}>|line $line")
+        if (twoLines && abs((height(kept) - height(plain)).value) > 0.5f) problems += "the card with the note that stays is ${height(kept)}, not the plain ${height(plain)}: H2's two lines"
+        println("STATUSNOTE|$where|plain ${height(plain)}|kept ${height(kept)} <${kept.status}> lines ${kept.statusLaid?.layout?.lineCount}|gone ${height(gone)} <${gone.status}>|note $line")
         assertTrue(problems.joinToString("\n") { "$where: $it" }, problems.isEmpty())
     }
 
     @Test @Config(qualifiers = "w384dp-h823dp-xxhdpi")
-    fun `384 dp, font 1,0 - a note that only says why leaves no status line, and the card one line shorter`() = assertOneLineShorter("384/1.0")
+    fun `384 dp, font 1,0 - a note that only says why leaves no status line, and the one that stays keeps the card two lines tall`() = assertNoteGoesAndStays("384/1.0", twoLines = true)
 
     @Test @Config(qualifiers = "w320dp-h780dp-xxhdpi")
-    fun `320 dp, font 1,0 - a note that only says why leaves no status line, and the card one line shorter`() = assertOneLineShorter("320/1.0")
+    fun `320 dp, font 1,0 - a note that only says why leaves no status line, and the one that stays keeps the card two lines tall`() = assertNoteGoesAndStays("320/1.0", twoLines = true)
 
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
-    fun `823 x 384, font 1,0 - a note that only says why leaves no status line, and the card one line shorter`() = assertOneLineShorter("823x384/1.0")
+    fun `823 x 384, font 1,0 - a note that only says why leaves no status line, and the one that stays keeps the card two lines tall`() = assertNoteGoesAndStays("823x384/1.0", twoLines = true)
 
     @Test @Config(qualifiers = "w780dp-h360dp-land-xxhdpi")
-    fun `780 x 360, font 1,0 - a note that only says why leaves no status line, and the card one line shorter`() = assertOneLineShorter("780x360/1.0")
+    fun `780 x 360, font 1,0 - a note that only says why leaves no status line, and the one that stays keeps the card two lines tall`() = assertNoteGoesAndStays("780x360/1.0", twoLines = true)
 
     @Test @Config(qualifiers = "w384dp-h823dp-xxhdpi", fontScale = 2.0f)
-    fun `384 dp, font 2,0 - a note that only says why leaves no status line, and the card one line shorter`() = assertOneLineShorter("384/2.0")
+    fun `384 dp, font 2,0 - a note that only says why leaves no status line, and the one that stays is in the right part`() = assertNoteGoesAndStays("384/2.0", twoLines = false)
 
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
-    fun `823 x 384, font 2,0 - a note that only says why leaves no status line, and the card one line shorter`() = assertOneLineShorter("823x384/2.0")
+    fun `823 x 384, font 2,0 - a note that only says why leaves no status line, and the one that stays is in the right part`() = assertNoteGoesAndStays("823x384/2.0", twoLines = false)
 }

@@ -174,7 +174,7 @@ abstract class StripReadoutCentredTests(private val name: String, private val ro
         )
         assertTrue("$what: the readout ends before the dots (readout to ${right.value}, dots from ${dots.value})", right < dots)
         assertEquals(
-            "$what: the readout's centre is the midpoint of ${if (what == "navigating") "the strip's leading edge" else "the arrow's trailing edge"} " +
+            "$what: the readout's centre is the midpoint of the arrow's trailing edge " +
                 "(${leading.value}) and the dots' leading edge (${dots.value}), within 1 dp; readout ${left.value}..${right.value}",
             midpoint.value, centre.value, 1f,
         )
@@ -186,15 +186,21 @@ abstract class StripReadoutCentredTests(private val name: String, private val ro
         assertCentred("not navigating", needle.right)
     }
 
+    /**
+     * Dispatch 2026-11-05-10, Amendment 1, H1 (the owner: "Keep the compass strip the exact same when in navigation mode as out"):
+     * navigating, the line keeps its arrow, and the readout is centred between the arrow and the dots, as out of navigation. Was
+     * (RECORD -950, -984): `assertFalse("navigating, the line has no arrow (RECORD -950)", …)`, and the readout centred between the
+     * strip's leading edge and the dots.
+     */
     protected fun navigating() {
         setScreen(navigating = true)
-        assertFalse(
-            "navigating, the line has no arrow (RECORD -950)",
-            composeRule.onAllNodes(hasTestTag(COMPASS_STRIP_NEEDLE_TAG), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
+        assertEquals(
+            "navigating, the line keeps its arrow (H1)",
+            1,
+            composeRule.onAllNodes(hasTestTag(COMPASS_STRIP_NEEDLE_TAG), useUnmergedTree = true).fetchSemanticsNodes().size,
         )
-        val strip = composeRule.onNodeWithTag(STRIP_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
-        // The strip's leading edge is its left: in landscape the rail is on the right at both rotations (RECORD -956).
-        assertCentred("navigating", strip.left)
+        val needle = composeRule.onNodeWithTag(COMPASS_STRIP_NEEDLE_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertCentred("navigating", needle.right)
     }
 
     private class FixedCompass(degrees: Float) : CompassProvider {
@@ -213,7 +219,7 @@ abstract class StripReadoutCentredTests(private val name: String, private val ro
 abstract class LandscapeStripReadoutCentredCases(name: String) : StripReadoutCentredTests(name, Surface.ROTATION_90) {
     @Test fun `the readout is centred between the arrow and the three dots`() = notNavigating()
 
-    @Test fun `navigating, the readout is centred between the strip's leading edge and the three dots`() = navigating()
+    @Test fun `navigating, the readout is centred between the arrow and the three dots, as out of navigation`() = navigating()
 }
 
 @RunWith(RobolectricTestRunner::class)
@@ -239,7 +245,7 @@ class LandscapeStripReadoutCentred823Font2Test : LandscapeStripReadoutCentredCas
 abstract class PortraitStripReadoutCentredCases(name: String) : StripReadoutCentredTests(name, rotation = null) {
     @Test fun `the readout is centred between the arrow and the three dots`() = notNavigating()
 
-    @Test fun `navigating, the readout is centred between the strip's leading edge and the three dots`() = navigating()
+    @Test fun `navigating, the readout is centred between the arrow and the three dots, as out of navigation`() = navigating()
 }
 
 @RunWith(RobolectricTestRunner::class)
