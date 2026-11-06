@@ -36325,4 +36325,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The rule says a changing value sits in a space of its own, sized for the widest thing it can hold, and that the window is never made by shrinking text.
 - **The compass strip** joins #498 as Amendment 1 H7 for the G and H Hazel. Heading, altitude and grid reference each get a fixed window, in and out of navigation alike, so H1's "exact same" holds.
 - **The rest of the app:** a read-only sweep (a new dispatch) starts after #498's G and H land, and finds every line where changing info shifts its neighbours. Its fixes go in their own PR.
+- **The owner, verbatim (2026-11-06T13:51:08Z):** **"They fit now, even at the fullest length of all text. So it shouldn't have problems"**.
+  - **The planner's reading, open to the owner:** this covers the compass strip's fixed windows (and the card's), the case the planner had said would be a stop. Relayed to the G and H Hazel.
+  - Widths are still measured and reported. A failing one is reported to the owner, never shrunk or cut.
 **Notes:** Written by the planner by hand. Next free ID -2185.
