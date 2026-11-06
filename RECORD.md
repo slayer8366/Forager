@@ -35892,7 +35892,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The line goes on the edge that faces the map, in both directions, as #495's hairline.
   - Only on the Maps tab, where the drawer is see-through.
   - Nothing else changes, and the drawer's shadow, if any, is only reported.
-  - Phase 1 is read-only now. Phase 2 is built after #495 merges, from pre-main as it is then.
+  - Phase 1 is read-only now. Phase 2 is built on branch edge-shade, into PR #495 (the owner's change below).
 - **The planner's readings, open to the owner:**
   - Over the other tabs the drawer stays solid with no line, per the owner's "In the places that aren't covering a map, they can stay solid" (CLAUDE.md, the 80% rule).
   - "This release": the owner asked for it while the promotion is being assembled.
