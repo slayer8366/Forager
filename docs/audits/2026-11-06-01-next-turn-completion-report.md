@@ -578,3 +578,24 @@ Question: should the trail-number move update Trail Map v4 in place, as the firs
 ### Clean-up
 
 The throwaway branches `next-turn-catI-red` and the three `next-turn-catI-rev-*` are deleted from origin at the end, and their worktrees removed. Their runs stay readable by number. Scratch: `/mnt/work/scratch/hazel-catI` (mode 700).
+
+## I8, built: the Forest Service trail number over the app's lines, Trail Map v4 updated in place (Hazel, 2026-11-06)
+
+Built against Amendment 1's I8 (`records-after-173` at `8e68f34d7`). The owner, verbatim: "Update v4 in place". On why v4 may change in place (RECORD -2183, relayed by the planner): "Nobody is using Trail maps so updating in place is permitted. Only when we release it do we need to do it properly. It's coming out this release so this might be the last time we get to do that". The starting state matched the remote: `next-turn` at `f3c4a07b7`, pre-main `b516d520a` merged in, the worktree clean. Neither sibling branch (`nav-card-kind-line`, `home-values-out-2`) touches a file changed here.
+
+### What was built
+
+- **`map-style/overrides/forager-reference.mjs`: a new function, `withTrailNumberUnderLabels`.** It moves `reference_fs_number` to the bottom of the style's top run of labels: directly above the last layer that is not a label, and so directly under the first label. It throws, rather than putting the number somewhere else, if the layer or the run is missing. It went in this file, not a new one, because a new file would have to be named in v4's `forager:generated-from`, and that text would then change too.
+- **`map-style/generate-trail.mjs`: one line.** v4's layers are now `withTrailNumberUnderLabels(applyReferenceZooms(applyFillIn(v3Layers())))`. v3 is built as before. The header comment says why.
+- **Regenerated.** In all six v4 files (`forager-street-v4.json`, `forager-trail-v4.json`, their preview copies, and the Worker's `street-style-v4.json` and `trail-style-v4.json`) only one thing changes: the number moves from layer 84 to layer 116 of 182, between `roads_bridges_highway` and `address_label`. A JSON comparison of each file against its pre-I8 version confirmed this. Every layer object is equal, the order of every other layer is equal, and everything outside `layers` is equal. v1, v2, v3 and `offline-style.json` stay byte for byte, in every copy (`git diff --quiet`, and the sums below).
+- **The three locks, each with a comment citing I8.** Each comment says the in-place change is allowed only because Trail Map has not been released yet, and that after release a style change ships as a new version.
+  1. `tools/check-trail-night.mjs`: street-v4's three pinned sha256 are the I8 files'.
+  2. Its check 10: `reference_fs_number` is the one layer added to the exception, and for v4 only. The check now also holds the number's new place: first in the top run of labels, directly under `address_label`.
+  3. `server/pmtiles-worker/test/worker.test.mjs`: the street-v4 sha256 test.
+
+  No other check was changed. The Worker's test that trail-v4 equals street-v4 apart from the name stands, and passes, because both files changed together.
+- **`AppLinesUnderNamesTest` extended**, since the anchor claim changes. On v4, at both addresses, the top run now starts with the trail number, so the app's lines go just under `reference_fs_number` and no longer under `address_label`. v1 to v3 keep `address_label`.
+  - A new test: on v4 the number is directly under `address_label`, draws over every app line, and the roads and bridges stay under the lines.
+  - The forecast-colours test is now held under the number.
+  - The log-line test now expects "below reference_fs_number (layer 116 of 182)".
+- **`AppLinesUnderNames.kt`: its doc comment only.** It said v4 draws the number at index 84 and that the anchor would stay at `address_label`. Both are now wrong for v4. No code line changed, so the app's placement rule is the same, and on v4 it now finds the number as its anchor.
