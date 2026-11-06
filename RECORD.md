@@ -36403,6 +36403,9 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - **One junction near the start couldn't be matched** to the data.
   - **Only one route was read.** Finding targets by hand was slow, and the turns are fairer to judge once Phase 2b shows them live on the card. The full judgement moves to Phase 2b's S22 check.
   - **Restored:** navigation stopped, test location removed (appop default, loop ended), auto-rotate on, font 1.0, stay-awake off, Pacific time. The end snapshot's forager.db matches before-install in every table, and the session-20 test waypoints G and H are still on the phone.
+- **The owner, verbatim (2026-11-06T17:28:50Z):** **"Carry on with the building"**.
+  - **The planner's reading** (Amendment 1, H4): Phase 2b splits. 2b-1 starts now with a fresh Hazel: the wiring that holds each route's turns where the line is held, and the short lead-in join from S22 session 21, as the planner's call, tests first. Nothing a user sees changes.
+  - 2b-2, the card's space and arrow and TalkBack's words, waits for #498 to merge, as the dispatch's Q4 has it.
 **Notes:** Written by the planner by hand. Next free ID -2184.
 
 ---
