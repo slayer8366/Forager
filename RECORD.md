@@ -35415,3 +35415,59 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Forward run 42129154367: 1 night outer sample failed, which is what 5c9c97cb1 addresses.
 - **Told to Hazel** by message.
 **Notes:** Written by the planner by hand. Next free ID -2165.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2165
+**Timestamp:** 2026-11-06T00:26:39Z
+**Continues:** 2026-09-28-2163
+**Title:** S22 session 16: the trip bubble's checks 1 to 9 on 4650 pass; one Back result not reproduced; the planner closed two of the owner's apps by mistake
+**Outcome:**
+- **Install:** 1.0.4650+g4670712f (versionCode 4650, signer cb2f6da5…1626), from CI 42131356768, which was green on all jobs (the debug-only check skipped, as on tools builds). adb install -r gave Success.
+  - The data was re-snapshotted just before the install (snap/pre-install-recheck), and its table hashes matched before-install.
+- **Test data made on the phone** (-2129):
+  - "Test trip A" was made at the phone's own spot, then deleted in check 9.
+  - "Test trip B" was made on a trail inside the new area, deleted in check 9, then made again at nearly the same spot for the owner's look.
+  - Test area "Test s16" (1 mi, about 23 tiles, 7.4 MB, new style) was downloaded about 1 km from the phone, because neither Region 1 nor Region 2 holds hill shading.
+  - Screenshots are in ~/s22-2026-11-04/s16/shots. They stay off GitHub, as they show the phone's location and the owner's notifications.
+- **Check 1, the trip bubble: pass.**
+  - It shows the name, the date, MGRS and then the actions Navigate · Plot route · Details. No lat/long and no Directions. It is see-through over the map.
+  - Elevation: at the phone's spot, before Test s16, the bubble had no elevation line. The app logged "No downloaded region holds relief tile 11/326/734: no ground height there." That is correct, and it applies to Waypoint 1 as well.
+  - Inside Test s16 the bubble read "Elevation 469 ft", and 458 ft for the remade trip. Not checked against an outside source.
+- **Check 2, the trip card: pass.**
+  - It shows the name, Trip date, MGRS and Coordinates, with no Created or Used in.
+  - Navigate and Directions are centred: the pair's middle is within 1 px of the screen's.
+  - The card is see-through over the map.
+- **Check 3, Directions on the trip card: pass.** Google Maps opened on "Test trip A" at its spot. After Back, the trip card was still open.
+- **Check 4, the waypoint card: pass.**
+  - Maps tab, Waypoint 1: Navigate, then Directions to its right, centred.
+  - Records, a waypoint: the same, solid with no map behind.
+- **Check 5, Navigate to a trip: pass, with one result not reproduced.**
+  - The HUD read "1.3 mi · left 62° · by trail", with the line drawn and the sunset countdown.
+  - Back from a bubble-started navigation reopened the trip's bubble.
+  - From the card: run 1 reopened the bubble, not the card. Runs 2 and 3 reopened the card.
+  - In run 1 only, "Test trip B" was on screen during navigation. So that tap may have hit a different Navigate. This is inferred; the cause is not found.
+- **Check 6, pick back up: pass.** During navigation to Test trip B, Forager was swiped away in recents, and its process was gone. On reopening, it resumed navigating to the trip ("1.3 mi · left 62° · by trail"), and the way along trails ran again.
+- **Check 7, Plot route: pass.**
+  - Plotting started from Test trip B, under its name. Tapping Test trip A then added it as the next stop: "2 Waypoints routed · 1.3 mi · Elevation: +32 ft (↑ 81 ↓ 54)".
+  - Observations, not in this PR:
+    - the panel says "Waypoint(s)" for trip stops ("1 Waypoint selected, tap another to route");
+    - the route's net +32 ft disagrees in sign with the two bubbles' heights (B 469 ft, A 439 ft). Possibly two different height sources. Not checked.
+- **Check 8, arrival: pass.** Navigate to Test trip A, at the phone's spot, read "Arrived", with the ring and its check mark. The trip's flag was hidden under the ring. The violet bar beside it is an older recorded track.
+- **Check 9, deleted while navigating: pass.**
+  - Removing the trip from the Trip Planner while navigating to it ends the navigation.
+  - The first try's message went unseen, because the drawer covered the screen. On the second, with the drawer closed at once, the notice read "Stopped navigating: that trip was deleted."
+  - That notice shows the layered band PR #495 addresses.
+- **Check 10, a trip note:** not run, as it needs a prepared spot.
+- **Way-to end log (PR #493), seen on a phone for the first time:**
+  - To Test trip B: "The way to the waypoint's ends: the walker's end moves to a pick-up at the nearest public street (rank 3 of 3, FRONTAGE), its leg 33 m; the waypoint's end keeps the engine's end and gates its leg: not a street end (no building within 15 m, …)."
+  - To Test trip A: "… the waypoint's end moves to a drop-off at the nearest public street (rank 3 of 3, FRONTAGE), its leg 34 m."
+  - So Log.i reaches logcat on a device. Rank 3 was observed, which her tests never covered, and so was a street drop-off, which session 13 had not seen. No position appears in either line.
+- **Seen, and older than this PR:** where a card on the Maps tab covers the bottom navigation bar, the bar's icons show through the 80% card behind Navigate and Directions. It is the same on the waypoint card. Not confirmed against 4626.
+- **A planner error on the phone:** two recents swipes meant for Forager closed other apps.
+  - The first closed Google Maps, which check 3 had opened.
+  - The second closed YouTube Music, which was likely playing.
+  - The planner swiped without first checking which card was centred. Forager was swiped away only after a screenshot confirmed it.
+**Waiting on:** the owner's look at the trip bubble and card on the S22 (Test trip B is open), then the owner's word on merging #494. Clean-up afterwards: delete Test trip B and the Test s16 area, then snapshot.
+**Notes:** Written by the planner by hand. Next free ID -2166.
