@@ -8560,7 +8560,7 @@ Both go to the next phone check.
 **ID:** 2026-09-28-313
 **Timestamp:** 2026-09-30T21:04:59Z
 **Continues:** 2026-09-28-310 (preserved -18)
-**Why:** The coder measured 81 OpenTopoMap tiles (z7-15, Oregon City; topo-night a4471cbd).
+**Why:** The coder measured 81 OpenTopoMap tiles (z7-15, [a city near the owner's home; removed 2026-11-06]; topo-night a4471cbd).
 - Mean lightness after V1 is 0.23-0.32 at tile z11-15 and 0.42-0.47 at tile z7-10.
 - MapLibre 13.5.0 picks the tile zoom as round(mapZoom + 1), so the switch is at map zoom 9.5.
 - All five raster paint properties accept zoom expressions.
