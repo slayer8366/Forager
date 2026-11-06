@@ -192,7 +192,8 @@ internal fun navigationReadout(
             route is ReturnRoute.Ahead && route.offTrail == OffTrailState.BACK_ON -> BACK_ON_TRAIL_TEXT
             // Step 6 PR 3 (RECORD -1652 Q4): why the way to a waypoint is the straight line.
             // Dispatch 2026-11-05-05 (A8): in the trip's words when a trip is navigated to.
-            route is ReturnRoute.Straight -> route.note.textFor(route.kind)
+            // Dispatch 2026-11-05-10 (Amendment 1, F2): only the two notes that ask something; the rest leave the line empty.
+            route is ReturnRoute.Straight -> if (route.note in WAY_TO_NOTES_ON_CARD) route.note.textFor(route.kind) else ""
             else -> ""
         }
     }
@@ -209,7 +210,7 @@ internal fun navigationReadout(
             route is ReturnRoute.Ahead && route.note != null -> listOf(wayHomeNoteShortText(route.note))
             // The notice's short form, and no empty form, as a note's; "Back on trail" has none shorter.
             route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> listOf(if (route.toWaypoint) WAYPOINT_OFF_TRAIL_SHORT_TEXT else OFF_TRAIL_SHORT_TEXT)
-            route is ReturnRoute.Straight -> listOf(wayToWaypointNoteShortText(route.note, route.kind))
+            route is ReturnRoute.Straight -> if (route.note in WAY_TO_NOTES_ON_CARD) listOf(wayToWaypointNoteShortText(route.note, route.kind)) else emptyList()
             else -> emptyList()
         }
     }

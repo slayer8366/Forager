@@ -37,9 +37,10 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * The kind keeps its type in every step, the stacked words too ("Keep the text size the same size"). It carries
  * [NAVIGATION_HUD_DISTANCE_KIND_TAG] in every step; stacked, the tag is on the stack, which reads "by trail" as one text.
  *
- * With no kind ("Arrived", the dash) the word stands in the distance's own place, "In the left half": it ends at the middle, which
- * does not move, since there is no kind's longest figure to move it for. Where the word is wider than its half, "Left, crossing as
- * little (Recommended)": it starts at the left part's left edge and crosses the middle only as far as it must.
+ * With no kind ("Arrived", the dash) the word or mark is centred in the left part (Amendment 1): B3, the owner, "Arrived is simply
+ * centered with no extras", and B4, "Centre it like Arrived (Recommended)", "so a word or mark on its own is always centred". A word
+ * wider than the left part starts at its left edge and is cut at its right, as the centred column did before this dispatch. Was B1
+ * and B2: ending at the middle, or starting at the left part's left edge where wider than its half.
  */
 @Composable
 internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, color: Color, modifier: Modifier = Modifier) {
@@ -72,8 +73,8 @@ internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, 
         val figure = figureParts.single().measure(loose)
         val kindPlaceable = kindParts.singleOrNull()?.measure(loose)
         val meeting = TopLineMeeting(width, gapPx, longestFigurePx)
-        // Ends at the meeting point, or, a word with no kind wider than its half, starts at the left part's left edge.
-        val figureX = maxOf(0, meeting.figureEndPx - figure.width)
+        // Ends at the meeting point; a word or mark with no kind is centred (B3, B4). Never left of the left part's left edge.
+        val figureX = if (kind == null) maxOf(0, (width - figure.width) / 2) else maxOf(0, meeting.figureEndPx - figure.width)
         if (kindPlaceable == null || place == KindPlace.NONE) {
             layout(width, figure.height) { figure.place(figureX, 0) }
         } else if (place == KindPlace.OWN_LINE) {

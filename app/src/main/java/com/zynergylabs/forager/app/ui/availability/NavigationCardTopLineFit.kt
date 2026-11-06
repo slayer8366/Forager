@@ -87,8 +87,8 @@ internal fun distanceKindOf(text: String?): DistanceKind? = DistanceKind.entries
  * trail" reads as one phrase. Then "Shift the middle a little (Recommended)": where [longestFigurePx] doesn't fit left of that
  * point, the meeting point moves right just far enough for it, so the widest figure the walk could show ends there too and the
  * point does not move as the number changes. It never moves past the left part's own right edge (a figure that wide leaves the
- * kind no room beside it, so the kind takes its own line). `null` [longestFigurePx], with no kind: the middle, unmoved (the owner:
- * "In the left half").
+ * kind no room beside it, so the kind takes its own line). `null` [longestFigurePx], with no kind: the middle, unmoved. A word with
+ * no kind is not placed on it: [CardTopLine] centres it (Amendment 1, B3 and B4).
  */
 internal class TopLineMeeting(widthPx: Int, gapPx: Int, longestFigurePx: Int?) {
     private val middleEndPx = widthPx / 2 - gapPx / 2
