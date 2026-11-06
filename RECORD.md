@@ -36130,6 +36130,17 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - B3, B4 and F2 are built: 35 of 69 red, then 69 of 69 green, both with clean compiles. Revert checks and full CI come next, then G and H.
   - **TripNavigateTest.kt:** her F2 change is in 53d9bc0dc at :389-430. Red for F2's reason at 53d9bc0dc (run 42210654926), passing at 4d4519459 (run 42210751662). It adds a positive control that a note asking something still shows on the way to a trip.
   - She is finished with that file, and it was handed back to the home-location Phase 2 for its one line (-2182). The planner checked the hunks: Phase 3's are at 390-401 of the base, and the other is the single line at 97.
+- **Phase 3 hand-back (2026-11-06T12:53:31Z):** B3, B4 and F2 are built and checked on #498, head 3a5e66fcc.
+  - **Evidence:** 35 of 69 red, then 69 green. Three reverts each failed only their own cases. Full CI had 6906 tests and 0 failed, with no outcome changed by name against pre-main.
+  - **Card height:** where a note goes, the card is 16.3 dp shorter at font 1.0 and 32.7 dp shorter at 2.0.
+  - **E4 answered:** the rig's portrait left part matches the phone's, and "≈ 8888 ft" draws 1.2 dp narrower on the phone. In landscape the phone's left part is about 16.5 dp wider, for a reason not found.
+  - **G and H are not built.** Three stops went to the owner, and the Hazel passed her working limit.
+- **The owner, verbatim (2026-11-06T12:53:31Z), on those stops:**
+  - **The compass notices:** "In the status space (Recommended)".
+  - **Lines too wide for the status space,** typed: **"Shorten the lines to just Off trail since it's obvious what to do from there. Wrap the text to "Trail routes not" and "downloaded" goes on the next line."**
+  - **The three-line evening part before sunset,** typed: **"Shorten to Sunset: 4:52 PM ▪︎ Dark: 5:23 PM status words are on the right panel"**.
+  - The questions and option texts are quoted in Amendment 1, H3 to H5, with the planner's readings: the kept notes drop "· straight line" and wrap; only the before-sunset form changes; and the right panel keeps its width in daytime.
+  - A fresh Hazel builds G and H together (E10).
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
