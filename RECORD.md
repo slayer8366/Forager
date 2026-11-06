@@ -36048,6 +36048,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **Step 2 can never show:** "by" stacked over "trail" is as wide as "trail" alone, because "trail" is the wider word (25.67 against 14.33 dp at font 1.0). The user sees three steps: beside, stacked, own line. Step 2 stays in the code in the owner's order and is pinned in the pure fit test. Told to the owner.
   - **The planner's call:** at font 2.0 with an evening time, the left part follows the turn row's width. The step is chosen for the narrowest room across headings, in the spirit of the owner's chosen option ("Decided for the longest distance the card could show, so it doesn't jump between lines as you walk"). She measures it and reports the cases.
   - The evening time's change of width at sunset or dusk is reported, not handled. It is two moments a walk, for the owner later.
+- **Phase 2 (2026-11-06T10:28:13Z):** Hazel's hand-back is preserved at prompts/preserved/2026-11-05-10-phase2-report.md. Her full report is docs/audits/2026-11-05-10-nav-card-kind-line-completion-report.md on the branch.
+  - **PR #498**, nav-card-kind-line into pre-main, is ready and not merged. Its head is 7281cd357, and its CI is green (run 42196041024).
+  - **Built:** the distance ends at the meeting point and the kind starts there. Where the longest distance doesn't fit, the meeting point shifts right by 4.0 to 20.3 dp. Otherwise the kind is stacked "by" over "trail", or on its own line at the meeting point. A word alone ends at the middle, or starts at the left edge when it is wider than its half. Text sizes are unchanged.
+  - **Tests:** tests first, with 16 of 16 red (runs 42185116473 and 42187206936), and 88 of 88 green after. Seven reverts each failed only their own cases with clean compiles. Full CI had 6823 tests and 0 failures (run 42192499972), with no outcome differing by name from pre-main's run.
+  - **The planner's check:**
+    - No @Ignore.
+    - The removed assertions pinned the old layout (the kind under the distance, both centred). The new rules tests replace them, and the reverts show those bite.
+    - The two height tests are re-based, not loosened. Each keeps its 0.5 dp tolerance and its old bounds, measured now from "pending", the state with the same lines.
+    - The diff has no home-location value, and its new tests use the made-up point P with their own clock. So it shares nothing with the home-location clean-up (-2182).
+  - **For the owner, visible:**
+    - On the route the card is one line shorter, so it grows by a line when the route goes back to pending or is withheld. In landscape, 780 × 360, a withheld route takes it from 60 to 124 dp.
+    - At sunset on a narrow phone (320 dp), straight drops to its own line, and the card grows from 61.7 to 78.0 dp.
+    - At the largest text with an evening time, by trail goes to its own line, where the rulings alone would stack it. The planner's call made it so.
+  - **S22 build:** tools/s22-combined b49016b2e is d99eee0d3 plus pre-main 6cfcd8d6c plus nav-card-kind-line 7281cd357, on CI run 42202615459. The PR's own APK, 4611, would be a downgrade from the phone's 4688.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
@@ -36082,4 +36096,14 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **The doc line** calling a town-centre point "the owner's coordinates" is reworded.
   - **Branches:** the deletion is its own dispatch after Phase 2, with a full local bundle of every branch made and verified first.
   - **The three Hazels building now** (drawer, Download Maps, navigation card) were told by message not to copy any coordinate from existing tests, and to use P for any new point.
+- **Phase 2 go (2026-11-06T10:28:13Z):** #495 merged (e7c85dd9d), so Phase 2 started with a fresh Hazel, from pre-main 6cfcd8d6c, on branch home-location-out.
+  - **Her instructions:**
+    - P is the made-up point, and the shared fixtures take it from MadeUpPlace.kt.
+    - The 7 topo-night tiles and their 6 checksum lines are removed, with a note (the owner's "Remove them").
+    - The town-centre attribution line is reworded, and the 40 outside-the-box values are listed as exceptions.
+    - Docs get "[a point near the owner's home; removed 2026-11-06]"; the starburst findings get translated values.
+    - Tests first, then recompute, never loosen. CI is compared by test name. A final search runs with the private patterns and the four extra forms. One PR into pre-main, ready, not merged.
+    - The private file is pointed at by path only, never copied.
+  - **Out of her scope:** nearby names (counted only), RECORD.md and prompts/preserved, records-after-173's app copy, the branch deletion (its own dispatch), and main.
+  - **Overlap:** PR #498 holds no home value, so either can land first, and the second merges pre-main (never a rebase).
 **Notes:** Written by the planner by hand. Next free ID -2183.
