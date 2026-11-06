@@ -36062,6 +36062,35 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - At sunset on a narrow phone (320 dp), straight drops to its own line, and the card grows from 61.7 to 78.0 dp.
     - At the largest text with an evening time, by trail goes to its own line, where the rulings alone would stack it. The planner's call made it so.
   - **S22 build:** tools/s22-combined b49016b2e is d99eee0d3 plus pre-main 6cfcd8d6c plus nav-card-kind-line 7281cd357, on CI run 42202615459. The PR's own APK, 4611, would be a downgrade from the phone's 4688.
+- **S22 session 20 (2026-11-06T10:48:00Z to 2026-11-06T11:05:14Z), build 1.0.4703+gb49016b2** (versionCode 4703, signer cb2f6da5…1626). This is tools/s22-combined b49016b2e: d99eee0d3, pre-main 6cfcd8d6c and nav-card-kind-line 7281cd357, CI run 42202615459 all green. The snapshot before install matched end-s19 in every table. Session folder ~/s22-2026-11-04/s20, off GitHub.
+  - **How the states were reached:** Android's test location, through adb under -2129. Two test waypoints were made:
+    - "Test wp H", 900 m east of the made-up point P, where there is no downloaded area, for straight and "Arrived";
+    - "Test wp G", 330 m along the owner's 2026-11-05 walk, inside the larger downloaded area, for by trail.
+  - **A premise of the device check was wrong:** the evening line ("Dark since 5:19 PM" at P, "Dark since 5:23 PM" by the walk) showed while navigating at 02:50 Pacific, with no recording. So steps 3, 4 and 6 ran at once.
+  - **The rules, read from the test helper** (NavigationCardTopLineRules.kt:94): the distance ends half the 4 dp word gap short of the meeting point, so the gap straddles it. The middle is the turn row's centre.
+  - **Step 1 and 3, by trail, portrait:** "1307 ft by trail" on one line, one baseline (494 and 495 px), with nothing under the turn row. The gap centre is at 102.8 dp, against a middle of 102.65 dp. **Pass.**
+  - **Step 2 and 3, straight, portrait:** "0.6 mi straight" on one line, one baseline (494 px). The gap is 2.9 dp right of the middle (CI predicted 4.7). **Pass.**
+  - **Step 4, landscape at both rotations:** both are beside, on one baseline.
+    - By trail: the gap is at the middle (422.0 against 422.0 dp, and 443.3 against 443.3); CI predicted 4.0 right.
+    - Straight: 10.7 and 10.8 dp right (CI 20.3).
+    - **Pass.**
+  - **Straight's distance** ends where "≈ 8888 ft" (99.8 dp on the phone) would end from the left part's edge, in portrait and landscape alike, as the rules say. The smaller shifts mean the phone's left part is wider than CI's windows; the reason is not known.
+  - **Step 5, "Arrived", portrait:** it ends at 100.8 dp, against the rules' 100.65. **Pass under B1;** B3 below changes it.
+  - **Step 6, font 2.0:** by trail and straight each sit on their own line under the distance, above the turn row, as near the meeting point as fits. **Pass, facing one way only:** the phone lies still, so "stays there as the phone turns" wasn't checked.
+  - **Restored:** navigation stopped; test location removed (appop default, the loop ended); auto-rotate on (accelerometer_rotation 1, user_rotation 0); font scale 1.0; stay-awake off (svc power stayon false, as session 16 restored it); Pacific time.
+    - **A planner slip:** stay-awake was set without reading it first. The restored value comes from session 16's note.
+    - **Left on the test phone until the re-check:** "Test wp G" and "Test wp H".
+- **The owner, verbatim (2026-11-06T11:00:00Z),** with a screenshot from their own phone: **"Either keep the by trail part, or make Arrived center"**.
+  - The screenshot shows a navigation card reading "Arrived" with the evening line, on the left of the left part, with its right half empty.
+  - Sampled by pixel: "Arrived" spans 47 to 370 px and the divider 778 to 781 px. That is the same as the S22's build 4703, pixel for pixel. Which build is on the owner's phone is not known from this.
+  - To "When you've arrived, which should the card do?", the options were:
+    - "Centre it, and the dash (Recommended)": "\"Arrived\" sits centred in the left part over the turn line, as before this change. So does the dash shown before there's a fix or a route. \"2.2 mi by trail\" stays as you ruled.";
+    - "Centre Arrived only": "\"Arrived\" is centred. The dash still ends at the middle, in the distance's place.";
+    - "Keep by trail beside it": "\"Arrived\" ends at the middle, and the kind of way you came stays to its right: \"Arrived by trail\" or \"Arrived straight\"."
+  - The owner typed: **"Arrived is simply centered with no extras."**
+  - **The planner's reading, open to the owner:** only "Arrived" changes, and the dash keeps ending at the middle, because the option including it wasn't chosen.
+- **Amendment 1** is at prompts/preserved/2026-11-05-10-amendment-1.md. It arranges the rulings by category (A the top line, B a word on its own, C text size, D the planner's calls), adds B3, and sets Phase 3 (E) for a fresh Hazel on nav-card-kind-line, because the last one passed 200k.
+  - Phase 3 merges pre-main first, then builds tests first, a revert check, full CI, and the report's Phase 3 section with the session 20 findings. #498 stays open.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
