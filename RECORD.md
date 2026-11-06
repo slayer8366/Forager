@@ -36156,6 +36156,15 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - with no dusk, "Sunset: 4:52 PM" shows alone, and the 24-hour form breaks the same way;
     - wrapping is natural, with no hand-made breaks;
     - the strip's navigating-mode code is left in this PR, flagged as having no caller, to be deleted after the merge.
+- **G and H progress (2026-11-06T15:43:06Z):** G2, G3 and H1 to H5 are built on #498, head bfbef08c3, with pre-main d02d2e74a merged in.
+  - Tests first, 138 red. The change's full run had 6,940 tests and 46 failed, all in the three open items. 11 reverts are done.
+  - A slip in her revert script, caught by reading each revert's diff: it dropped one of two edits. Fixed and re-run, and the bad runs aren't cited.
+- **Three open items, settled:**
+  - **H7:** the owner's squeeze rule (-2184).
+  - **The 9 test files shared with home-location-out:** they go to this Phase, because #499 has merged and its Hazel has finished.
+  - **Font 2.0:** the status space is too narrow there (107 to 163 dp). The card reached 294 dp tall in landscape, and the route card on it lost its buttons, which is 13 reds.
+    - **The owner, verbatim,** to "At the largest text size, the space under the sunset line is narrow (about a third of the card in landscape). \"Compass unavailable · north up\" takes 5 lines, words break mid-word, the card fills most of a landscape screen, and the route card on it loses its buttons. Normal text works. What should happen at large text?": **"Own line when too narrow (Recommended)"**. The option read: "Where the space is too narrow for its words (largest text, narrow phones), status words go back to their own full-width line under the card, as before. In daytime at that size the right side keeps no width, so \"by trail\" stays beside the distance. At normal text nothing changes." The others: "Keep it as ruled"; "Compass as an icon".
+    - Amendment 1 gains H8. The planner's reading of "too narrow" is per window and font: narrower than any status's widest single word.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
@@ -36253,6 +36262,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - One tile number in prompts/preserved/2026-11-04-08-report.md is real. Phase 1 had already listed it for the planner's sweep.
   - The Hazels' own checks used the box rule, not grep -f, so theirs stand.
 - **Next:** the owner's merge word for #499. Then the planner's sweep of RECORD.md and prompts/preserved, pre-main merged into records-after-173, and the branch-deletion dispatch.
+- **Merged (2026-11-06T15:40:31Z), the owner, verbatim,** to "PR #499 (your home location out of the public files) is ready: all checks green, nothing you'd see changes, and my own scan of its files finds no home coordinates, grid references or tile numbers left. Merge it?": **"Merge it (Recommended)"**. The other: "Not yet".
+  - **Before:** pre-main d02d2e74a; bundle ~/Zynergy/forager-repo-backups/pre-main-before-499.bundle verified "okay", its one head d02d2e74a.
+  - **The merge:** with `--match-head-commit 4819f6f40198878b363817eaba0c6fe9478fc8e4`. The merge commit is 05d0ab53a, with parents d02d2e74a and 4819f6f40, and its tree is the scanned head's.
+  - **Audit row** on pre-main as 61f99fbe2 (docs only), scanned clean.
+  - **Next:** the planner's sweep of RECORD.md and prompts/preserved, pre-main merged into records-after-173, and the branch-deletion dispatch.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
@@ -36323,6 +36337,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - To "For \"take the second left\", which side ways count as paths you pass?": **"Walkable ways only (Recommended)"**. The option read: "Footpaths, trails, tracks and streets count. Driveways, parking-lot lanes and motorway slips don't, so a driveway never makes it \"the second left\"." The other: "Every way".
   - To "When the way to a waypoint is a straight line because there's no trail route, what shows in the next-turn space?": **"Blank"**. The option read: "Nothing, as for places with no trails or routing data. \"straight\" beside the distance already says it." The other: "Straight-ahead arrow (Recommended)".
   - Amendment 1 gains B5 and E3. The planner's tag reading leaves out service, motorway and trunk ways and their links, and the turn rule itself still counts every way.
+- **Phase 2a done (2026-11-06T15:43:06Z):** Hazel's hand-back is preserved at prompts/preserved/2026-11-06-01-phase2a-report.md.
+  - **Draft PR #500,** branch next-turn, head 64be65216: eight new domain files, the M1 line, and B5 in. Nothing a user sees changes.
+  - **Tests:** red then green, with 25 reverts. Three failed one test more, each from its own edit. Full CI had 6,904 tests, 0 failed, and no pre-main outcome changed by name.
+  - **B5 on the fixture:** it changes the count on 44 of 1,220 plain turns.
+  - **Next:** the planner's S22 M1 read on the owner's walks. Then Phase 2b (the card), after #498 merges. The "plain turns only" reading stays open to the owner, and 2a gives the count for every band.
 **Notes:** Written by the planner by hand. Next free ID -2184.
 
 ---
@@ -36345,4 +36364,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The owner, verbatim (2026-11-06T13:51:08Z):** **"They fit now, even at the fullest length of all text. So it shouldn't have problems"**.
   - **The planner's reading, open to the owner:** this covers the compass strip's fixed windows (and the card's), the case the planner had said would be a stop. Relayed to the G and H Hazel.
   - Widths are still measured and reported. A failing one is reported to the owner, never shrunk or cut.
+- **Changed (2026-11-06T15:43:06Z), from the G and H Hazel's measurement:** windows for all three readings at their widest need 323 dp on the S22 against the strip's 314. As ruled, the heading would drop at 384 and 360 dp.
+  - **The owner, verbatim,** to "Measured on the S22's compass strip: giving the heading, altitude and grid reference each a fixed window sized for their widest reading needs 323 dp, and the strip has 314. Which should get windows?", typed: **"If it's too small, then have them squeeze together to make room.  It fit before, so it should still fit now"**. The options were "Heading only (Recommended)", "Heading and altitude" and "All three".
+  - **The planner's reading:** each window is sized for its widest reading. Where the strip is short, the windows give up their slack toward their text's actual width, sharing the shortfall, and never shrink below it. No text shrinks, and anything that fits today still fits. Recorded as H7's refinement in Amendment 1.
 **Notes:** Written by the planner by hand. Next free ID -2185.
