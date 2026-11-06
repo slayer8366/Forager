@@ -301,7 +301,7 @@ push diff was scanned as its added lines only, in files mode.
   unchanged. Per file, the old scanner finds the same 18 files with the same counts (Group 3); the new
   scanner adds exactly the three measurement files of D2 and nothing else.
 
-**CI.** Pending at the time of writing; see "CI (B4)" below.
+**CI.** Green; see "CI (B4)" below.
 
 ### Disclosure (B4)
 
@@ -352,4 +352,22 @@ push diff was scanned as its added lines only, in files mode.
 
 ### CI (B4)
 
-Pending.
+**Green.** Run 42301096531 on `c19f9245c`: all eight jobs succeeded. The build log has no compile
+errors. Compared by test name, from this run's own `unit-test-report` JUnit XML (downloaded fresh
+into an empty directory), against pre-main's run 42292140229 on `a5a2a392f`:
+
+| Run | test cases | passed | skipped | failed |
+|---|---|---|---|---|
+| pre-main `a5a2a392f` | 6 838 | 6 814 | 24 | 0 |
+| this branch `c19f9245c` | 6 838 | 6 814 | 24 | 0 |
+
+Same 6 838 names, and every name has the same result in both runs. The five tests above pass again.
+The previous run's five failures were confirmed as failures of the moved values, not a stale run:
+each message named a value its own edit had moved, and a model reproduced it. This run's passes
+follow from edits to exactly those lines.
+
+### Hand-back (B4)
+
+Done: B4 (the five tests, causes confirmed from the code), D3 (one name in one saved prompt), D2
+(left). CI green by name; whole-tree scan unchanged from the previous section's branch figure. PR #502
+stays ready, not merged. Open: question 4 above.
