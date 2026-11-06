@@ -36371,6 +36371,15 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **Tests:** red then green, with 25 reverts. Three failed one test more, each from its own edit. Full CI had 6,904 tests, 0 failed, and no pre-main outcome changed by name.
   - **B5 on the fixture:** it changes the count on 44 of 1,220 plain turns.
   - **Next:** the planner's S22 M1 read on the owner's walks. Then Phase 2b (the card), after #498 merges. The "plain turns only" reading stays open to the owner, and 2a gives the count for every band.
+- **S22 session 21 (2026-11-06T16:18:21Z), the M1 read, build 1.0.4730+gb4c4f763** (versionCode 4730, signer cb2f6da5…). This is tools/s22-combined b4c4f7632: b49016b2e, pre-main 61f99fbe2 and next-turn 64be65216, on CI run 42246218912, all green. Session folder ~/s22-2026-11-04/s21, off GitHub.
+  - **How:** Android's test location (under -2129) at a point on the owner's Nov 5 walk, navigating to the session-20 test waypoint about 330 m along it, inside the smaller downloaded area.
+  - **The line fires on the phone.** One route of about 400 m: ways read in 266 ms (1 read, 15 ways). 7 junctions were judged: 3 turns, 3 straight on and 1 unmatched.
+  - **For Phase 2b and the owner:**
+    - **The first junction** is the join where the route meets the trail, 20 m from the walker, judged a sharp left of -179°. With the walker standing almost on the trail, the short lead-in's direction can point anywhere, so this may be a false turn. The planner's reading, open to the owner: a join whose lead-in is shorter than the 20 m measuring distance is not judged.
+    - **At 325 m** the route bends 55° and is judged straight on, because the other way there bends further (margin 44°). That is B1 working as designed; whether the owner calls it a turn is theirs to say.
+    - **One junction near the start couldn't be matched** to the data.
+  - **Only one route was read.** Finding targets by hand was slow, and the turns are fairer to judge once Phase 2b shows them live on the card. The full judgement moves to Phase 2b's S22 check.
+  - **Restored:** navigation stopped, test location removed (appop default, loop ended), auto-rotate on, font 1.0, stay-awake off, Pacific time. The end snapshot's forager.db matches before-install in every table, and the session-20 test waypoints G and H are still on the phone.
 **Notes:** Written by the planner by hand. Next free ID -2184.
 
 ---
