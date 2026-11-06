@@ -36338,6 +36338,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **Not copied:** no images (none were unique to these branches), plus code, scripts and what pi-build already holds. The other 8 branches had nothing unique.
   - **Not checked:** place names in words, as ruled out of scope at Phase 1.
   - **All 150 branches** still sit at their manifest-B SHAs, so they are ready for the owner's script run, straight after the 1,111.
+- **The script checked (2026-11-06, the next planner session):** dry runs of delete-now.txt and reports.txt read "would delete" 1,111 and 150, with nothing skipped or refused. A list with main added was refused whole (exit 3), so was one with an open PR's head (#488), and a listed branch at a changed SHA was skipped. The three lists equal manifest B's 1,319 names, each once.
+  - Four never-delete branches (nav-card-gh-green2, -r2-h7, -r2-h8, -wip) had already gone from GitHub since backup B; who deleted them is not confirmed. All four are in bundle B.
+- **Deleted by the owner's own hand (2026-11-06), the owner, verbatim:** **"Branches deleted"**. Checked by the planner before 2026-11-06T19:39:03Z: none of the 1,261 listed branches is on GitHub, 56 heads remain, and main, pre-main, records-after-173, tools/s22-combined, nav-card-kind-line and next-turn are at their expected SHAs.
+- **Single values (2026-11-06):** a whole-tree scan of pre-main 61f99fbe2 reads 0 pairs, grid references and tiles, but 27 single in-box latitudes and 120 longitudes. The hand-off's "clean" covered pairs only.
+  - To "What should happen with them?", the owner: **"Have a coder check them"**. The option read: "A coder sorts which ones narrow down the home and which are harmless (map extents, test values elsewhere), with a report back to you before anything changes". A read-only Hazel started; her report stays local.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
@@ -36425,6 +36430,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The owner, verbatim (2026-11-06T17:28:50Z):** **"Carry on with the building"**.
   - **The planner's reading** (Amendment 1, H4): Phase 2b splits. 2b-1 starts now with a fresh Hazel: the wiring that holds each route's turns where the line is held, and the short lead-in join from S22 session 21, as the planner's call, tests first. Nothing a user sees changes.
   - 2b-2, the card's space and arrow and TalkBack's words, waits for #498 to merge, as the dispatch's Q4 has it.
+- **2b-1's push (2026-11-06):** the push scan read 6 single values, all in files carried unchanged from pre-main by the merge. To "May she push, checking only what's new against pre-main?", the owner: **"Push, check new work only (Recommended)"**. The option read: "Her own commits and the branch compared with pre-main both read 0. The 6 numbers are already public on pre-main, so pushing them again to this branch shows nothing new". Pushed to 6e7a121e3; not yet verified on CI.
+- **Changed (2026-11-06T19:39Z), the owner, verbatim, with a screenshot of the way to a waypoint:** **"Add to 500: can we have street and trail names overlap the navigation line rather than be written under?"**
+  - To "Which lines should street and trail names sit on top of?": **"All lines the app draws"**. The option read: "The way to a waypoint, the way home, a planned route and recorded tracks: names sit on top of every one".
+  - To "should the map's small icons (parking, trailheads, viewpoints) also go on top of it, or only the names?": **"Names and icons on top"**. The option read: "Everything the map writes or marks sits over the line, the way most navigation apps do it".
+  - Amendment 1, category I. The screenshot stays off GitHub.
 **Notes:** Written by the planner by hand. Next free ID -2184.
 
 ---
