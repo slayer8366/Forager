@@ -8,7 +8,6 @@ import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.ZGroup
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
-import com.zynergylabs.forager.app.ui.map.street.StreetMap
 import java.io.File
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonArray
@@ -181,9 +180,13 @@ class AppLinesUnderNamesTest {
                 checked += "$basemap/$night"
             }
         }
-        // Not a loop that saw nothing: Topographical by day and Street day and night are each a picture style.
-        val street = StreetMap.BASEMAP
-        assertTrue("checked $checked", "${Basemap.OPEN_TOPO_MAP}/false" in checked && "$street/false" in checked && "$street/true" in checked)
+        // Not a loop that saw nothing: every map but Trail Map is a picture style, day and night, except Topographical at night
+        // (Trail Map under the picture, the next test). That is Topographical by day and, while it is registered, Street day and
+        // night; Street is named nowhere here, so the app still builds with it deleted (CI's street-removable job).
+        val expected = Basemap.entries.filter { it != Basemap.FORAGER_TRAIL }
+            .flatMap { map -> listOf(false, true).filter { night -> !(map == Basemap.OPEN_TOPO_MAP && night) }.map { "$map/$it" } }
+        assertEquals(expected, checked)
+        assertTrue("Topographical by day is checked", "${Basemap.OPEN_TOPO_MAP}/false" in checked)
     }
 
     @Test
