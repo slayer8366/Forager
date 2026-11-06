@@ -34,7 +34,7 @@ class NavigationCardStatusNoteTest : NavigationCardKindLineScreen() {
      * `assertOneLineShorter`'s claim for it: whole or short ("Trail routes not downloaded · straight line") on a line of its own under
      * the parts, the card "exactly that line taller".
      */
-    private fun assertNoteGoesAndStays(where: String, twoLines: Boolean) {
+    private fun assertNoteGoesAndStays(where: String, twoLines: Boolean, inRight: Boolean = true) {
         val problems = mutableListOf<String>()
         fun height(c: Card) = c.hud.bottom - c.hud.top
         show(State.STRAIGHT, Evening.NONE)
@@ -52,7 +52,10 @@ class NavigationCardStatusNoteTest : NavigationCardKindLineScreen() {
         if (kept.status != "Trail routes not downloaded") problems += "the note that asks something reads <${kept.status}>, not <Trail routes not downloaded>"
         val line = kept.statusBox?.let { it.bottom - it.top }
         if (line == null || line.value < 1f) problems += "positive control: the note that stays has no height ($line)"
-        if (kept.statusBox != null && kept.statusBox.left < kept.divider.right - 0.5.dp) problems += "the note that stays ${kept.statusBox} is not in the right part (divider ${kept.divider})"
+        // In the right part (H2), or, where H8 applies (font 2.0 in a window whose status space is too narrow), on its own line under the
+        // parts, from the card's left.
+        if (inRight && kept.statusBox != null && kept.statusBox.left < kept.divider.right - 0.5.dp) problems += "the note that stays ${kept.statusBox} is not in the right part (divider ${kept.divider})"
+        if (!inRight && kept.statusBox != null && (kept.statusBox.top < kept.turnRowBottom - 0.5.dp || kept.statusBox.left > kept.hud.left + 8.5.dp)) problems += "H8: the note that stays ${kept.statusBox} is not on its own line under the parts (turn row ends ${kept.turnRowBottom}, card ${kept.hud})"
         // F2: the note that only says why leaves no status line, and the card is the plain straight line's.
         if (gone.status.isNotEmpty()) problems += "the note that only says why still reads <${gone.status}>: F2 leaves no status line"
         if (abs((height(gone) - height(plain)).value) > 0.5f) problems += "the card with the note gone is ${height(gone)}, not the plain straight line's ${height(plain)}"
@@ -77,5 +80,5 @@ class NavigationCardStatusNoteTest : NavigationCardKindLineScreen() {
     fun `384 dp, font 2,0 - a note that only says why leaves no status line, and the one that stays is in the right part`() = assertNoteGoesAndStays("384/2.0", twoLines = false)
 
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
-    fun `823 x 384, font 2,0 - a note that only says why leaves no status line, and the one that stays is in the right part`() = assertNoteGoesAndStays("823x384/2.0", twoLines = false)
+    fun `823 x 384, font 2,0 - a note that only says why leaves no status line, and the one that stays has its own line under the parts`() = assertNoteGoesAndStays("823x384/2.0", twoLines = false, inRight = false)
 }

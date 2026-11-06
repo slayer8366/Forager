@@ -75,6 +75,30 @@ class NavigationCardStatusSpaceTest : NavigationCardKindLineScreen() {
         assertTrue(problems.joinToString("\n") { "$where $e: $it" }, problems.isEmpty())
     }
 
+    /**
+     * H8, the owner: "Own line when too narrow (Recommended)": "Where the space is too narrow for its words (largest text, narrow phones),
+     * status words go back to their own full-width line under the card, as before." So at font 2.0 in landscape and at 360 dp, the status
+     * words are under the parts, starting at the card's left, and the right part keeps no width in daytime.
+     */
+    private fun h8(where: String) {
+        val problems = mutableListOf<String>()
+        show(State.APPROACHING, Evening.NONE)
+        val c = card(where).also { printed(where, State.APPROACHING, it) }
+        if (c.status != "Approaching") problems += "positive control: the state reads <${c.status}>, not <Approaching>"
+        val box = c.statusBox
+        if (box == null) {
+            problems += "no status words drawn"
+        } else {
+            if (box.top < c.turnRowBottom - 0.5.dp) problems += "the status ${box} is not under the parts (the turn row ends at ${c.turnRowBottom})"
+            if (box.left > c.hud.left + 8.5.dp) problems += "the status ${box} does not start at the card's left ${c.hud.left}"
+        }
+        // In daytime the right part keeps no width: the divider is at the X's side, the left part has the parts' width.
+        val (rightLeft, rightRight) = rightPart(c)
+        if (rightRight - rightLeft > 0.5.dp) problems += "in daytime the right part is ${rightRight - rightLeft} wide, not empty ($rightLeft..$rightRight)"
+        println("STATUSPLACE|$where|H8|status ${c.statusBox}|divider ${c.divider}|card height ${c.hud.bottom - c.hud.top}")
+        assertTrue(problems.joinToString("\n") { "$where: $it" }, problems.isEmpty())
+    }
+
     private fun offTrail(where: String) {
         show(State.OFF_TRAIL, Evening.NONE)
         val c = card(where).also { printed(where, State.OFF_TRAIL, it) }
@@ -112,6 +136,12 @@ class NavigationCardStatusSpaceTest : NavigationCardKindLineScreen() {
 
     @Test @Config(qualifiers = "w384dp-h823dp-xxhdpi", fontScale = 2.0f)
     fun `H2, 384 dp, font 2,0, no evening time - Approaching in the right part`() = h2("384/2.0", Evening.NONE, twoLines = false)
+
+    @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
+    fun `H8, 823 x 384, font 2,0 - the status words take their own line under the parts, and the right part no daytime width`() = h8("823x384/2.0")
+
+    @Test @Config(qualifiers = "w360dp-h780dp-xxhdpi", fontScale = 2.0f)
+    fun `H8, 360 dp, font 2,0 - the status words take their own line under the parts, and the right part no daytime width`() = h8("360/2.0")
 
     @Test @Config(qualifiers = "w384dp-h823dp-xxhdpi")
     fun `H4, 384 dp, font 1,0 - off the trail to a waypoint the card reads Off trail`() = offTrail("384/1.0")

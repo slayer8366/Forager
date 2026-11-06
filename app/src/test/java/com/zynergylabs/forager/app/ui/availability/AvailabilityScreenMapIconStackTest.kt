@@ -354,15 +354,19 @@ class AvailabilityScreenMapIconStackTest {
     // repeats"): the strip is on screen, and the heading still appears exactly once, in the navigation info. Was "while navigating
     // the compass strip is absent and the true heading appears exactly once": `onAllNodesWithTag("compass-elevation-strip")
     // .assertCountEquals(0)`. The count of "95° E" nodes is the claim that matters, and it stands.
+    // Dispatch 2026-11-05-10, Amendment 1, H1 (the owner: "Keep the compass strip the exact same when in navigation mode as out; so keep
+    // the north compass out of the navigation panel"): the strip keeps its heading navigating, and it is the heading's one place. Was
+    // "while navigating the compass strip stays without its heading, and the true heading appears exactly once":
+    // `onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)` and `assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))`.
     @Test
-    fun `while navigating the compass strip stays without its heading, and the true heading appears exactly once`() {
+    fun `while navigating the compass strip keeps its heading, and the true heading appears exactly once`() {
         setNavigatingScreen()
         composeRule.waitForIdle()
 
         composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(1)
-        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(NAVIGATION_HUD_HEADING_TAG).assertCountEquals(0)
         composeRule.onAllNodesWithText("95° E").assertCountEquals(1)
-        assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("95° E", textOfTag(COMPASS_STRIP_HEADING_TAG))
     }
 
     // ── Compass-reliability dispatch ────────────────────────────────────────────────────────
@@ -436,11 +440,14 @@ class AvailabilityScreenMapIconStackTest {
             returnRoute = hudRoute,
         )
         composeRule.waitForIdle()
-        assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        // Amendment 1, H1 and H3 (dispatch 2026-11-05-10): the heading is the strip's, as out of navigation, and the stuck-compass notice
+        // is in the card's status space. Was textOfTag(NAVIGATION_HUD_HEADING_TAG) for both, the card's heading label.
+        assertEquals("95° E", textOfTag(COMPASS_STRIP_HEADING_TAG))
 
         compass.emit(CompassReading(80f, HeadingUncertainty.Estimated(20.05f), timestampMillis = 0L))
         composeRule.waitForIdle()
-        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_COMPASS_NOTICE_TAG))
+        assertEquals("the strip says what it says out of navigation", "Compass unreliable", textOfTag(COMPASS_STRIP_HEADING_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
         assertEquals("1.5 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         composeRule.onAllNodesWithText("Compass calibrating…").assertCountEquals(1)
@@ -449,18 +456,18 @@ class AvailabilityScreenMapIconStackTest {
         // The fallback path, on its own: no estimate, status LOW — the same state.
         compass.emit(CompassReading(80f, HeadingUncertainty.Status(CompassStatus.LOW), timestampMillis = 500L))
         composeRule.waitForIdle()
-        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_COMPASS_NOTICE_TAG))
 
         // Recovery through the status path: HIGH held for two seconds, then the needle is back —
         // at the new reading exactly: 170° magnetic + 15° declination = 185°, and the target due
         // north from a device facing 185° is a 175° turn.
         compass.emit(CompassReading(170f, HeadingUncertainty.Status(CompassStatus.HIGH), timestampMillis = 1_000L))
         composeRule.waitForIdle()
-        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_COMPASS_NOTICE_TAG))
         compass.emit(CompassReading(170f, HeadingUncertainty.Status(CompassStatus.HIGH), timestampMillis = 3_000L))
         composeRule.waitForIdle()
-        assertEquals("185° S", textOfTag(NAVIGATION_HUD_HEADING_TAG))
-        assertEquals("behind 175°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("185° S", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        assertEquals("175°", textOfTag(NAVIGATION_HUD_TARGET_TAG)) // Amendment 1, G2 (dispatch 2026-11-05-10): the degrees alone. Was "behind 175°".
     }
 
     /**
@@ -470,13 +477,16 @@ class AvailabilityScreenMapIconStackTest {
     // Dispatch 2026-10-12-08 (RECORD -950, step 3: "the heading returns to the strip's line"): the strip was there all along, its
     // line without the heading. Was "leaving navigation brings the compass strip back with the heading, still exactly once", with
     // `onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)` before leaving.
+    // Amendment 1, H1 (dispatch 2026-11-05-10): the heading is on the strip's line navigating too, so leaving keeps it there. Was "leaving
+    // navigation puts the heading back on the strip's line, still exactly once", with `onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG)
+    // .assertCountEquals(0)` before leaving.
     @Test
-    fun `leaving navigation puts the heading back on the strip's line, still exactly once`() {
+    fun `leaving navigation keeps the heading on the strip's line, still exactly once`() {
         val returning = mutableStateOf(true)
         setNavigatingScreen(returning = returning)
         composeRule.waitForIdle()
         composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(1)
-        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(1)
 
         composeRule.runOnUiThread { returning.value = false }
         composeRule.waitForIdle()
@@ -502,7 +512,7 @@ class AvailabilityScreenMapIconStackTest {
         // RECORD -942: on the route, no straight-line note. Was "1.1 km straight".
         assertEquals("", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         // Target due north (0°) from a device facing 95° true: 265° relative, a left turn.
-        assertEquals("left 95°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("95°", textOfTag(NAVIGATION_HUD_TARGET_TAG)) // Amendment 1, G2 (dispatch 2026-11-05-10): the degrees alone. Was "left 95°".
     }
 
     /**
@@ -674,7 +684,8 @@ class AvailabilityScreenMapIconStackTest {
 
         // Dispatch 2026-09-28-430, rulings B and E: with no compass while navigating, the map is north-up
         // and the heading label says so. Was "Compass unavailable".
-        assertEquals("Compass unavailable · north up", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        // Amendment 1, H3 (dispatch 2026-11-05-10): the notice is in the card's status space. Was textOfTag(NAVIGATION_HUD_HEADING_TAG).
+        assertEquals("Compass unavailable · north up", textOfTag(NAVIGATION_HUD_COMPASS_NOTICE_TAG))
         // Was "Bearing 0° N" until the two-data-corrections dispatch (Part C, owner-authorised
         // change to this assertion). Asserted by node count as well as by the tagged text: no node
         // anywhere on the screen carries a bearing.

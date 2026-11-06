@@ -152,7 +152,15 @@ abstract class StripReadoutCentredTests(private val name: String, private val ro
             .filterNot { n -> generateSequence(n.parent) { it.parent }.any { it.config.getOrNull(SemanticsProperties.TestTag) == MAP_QUICK_SETTINGS_BUTTON_TAG } }
         assertTrue("the strip's line has text on it", texts.isNotEmpty())
         println("MEASURED $name readout texts: ${texts.map { "'${it.config.getOrNull(SemanticsProperties.Text)?.joinToString()}' ${it.boundsInRoot.left.pxToDp().value}..${it.boundsInRoot.right.pxToDp().value}" }}")
-        return texts.minOf { it.boundsInRoot.left }.pxToDp() to texts.maxOf { it.boundsInRoot.right }.pxToDp()
+        // Dispatch 2026-11-05-10, Amendment 1, H7: each value sits centred in its own window, so the line is its windows, and they are what
+        // is centred; a text narrower than its window leaves room either side of it. Was the texts' own span, `texts.minOf { left } to
+        // texts.maxOf { right }`. The tags' own strings, so this compiles before H7 (tests first).
+        val windows = descendants(strip).filter { n ->
+            n.config.getOrNull(SemanticsProperties.TestTag) in setOf("compass-strip-heading-window", "compass-strip-elevation-window", "compass-strip-coordinates-window")
+        }
+        assertTrue("the strip's line has its windows (H7)", windows.isNotEmpty())
+        println("MEASURED $name readout windows: ${windows.map { "${it.config.getOrNull(SemanticsProperties.TestTag)} ${it.boundsInRoot.left.pxToDp().value}..${it.boundsInRoot.right.pxToDp().value}" }}")
+        return windows.minOf { it.boundsInRoot.left }.pxToDp() to windows.maxOf { it.boundsInRoot.right }.pxToDp()
     }
 
     private fun dotsLeading(): Dp {

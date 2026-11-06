@@ -31,10 +31,14 @@ class NavigationCardKindLineLargeTextTest : NavigationCardTopLineRules() {
         assertTrue(problems.joinToString("\n"), problems.isEmpty())
     }
 
+    // Amendment 1, H5 and Q3: at 384 dp the status space at font 2.0 holds the status words' widest word, so H8 does not apply and the
+    // right part keeps the broken evening line's width in daytime; that leaves the left part its widest figure's width, and both kinds
+    // take their own line. Was "384 dp, font 2,0 - both at the middle without an evening time, on their own line with one", with
+    // `step = Step.BESIDE, shifted = false` for both with no evening time (the right part had no width then).
     @Test @Config(qualifiers = "w384dp-h823dp-xxhdpi")
-    fun `384 dp, font 2,0 - both at the middle without an evening time, on their own line with one`() = assertClean(
-        topLine("384/2.0", State.TRAIL, Evening.NONE, step = Step.BESIDE, shifted = false),
-        topLine("384/2.0", State.STRAIGHT, Evening.NONE, step = Step.BESIDE, shifted = false),
+    fun `384 dp, font 2,0 - both on their own line, with an evening time or without`() = assertClean(
+        topLine("384/2.0", State.TRAIL, Evening.NONE, step = Step.OWN_LINE),
+        topLine("384/2.0", State.STRAIGHT, Evening.NONE, step = Step.OWN_LINE),
         topLine("384/2.0", State.TRAIL, Evening.DARK_SINCE, step = Step.OWN_LINE, shifted = true),
         topLine("384/2.0", State.STRAIGHT, Evening.DARK_SINCE, step = Step.OWN_LINE, shifted = true),
     )

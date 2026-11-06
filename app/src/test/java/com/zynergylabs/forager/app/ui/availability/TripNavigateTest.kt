@@ -225,7 +225,7 @@ class TripNavigateTest {
     /** The HUD aims at the trip, due north of a walker facing north, with the straight distance to it; the map has the line to it. */
     private fun assertHudAimsAtTrip() {
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
-        assertEquals("the needle aims at the trip", "ahead 0°", text(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("the needle aims at the trip", "0°", text(NAVIGATION_HUD_TARGET_TAG)) // Amendment 1, G2 (dispatch 2026-11-05-10): the degrees alone. Was "ahead 0°".
         val straight = GeoDistance.metersBetween(LatLng(fix.lat, fix.lng), trip.location)
         assertEquals(formatDistanceWithAccuracy(straight, fix.accuracyMeters, viewModel.uiState.value.distanceUnit), text(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("Stop navigating", controlLabel())
