@@ -23,29 +23,33 @@ class EstimateOfflineTileCountTest {
     /**
      * Tile-estimate dispatch: the served-ceiling estimate must agree with what a download actually
      * enumerates — three radii spanning the slider's range, including its 50 km maximum, at the
-     * owner's own latitude ([a city near the owner's home; removed 2026-11-06], ~45.36°N). **Expected values are literals computed
+     * made-up point (see below). **Expected values are literals computed
      * independently** (a separate slippy-map implementation summing zooms 10..14 over the same
      * equirectangular bounding box), not derived from the function under test; the 15 km case is
-     * the region the owner downloaded, whose MapLibre status reported 480 required resources
+     * the size of a region the owner downloaded, whose MapLibre status reported 480 required resources
      * (tiles plus the style and tileset JSON). With the ceiling reverted to MAX_ZOOM these read
      * 224, 1781 and 18696 — the 3.7× inflation that was refusing radii the budget actually fits.
      */
     /**
      * Two-data-corrections dispatch, Part B: SERVED_MAX_ZOOM rose from 14 to 15 once the worker's
      * zoom-15 overflow went live, and the slider's ceiling shrank from 50 km to 24 km to fit the
-     * budget. Three radii spanning the new slider range, including its maximum, at the owner's
-     * coordinates; literals re-derived independently in Python from the slippy-map definition
+     * budget. Three radii spanning the new slider range, including its maximum, at the same
+     * made-up point; literals re-derived independently in Python from the slippy-map definition
      * (docs/audits/2026-09-06-filter-and-tile-cost-prebuild-report.md, B2), not from this code.
      * The previous literals at ceiling 14 were 68 / 485 / 4772 for 5 / 15 / 50 km — 224 and 1781
      * are the same 5 and 15 km at ceiling 15, the cross-check figures the dispatch supplied.
      * Fails with SERVED_MAX_ZOOM reverted to 14.0 (68 / 485 / 1112).
+     *
+     * The point is made up (2026-11-06, replacing a real place): at every zoom from 10 to 16 it
+     * gives the same tile count as the place it replaced, for each radius here and for 50 km, so
+     * every figure above still holds.
      */
     @Test
     fun `the served-ceiling estimate matches the download's own enumeration at three radii spanning the slider`() {
-        val cityNearHome = { radiusKm: Int -> Region(lat = 45.357, lng = -122.607, radiusKm = radiusKm) }
-        assertEquals(224, estimateServedOfflineTileCount(cityNearHome(5)))
-        assertEquals(1781, estimateServedOfflineTileCount(cityNearHome(15)))
-        assertEquals(4304, estimateServedOfflineTileCount(cityNearHome(OfflineMapRepository.MAX_RADIUS_KM)))
+        val madeUpPoint = { radiusKm: Int -> Region(lat = 45.357, lng = -121.904, radiusKm = radiusKm) }
+        assertEquals(224, estimateServedOfflineTileCount(madeUpPoint(5)))
+        assertEquals(1781, estimateServedOfflineTileCount(madeUpPoint(15)))
+        assertEquals(4304, estimateServedOfflineTileCount(madeUpPoint(OfflineMapRepository.MAX_RADIUS_KM)))
         assertEquals(24, OfflineMapRepository.MAX_RADIUS_KM)
     }
 
