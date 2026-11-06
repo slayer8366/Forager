@@ -35628,6 +35628,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Continues:** 2026-09-28-2168, 2026-09-28-2169
 **Title:** The walk read: the pick-up chooser seen working on good fixes (rank 2 for the first time); the way home's off-trail part not run; one re-search burst to explain
 **Outcome:**
+- **Corrected here (2026-11-06T03:02:12Z, from the walk read, prompts/preserved/2026-11-05-walk-read-report.md, -2175):**
+  - The re-searches were 10, not 9. "SEARCHING" follows a re-route already under way, and doesn't start one: 8 of the 10 had it.
+  - **The burst is explained:** the phone was moving at 11 to 16 m/s, a vehicle by inference. Each search came 51 to 77 m after the last, just past the 50 m stray figure. Each new line starts at its search's own fix and re-arms the rule. That is the stray rule as written, at vehicle speed.
+  - Of the four pick-ups, only 17:39:15 was at a standstill. 17:41:07, 17:41:53 and 17:43:24 were judged from the moving vehicle. "Seen working on good fixes" stands for the chooser's logic, but only once for the walker-by-a-house case.
+  - "That is the way home the sundown countdown keeps during a recording" was wrong. WayHomeWatch works only during a return.
+  - "The recording's frames … show the navigation to Waypoint 1 …, not Return" was wrong. The 17:49:49 navigation was Return, whose Start lies 8 m from Waypoint 1.
+  - So "Part 2 … not run as planned" is wrong too: it ran, with three excursions read in -2175.
 - **The owner:** "Walk finished, S22 plugged in".
 - **What came back:**
   - The log writer survived unplugging (running since 17:09:15) and holds 6 files, 117 MB, 17:09 to 18:07 local.
@@ -35668,6 +35675,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Continues:** 2026-09-28-2172
 **Title:** Return was tapped before the screen recording; the off-trail check waits for the next outing; the home tile's number taken out of the record
 **Decision:**
+- **Corrected here (2026-11-06T03:02:12Z, -2175):** the way-to navigation ended at 17:44:39 ("leaving navigation"), not 17:47:02; the 17:47:02 line is a map pan with no navigation. The 17:49:49 navigation is confirmed as Return, from the code (WayHomeWatch acts only during a return), the log (no way-to search after 17:43:24) and the frames (the Start marker is the line's target, and the arrival ring sits on it).
 - **The owner, verbatim:**
   - To "Did you tap Return during the walk? The screen recording only shows the navigation to Waypoint 1.": **"Yes, before 5:50"**. The option read: "Then it was before the screen recording started. I'll look for it in the walk log."
   - To "How should the off-trail check get done?": **"Next outing"**. The option read: "Wait for your next walk. The promotion waits too, since \"Walk first\" needs it." The other: "Short walk soon (Recommended)".
@@ -35707,3 +35715,28 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - a read-only investigation. It covers -2172's re-search burst, and whether today's data can judge the way home's off-trail check. After 17:43:24 the log has no way-to search, yet a navigation started at 17:49:49, which fits Return.
 - **Download Maps from a trip** (2026-11-05-08) waits for bug 14 to merge, as set in -2170 and Amendment 1 B1.
 **Notes:** Written by the planner by hand. Next free ID -2175.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2175
+**Timestamp:** 2026-11-06T03:02:12Z
+**Continues:** 2026-09-28-2172, 2026-09-28-2173, 2026-09-28-2174
+**Title:** The walk read: the burst was the stray rule at vehicle speed; the off-trail walk ran under Return, and in all three excursions the re-route came before any dim; the test data deleted
+**Outcome:**
+- **Hazel's read-only report** is preserved at prompts/preserved/2026-11-05-walk-read-report.md, with no positions in it. It read the code at 4670712fa, and every file it cites is identical at pre-main a0535ece1.
+- **A, the re-search burst:** the phone was moving at 11 to 16 m/s, a vehicle by inference, not verified.
+  - Each re-route was a plain stray of more than 50 m from the line shown. Each new line starts at its search's own fix (FindWayToWaypointUseCase.kt:113-123), and the rule re-arms on that line's first fix, so it gives one re-route per line.
+  - At 13 m/s that is every 4 to 6 s; on foot, about every 38 s.
+  - No fault in the end chooser. Whether navigation should react to vehicle speed is for the owner.
+- **B, the off-trail walk:** the 17:49:49 navigation was Return. It read "by trail" throughout, never "following your track". Every fix was at 3.79 m.
+  - E1 (17:53:26) and E2 (17:56:31): distances reconstructed against a stand-in line, each matching the logged far-band fix to within one fix.
+    - The walker was beyond the 43.8 m off figure for only 5 to 7 s before each re-route, never 15 s. So no dim, no off words and no "Back on trail", which matches the rule.
+    - The new line was drawn within about 2 s each time.
+  - E3 (18:02:32): distance not determined, because the stand-in failed its own check. The line was full strength before and after the re-route.
+  - **R5:** in all three, the dim did not come before the re-route, as the plan's section 1 predicted. **The dim-first case was not exercised:** the walker never lingered in the 43.8 to 50 m band.
+- **The test data, deleted** (-2174, item 3):
+  - Test trip B was removed in the Trip Planner, which now reads "No trips planned yet". The Test s16 area was deleted, and the tile budget is back to 832 / 6000.
+  - Snapshot snap/end-s16: offline_regions 2 (Region 1, Region 2), planned_trips 0, waypoints 13 (the walk's Start and End added), forager.db user_version 23, integrity ok.
+**Waiting on:** the owner. Does this walk meet "Walk first" and "Field check first"? Do the off-trail figures stand (-1726)? And re-routing at vehicle speed.
+**Notes:** Written by the planner by hand. Next free ID -2176.
