@@ -352,3 +352,70 @@ Red run on the stubs, green, the one-line revert per ruling, full CI compared by
   - **NextTurnCardState,** the `ROUTE_UNAVAILABLE_TEXT` branch removed: 1 predicted (the held-back route).
 - **To watch:** `NextTurnAheadTest`'s 10 m lead-ins may go red under H3. Report them; don't edit them.
 - **Throwaway branch to delete afterwards:** `next-turn-2b1-red`.
+
+## Phase 2b-1, verified (Hazel, second session, 2026-11-06)
+
+Taken over from the hand-back above. The state it gave matched the remote: `origin/next-turn` at `6e7a121e3`, `next-turn-2b1-red` at `65c4c65c5`, pre-main at `61f99fbe2`, already merged in. Pre-main did not move during the session. `6e7a121e3` changes only this report from `884f36c6e`, so its runs test the same code.
+
+### Evidence
+
+Each run was read by a script in my own scratch, which refuses a run unless it is complete, on the expected commit, has a non-empty log, and that log has no Kotlin compile error (`e: file://`) and no failed compile task. Counts come from the JUnit XML, by task, class and test name.
+
+- **The previous session's scripts had one hole, so I did not use them.** `results.py` called `gh run view` without a repository. From a folder outside the repository, gh fails, the log comes back empty, and an empty log counts 0 compile errors. Mine passes the repository and refuses an empty log. `revert.py` pushed a branch but started no run, since a push to a branch other than main, pre-main or dev runs no CI. Mine starts the filtered run.
+- **The red run, 42281323874** on `65c4c65c5`, the stubs: no compile errors; 79 tests in the 9 filtered classes, 31 failed. Every failure is in a 2b-1 class, and each is the stub's reason:
+  - the reader answering `stub`;
+  - the held read never delivering (`List is empty`);
+  - the folder `null`;
+  - the card state always `SHOWS_DISTANCE`;
+  - H3's `SHORT_LEG` read as `TURN`;
+  - the M1 header with no short-leg count.
+  The 2b-1 tests that pass on the stubs are controls: the three judged joins in `ShortLegJoinTest`, and the four `SHOWS_DISTANCE` cases in `NextTurnCardStateTest` (a figure, no turn left, a stale fix, E3). Each is a case the stub's answer already gets right.
+- **Green, PR run 42281418807** on `6e7a121e3`: every job passed. 6,943 tests, 0 failed, 24 skipped.
+- **Compared by name with pre-main's push run 42245483101** on `61f99fbe2` (the exact base): 6,838 there, 6,943 here.
+  - No test of pre-main's is missing, and none changed status.
+  - The 24 skips are the same tests.
+  - The 105 new tests are in 12 new classes (999 to 1,011 XML files), the 2a and 2b-1 tests: `NextTurnAheadTest` 19, `TurnRuleTest` 19, `RouteTurnsTest` 16, `NextTurnCardStateTest` 12, `ShortLegJoinTest` 10, `RouteTurnsLogTest` 7, `WayHomeWatchTurnsTest` 6, `RouteTurnsOnBRouterTest` 5, `RouteTurnsReaderTest` 4, `AvailabilityViewModelWaypointRouteTurnsTest` 3, `PathsPassedTest` 2, `RouteTurnsHeldOnBRouterTest` 2.
+- **`NextTurnAheadTest`'s 10 m lead-ins did not go red under H3.** All 19 pass in the green run, and again in each revert run.
+
+### The four reverts
+
+Each was a one-line edit of `6e7a121e3` on a scratch worktree, pushed to a throwaway branch and run on CI with the 2b-1 filter. Each compile log was checked before its results were read: no compile errors in any. The file was restored from a copy saved before the edit, and compared with `6e7a121e3`'s: identical. Afterwards `next-turn`'s own worktree was still clean at `6e7a121e3`, with each of the four forward lines present. Each revert's failures match its prediction in count and in test, and each is one only that edit could cause.
+
+| Revert | Run | Failed of 79 | What failed |
+|---|---|---|---|
+| H3: `legMeters < TURN_MEASURE_METERS` to `< 0.0` (`8be917fa4`) | 42284711550 | 7 (predicted 7) | all 7 short-leg cases in `ShortLegJoinTest`: `expected:<SHORT_LEG> but was:<TURN>`; the trail behind counted (`expected:<0> but was:<1>`); the 5 m walker's `Turn(band=PLAIN, side=LEFT …)` for `NoTurnLeft`; the M1 line reading `0 short legs` |
+| The folder carried: `FindWayToWaypointUseCase`'s `routeData = routes.folder` dropped (`90025f830`) | 42284725439 | 2 (predicted 2) | the VM's folder test (`expected:</routes/1> but was:<null>`) and `RouteTurnsHeldOnBRouterTest`'s way to a waypoint (`the folder it was found on … but was:<null>`). The way home's own test still passes, since only the way-to edit was reverted. |
+| The holders' turns: `HeldRouteTurns`' `deliver(...)` dropped (`19292eea3`) | 42284739412 | 4 (predicted 4) | `WayHomeWatchTurnsTest`'s first read and re-route read, and the VM's first read and stray re-route: each `expected:<Read(…)> but was:<null>` |
+| `NextTurnCardState`: the `ROUTE_UNAVAILABLE_TEXT` branch made a comment (`6894dc7ae`) | 42284755068 | 1 (predicted 1) | the held-back route: `expected:<ROUTE_WITHHELD> but was:<SHOWS_DISTANCE>` |
+
+The folder run's run log came back at 1,232 lines. Its job log, read through the API, has `compileDebugUnitTestKotlin` running and "79 tests completed, 2 failed", with no compile error.
+
+### Confirmed and inferred
+
+- **[observed]** Every run, count and message above. The red run's failures, each the stub's reason. The by-name match with pre-main. The four reverts' failures. The forward lines present after each restore.
+- **[read]**
+  - `WayHomeWatch` and `AvailabilityWaypointRoute` each hold a `HeldRouteTurns`.
+  - `AppContainer` builds one `RouteWaysTurnsReader` for both.
+  - `nextTurnCardState` reads only the card's readout and the fix.
+- **[inferred]** That the way home's folder is carried as the way to a waypoint's is. Only the way-to line was reverted; the way home's line is the same shape, and its own test (`RouteTurnsHeldOnBRouterTest`, the way home) failed on the stubs.
+- **[not verified]** Anything on a phone. No screen reads the turns or the card state yet (2b-2).
+
+### Could not determine
+
+- **Whether the reads cancel cleanly under real timing on a phone.** The cancel tests run on a test dispatcher, and nothing on a device reads the result yet.
+- **The read's cost once it runs on every re-route** on a real line (M2, as in 2a).
+
+### Premises that were wrong
+
+- **The previous session's results script would have read an empty log as clean,** when run outside the repository (above). It was not used for any result cited here. I found nothing to show it had produced a wrong reading before.
+- **That revert script could not have run CI by pushing alone:** no run starts on a push to a throwaway branch.
+- The hand-back's state, its four predictions and its watch item held [observed].
+
+### Decided beyond scope
+
+- **The previous Hazel's three beyond-scope calls** went to the planner in her hand-back message. I did not find them written in this report, and I have neither restated nor changed them.
+- **Mine:** the card-state revert turns the line into a comment rather than deleting it, so the diff stays one line in and one line out. It has the same effect as removing the branch.
+
+### Clean-up
+
+The four revert branches and `next-turn-2b1-red` are deleted from origin, their worktrees removed. Their runs stay readable by the numbers above. My scratch is `/mnt/work/scratch/hazel-2b1b` (mode 700). The previous session's `/mnt/work/scratch/hazel-2b1` is left as found, less `wt-red`.
