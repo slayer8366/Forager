@@ -13563,7 +13563,7 @@ The planner's calls under the owner's -651 answers:
 **Amendment 1 to -677 (data part B), after the coder's stops.** Code and tests are on data-b-track-nav at 2341aa59, not compiled. It merged data-a-entry, so it must merge after A or together with it. The owner's answers, verbatim:
 - Turn words: "As proposed (Recommended)". 0–9° "Ahead · N°", 10–44° "Slight left/right · N°", 45–134° "Left/Right · N°", 135–169° "Sharp left/right · N°", 170–180° "Behind · N°".
 - The heading: "Move it, labelled (Recommended)". It goes to the start of the display's second row.
-- Decimal coordinates: "Shorter decimals, no labels (Recommended)". "45.3262, -122.6340", with no Lat/Lon words.
+- Decimal coordinates: "Shorter decimals, no labels (Recommended)". "[a point near the owner's home; removed 2026-11-06]", with no Lat/Lon words.
 - Labels: "'Facing' and 'Alt' (Recommended)".
 - Avg speed: "Moving speed (Recommended)". It uses the app's existing moving pace, and the tile reads "Moving speed".
 - Sheet order: "Keep -618's order (Recommended)".
@@ -26269,7 +26269,7 @@ They come before 4a, and B and 4a run in sequence.
   - Leave and return: PASS.
   - Search from List, then Maps: PASS.
 
-  The log shows #365's restore working (the new map's first frame at 47.66), then a pan 10 ms later to the locate position (45.326, -122.634).
+  The log shows #365's restore working (the new map's first frame at 47.66), then a pan 10 ms later to the locate position ([a point near the owner's home; removed 2026-11-06]).
 - **The second cause (read at b1064eca):**
   - `CompactMapTab` holds `focusOverride` (`remember(uiState.region)`) and a `LaunchedEffect(uiState.locateMeStatus)` inside the branch the spinner replaces (`AvailabilityCompactMapUi.kt:372-376`).
   - When the map returns, the effect replays an old Located status, so the target becomes (region, own position). That differs from the applied (region, null), and MapDataRefresh pans.
@@ -33127,7 +33127,7 @@ Building is held, per -2056: "let the other tasks finish, and then we can hammer
 **Continues:** 2026-09-28-2064, 2026-09-28-2053
 **Title:** S22 session 12: the crowded list bubble seen working; the smooth zoom not checkable with this stack; phone left as found
 **Outcome:** The owner: "Yes, add the temporary waypoints".
-- **Four temporary waypoints:** "Temp stack 1"-"Temp stack 4" were dropped through the map's + > Waypoint, all at 45.32626,-122.63388. The small pans between drops didn't move the centre, so the four coincide.
+- **Four temporary waypoints:** "Temp stack 1"-"Temp stack 4" were dropped through the map's + > Waypoint, all at [a point near the owner's home; removed 2026-11-06]. The small pans between drops didn't move the centre, so the four coincide.
 - **Zoom in, then fan:** tapping the stack fanned it at once (four pins in a cross). Coincident points can't separate by zooming, so step 1 (the eased zoom and the stray frame) and step 2 (taking over mid-zoom) were not exercised. A screen recording of the tap is at shots/s12-step1.mp4.
 - **List mode:**
   - Tapping the stack showed the bubble "4 records at this spot", with four rows. It sat above the stack, clear of the icon bar, at the 80% fill.
@@ -36267,6 +36267,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **The merge:** with `--match-head-commit 4819f6f40198878b363817eaba0c6fe9478fc8e4`. The merge commit is 05d0ab53a, with parents d02d2e74a and 4819f6f40, and its tree is the scanned head's.
   - **Audit row** on pre-main as 61f99fbe2 (docs only), scanned clean.
   - **Next:** the planner's sweep of RECORD.md and prompts/preserved, pre-main merged into records-after-173, and the branch-deletion dispatch.
+- **The planner's sweep (2026-11-06T15:48:08Z), on the owner's "Replace them in the repo":** in RECORD.md and prompts/preserved on this branch, 3 coordinate pairs (in RECORD.md), 7 grid references (one each in 7 preserved files) and 1 tile number (in a preserved report) now read "[a point near the owner's home; removed 2026-11-06]" or its tile form.
+  - Each change is one line, and nothing else changed (checked by line counts). The scanner finds none left.
+  - Two single values of the ruled-exception kind stay, listed by kind only.
+  - This removal is the owner's order, the one exception to the append rule. History keeps the old lines.
+  - **Next:** pre-main merged into this branch, so that its old app copy matches pre-main's cleaned files.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---

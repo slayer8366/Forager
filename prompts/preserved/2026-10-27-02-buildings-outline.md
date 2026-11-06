@@ -29,7 +29,7 @@ Describe products generically. Commits end with `Co-Authored-By: Claude <noreply
 ## Report also
 - **What a phone needs to see it.** The live Worker serves v3 from its bundled copy, so the app gets the change only after a Worker deploy. Deploys come from main, or by hand on the owner's word (RECORD -1609, -1703). Do not deploy.
 - **Areas already downloaded as v3.** Do they keep the old style copy? Does the older-style notice say anything for them?
-- **S22 steps** as tap > shows > Back: day and night, at 10T ER 28696 19256, zoom 15, 17 and 18. Pass: every building has a visible edge and no tree glyph shows inside one; the owner's eye decides.
+- **S22 steps** as tap > shows > Back: day and night, at [a point near the owner's home; removed 2026-11-06], zoom 15, 17 and 18. Pass: every building has a visible edge and no tree glyph shows inside one; the owner's eye decides.
 - **The four disclosure sections.**
 
 ## Rules

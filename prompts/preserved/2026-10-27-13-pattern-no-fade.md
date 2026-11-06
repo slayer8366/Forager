@@ -20,7 +20,7 @@ Describe products generically. Commits end with `Co-Authored-By: Claude <noreply
    - zoom out and back in;
    - tufts, if a wetland can be found.
 
-   Use the forest house pair south of 10T ER 28696 19256, where a fresh layout reads about 2.72% glyph colour. Run each case 3 times, and take readings at about 1 s and 30 s after the switch.
+   Use the forest house pair south of [a point near the owner's home; removed 2026-11-06], where a fresh layout reads about 2.72% glyph colour. Run each case 3 times, and take readings at about 1 s and 30 s after the switch.
 3. **If it works,** with every case above 1% at both readings, that's the fix. **If it doesn't,** say so with the figures, and use the timer fix instead: clear at the style's transition (300 ms when unset) plus 100 ms, then restore at the first full frame at least 100 ms after the clear, keeping the generation check and the timeout fallback.
 
 ## Step 2: the fix on PR #429

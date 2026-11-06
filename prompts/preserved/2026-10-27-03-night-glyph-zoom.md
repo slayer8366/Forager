@@ -7,7 +7,7 @@ Written by Rowan Waymark, 2026-10-27, against pre-main 6064fef86. RECORD -1730.
 ## What was seen (Aspen, from five owner screenshots, which stay off GitHub)
 - **Day:** glyphs show at full zoom.
 - **Night, full zoom:** none.
-- **Night, slightly zoomed out:** they show (10T ER 28691 19251).
+- **Night, slightly zoomed out:** they show ([a point near the owner's home; removed 2026-11-06]).
 
 ## The style (Aspen's reading; a premise to re-check)
 - `landuse_forest_glyphs` has minzoom 12 and no maxzoom.
