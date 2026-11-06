@@ -29,7 +29,8 @@ import org.robolectric.annotation.GraphicsMode
  * to 1 at 9.7), both with today's V1 paint; every other style document must be byte-for-byte what it was.
  *
  * The sampled tiles (`docs/audits/data/2026-09-30-topo-night/`: 81 OpenTopoMap tiles, 15 OSM tiles, tile
- * zoom 7 to 15 over Oregon City) are run through the paint of whichever layer the **parsed JSON** shows at
+ * zoom 7 to 15 over downtown Asheville, North Carolina; rebuilt 2026-11-06 for dispatch 2026-11-05-11, the earlier
+ * sample having been removed on the owner's word) are run through the paint of whichever layer the **parsed JSON** shows at
  * each map zoom, using [rasterShade], the headless model of the raster shader. A pass is a pass of that
  * model on those tiles, not a device check; the OSM sample is one to four tiles per zoom.
  *
@@ -72,11 +73,11 @@ class TopoNightStreetSwitchTest {
     private val data = "../docs/audits/data/2026-09-30-topo-night"
 
     private val topoTiles: Map<Int, TileSet> by lazy {
-        loadTiles(listOf("$data/tiles"), 81, (7..15).associateWith { 9 }, 17832, "OpenTopoMap sample")
+        loadTiles(listOf("$data/tiles"), 81, (7..15).associateWith { 9 }, 17319, "OpenTopoMap sample")
     }
 
     private val streetTiles: Map<Int, TileSet> by lazy {
-        loadTiles(listOf("$data/osm-tiles", "$data/renders/osm-extra"), 15, mapOf(7 to 1, 8 to 4, 9 to 1, 10 to 4, 11 to 1, 12 to 1, 13 to 1, 14 to 1, 15 to 1), 3652, "OSM Standard sample")
+        loadTiles(listOf("$data/osm-tiles", "$data/renders/osm-extra"), 15, mapOf(7 to 1, 8 to 4, 9 to 1, 10 to 4, 11 to 1, 12 to 1, 13 to 1, 14 to 1, 15 to 1), 3637, "OSM Standard sample")
     }
 
     private fun topoNightStyle(): JsonObject = json.parseToJsonElement(styleJsonFor(Basemap.OPEN_TOPO_MAP, night = true)).jsonObject
@@ -114,10 +115,11 @@ class TopoNightStreetSwitchTest {
 
     /**
      * The top of the zoomed-in band: today's zoomed-in topo night is tile zoom 11 to 15 through V1
-     * ([nightColorOf], independent of the paint model); its per-zoom means run 0.231 to 0.316, widened by
-     * 0.03 (nine tiles at one place is not a population) to 0.345. "Dark" here means a sampled zoom's mean
+     * ([nightColorOf], independent of the paint model); on the rebuilt sample its per-zoom means run 0.215 to 0.345
+     * (the folder's Python mirror of the shader), widened by 0.03 (nine tiles at one place is not a population) to
+     * 0.375. "Dark" here means a sampled zoom's mean
      * and median both at or under that. The **lower** side is deliberately not asserted: OSM Standard is a
-     * little darker than the zoomed-in topo (mean 0.15 to 0.23 against 0.23 to 0.32), and darker is not the
+     * little darker than the zoomed-in topo (mean 0.12 to 0.15 against 0.22 to 0.35 on the rebuilt sample), and darker is not the
      * failure this guards against (the owner's report was a light map).
      */
     private fun darkLimit(): Double = (11..15).maxOf { meanAndMedian(topoTiles.getValue(it), ::nightColorOf).first } + 0.03
@@ -241,7 +243,7 @@ class TopoNightStreetSwitchTest {
     /**
      * The crossfade, blended as the shader composites it: each layer's V1 output (opaque, from its own tile) times
      * the layer's `raster-opacity` at that zoom, over what is beneath (premultiplied alpha, `out = c x a + beneath x
-     * (1 - a)`; the blend mode is inferred from MapLibre's default, not read). Both sources' real tile 11/326/733 at
+     * (1 - a)`; the blend mode is inferred from MapLibre's default, not read). Both sources' real tile 11/554/807 at
      * the same pixels, so this is a pixelwise blend, not a blend of two histograms. The dark limit applies with no
      * allowance: the fade only ever mixes tile level 11 (see the `minzoom` pin above).
      */
@@ -250,8 +252,8 @@ class TopoNightStreetSwitchTest {
         val style = topoNightStyle()
         val ls = layers(style)
         val limit = darkLimit()
-        val topoPx = decodeTile("$data/tiles/11_326_733.png")
-        val streetPx = decodeTile("$data/osm-tiles/11_326_733.png")
+        val topoPx = decodeTile("$data/tiles/11_554_807.png")
+        val streetPx = decodeTile("$data/osm-tiles/11_554_807.png")
         val failures = mutableListOf<String>()
         for (mapZoom in listOf(9.5, 9.55, 9.6, 9.65, 9.6999, 9.7, 10.0)) {
             assertEquals("map zoom $mapZoom should be on tile level 11", 11, rasterTileZoomFor(mapZoom))

@@ -50,7 +50,7 @@ class TripWhilePlottingTest {
      * [SADDLE] moved off Creek's spot: SADDLE sits exactly where the route fixtures' Creek does, and a stop at the last stop's
      * position is refused by the plotting's own rule (RoutePlotDraft.withStop, the owner: "Ignore the second tap").
      */
-    private val trip = SADDLE.copy(location = LatLng(45.346, -122.654))
+    private val trip = SADDLE.copy(location = LatLng(45.3936, -121.7159))
 
     private val map = RouteMapSlot(
         listOf(

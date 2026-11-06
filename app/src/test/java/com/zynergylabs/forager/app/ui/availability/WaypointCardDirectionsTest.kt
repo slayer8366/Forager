@@ -140,7 +140,7 @@ class WaypointCardDirectionsTest {
     private fun assertDirectionsHandsOn(where: String) {
         ACROSS.forEach { (fx, fy) ->
             composeRule.touchAcrossTag(DIRECTIONS, fx, fy)
-            assertEquals("$where, a touch at ($fx, $fy)", "geo:0,0?q=45.326,-122.634(Creek%20pin)", takeStartedGeo(composeRule.activity))
+            assertEquals("$where, a touch at ($fx, $fy)", "geo:0,0?q=45.3736,-121.6959(Creek%20pin)", takeStartedGeo(composeRule.activity))
             assertTrue("$where, a touch at ($fx, $fy): the card stays open", cardShowing())
             assertEquals("$where: nothing navigated to in the app", null, viewModel.uiState.value.waypointNavigation)
         }

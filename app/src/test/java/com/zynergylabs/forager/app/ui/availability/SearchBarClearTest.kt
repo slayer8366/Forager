@@ -36,7 +36,7 @@ class SearchBarClearTest {
 
     private val rig = RealSearchScreenRig(composeRule)
 
-    private val regionA = Region(45.326, -122.634, 8)
+    private val regionA = Region(45.3736, -121.6959, 8)
 
     private fun clearShown() = composeRule.onAllNodesWithTag(SEARCH_BAR_CLEAR_TAG).fetchSemanticsNodes().isNotEmpty()
 
@@ -58,7 +58,7 @@ class SearchBarClearTest {
     fun `the bar is as tall with Clear showing as without it`() {
         rig.setScreen()
         val before = composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG).getUnclippedBoundsInRoot().let { it.bottom - it.top }
-        rig.searchCoordinates("45.326", "-122.634")
+        rig.searchCoordinates("45.3736", "-121.6959")
         assertTrue("positive control: Clear shows", clearShown())
 
         val after = composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG).getUnclippedBoundsInRoot().let { it.bottom - it.top }
@@ -78,7 +78,7 @@ class SearchBarClearTest {
     fun `a real touch anywhere on Clear removes the search from the map and the bar and keeps the recent searches`() {
         rig.setScreen()
         touchSamples.forEach { (fx, fy) ->
-            rig.searchCoordinates("45.326", "-122.634")
+            rig.searchCoordinates("45.3736", "-121.6959")
             assertTrue("Clear shows while a search is showing", clearShown())
             assertEquals("positive control: the search is on the map", listOf(RealSearchScreenRig.sightingAt(regionA)), rig.mapSightings)
             assertFalse("positive control: the summary names the search, not Search a location", summaryReadsSearchALocation())
@@ -103,7 +103,7 @@ class SearchBarClearTest {
         rig.setScreen()
         val gate = CompletableDeferred<Unit>()
         rig.availabilityGate = gate
-        rig.searchCoordinates("45.326", "-122.634")
+        rig.searchCoordinates("45.3736", "-121.6959")
         assertEquals("positive control: the ranked-list fetch started", 1, rig.availabilityFetches.size)
         assertTrue("positive control: and has not finished", rig.viewModel.uiState.value.isLoading)
 

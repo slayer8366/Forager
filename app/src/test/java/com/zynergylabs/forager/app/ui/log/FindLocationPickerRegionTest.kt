@@ -13,7 +13,7 @@ import org.junit.Test
  */
 class FindLocationPickerRegionTest {
 
-    private val searchRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+    private val searchRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
     @Test
     fun `with a device position in hand the picker opens there, zoomed to the tightest radius`() {

@@ -67,7 +67,7 @@ class AvailabilityScreenBubbleClearanceTest {
     /** A glyph whose centre is at root ([x], [y]) dp (the map slot is full-bleed, so its own origin is looked up, not assumed). */
     private fun addGlyphAtRoot(x: Dp, y: Dp) {
         val slot = tag("map-slot")
-        glyphs.add(StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", x - slot.left, y - slot.top, LatLng(45.326, -122.634)))
+        glyphs.add(StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", x - slot.left, y - slot.top, LatLng(45.3736, -121.6959)))
         composeRule.waitForIdle()
     }
 

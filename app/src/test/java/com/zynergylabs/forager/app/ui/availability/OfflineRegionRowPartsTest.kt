@@ -19,7 +19,7 @@ class OfflineRegionRowPartsTest {
     private val region = OfflineRegionSummary(
         id = 5L,
         name = "Region 5",
-        region = Region(lat = 45.3261, lng = -122.6345, radiusKm = 16),
+        region = Region(lat = 45.3737, lng = -121.6964, radiusKm = 16),
         minZoom = 10.0,
         maxZoom = 15.0,
         tileCount = 4321,
