@@ -193,3 +193,163 @@ fixture), but each of those is a decision for the owner and the planner, below.
 3. Five tests changed result because their fixtures moved against a fixed forecast block or a shown
    position text. Should the coder fix the fixtures so the five pass again (moving each expected
    block or text with its fixture, as #501 did once), or stop B2 here?
+
+## B4: the five tests, and D2 and D3 (a second Hazel, after the owner's answers)
+
+Hazel Cairnwright (coder), 2026-11-06. The owner answered the three questions above (Amendment 1,
+section D): **"Fix them (Recommended)"** (D1), **"Leave them (Recommended)"** for the three
+measurements (D2), and **"Take the name out (Recommended)"** (D3). Started from
+`origin/home-values-out-2` at `0e41696a2` (pre-main `b516d520a` merged in), the worktree clean at
+that SHA. Commit `c19f9245c`. As above, this section holds no coordinate, tile, range or derived value;
+places are named by kind.
+
+### What was read before acting
+
+- Run 42294867083 (the previous Hazel's code commit) and pre-main's run 42292140229 (on
+  `a5a2a392f`): both runs' `unit-test-report` JUnit XML, compared by test name with a script in the
+  scratch area. Same 6 838 names in both; the five named in the dispatch are the only changes
+  (passed to failed), nothing else differs. The failed jobs' log was checked for compile errors
+  first: both compile tasks ran and there are none; the failures are assertion failures in those
+  five tests.
+- `b516d520a`, the branch's base now, differs from `a5a2a392f` by one audit-index row and carries
+  `[skip ci]`, so pre-main has no run on it; run 42292140229 on `a5a2a392f` is the comparison.
+
+### Each test's cause, from the code
+
+- **The two `ForecastCellParsingTest` tests.** `ForecastBlock.containing` floors a centre's tenths
+  to whole degrees, and `ForecastBlock.touching` floors each edge, edges included
+  (`domain/ForecastCells.kt`, the `ForecastBlock` companion). The previous commit moved the file's
+  latitudes by one fraction of a degree and left the expected blocks where they were. In the first
+  test that put one centre into the next block up (CI's failure). It also took two centres off whole
+  degrees, which still passed but no longer tested what the test's name says ("whole degrees
+  included"). In the second test it put the north edge of the one-block area exactly on the next
+  block's edge, which `touching` counts (CI's failure).
+- **The two `ForecastCellLayerTest` tests.** `forecastBlocksToRequest` widens the view by half a
+  cell, snaps to the tenths a centre can sit on, and asks `touching` for those blocks
+  (`ui/map/ForecastCellLayer.kt`). The view's south edge was placed just above a block's lowest
+  centre, so the half-cell reach stays in that block. Moved by a fraction, it sat just above the
+  block's second centre, so the reach crossed into the block below (CI's failure in both tests,
+  which share the view). The comment explaining the edge was moved with the numbers, so it now
+  described a block the code does not compute.
+- A Python model of those three functions, written from the source, reproduces the four actual
+  values CI reported, exactly.
+- **`RecordsFilterChipsTest`, "EDIT_NEW_FIND lands on Finds editing…"** (the one the previous report
+  left unconfirmed). The text is built as `"Found at ${"%.4f".format(lat)}, ${"%.4f".format(lng)}"`
+  (`ui/log/LogEntryDetailScreen.kt`, the location row, and the same in `LogEntryReportScreen.kt`).
+  The previous commit moved the fixture's longitude by a constant with more decimal places and put the
+  moved number into the expected text as it stands, with five decimals. A four-decimal format can
+  never produce a five-decimal text, and `onNodeWithText` matches the whole text, so the node is never
+  found. The latitude is not the cause: it did not change in that test. Confirmed: the base's
+  expected text was the four-decimal form, and it passed.
+
+### What changed, and each claim before and after
+
+| Test | Its claim (the same before and after) | What changed |
+|---|---|---|
+| `ForecastCellParsingTest`, "a cell belongs to the block holding its centre, whole degrees included, south and west of zero too" | A centre on a whole degree belongs to that degree's block; a centre on the block's top tenth belongs to the block; the next whole degree starts the next block; west of zero floors down; the zero and hair-under cases (unchanged lines). | The three moved centres are the base's centres moved by one whole degree, and each expected block is moved by the same whole degree. |
+| `ForecastCellParsingTest`, "the blocks touching an area are every block it overlaps and no other" | An area across a block corner touches exactly the four blocks; an area wholly inside one block touches only that block. | Both areas' south and north edges are the base's moved by one whole degree, and the expected blocks by the same. |
+| `ForecastCellLayerTest`, "a view asks for the blocks its cells can reach" | A view whose south edge is just above a block's lowest centre asks for that block only; a north edge just below the next block's lowest centre also asks for that next block. | The view's edges are the base's moved by one whole degree, the expected blocks by the same, and the comment's numbers with them. |
+| `ForecastCellLayerTest`, "below the minimum zoom nothing is requested, and at it even a tablet-sized view stays under the backstop" | Below the minimum zoom nothing is requested; at it the same view asks for its one block; the tablet-sized worst case is 54 blocks; a tilted camera's view is refused. | The shared view and its one expected block moved as above; the worst case and the tilted view are unchanged (they were never moved). |
+| `RecordsFilterChipsTest`, "EDIT_NEW_FIND lands on Finds editing with the Finds chip selected" | A new find opened for editing lands on Records with the Finds chip selected, the Photos section shown, and its position shown as the screen formats it. | The expected text is the fixture's position at four decimals, as the screen draws it. The fixture is unchanged. |
+
+Why a whole degree, not the previous fraction. Each forecast claim sits on whole-degree block edges
+(a centre exactly on a whole degree, an area wholly inside one block, a view edge just above a
+block's lowest centre). Only a whole-degree move keeps every one of those relations, and moving the
+expected blocks alone, with the fractional fixtures, would have changed what three of the
+assertions check (two to "edge included", one to "reaches the block below"). So the fixtures in those
+four tests were moved again, by a whole degree from the base, and the expected blocks moved with them.
+That is D1's "moves each expected forecast square … along with its test point", with the test
+point's move changed from a fraction to a whole degree (see "Decided beyond scope").
+
+Checked before pushing:
+- A script in the scratch area made the edits as exact-string replacements, each required to match
+  once. Run with a zero move, it reproduces the base's text for those four tests exactly, so it moves
+  only what it should.
+- The model above, run on the edited values, passes every changed assertion.
+- The four-decimal text was checked with the JDK's own formatter (`jshell`, not Gradle): the
+  fixture's longitude is exact in binary and rounds half-up, as `%f` does, to the text now expected.
+
+No assertion was loosened, dropped or widened. The other tests in the three files are untouched;
+their claims do not depend on block edges or shown text. `app/src/main` is not changed.
+
+### D3, the saved prompt
+
+In `prompts/preserved/2026-09-30-18.md`, the place named as the owner's area becomes
+`[a city near the owner's home; removed 2026-11-06]`, beside the earlier point marker in the same
+parenthesis. A word diff shows one removed word group (the name) and one added (the marker); nothing
+else in the file changes. The name is no longer in that file (counted).
+
+### D2, the three measurements
+
+Left as they are, on the owner's word. The scanner counts them because each is a one-decimal number
+that falls in the latitude range it watches; they are a climb in metres (one test comment, one audit)
+and one render-metrics table cell, not places.
+
+### Evidence (B4)
+
+**Scanner.** Used by path only. Its files mode was proven non-zero this session before any 0 was
+trusted: on the base versions of the three test files (latitude and longitude finds), on the added
+lines of a diff that puts the base's values back (latitudes, longitudes and pairs), and on #501's
+files as they stood before #501 (also helper pairs and search-list hits). Its diff mode was found to
+count a diff's removed lines as well as its added ones (a diff and its reverse read the same), so the
+push diff was scanned as its added lines only, in files mode.
+
+- Push diff (`c19f9245c`, added lines): 0 on every count. Commit message: 0. The four changed files:
+  0 each.
+- Whole tree at `c19f9245c` (files mode, 3 676 files): 23 latitudes, 2 longitudes, 0 pairs, 0 helper
+  pairs, 0 grid references, 0 tiles, 0 search-list hits. That is the previous section's branch figure,
+  unchanged. Per file, the old scanner finds the same 18 files with the same counts (Group 3); the new
+  scanner adds exactly the three measurement files of D2 and nothing else.
+
+**CI.** Pending at the time of writing; see "CI (B4)" below.
+
+### Disclosure (B4)
+
+#### Confirmed and inferred
+
+- Confirmed from the code: each failure's cause above, the forecast ones also by a model that
+  reproduces CI's actual values.
+- Confirmed: none of the four changed files is changed by `nav-card-kind-line` or `next-turn`,
+  checked against both branches' file lists before editing.
+- Inferred: that the edit screen this test lands on draws the `LogEntryDetailScreen` row and not the
+  report screen's. Both build the text the same way, so the expected text is the same either way.
+
+#### Could not determine
+
+- Grid-reference and tile counts were not proven non-zero in this session. A grid reference removed
+  earlier from a records-branch report did not read non-zero in its old version either, and making a
+  case would mean deriving one from the watched area, which I would not do. Their 0s rest on the
+  earlier sessions' proofs.
+- How the scanner's diff mode is meant to be invoked: it was not read (reading it was refused, and
+  the dispatch says by path only). The added-lines method above was used instead and is proven.
+
+#### Premises that were wrong
+
+- "Moving each expected block … with its fixture" was not enough for the four forecast tests: with the
+  fractional fixtures, moving the expected blocks would have changed three assertions' claims. The
+  fixtures were moved by a whole degree instead (above).
+- The previous report's guess for the filter-chips test (the per-value latitude) was not the cause; it
+  was the expected text's decimal places.
+- The four forecast tests' values were never scanner finds themselves (a zero move reads 0). They moved
+  only because each file shared one constant. The finds in those files are in other tests, which are
+  untouched here.
+- The same place name D3 removes is also in three other files: `RECORD.md`, an app test
+  (`EstimateOfflineTileCountTest`), and `docs/audits/2026-09-30-topo-night-completion-report.md`.
+  D3 named one file, so they are not changed (question below).
+
+#### Decided beyond scope
+
+- The fixtures' move in the four forecast tests changed from a fraction to a whole degree.
+- The whole-degree move's direction was my choice: of the two one-degree moves, the one that leaves
+  the values nearer point P. The scanner reads 0 either way and both keep every claim (checked with
+  the model for both).
+- The marker's wording for the name ("a city", after the earlier marker's form).
+
+### Questions for the owner (B4)
+
+4. The place name D3 took out of one saved prompt is also in three other files (the decision record,
+   one app test and one old audit). Take it out of those too, by kind as here?
+
+### CI (B4)
+
+Pending.
