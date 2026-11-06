@@ -35509,12 +35509,15 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - "When should this be built?": **"This release (Recommended)"**. The option read: "Build it before the promotion, alongside the trip bubble and edge shade. It touches the Trip Planner and Offline Maps, which nothing else in flight changes." The other: "Next release".
     - **Corrected here:** "which nothing else in flight changes" was wrong. PR #494 changes AvailabilityScreen.kt, AvailabilityUiState.kt and AvailabilityViewModel.kt, which this may need. The planner checked the overlap only after asking.
     - So Phase 1 is read-only now, and Phase 2 is built after #494 merges. The edge shade's branch touches none of those files.
+    - **Corrected here (2026-11-06T01:22:17Z, -2170, from Hazel's Phase 1):** bug 14's Phase 2 also changes the Offline Maps page's files: AvailabilityOfflineMapsUi.kt, AvailabilityUiState.kt and MainActivity.kt (its Phase 1b plan). It is queued on the same trigger (-2150, -2151), so the two are sequenced (-2170).
+      - The dispatch's "CentrePinLocationPicker.kt (bug 14's Phase 2 changes it on bug-14-picker-warning)" was wrong too. That branch doesn't exist yet, bug 14's plan leaves the file alone, and it is #495 that changes it.
 - **Dispatch 2026-11-05-08** is at prompts/preserved/2026-11-05-08-trip-download-maps.md:
   - Phase 1 is read-only, a report by message.
   - Phase 2 starts on the planner's go after #494 merges, from pre-main as it is then.
   - It doesn't touch CentrePinLocationPicker.kt, which is bug 14's Phase 2 file.
 - **Already in place, read at pre-main 3a3d85089:**
   - The Offline Maps page opens its pin on offlineMapLatText/offlineMapLngText when they are set, and otherwise on the device's location (AvailabilityOfflineMapsUi.kt:149-162).
+    - **Corrected here (2026-11-06T01:22:17Z, -2170):** only for a page that isn't already open. Its pin state is remembered with no key (CentrePinLocationPicker.kt:188), so an open, panned page keeps its pin. Tools opens over the current tab, so that case is reachable.
   - The trip rows today are PlannedTripRow (AvailabilityTripsWaypointsUi.kt:148, with Directions and Delete icons) and PlannedRouteRow.kt.
 **Notes:** Written by the planner by hand. Next free ID -2168.
 
@@ -35568,3 +35571,29 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - W3's control, standing 15 to 20 m off beside the trail, is done on the pavement near the path's end where there's room, and skipped where there isn't.
   - Not checked: that these footpaths are in the route data. If Return reads "following your track", Part 2 stops, as planned.
 **Notes:** Written by the planner by hand. Next free ID -2170.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2170
+**Timestamp:** 2026-11-06T01:22:17Z
+**Continues:** 2026-09-28-2167
+**Title:** Download Maps from a trip: Phase 1 in, sequenced after bug 14, four choices for the owner; the planner's commit trailers named the model
+**Outcome:**
+- **Hazel's Phase 1 report** for dispatch 2026-11-05-08 is preserved at prompts/preserved/2026-11-05-08-phase1-report.md. It was read-only at pre-main 3a3d85089: no branch, push or Gradle.
+- **What it found:**
+  - Tools › Offline Maps lands on Journal › Records › the Offline maps chip. First Back restores the page you came from with Tools reopened, and second Back closes the drawer.
+  - A fresh page puts the pin on the set point. An open, panned page doesn't, which is fixable by a key in AvailabilityOfflineMapsUi.kt without CentrePinLocationPicker.kt.
+  - Today's page already keeps an entered point and name until a download succeeds. That meets B5's "report it and wait".
+  - The slider runs from 1 to 24 km. Nothing limits how far apart a route's stops are, so a route can exceed 24 km.
+  - A labelled button doesn't fit beside the icons, so it needs its own line.
+  - A side finding, for later: after a cancelled Download Maps, the next opening shows that point, not "near me". That goes against the documented ruling at AvailabilityOfflineMaps.kt:64-73.
+- **The planner's calls:**
+  - **Sequencing:** bug 14's Phase 2 goes first after #494 merges, as already queued (-2150, -2151). This build's Phase 2 follows once bug 14 merges, because they share files and the modular-code rule is one coder per file.
+  - **Back (her E):** Back reuses the Tools row's return, under the owner's Back rule. No new handler.
+  - **The commit trailer:** Phase 2 uses the dispatch's `Co-Authored-By: Claude <noreply@anthropic.com>`.
+- **For the owner, asked next:** A, where the button sits; B, what the trip's pin and name do if you leave without downloading; C, a route bigger than one download; D, cover the stops or the route's whole line.
+- **A planner error:** since the attribution reminder at about 22:00Z, the planner's commits ended "Co-Authored-By: Claude Opus 5.5 <noreply@anthropic.com>". The standing rule says no model name, and CLAUDE.md's preamble says the user's rule wins over the reminder.
+  - There are 19 such commits: 15 on records-after-173 (7049c8c7a to 94ae82052), 2 on pre-main (6e24b22c4 and 3a3d85089, audit-index rows) and 2 on tools/s22-combined (abb5c4a4a and 4670712fa).
+  - The trailer is fixed from this commit on. History isn't rewritten without the owner's word ("Push before you tidy").
+**Notes:** Written by the planner by hand. Next free ID -2171.
