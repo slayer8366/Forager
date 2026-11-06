@@ -101,11 +101,11 @@ class CompassStripWindowsTest : NavigationCardKindLineScreen() {
     /**
      * 360 dp: the line is short of room for the windows' widest values (307.3 dp needed of 290 with "Alt"), so they squeeze toward the
      * values shown and a change there may move its neighbours (the planner's reading: "The heading moves the others only when the strip
-     * is short of room"). What the line keeps does not change as the values do: the heading, "Alt" with the height (kept since H7's
-     * squeezed form fits; it gave way before), and the grid reference, facing either way and at either height.
+     * is short of room"). What the line keeps: the heading, the height and the grid reference, facing either way and at either height;
+     * "Alt" comes and goes with the heading's width, as before H7.
      */
     @Test @Config(qualifiers = "w360dp-h780dp-xxhdpi")
-    fun `360 dp, font 1,0 - short of room, the line keeps the heading, Alt and the height as they change`() {
+    fun `360 dp, font 1,0 - short of room, the line keeps the heading, the height and the grid reference as they change`() {
         val problems = mutableListOf<String>()
         fun kept(): List<String> = (tags + NAVIGATION_LABEL_TAG).filter { tag ->
             composeRule.onAllNodes(hasTestTag(tag) and androidx.compose.ui.test.hasAnyAncestor(hasTestTag("compass-elevation-strip")), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
@@ -118,10 +118,11 @@ class CompassStripWindowsTest : NavigationCardKindLineScreen() {
         val turned = kept()
         setAltitude(3_000.0)
         val higher = kept()
-        val all = tags + NAVIGATION_LABEL_TAG
-        if (first != all) problems += "facing 281°, the line keeps $first, not $all"
-        if (turned != first) problems += "facing 89°, the line keeps $turned, not $first"
-        if (higher != first) problems += "at 3000 m, the line keeps $higher, not $first"
+        // What the line keeps is decided on the values as drawn, as before H7 (RECORD -713), so "Alt" comes and goes with the heading's
+        // width here (281° W: no room for it; 89° E: room), as it did before H7; the three values stay in every state.
+        for ((name, kept) in listOf("facing 281°" to first, "facing 89°" to turned, "at 3000 m" to higher)) {
+            if (!kept.containsAll(tags)) problems += "$name, the line keeps $kept, not all of $tags"
+        }
         assertTrue(problems.joinToString("\n"), problems.isEmpty())
     }
 
