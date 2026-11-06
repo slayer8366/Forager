@@ -36110,6 +36110,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Phase 3 restarted (2026-11-06T11:14:44Z), the owner, verbatim,** to "Start a fresh Hazel on PR #498 to build these: \"Arrived\" and the \"—\" centred, and the 11 why-only \"straight line\" lines removed?": **"Start her (Recommended)"**. The option read: "A fresh Hazel on #498 builds all three, with tests failing first and a revert check for each, then full CI. #498 stays unmerged; then the S22 check and your merge word." The other: "Not yet".
   - A fresh Hazel builds B3, B4 and F2 from nav-card-kind-line 50808417f, under Amendment 1 at 44a6476ee.
   - **One coder per file:** before editing a file she checks it against home-location-out, and stops if it is shared.
+- **The owner, verbatim (2026-11-06T11:15:06Z):** **"And that's all. Now start the new coder"**. So B3, B4 and F2 are the whole of Phase 3. The Phase 3 Hazel had already started, just before this message, on the owner's "Start her (Recommended)". No second one was started.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
