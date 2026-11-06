@@ -98,8 +98,32 @@ class CompassStripWindowsTest : NavigationCardKindLineScreen() {
     @Test @Config(qualifiers = "w384dp-h823dp-xxhdpi")
     fun `384 dp, font 1,0 - a heading, a height or the grid reference's form changing moves nothing else`() = assertNothingShifts("384/1.0", headingShown = true)
 
+    /**
+     * 360 dp: the line is short of room for the windows' widest values (307.3 dp needed of 290 with "Alt"), so they squeeze toward the
+     * values shown and a change there may move its neighbours (the planner's reading: "The heading moves the others only when the strip
+     * is short of room"). What the line keeps does not change as the values do: the heading, "Alt" with the height (kept since H7's
+     * squeezed form fits; it gave way before), and the grid reference, facing either way and at either height.
+     */
     @Test @Config(qualifiers = "w360dp-h780dp-xxhdpi")
-    fun `360 dp, font 1,0 - a heading or a height changing moves nothing else`() = assertNothingShifts("360/1.0", headingShown = true, toggle = false)
+    fun `360 dp, font 1,0 - short of room, the line keeps the heading, Alt and the height as they change`() {
+        val problems = mutableListOf<String>()
+        fun kept(): List<String> = (tags + NAVIGATION_LABEL_TAG).filter { tag ->
+            composeRule.onAllNodes(hasTestTag(tag) and androidx.compose.ui.test.hasAnyAncestor(hasTestTag("compass-elevation-strip")), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+        }
+        show(State.TRAIL, Evening.NONE, Facing.TURN)
+        setNavigating(false)
+        val first = kept()
+        show(State.TRAIL, Evening.NONE, Facing.AHEAD)
+        setNavigating(false)
+        val turned = kept()
+        setAltitude(3_000.0)
+        val higher = kept()
+        val all = tags + NAVIGATION_LABEL_TAG
+        if (first != all) problems += "facing 281°, the line keeps $first, not $all"
+        if (turned != first) problems += "facing 89°, the line keeps $turned, not $first"
+        if (higher != first) problems += "at 3000 m, the line keeps $higher, not $first"
+        assertTrue(problems.joinToString("\n"), problems.isEmpty())
+    }
 
     @Test @Config(qualifiers = "w320dp-h780dp-xxhdpi")
     fun `320 dp, font 1,0 - with the heading given way, a height or the form changing moves nothing else`() = assertNothingShifts("320/1.0", headingShown = false)
