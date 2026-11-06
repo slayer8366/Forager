@@ -235,8 +235,19 @@ class AvailabilityScreenNavigationWordsTest {
         val figure = bounds(node(NAVIGATION_HUD_DISTANCE_TAG))
         val needle = bounds(node(NAVIGATION_HUD_NEEDLE_TAG))
         val kind = bounds(node(NAVIGATION_HUD_DISTANCE_KIND_TAG))
-        assertTrue("the kind $kind is below the figure $figure", kind.top >= figure.bottom - 0.5.dp)
-        assertTrue("the kind $kind is under the turn line (needle $needle)", kind.top >= needle.bottom - 0.5.dp)
+        // Dispatch 2026-11-05-10 (RECORD -2181, the owner: "move the "by trail" from the bottom to the top right half, on the same
+        // line as 2.2 mi"): on the figure's line and baseline, right of it, above the turn line. Was (RECORD -945): `kind.top >=
+        // figure.bottom - 0.5.dp` ("below the figure") and `kind.top >= needle.bottom - 0.5.dp` ("under the turn line").
+        assertEquals("the kind is on the figure's baseline", baselineOf(node(NAVIGATION_HUD_DISTANCE_TAG)), baselineOf(node(NAVIGATION_HUD_DISTANCE_KIND_TAG)), 0.5f)
+        assertTrue("the kind $kind is right of the figure $figure", kind.left >= figure.right)
+        assertTrue("the kind $kind is above the turn line (needle $needle)", kind.bottom <= needle.top + 0.5.dp)
+    }
+
+    /** [interaction]'s first baseline in the root, in dp (dispatch 2026-11-05-10). */
+    private fun baselineOf(interaction: SemanticsNodeInteraction): Float {
+        val results = mutableListOf<TextLayoutResult>()
+        interaction.fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
+        return bounds(interaction).top.value + with(composeRule.density) { results.single().firstBaseline.toDp().value }
     }
 
     /**
@@ -256,21 +267,31 @@ class AvailabilityScreenNavigationWordsTest {
     }
 
     /**
-     * The words and labels do not grow the display: with the longest lines it is exactly as tall as with short ones. The second
-     * row was already there with a fix; the labels sit on its line and the kind on the figure's.
+     * The words and labels do not grow the display: with the longest lines it is exactly one status line shorter than before the
+     * first route, which has no kind and a status line ("≈ 1250 ft straight"). The longest lines have the kind on the figure's line
+     * and an empty status line (RECORD -942), so the two differ by exactly that status line.
+     *
+     * Dispatch 2026-11-05-10 (RECORD -2181): was "the longest lines leave the display as tall as short ones", asserting
+     * `assertEquals(short.value, long.value, 0.5f)`, which held while the kind was a line of its own under the turn line, as tall as
+     * the status line the short state has instead. The kind now shares the figure's line, so the equal heights are gone; the exact
+     * difference is the claim in their place.
      */
     @Test
-    fun `the longest lines leave the display as tall as short ones`() {
+    fun `the longest lines leave the display exactly one status line shorter than the dash before the first route`() {
         setScreen(facing = 281f, route = ReturnRoute.Ahead(east, 390.0))
+        assertEquals("positive control: the longest lines have no status line", "", textOf(NAVIGATION_HUD_STATUS_TAG))
         val long = bounds(node(NAVIGATION_HUD_TAG)).let { it.bottom - it.top }
         // Before the first route: a dash in the large slot, no kind, no turn; the same second row.
         composeRule.runOnIdle { route = ReturnRoute.Pending }
         composeRule.waitForIdle()
         assertEquals("—", textOf(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("", textOf(NAVIGATION_HUD_TARGET_TAG))
+        assertFalse("positive control: the dash has no kind", drawn(NAVIGATION_HUD_DISTANCE_KIND_TAG))
+        val status = bounds(node(NAVIGATION_HUD_STATUS_TAG)).let { it.bottom - it.top }
+        assertTrue("positive control: the dash has a status line <${textOf(NAVIGATION_HUD_STATUS_TAG)}>, $status tall", status > 0.dp)
         val short = bounds(node(NAVIGATION_HUD_TAG)).let { it.bottom - it.top }
-        println("MEASURED display height: long lines $long, short lines $short")
-        assertEquals("the display's height with the longest lines", short.value, long.value, 0.5f)
+        println("MEASURED display height: long lines $long, short lines $short, the short state's status line $status")
+        assertEquals("the display with the longest lines is the dash's less its status line", (short - status).value, long.value, 0.5f)
     }
 
     /** A real touch at the centre of [interaction], as a finger switches the coordinate format. */

@@ -18,6 +18,12 @@ import org.junit.Test
  * Pinned on round numbers so each step's threshold is exact: divider 10, gap 2, arrow 10. The arrow line, whole: the turn (60 +
  * 2 + 10), a gap, the north arrow and the heading (10 + 2 + 40): 126; with the turn short (20 + 2 + 10): 86. The left part is
  * the widest of the figure (40), the arrow line and the kind (30); the total adds the divider and the evening piece.
+ *
+ * Dispatch 2026-11-05-10 (RECORD -2181) moved the kind onto the figure's line, or its own line under the figure. Where it goes is
+ * decided after these steps, on the width they leave the left part ([kindPlace], `NavigationCardTopLineFitTest`), and these steps
+ * never read it: the turn words shrink, "≤ 16 ft" shows and the evening pieces wrap exactly where they did, so the values here are
+ * unchanged on purpose and [NavigationInfoFit.kindPlace] is left at its default by this fit (asserted below). The kind still
+ * counts as a line of the left part's width here, as it does where it takes its own line.
  */
 class RoundedMapCardFitTest {
 
@@ -107,6 +113,12 @@ class RoundedMapCardFitTest {
         assertEquals(50, f.rightPx)
         assertFalse(f.overflows)
         assertTrue("one less and it overflows", fit(widths(145, evening = 50)).overflows)
+    }
+
+    @Test
+    fun `the steps do not place the kind: that is decided on the width they leave (dispatch 2026-11-05-10)`() {
+        assertEquals(KindPlace.NONE, fit(widths(136)).kindPlace)
+        assertEquals(KindPlace.NONE, fit(widths(50, figurePx = 100, figureShortPx = 30)).kindPlace)
     }
 
     @Test
