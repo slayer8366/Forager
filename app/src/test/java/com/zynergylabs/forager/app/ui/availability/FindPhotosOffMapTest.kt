@@ -155,9 +155,9 @@ class FindPhotosOffMapTest {
 
     @Test
     fun `a find with two photos draws one find icon and no photo icons`() {
-        saveFind("find-1", LatLng(45.50, -122.60))
-        addPhoto("ph-a", 45.5003, -122.6004, toEntry = "find-1")
-        addPhoto("ph-b", 45.4998, -122.5997, toEntry = "find-1")
+        saveFind("find-1", LatLng(45.50, -121.70))
+        addPhoto("ph-a", 45.5003, -121.7004, toEntry = "find-1")
+        addPhoto("ph-b", 45.4998, -121.6997, toEntry = "find-1")
 
         show()
 
@@ -167,9 +167,9 @@ class FindPhotosOffMapTest {
 
     @Test
     fun `a standalone photo draws with Photos on and not with Photos off, beside a find that hides its own`() {
-        saveFind("find-1", LatLng(45.50, -122.60))
-        addPhoto("ph-of-find", 45.5003, -122.6004, toEntry = "find-1")
-        addPhoto("standalone", 45.52, -122.62)
+        saveFind("find-1", LatLng(45.50, -121.70))
+        addPhoto("ph-of-find", 45.5003, -121.7004, toEntry = "find-1")
+        addPhoto("standalone", 45.52, -121.72)
 
         show()
 
@@ -187,9 +187,9 @@ class FindPhotosOffMapTest {
     /** Amendment 1, "No icon anywhere (Recommended)": also attached to a shown journal entry, still no icon and no ring. */
     @Test
     fun `a photo linked to a find and to a shown journal entry has no icon and no journal ring`() {
-        saveFind("find-1", LatLng(45.50, -122.60))
-        addPhoto("ph-both", 45.5003, -122.6004, toEntry = "find-1")
-        addPhoto("ph-entry-only", 45.52, -122.62)
+        saveFind("find-1", LatLng(45.50, -121.70))
+        addPhoto("ph-both", 45.5003, -121.7004, toEntry = "find-1")
+        addPhoto("ph-entry-only", 45.52, -121.72)
         val entry = CartographyEntry.draft(id = "entry-1", date = day, updatedAtEpochMillis = 1L).copy(
             isDraft = false,
             shownOnMap = true,
@@ -210,7 +210,7 @@ class FindPhotosOffMapTest {
     @Test
     fun `a find with no location leaves its located photos on the map as standalone photos`() {
         saveFind("unlocated", at = null)
-        addPhoto("ph-a", 45.5003, -122.6004, toEntry = "unlocated")
+        addPhoto("ph-a", 45.5003, -121.7004, toEntry = "unlocated")
         addSentinel()
 
         show()
@@ -222,15 +222,15 @@ class FindPhotosOffMapTest {
     /** Amendment 1, "Hide only after Save (Recommended)": a draft's photos keep their icons until Save. */
     @Test
     fun `a draft find's photos keep their icons until it is saved`() {
-        saveFind("new-find", LatLng(45.50, -122.60), draft = true)
-        addPhoto("ph-a", 45.5003, -122.6004, toEntry = "new-find")
+        saveFind("new-find", LatLng(45.50, -121.70), draft = true)
+        addPhoto("ph-a", 45.5003, -121.7004, toEntry = "new-find")
         addSentinel()
 
         show()
         assertEquals("while a draft, the photo is drawn", listOf("ph-a", SENTINEL), photos())
 
         runBlocking {
-            repository.commitDraft("new-find", MushroomLogEntry.draft(id = "new-find", location = LatLng(45.50, -122.60), date = day).copy(isDraft = false)).getOrThrow()
+            repository.commitDraft("new-find", MushroomLogEntry.draft(id = "new-find", location = LatLng(45.50, -121.70), date = day).copy(isDraft = false)).getOrThrow()
         }
         reload { it.findMarkers.isNotEmpty() }
 
@@ -241,9 +241,9 @@ class FindPhotosOffMapTest {
     /** Amendment 1, "Fine, they reappear (Recommended)": after the Undo window, a deleted find's photos are standalone. */
     @Test
     fun `a deleted find's photos come back as standalone photos once its delete is committed`() {
-        saveFind("find-1", LatLng(45.50, -122.60))
-        addPhoto("ph-a", 45.5003, -122.6004, toEntry = "find-1")
-        addPhoto("ph-b", 45.4998, -122.5997, toEntry = "find-1")
+        saveFind("find-1", LatLng(45.50, -121.70))
+        addPhoto("ph-a", 45.5003, -121.7004, toEntry = "find-1")
+        addPhoto("ph-b", 45.4998, -121.6997, toEntry = "find-1")
         addSentinel()
         show()
         assertEquals("positive control: hidden while the find is saved", listOf(SENTINEL), photos())

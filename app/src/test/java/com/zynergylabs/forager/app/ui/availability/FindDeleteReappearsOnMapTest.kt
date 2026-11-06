@@ -114,8 +114,8 @@ class FindDeleteReappearsOnMapTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private val findA = find("find-a", 45.30)
-    private val findB = find("find-b", 45.31)
+    private val findA = find("find-a", 45.40)
+    private val findB = find("find-b", 45.41)
 
     private class Rig(
         val repository: FindStore,
@@ -273,7 +273,7 @@ class FindDeleteReappearsOnMapTest {
 }
 
 private fun find(id: String, lat: Double) =
-    MushroomLogEntry.draft(id = id, location = LatLng(lat, -122.6), date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
+    MushroomLogEntry.draft(id = id, location = LatLng(lat, -121.75), date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
 
 /** Finds kept in memory; [markers] is what the map's read makes of them, and every [delete] call is recorded. */
 private class FindStore(initial: List<MushroomLogEntry>, private val deleteShouldFail: Boolean) : MushroomLogRepository {

@@ -54,7 +54,7 @@ class ForagerDatabaseDestructiveFallbackTest {
     fun `a version gap with no registered migration throws under the release path`() {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV2::class.java, dbFile.absolutePath).build()
-        runBlocking { legacyDb.plannedTripDao().upsert(PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -122.66, date = "2026-09-01")) }
+        runBlocking { legacyDb.plannedTripDao().upsert(PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -121.76, date = "2026-09-01")) }
         legacyDb.close()
 
         // Room opens the connection (and runs its migration check) lazily on first access, not at
@@ -68,7 +68,7 @@ class ForagerDatabaseDestructiveFallbackTest {
     fun `the same version gap falls back instead of throwing under the debug path`() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Application>()
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV2::class.java, dbFile.absolutePath).build()
-        legacyDb.plannedTripDao().upsert(PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -122.66, date = "2026-09-01"))
+        legacyDb.plannedTripDao().upsert(PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -121.76, date = "2026-09-01"))
         legacyDb.close()
 
         // Must not throw. If it does, this test fails with that exception, which is the point:
