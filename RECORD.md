@@ -36315,6 +36315,10 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Phase 2 blocked (2026-11-06T17:16:46Z):** the session's permission check refused to start the deletion Hazel, as "Git Destructive", and the planner didn't try to get around it.
   - The copy step, the 150 reports to this branch with home values scrubbed, runs on its own with a Hazel told to delete nothing.
   - The deletion of the 1,057, the 45 probes, the 9 finished branches and the 150 copied report branches waits for the owner's permission in the session's settings, or the owner's own hand.
+- **The owner, verbatim (2026-11-06T17:27:10Z):** **"Go ahead and delete"**.
+  - The planner started the deletion Hazel again, with the owner's words quoted. The permission check refused a second time ("Git Destructive"), and the planner stopped there.
+  - **Put to the owner:** add an allow rule for `git push origin --delete` in the session's permissions, or run a prepared script themselves.
+  - Nothing has been deleted. The report copy continues.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
