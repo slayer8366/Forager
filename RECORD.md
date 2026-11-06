@@ -35876,6 +35876,21 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **A finding, not acted on:** OfflineMapRepository.MAX_RADIUS_KM's comment sizes the radius for an archive whose northern edge was 49.60°. The tile budget now refuses a 24 km download from about 53.4°. Left for later.
 - **S22 build started:** tools/s22-combined moved 57e1a5ed3 → 1f5717a37 (merge of bug-14-picker-warning 1904e35ad, clean), CI run 42163222455. It is for her device check, D1 to D8. D6 and D7 toggle airplane mode, a phone setting under -2129, restored after.
 - **Known bug 14's row:** to be updated with the merge, as -2150 said.
+- **The S22 check (2026-11-06T05:04:35Z), the owner, verbatim:** "Run a phone check while the build happens". It ran on 1.0.4673+g1f5717a3 (versionCode 4673, signer cb2f6da5…1626), from CI run 42163222455, all jobs green; the data was snapshotted before install, unchanged since end-s17. **D1 to D8 pass:**
+  - **D1, home, untouched:** no line; 1 request at zoom 11, answered 200, since a 1 mi area lies in one z11 tile (her "4 to 25" was for larger areas); no "detail check not run" line.
+  - **D2, the -1950 point:** the owner's sentence word for word within 2 s, directly under "Pin at", in two lines. One request, answered 204. Download Maps still opens "Download this area?".
+  - **D3, a land-only area north of 15.92°N outside the data:** the line within about 4 s; one request, answered 200, in 1.1 s.
+  - **D4:** reopened at home in the same session, no line, and it stays gone. The pin takes the phone's location only when the page opens, so the move was made by leaving and reopening the page, not by panning.
+  - **D5, landscape:** the line pinned above "Pin at", fully in view, in three lines.
+  - **D6, airplane mode:** no line; logcat "Offline maps detail check not run: no signal."
+  - **D7, observation:** the line came back 44 s after airplane mode went off.
+  - **D8:** dragging the radius to the largest (14 mi, about 4,124 tiles) made 19 requests in all, within the cap of 36. A small pan then made none.
+  - **How the areas were reached:** Android's test-location provider, through adb under -2129. The shell's mock_location appop was set to allow, then back to default. Test providers gps, network and fused were given each point every second and removed after. Android dropped them once, and the loop re-added them.
+    - While they ran, auto time zone moved the phone's clock to the test point's zone. It returned to America/Los_Angeles when they were removed.
+  - **Restored and checked:** airplane mode off, auto-rotate on (accelerometer_rotation 1, user_rotation 0; it read 0 once after the first restore and was set again), real GPS fixes, Pacific time.
+  - **Left:** the snapshot end-s18 matches before-install except cached_searches, 2 to 3 rows. A coordinate search the planner made (the search panel's Latitude/Longitude, which sets the forage search, not the picker) was cleared from the bar, but its row stays in Recent searches. It is test data on the test phone, not edited out by hand.
+  - Session folder ~/s22-2026-11-04/s18, off GitHub, because the logs hold tile addresses.
+  - **Waiting on:** the owner's merge word for #496.
 **Notes:** Written by the planner by hand. Next free ID -2180.
 
 ---
@@ -35900,4 +35915,15 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - So Phase 2 builds on branch edge-shade (PR #495), and the dispatch is marked in place. #495 isn't merged until the drawer is in, has its own S22 check, and the owner gives the word. The S22 check of -2178 stands for the rest of #495.
   - Told to Hazel (Phase 1, still read-only) by message, with the words quoted.
   - The owner then, verbatim: "Keep it on the same record line, do not add a new record line". This change was first written as a separate entry, -2181. It is folded in here, and -2181 is removed. That ID is unused now, and its text stays in git history (706bd25b2).
+- **Phase 1 (2026-11-06T05:04:35Z):** Hazel's read-only report is preserved at prompts/preserved/2026-11-05-09-phase1-report.md.
+  - The helper that fits, mapChromeEdges / mapChromeOutlinePath (MapChromeOutline.kt:82-188), predates #495. #495's own two helpers don't fit.
+  - The drawer has no shadow (DrawerDefaults.ModalDrawerElevation 0 dp), so D4 needs no report beyond that.
+  - Its map-facing corners are 20 dp. The outline tests hard-code 16, so the new test reads the sheet's own radius.
+  - In landscape it opens from the right at both rotations; the comment at ScreenToolsDrawer.kt:169-173 is out of date. So D3 is one edge in each orientation.
+  - The line runs the whole map-facing edge, over the bars the drawer covers, with its rounded ends under the status and navigation bars. D1 covers this; there are no options for the owner.
+  - **The planner's calls:**
+    - Phase 2 goes ahead on edge-shade with a fresh Hazel, because this one passed 200k.
+    - #495 is set back to draft while its red tests-first commit lands, and made ready again at the end.
+    - The -2178 S22 check stands for everything but the drawer, which gets its own short check on the new head.
+    - The merge pins the new head.
 **Notes:** Written by the planner by hand. Next free ID -2181.
