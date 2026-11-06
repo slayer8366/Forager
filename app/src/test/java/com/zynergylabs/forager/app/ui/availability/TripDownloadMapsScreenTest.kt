@@ -156,7 +156,7 @@ class TripDownloadMapsScreenTest {
     /** Tools, then its own Offline Maps row, by real touches: the page as anyone opens it today. */
     private fun openOfflineMapsFromTools() {
         composeRule.openTools()
-        touch(composeRule.onNodeWithTag(TOOLS_OFFLINE_MAPS_ROW_TAG).performScrollTo())
+        touch(composeRule.onNodeWithTag(TOOLS_OFFLINE_MAPS_ROW_TAG))
         assertTrue("positive control: Tools > Offline Maps shows the page", offlineMapsShown())
     }
 
