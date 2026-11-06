@@ -463,3 +463,118 @@ Nothing is built. Read at `744d96821`, with pre-main at `61f99fbe2`; `nav-card-k
   - (b) Lines only. The forecast colours, the offline tint and the journal rings would then draw over the lines, which undoes "Move marker rings below all lines".
   - Either way, the plotted route's stop dots move with the plotted route, staying under the way home. The fan-out's legs stay on top with the fanned-out markers, since they are part of that gesture and not a route. Say if the legs should move too.
 - **Q3. Is this right for the other maps?** Topo by day and Street, day and night, keep today's placement, logged, because their names are part of the picture. Topo at night keeps it too, because the Topo picture covers Trail Map there. So the change shows only on Trail Map, day and night, and on downloaded Trail Map areas.
+
+## Category I, built: the app's lines under Trail Map's names (Hazel, 2026-11-06)
+
+Built against Amendment 1's reading after I7 (`records-after-173` at `ca8b278c0`). The owner, verbatim: "Under all names, trail no. too" (I5); "Move down with the lines (Recommended)" (I6); "Stay with the markers" (I7). The starting state matched the remote: `next-turn` at `fd6eaa643`, pre-main `61f99fbe2` merged in. Pre-main moved during the session, to `a5a2a392f` (PR #501, home values out), and was merged in at `4d479107e`. Neither sibling branch touches a file changed here.
+
+**Built: the app half of I5, and I6. Not built: the trail-number style change, I5's second half.** That one is a stop, below.
+
+### What was built
+
+- **`ui/map/AppLinesUnderNames.kt` (new, about 100 lines).** It reads the loaded style's layers before any app layer is added. It finds the first layer of the basemap's top run of name and icon layers, which is the names anchor. Every registry layer in the colour-field, area, decoration and line groups is then added just below that anchor, in registry order. A style whose top layer is not a name or icon layer has no anchor, so everything is added on top, as before. One line is logged per style load, saying which of the two happened and why.
+- **`OverlayLayerSetup.kt`: two lines.** The anchor is read before the registry loop. Inside the loop, `style.addLayer(layer)` became `addOverlayLayer(style, layer, overlayPlacement(spec, namesAnchor))`.
+- **Why the rest follows without being touched.** The way home and the way to a waypoint are added above the kept tracks. The plotted route and its stop dots are added below the way home's lowest line. Both are relative adds (`RouteHomeLayers.kt:284-290`, `PlottedRouteLayers.kt:136-148`), so they land under the anchor with the kept tracks. The arrival ring and the waypoint names are added above the waypoints, and the fan-out is added on top, so they stay over the whole map. The puck is placed below the fan-out's legs (`LiveLocationPuckOrderTest`), so it stays on top too.
+- **The anchor is the top run, not the first symbol layer.** This follows I5 ("roads stay under the lines"). On every served Trail Map, v1 to v4, the top run starts at `address_label` (v4: index 117 of 182). Directly under it are the bridges, so roads, rail, bridges and boundaries stay under the lines. If the trail number is later moved up among the labels, the anchor rule still holds.
+- **Added in place, not moved afterwards.** MapLibre 13.5.0's Android `Style` has no move call, only `removeLayer` and adding the layer again. I checked this with `javap` on the pinned AAR. A layer lost between those two steps would be a missing line, so adding in place was the safer choice.
+
+### Evidence
+
+Every run was read by `/mnt/work/scratch/hazel-catI/results.py`, the second 2b-1 session's script copied unchanged. It refuses a run that is incomplete, on another commit, or whose log is empty, short, or has a compile error. The filter for the filtered runs was `AppLinesUnderNamesTest`, `MapLayerRegistryTest`, `BasemapStyleTest`, `OwnTrailStyleSourceTest` and `TrailStyleTest`, 70 tests.
+
+- **Red, 42291849106** on `9eb86c9af` (tests plus stubs that keep today's placement). No compile errors. 70 tests, 3 failed, all in `AppLinesUnderNamesTest`, each for the stub's reason:
+  - the anchor `expected:<address_label> but was:<null>`;
+  - `forecast-chicken-of-the-woods-layer must draw under the names`;
+  - the log line reading `stub`.
+- **Six of the nine new tests passed on the stubs. They are controls, and they pass before and after by design:**
+  - Topographical by day, Street and every other raster map unchanged;
+  - Topographical at night unchanged;
+  - the offline style unchanged;
+  - the block's own order;
+  - markers and the fan-out on top;
+  - roads under the lines (today's placement already has them under).
+
+  The last of these bites only against the planner's first reading. The i5anchor revert below shows that it does.
+- **Full CI, first: PR run 42293168413** on `4d479107e`. The unit tests were all green: 6,952, 0 failed, 24 skipped. One job failed, "The app builds and its tests pass with the Street map deleted". CI's error was "something outside the Street map's place still names it", at `AppLinesUnderNamesTest.kt:11` and `:185`, my test's `StreetMap` import. That was my mistake. The fix, `4d9ab8418`, checks every registered map type from `Basemap.entries`, day and night, and names no Street map.
+- **Full CI, green: PR run 42295591797** on `4d9ab8418`. Every job passed: 6,952 tests, 0 failed, 24 skipped.
+- **Compared by name with pre-main's push run 42292140229** on `a5a2a392f`, which has 6,838 tests:
+  - none missing, none changed status;
+  - the 24 skips are the same tests;
+  - 114 new tests: 2b-1's 105 and this section's 9 (`AppLinesUnderNamesTest`).
+- **The reverts ran at `4d479107e`, before the test fix.** The fix changed only one control test's coverage assertion, and no production line, so the revert results hold for `4d9ab8418`'s code.
+- **The final run, after merging pre-main `b516d520a`,** is in the hand-back, since it runs after this report is pushed.
+- **The laptop's root drive was nearly full** (14 MB free, the planner says) until about 21:10Z, during this work.
+  - My scratch is on `/mnt/work`. My commits were made and pushed in that window, and GitHub accepted each push.
+  - Afterwards, a first `git fsck` listed missing trees. A second listed none. `HEAD`'s tree reads whole, and the 364 objects in my commits enumerate without error.
+  - Two of my background wait-loop output files under `/tmp` came back empty. They were wait loops only, and every result above was re-read from CI afterwards.
+
+### The three reverts
+
+Each revert was a one-line edit of `4d479107e` in its own scratch worktree, run on CI with the filter above. Both scans read 0 before each push. No compile error appeared in any log. Each file was restored from a copy saved before the edit and compared equal with `4d479107e`'s. Afterwards `next-turn`'s worktree was clean at `4d479107e`, with all three forward lines and both wiring lines present. Each prediction was written before its results were read.
+
+| Revert | Run | Failed of 70 (predicted) | What failed |
+|---|---|---|---|
+| I5 app order: `overlayPlacement` always `OnTop` | 42293278391 | 2 (2) | the block `directly above roads_bridges_highway expected:<117> but was:<182>`; `forecast-chicken-of-the-woods-layer must draw under the names` |
+| I5's anchor rule: `namesAnchorOf` takes the first symbol layer, the planner's first reading | 42293314166 | 4 (4) | anchor `expected:<[address_label]> but was:<[reference_fs_number]>`; Topographical at night `expected null, but was:<reference_fs_number>`; `roads_bridges_highway must stay under the way home`; the log line naming `reference_fs_number (layer 84 of 182)` |
+| I6: `GROUPS_UNDER_NAMES` lines only | 42293329295 | 3 (3) | `directly under address_label expected:<136> but was:<207>`; the block's own order (forecast colours first today, lines first with the revert); `forecast-chicken-of-the-woods-layer must draw under the names` |
+
+No revert was run for I5's style half, since it is not built.
+
+### Confirmed and inferred
+
+- **[observed]** The runs, counts and messages above. Every Trail Map style the Worker serves was read: the layer order of `trail-style-v4.json`, `street-style-v4.json`, `street-style-v3.json`, `street-style-v2.json` and `street-style-v1.json`, the offline style, and the raster JSON the app builds.
+- **[read]**
+  - `OverlayLayerSetup.kt` is reached only from `MapStyleReload.kt:165`, on every style load.
+  - The routes and the waypoint names are added relative to registry layers (lines cited above).
+  - `Style.addLayerBelow(Layer, String)` exists in the pinned 13.5.0 AAR (`javap`).
+- **[modelled, not run]** The test runs the production placement for every registry layer. It models the adds after the registry, written from their code, because MapLibre's `Layer` and `Style` need the native library (`SightingsMapOverlayDataTest`'s doc comment). The wiring itself, the two lines in `OverlayLayerSetup.kt`, cannot be reached by any JVM test. Reverting it would leave the suite green. Only the device check covers it.
+- **[not verified]** Anything on a phone: that MapLibre draws the app's lines under `address_label` and the names over them.
+
+### Could not determine
+
+- **Whether the night recolour, or the pattern relayout after a reload, treats an app layer under the names differently from one on top.** Both run on the style's own layers before the overlays are added (`MapStyleReload.kt:149-160`) or touch only pattern layers. I found nothing that depends on the app's layers being on top, but this is a device question.
+- **How a downloaded Trail Map area's stored style orders its layers on a phone.** It is the same document, so the same rule applies, but that is inferred.
+
+### Premises that were wrong
+
+- **"In Trail Map's own style the Forest Service trail number moves up among the labels … Nothing else in the style changes. The style's checks must pass."** As written, these three cannot all hold. The style's checks hold v4 frozen:
+  - `tools/check-trail-night.mjs` pins `forager-street-v4.json`, its preview copy and the Worker's `street-style-v4.json` to sha256 `d27d42d1…`. On a change it reports "a new design ships as a new version".
+  - Its check 10 fails if v4 "moves a layer v3 has", and `reference_fs_number` is a v3 layer.
+  - The Worker's tests (`worker.test.mjs:509-531`) hold trail-v4 equal to street-v4 apart from the name, and street-v4 to the same sha256.
+
+  So moving the number in trail-v4 breaks the equality test. Moving it in both breaks the freeze. Either way the checks pass only if they are edited. That is a decision about an earlier ruling (D2, RECORD -2000), and not mine to make.
+
+### Decided beyond scope
+
+- **The anchor is read from the style's own layers, not from which map is chosen.** Topographical, Street, Topographical at night and the offline style keep today's placement because their top layer is not a name or icon layer. No list of maps is kept for this. The one log line per style load says which case happened.
+- **One extra revert (the anchor rule)** beyond the one per ruling. It shows that the roads test and the Topographical-at-night test bite.
+
+### For the owner (stop): the trail number in Trail Map's style
+
+The rest of I is built. The trail number still draws under the lines on today's style, as before. The fix for it can go one of three ways:
+
+- (a) Update v4 in place, at both addresses (trail-v4 and street-v4). This is how the first-zooms change was done (dispatch 2026-11-02-coder-13, the owner: "Update v4 in place"). The frozen sums and check 10 would be re-held to the new files. Downloaded areas keep their address and need nothing new.
+- (b) Ship it as trail-v5. v4 stays frozen, and the app moves to the new address. Areas downloaded on v4 would then count as an older style and show the older-style notice. That notice is something a user sees beyond I.
+- (c) Leave the trail number under the lines for now.
+
+Question: should the trail-number move update Trail Map v4 in place, as the first zooms did, or ship as trail-v5?
+
+### S22 steps (for the owner at the phone; the coder does not run it)
+
+1. **Trail Map, day.** Set a waypoint beside a named road or trail, start the way to it, and zoom to 15 or 16.
+   - The road or trail name, and any shield or icon, draws over the blue line.
+   - The road itself draws under the line.
+   - Waypoint names, markers and the position dot stay over the names.
+2. **The same at night.**
+3. **The Forest Service trail number** (zoom 14 or more, on a numbered trail under the line): it still draws under the line. Note what is seen, since this is the half that is stopped.
+4. **Topographical by day, and Street day and night:** the line draws over the picture as before.
+5. **Topographical at night** at walking zoom: as before.
+6. **logcat, tag `SightingsMap`:**
+   - On Trail Map: "App lines under the map's names: … below address_label (layer 117 of 182)".
+   - On the other maps: "… today's placement: its top layer basemap is not a name or icon layer" (the offline style names `roads_bridges_highway` instead).
+   - The exact layer number depends on the style the phone has.
+7. **A downloaded Trail Map area, offline:** as step 1.
+
+### Clean-up
+
+The throwaway branches `next-turn-catI-red` and the three `next-turn-catI-rev-*` are deleted from origin at the end, and their worktrees removed. Their runs stay readable by number. Scratch: `/mnt/work/scratch/hazel-catI` (mode 700).
