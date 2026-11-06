@@ -251,7 +251,8 @@ class OfflinePickerDetailNotePortraitTest : OfflinePickerDetailNoteTests(landsca
         showLineAtStart()
         val note = noteBounds()
         val pinAt = pinAtBounds()
-        val name = composeRule.onNode(hasSetTextAction(), useUnmergedTree = true).getUnclippedBoundsInRoot()
+        // The Journal's search pill is the screen's other text field (run 42155972020 found both); the Name box is the one that is not it.
+        val name = composeRule.onNode(hasSetTextAction() and !hasTestTag(ACTIVE_SEARCH_SUMMARY_TAG), useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue("the line $note is under \"Pin at\" $pinAt", note.top >= pinAt.bottom - 0.5.dp)
         assertTrue("and above the Name box $name", note.bottom <= name.top + 0.5.dp)
         assertTrue("and close under \"Pin at\": at most two notes' padding between", note.top - pinAt.bottom <= 17.dp)
