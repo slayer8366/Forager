@@ -32,10 +32,10 @@ class GetTripReportOfflineRegionsUseCaseTest {
 
     @Test
     fun `a region whose tiles cover one of the trip's coordinates is included`() = runTest {
-        val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
+        val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
         // Roughly 3km east of center, well inside a 10km-radius region's footprint — the same
         // "comfortably inside" point OfflineTileMembershipTest uses for the raw function.
-        val trip = tripWithFinds(LatLng(45.5, -122.56))
+        val trip = tripWithFinds(LatLng(45.5, -121.15375))
         val region = regionSummary(id = 1L, region = portland, maxZoom = 15.0)
 
         val result = GetTripReportOfflineRegionsUseCase(FakeOfflineMapRepository(listOf(region)))(trip).getOrThrow()
@@ -45,9 +45,9 @@ class GetTripReportOfflineRegionsUseCaseTest {
 
     @Test
     fun `a region whose tiles cover none of the trip's coordinates is excluded`() = runTest {
-        val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
+        val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
         // Seattle, ~230km north — nowhere near a 10km-radius region centred on Portland.
-        val trip = tripWithFinds(LatLng(47.6, -122.3))
+        val trip = tripWithFinds(LatLng(47.6, -120.89375))
         val region = regionSummary(id = 1L, region = portland, maxZoom = 15.0)
 
         val result = GetTripReportOfflineRegionsUseCase(FakeOfflineMapRepository(listOf(region)))(trip).getOrThrow()

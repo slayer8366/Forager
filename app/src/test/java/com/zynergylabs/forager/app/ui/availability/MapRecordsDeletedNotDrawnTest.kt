@@ -357,8 +357,8 @@ class MapRecordsDeletedNotDrawnTest {
 /** Finds and album photos kept in memory. A delete records that it started, waits on [deleteGate] if one is set, then removes or fails. */
 private class HeldStore : MushroomLogRepository {
     private val finds = linkedMapOf(
-        "find-a" to heldFind("find-a", 45.40),
-        "find-b" to heldFind("find-b", 45.41),
+        "find-a" to heldFind("find-a", 44.90),
+        "find-b" to heldFind("find-b", 44.91),
     )
     private val photos = linkedMapOf("photo-a" to heldPhoto("photo-a"), "photo-b" to heldPhoto("photo-b"))
     val deleteStarted = mutableListOf<String>()
@@ -396,10 +396,10 @@ private class HeldStore : MushroomLogRepository {
 }
 
 private fun heldFind(id: String, lat: Double) =
-    MushroomLogEntry.draft(id = id, location = LatLng(lat, -121.75), date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
+    MushroomLogEntry.draft(id = id, location = LatLng(lat, -120.34375), date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
 
 private fun heldPhoto(id: String) = GalleryPhoto(
-    photo = LogPhoto(id = id, relativePath = "photos/$id.jpg", createdAtEpochMillis = 1L, latitude = 45.4, longitude = -121.75),
+    photo = LogPhoto(id = id, relativePath = "photos/$id.jpg", createdAtEpochMillis = 1L, latitude = 44.9, longitude = -120.34375),
     referencingEntryIds = emptyList(),
 )
 
@@ -407,7 +407,7 @@ private fun heldPhoto(id: String) = GalleryPhoto(
 private class HeldRegions(ids: List<Long>) : OfflineMapRepository {
     private val regions = ids.map {
         OfflineRegionSummary(
-            id = it, name = "region $it", region = Region(45.3, -122.6, 10), minZoom = 8.0, maxZoom = 12.0,
+            id = it, name = "region $it", region = Region(44.8, -121.19375, 10), minZoom = 8.0, maxZoom = 12.0,
             tileCount = 1, sizeBytes = 1L, createdAtEpochMillis = 1L,
         )
     }.associateByTo(LinkedHashMap()) { it.id }

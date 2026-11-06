@@ -30,7 +30,7 @@ private val NO_SOIL_DATA = SoilAvailability(
 
 class GetTodaysForecastUseCaseTest {
 
-    private val region = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
+    private val region = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
     private val referenceDay = LocalDate.of(2026, 8, 17)
 
     private fun day(date: LocalDate, isForecast: Boolean, precipitationMm: Double) = DailyWeather(

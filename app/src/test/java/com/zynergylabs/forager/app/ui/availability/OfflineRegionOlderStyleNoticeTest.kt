@@ -53,7 +53,7 @@ class OfflineRegionOlderStyleNoticeTest {
     private fun region(id: Long, styleUrl: String?, isDownloaded: Boolean = true) = OfflineRegionSummary(
         id = id,
         name = "Region $id",
-        region = Region(45.5, -122.6, 5),
+        region = Region(45.5, -121.19375, 5),
         minZoom = 10.0,
         maxZoom = 15.0,
         tileCount = 100,

@@ -7,7 +7,7 @@ import org.junit.Test
 
 class EstimateOfflineTileCountTest {
 
-    private val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 5)
+    private val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 5)
 
     @Test
     fun `roughly matches the design doc's own observed count for a 5km region at 45N`() {
@@ -51,8 +51,8 @@ class EstimateOfflineTileCountTest {
 
     @Test
     fun `a larger radius never estimates fewer tiles`() {
-        val small = estimateOfflineTileCount(Region(lat = 45.0, lng = -122.0, radiusKm = 5), 10.0, 14.0)
-        val large = estimateOfflineTileCount(Region(lat = 45.0, lng = -122.0, radiusKm = 15), 10.0, 14.0)
+        val small = estimateOfflineTileCount(Region(lat = 45.0, lng = -120.59375, radiusKm = 5), 10.0, 14.0)
+        val large = estimateOfflineTileCount(Region(lat = 45.0, lng = -120.59375, radiusKm = 15), 10.0, 14.0)
 
         assertTrue(large >= small)
     }

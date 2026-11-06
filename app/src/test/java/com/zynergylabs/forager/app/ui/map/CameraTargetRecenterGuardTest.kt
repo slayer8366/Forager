@@ -21,7 +21,7 @@ import org.junit.Test
  */
 class CameraTargetRecenterGuardTest {
 
-    private val region = Region(lat = 45.5, lng = -122.6, radiusKm = 15)
+    private val region = Region(lat = 45.5, lng = -121.19375, radiusKm = 15)
     private val target = region to null
 
     @Test
@@ -42,7 +42,7 @@ class CameraTargetRecenterGuardTest {
 
     @Test
     fun `moves the camera when only focusOverride changed, region held constant`() {
-        val focused = region to LatLng(45.6, -122.5)
+        val focused = region to LatLng(45.6, -121.09375)
         assertTrue(shouldMoveCameraToTarget(isGpsTracking = false, target = focused, lastAppliedCameraTarget = target))
     }
 

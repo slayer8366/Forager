@@ -59,7 +59,7 @@ class ReferenceTrailTapPrecedenceTest {
             sinks,
             // As the host passes it (MapListeners.kt): whether the drawn state shows the layer.
             layerDrawn = { id -> MAP_LAYER_REGISTRY.firstOrNull { it.id == id }?.let { layerPaintFor(it, drawn).visible } ?: false },
-        ).onMapTap(LatLng(45.3, -115.0), xPx, yPx)
+        ).onMapTap(LatLng(45.4, -115.0), xPx, yPx)
         return sinks.events
     }
 
@@ -122,7 +122,7 @@ class ReferenceTrailTapPrecedenceTest {
 
     @Test
     fun `a band takes the tap over a colour field's cell, by the point and from within the finger's box`() {
-        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.3,-115.0", BAND_Y, 500f)
+        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.4,-115.0", BAND_Y, 500f)
         val expected = listOf("reference:${MapLayerIds.REFERENCE_FS_BAND}:Forest Service trail 017 · Three Blaze")
         assertEquals(expected, tap(LinesProbe(listOf(cell, fsBand))))
         // A finger a little off the band: the cell is under it, the band only in the finger's box, and the band still wins.
@@ -191,8 +191,8 @@ class ReferenceTrailTapPrecedenceTest {
         val track = Line(MapLayerIds.KEPT_TRACKS, "track-1", BAND_Y, 3f)
         assertEquals(listOf("feature:${MapLayerIds.KEPT_TRACKS}:track-1"), tap(LinesProbe(listOf(fsBand, track, route))))
         assertEquals(listOf("feature:${MapLayerIds.WAYPOINTS}:m-1"), tap(LinesProbe(listOf(fsBand, route), listOf(MapLayerIds.WAYPOINTS to (200f to BAND_Y)))))
-        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.3,-115.0", BAND_Y, 500f)
-        assertEquals(listOf("feature:${MapLayerIds.FORECAST_CHANTERELLES}:45.3,-115.0"), tap(LinesProbe(listOf(cell, route))))
+        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.4,-115.0", BAND_Y, 500f)
+        assertEquals(listOf("feature:${MapLayerIds.FORECAST_CHANTERELLES}:45.4,-115.0"), tap(LinesProbe(listOf(cell, route))))
     }
 
     // Amendment 3 (Sorrel's #419 review, should-fix 1): a band the way home stops falls through. The band must not win, and
@@ -217,25 +217,25 @@ class ReferenceTrailTapPrecedenceTest {
 
     @Test
     fun `a stopped band falls through to a forecast cell under the finger`() {
-        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.3,-115.0", BAND_Y, 500f)
+        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.4,-115.0", BAND_Y, 500f)
         for (bandId in listOf(MapLayerIds.REFERENCE_FS_BAND, MapLayerIds.REFERENCE_BLM_BAND)) {
             for (stopper in stopperSamples) {
                 val events = tap(LinesProbe(listOf(cell, band(bandId), Line(stopper, null, BAND_Y, 3f))))
-                assertEquals("$stopper over $bandId, cell under the finger", listOf("feature:${MapLayerIds.FORECAST_CHANTERELLES}:45.3,-115.0"), events)
+                assertEquals("$stopper over $bandId, cell under the finger", listOf("feature:${MapLayerIds.FORECAST_CHANTERELLES}:45.4,-115.0"), events)
             }
         }
     }
 
     @Test
     fun `a band only in the finger's box, stopped by the way home under or beside the finger, falls through to the cell`() {
-        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.3,-115.0", BAND_Y, 500f)
+        val cell = Line(MapLayerIds.FORECAST_CHANTERELLES, "45.4,-115.0", BAND_Y, 500f)
         val fingerY = BAND_Y + BAND_HALF_PX + 10f
         for (bandId in listOf(MapLayerIds.REFERENCE_FS_BAND, MapLayerIds.REFERENCE_BLM_BAND)) {
             for (stopper in stopperSamples) {
                 // Under the finger, then beside it (20 px off: in the box, not under it).
                 for ((where, routeY) in listOf("under" to fingerY, "beside" to fingerY + 20f)) {
                     val events = tap(LinesProbe(listOf(cell, band(bandId), Line(stopper, null, routeY, 3f))), yPx = fingerY)
-                    assertEquals("$stopper $where the finger, $bandId in the box", listOf("feature:${MapLayerIds.FORECAST_CHANTERELLES}:45.3,-115.0"), events)
+                    assertEquals("$stopper $where the finger, $bandId in the box", listOf("feature:${MapLayerIds.FORECAST_CHANTERELLES}:45.4,-115.0"), events)
                 }
             }
         }

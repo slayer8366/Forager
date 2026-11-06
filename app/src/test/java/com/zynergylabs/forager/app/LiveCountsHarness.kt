@@ -109,7 +109,7 @@ internal object LiveCounts {
     val silentLog = ErrorLog { _, _, _ -> }
 
     val REGION = OfflineRegionSummary(
-        id = 7L, name = "Ridge", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0,
+        id = 7L, name = "Ridge", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0,
         tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_300_000_000L,
     )
 }

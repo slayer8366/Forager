@@ -80,7 +80,7 @@ class MushroomLogViewModelWiringTest {
 
     @Test
     fun `a find deleted through the Journal's ViewModel leaves the Maps tab's records`() {
-        val find = MushroomLogEntry.draft(id = "wired-find", location = LatLng(45.3, -122.6), date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
+        val find = MushroomLogEntry.draft(id = "wired-find", location = LatLng(45.4, -121.6), date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
         runBlocking { app.container.mushroomLogRepository.save(find).getOrThrow() }
         val (availability, log) = rig()
         availability.onMapShown()
@@ -98,7 +98,7 @@ class MushroomLogViewModelWiringTest {
 
     @Test
     fun `an album photo deleted through the Journal's ViewModel leaves the Maps tab's records`() {
-        val photo = LogPhoto(id = "wired-photo", relativePath = "photos/wired-photo.jpg", createdAtEpochMillis = 1L, latitude = 45.3, longitude = -122.6)
+        val photo = LogPhoto(id = "wired-photo", relativePath = "photos/wired-photo.jpg", createdAtEpochMillis = 1L, latitude = 45.4, longitude = -121.6)
         runBlocking { app.container.mushroomLogRepository.addPhotoToGallery(photo).getOrThrow() }
         val (availability, log) = rig()
         availability.onMapShown()
@@ -128,7 +128,7 @@ class MushroomLogViewModelWiringTest {
         val log = createMushroomLogViewModel(app.container, availability, ErrorLog { _, _, _ -> })
         val now = System.currentTimeMillis() / 1_000L * 1_000L
         val fix = LocationFix.Update(
-            lat = 45.52, lng = -122.68, altitude = null, accuracyMeters = 15f,
+            lat = 45.62, lng = -121.68, altitude = null, accuracyMeters = 15f,
             timestampEpochMillis = if (provider == FixProvider.NETWORK) now + 123 else now, provider = provider,
         )
         fixes.tryEmit(fix)
@@ -152,6 +152,6 @@ class MushroomLogViewModelWiringTest {
     /** The control: the same fix from GPS is the find's location, as today. */
     @Test
     fun `a find started with a 15 m GPS fix in hand takes its location`() {
-        assertEquals(LatLng(45.52, -122.68), startFindWith(FixProvider.GPS))
+        assertEquals(LatLng(45.62, -121.68), startFindWith(FixProvider.GPS))
     }
 }

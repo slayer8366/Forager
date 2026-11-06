@@ -169,7 +169,7 @@ class NoSignalTrailMapTest {
     }
 
     private fun region(id: Long, isDownloaded: Boolean) = OfflineRegionSummary(
-        id = id, name = "Region $id", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0,
+        id = id, name = "Region $id", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0,
         tileCount = if (isDownloaded) 100 else 0, sizeBytes = if (isDownloaded) 2_000_000L else 0L, createdAtEpochMillis = 1_000L,
         isDownloaded = isDownloaded,
     )

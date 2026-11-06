@@ -67,11 +67,11 @@ class TrackDeleteEntryRefsTest {
         name = "Ridge Loop",
         startedAtEpochMillis = 1_000L,
         endedAtEpochMillis = 2_000L,
-        points = listOf(TrackPoint(lat = 45.20, lng = -122.50, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)),
+        points = listOf(TrackPoint(lat = 45.10, lng = -122.50, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)),
     )
-    private val waypoint = Waypoint(id = "wp-1", lat = 45.21, lng = -122.51, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = 1_500L)
+    private val waypoint = Waypoint(id = "wp-1", lat = 45.11, lng = -122.51, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = 1_500L)
     private val trackDecision = TrackDecision(trackId = "track-1", name = "Ridge Loop", distanceMeters = 1200.0, durationMillis = 600_000L, pointCount = 42, kept = true)
-    private val waypointDecision = WaypointDecision(waypointId = "wp-1", name = "Creek pin", lat = 45.21, lng = -122.51, kept = true)
+    private val waypointDecision = WaypointDecision(waypointId = "wp-1", name = "Creek pin", lat = 45.11, lng = -122.51, kept = true)
     private val entry = CartographyEntry.draft(id = "entry-1", date = LocalDate.of(2026, 8, 1), updatedAtEpochMillis = 1_000L)
         .copy(isDraft = false, trackDecisions = listOf(trackDecision), waypointDecisions = listOf(waypointDecision))
 
@@ -98,7 +98,7 @@ class TrackDeleteEntryRefsTest {
         val loaded = entryRepository.getById("entry-1").getOrThrow()!!
 
         assertEquals(listOf(trackDecision), loaded.trackDecisions)
-        assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50)))), mapData(loaded, galleryPhotos = emptyList()).trackPolylines)
+        assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.10, -122.50)))), mapData(loaded, galleryPhotos = emptyList()).trackPolylines)
         assertEquals(1, entryRepository.countEntriesReferencingTrack("track-1").getOrThrow())
         assertEquals(1, entryRepository.countEntriesReferencingWaypoint("wp-1").getOrThrow())
     }
@@ -117,7 +117,7 @@ class TrackDeleteEntryRefsTest {
         assertEquals("the track itself is gone", null, trackRepository.getById("track-1").getOrThrow())
         assertEquals(
             "its line is the path saved at delete time",
-            listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50)))),
+            listOf(RecordPolyline("track-1", listOf(LatLng(45.10, -122.50)))),
             mapData(loaded, galleryPhotos = emptyList()).trackPolylines,
         )
     }
@@ -125,7 +125,7 @@ class TrackDeleteEntryRefsTest {
     @Test
     fun `before the delete nothing is saved, the path is copied only when the track is deleted`() = runTest {
         assertEquals(emptyList<SavedPath>(), savedPaths())
-        assertEquals("the track is drawn live, from its own points", listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50)))), mapData(entryRepository.getById("entry-1").getOrThrow()!!, emptyList()).trackPolylines)
+        assertEquals("the track is drawn live, from its own points", listOf(RecordPolyline("track-1", listOf(LatLng(45.10, -122.50)))), mapData(entryRepository.getById("entry-1").getOrThrow()!!, emptyList()).trackPolylines)
     }
 
     @Test
@@ -137,7 +137,7 @@ class TrackDeleteEntryRefsTest {
 
         deleteTrack("track-1")
 
-        val path = listOf(LatLng(45.20, -122.50))
+        val path = listOf(LatLng(45.10, -122.50))
         assertEquals(
             listOf(
                 SavedPath("entry-1", "track-1", path),
@@ -175,9 +175,9 @@ class TrackDeleteEntryRefsTest {
         trackRepository.appendPoints(
             "track-2",
             listOf(
-                TrackPoint(lat = 45.3, lng = -122.3, altitude = null, accuracyMeters = null, timestampEpochMillis = 3_000L),
-                TrackPoint(lat = 45.9, lng = -122.9, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_500L),
-                TrackPoint(lat = 45.1, lng = -122.1, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L),
+                TrackPoint(lat = 45.2, lng = -122.3, altitude = null, accuracyMeters = null, timestampEpochMillis = 3_000L),
+                TrackPoint(lat = 45.8, lng = -122.9, altitude = null, accuracyMeters = null, timestampEpochMillis = 2_500L),
+                TrackPoint(lat = 45.0, lng = -122.1, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L),
             ),
         ).getOrThrow()
         entryRepository.save(entry.copy(id = "entry-2", trackDecisions = listOf(trackDecision.copy(trackId = "track-2")))).getOrThrow()
@@ -185,7 +185,7 @@ class TrackDeleteEntryRefsTest {
         deleteTrack("track-2")
 
         assertEquals(
-            listOf(SavedPath("entry-2", "track-2", listOf(LatLng(45.1, -122.1), LatLng(45.3, -122.3)))),
+            listOf(SavedPath("entry-2", "track-2", listOf(LatLng(45.0, -122.1), LatLng(45.2, -122.3)))),
             savedPaths(),
         )
     }
@@ -208,8 +208,8 @@ class TrackDeleteEntryRefsTest {
 
         entryRepository.save(loaded.copy(text = "Edited after the track was deleted")).getOrThrow()
 
-        assertEquals(listOf(SavedPath("entry-1", "track-1", listOf(LatLng(45.20, -122.50)))), savedPaths())
-        assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50)))), mapData(entryRepository.getById("entry-1").getOrThrow()!!, emptyList()).trackPolylines)
+        assertEquals(listOf(SavedPath("entry-1", "track-1", listOf(LatLng(45.10, -122.50)))), savedPaths())
+        assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.10, -122.50)))), mapData(entryRepository.getById("entry-1").getOrThrow()!!, emptyList()).trackPolylines)
     }
 
     @Test

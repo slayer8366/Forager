@@ -125,7 +125,7 @@ class TapPrecedenceTest {
     // M1: colour-field cells are tappable, but a cell wins only when it is under the finger and
     // neither the point nor the 48 dp box finds a marker or a line (planner's ruling on Q5).
 
-    private val cell = hit(MapLayerIds.FORECAST_CHANTERELLES, "45.5,-122.6")
+    private val cell = hit(MapLayerIds.FORECAST_CHANTERELLES, "45.5,-121.6")
 
     @Test
     fun `a cell under the finger with nothing else near wins`() {
@@ -170,7 +170,7 @@ class TapPrecedenceTest {
     @Test
     fun `a feature tap is a feature tap and nothing else`() {
         assertEquals(MapTapOutcome.OnFeature(MapLayerIds.WAYPOINTS, "wp-1"), mapTapOutcome(hit(MapLayerIds.WAYPOINTS, "wp-1")))
-        assertEquals(MapTapOutcome.OnFeature(MapLayerIds.FORECAST_CHANTERELLES, "45.5,-122.6"), mapTapOutcome(cell))
+        assertEquals(MapTapOutcome.OnFeature(MapLayerIds.FORECAST_CHANTERELLES, "45.5,-121.6"), mapTapOutcome(cell))
     }
 
     @Test
