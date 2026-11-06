@@ -15,7 +15,7 @@ import org.junit.Test
  */
 class TripNavigationTargetTest {
 
-    private val creek = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
+    private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
     private val saddle = PlannedTrip("trip-1", "Saddle loop", LatLng(45.56, -122.66), LocalDate.of(2026, 10, 3))
     private val other = PlannedTrip("trip-2", "Ridge day", LatLng(45.40, -122.50), null)
     private val toSaddle = WaypointNavigation("trip-1", resumesReturn = false, kind = NavigationTargetKind.TRIP)

@@ -29,7 +29,7 @@ class OfflineTileBudgetTest {
         isDownloaded = downloaded,
     )
 
-    private val ridge = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+    private val ridge = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
     private val northEdge = Region(lat = 49.60, lng = -122.607, radiusKm = 24)
 
     @Test

@@ -177,7 +177,7 @@ class DecodedPhotoGestureTest {
     }
 
     private fun entryWithPhoto() = MushroomLogEntry
-        .draft(id = "gesture-entry", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+        .draft(id = "gesture-entry", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1))
         .copy(photos = listOf(photo))
 
     @Test

@@ -56,8 +56,8 @@ class RouteCardShownTotalsTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
-    private val falls = Waypoint("wp-falls", 45.346, -122.654, null, "Falls", "", 3_000L)
-    private val pond = Waypoint("wp-pond", 45.356, -122.664, null, "Pond", "", 4_000L)
+    private val falls = Waypoint("wp-falls", 45.3936, -121.7159, null, "Falls", "", 3_000L)
+    private val pond = Waypoint("wp-pond", 45.4036, -121.7259, null, "Pond", "", 4_000L)
 
     private val map = RouteMapSlot(
         listOf(

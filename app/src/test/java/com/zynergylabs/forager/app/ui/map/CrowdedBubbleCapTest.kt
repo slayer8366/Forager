@@ -41,7 +41,7 @@ class CrowdedBubbleCapTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(layoutFixesHostActivityRule()).around(composeRule)
 
-    private val waypoint = Waypoint("wp-1", 45.32, -122.63, null, "Waypoint 1", "", 1_700_000_000_000L)
+    private val waypoint = Waypoint("wp-1", 45.3676, -121.6919, null, "Waypoint 1", "", 1_700_000_000_000L)
 
     private fun cardHeightDp(content: MapBubbleContent): Float {
         composeRule.setContent {

@@ -15,14 +15,14 @@ import org.maplibre.android.location.modes.CameraMode
  */
 class LayoutFixesMapHelpersTest {
 
-    private val region = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+    private val region = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
     private fun snapshot(following: Boolean) = MapCameraSnapshot(
         target = LatLng(45.3512, -122.6011),
         zoom = 15.5,
         bearing = 30.0,
         tilt = 10.0,
         following = following,
-        appliedTarget = region to LatLng(45.33, -122.64),
+        appliedTarget = region to LatLng(45.3776, -121.7019),
     )
 
     // ── Item 4: cameraRestoreFor ──

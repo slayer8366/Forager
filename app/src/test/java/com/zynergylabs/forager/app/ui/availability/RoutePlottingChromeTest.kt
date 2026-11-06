@@ -57,8 +57,8 @@ class RoutePlottingChromeTest {
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
     private val t = 1_700_000_000_000L
-    private val fix = LocationFix.Update(lat = 45.32, lng = -122.63, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
-    private val start = Waypoint(id = "origin", lat = 45.33, lng = -122.63, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    private val fix = LocationFix.Update(lat = 45.3676, lng = -121.6919, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
+    private val start = Waypoint(id = "origin", lat = 45.3776, lng = -121.6919, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     private val map = RouteMapSlot(
         listOf(

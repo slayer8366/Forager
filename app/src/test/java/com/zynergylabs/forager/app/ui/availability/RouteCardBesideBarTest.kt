@@ -197,4 +197,4 @@ class RouteCardBesideBarTest {
     }
 }
 
-private val FALLS = Waypoint("wp-falls", 45.346, -122.654, null, "Falls", "", 3_000L)
+private val FALLS = Waypoint("wp-falls", 45.3936, -121.7159, null, "Falls", "", 3_000L)

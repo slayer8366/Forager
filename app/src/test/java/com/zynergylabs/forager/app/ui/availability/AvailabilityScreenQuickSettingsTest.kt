@@ -101,7 +101,7 @@ class AvailabilityScreenQuickSettingsTest {
 
     private val minute = 60_000L
     private val now = 1_791_050_400_000L // 2026-10-03T18:00:00Z
-    private val origin = Waypoint("origin", 45.31, -122.634, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    private val origin = Waypoint("origin", 45.3576, -121.6959, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     private val utc = TimeZone.getTimeZone("UTC")
     private val clock = object : SundownClock {
@@ -175,7 +175,7 @@ class AvailabilityScreenQuickSettingsTest {
                         isReturning = returning,
                         onToggleReturning = { returning = !returning },
                         navigationTarget = if (recording) origin else null,
-                        returnRoute = ReturnRoute.Ahead(LatLng(45.32, -122.634), 1_800.0),
+                        returnRoute = ReturnRoute.Ahead(LatLng(45.3676, -121.6959), 1_800.0),
                     ),
                     recording = AvailabilityScreenRecording(
                         isRecording = recording,

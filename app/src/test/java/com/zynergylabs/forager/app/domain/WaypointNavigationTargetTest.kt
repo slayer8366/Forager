@@ -12,8 +12,8 @@ import org.junit.Test
  */
 class WaypointNavigationTargetTest {
 
-    private val creek = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
-    private val oak = Waypoint("wp-2", 45.33, -122.64, null, "Big oak", "", 2_000L)
+    private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
+    private val oak = Waypoint("wp-2", 45.3776, -121.7019, null, "Big oak", "", 2_000L)
     private val toCreek = WaypointNavigation("wp-1", resumesReturn = false)
 
     @Test

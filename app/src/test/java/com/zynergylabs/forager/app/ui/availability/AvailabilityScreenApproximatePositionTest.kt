@@ -85,8 +85,8 @@ class AvailabilityScreenApproximatePositionTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private val t = 1_700_000_000_000L
-    private val creek = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
-    private val origin = Waypoint("origin", 45.31, -122.634, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
+    private val origin = Waypoint("origin", 45.3576, -121.6959, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     /** Metres per degree of latitude on the sphere GeoDistance uses, as `AvailabilityScreenWaypointNavigateTest` has it. */
     private val metersPerDegree = 111_195.08
@@ -160,7 +160,7 @@ class AvailabilityScreenApproximatePositionTest {
                     isReturning = returning,
                     onToggleReturning = { returning = !returning },
                     navigationTarget = if (recording) origin else null,
-                    returnRoute = ReturnRoute.Ahead(LatLng(45.32, -122.634), 1_800.0),
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.3676, -121.6959), 1_800.0),
                     onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
                     onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
                 ),

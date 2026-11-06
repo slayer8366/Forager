@@ -237,7 +237,7 @@ class AvailabilityScreenOfflineCacheTest {
         const val THREE_HOURS_MILLIS = 3 * 60 * MINUTE_MILLIS
         const val TWO_DAYS_MILLIS = 2 * 24 * 60 * MINUTE_MILLIS
 
-        val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+        val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
         val FORECAST = AvailabilityForecast(
             region = REGION,

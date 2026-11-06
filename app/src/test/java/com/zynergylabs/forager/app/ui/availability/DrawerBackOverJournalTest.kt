@@ -688,13 +688,13 @@ class DrawerBackOverJournalTest {
 
         val PHOTO = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 1_000L)
 
-        val COMMITTED_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.33, -122.63), date = FIND_DATE)
+        val COMMITTED_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.3776, -121.6919), date = FIND_DATE)
             .copy(isDraft = false, ownIdentification = "Chanterelle", photos = listOf(PHOTO))
 
         val DAY_WAYPOINT = Waypoint(
             id = "wp-1",
-            lat = 45.32,
-            lng = -122.64,
+            lat = 45.3676,
+            lng = -121.7019,
             altitude = null,
             name = "Creek pin",
             note = "",
@@ -705,14 +705,14 @@ class DrawerBackOverJournalTest {
             .copy(
                 isDraft = false,
                 text = "The original account.",
-                waypointDecisions = listOf(WaypointDecision(waypointId = "wp-1", name = "Creek pin", lat = 45.32, lng = -122.64, kept = true)),
+                waypointDecisions = listOf(WaypointDecision(waypointId = "wp-1", name = "Creek pin", lat = 45.3676, lng = -121.7019, kept = true)),
             )
     }
 }
 
 private val DrawerBackStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Button(onClick = { onCameraIdle(LatLng(45.326, -122.634)) }) { Text("Simulate pan to test location") }
+        Button(onClick = { onCameraIdle(LatLng(45.3736, -121.6959)) }) { Text("Simulate pan to test location") }
     }
 }
 

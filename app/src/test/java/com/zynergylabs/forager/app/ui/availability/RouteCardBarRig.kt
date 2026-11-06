@@ -75,10 +75,10 @@ internal class RouteCardBarRig(
     private val stops = listOf(
         CREEK,
         RIDGE,
-        Waypoint("wp-falls", 45.346, -122.654, null, "Falls", "", 3_000L),
-        Waypoint("wp-pond", 45.356, -122.664, null, "Pond", "", 4_000L),
-        Waypoint("wp-bluff", 45.366, -122.674, null, "Bluff", "", 5_000L),
-        Waypoint("wp-spring", 45.376, -122.684, null, "Spring", "", 6_000L),
+        Waypoint("wp-falls", 45.3936, -121.7159, null, "Falls", "", 3_000L),
+        Waypoint("wp-pond", 45.4036, -121.7259, null, "Pond", "", 4_000L),
+        Waypoint("wp-bluff", 45.4136, -121.7359, null, "Bluff", "", 5_000L),
+        Waypoint("wp-spring", 45.4236, -121.7459, null, "Spring", "", 6_000L),
     ).mapIndexed { i, stop -> names?.getOrNull(i)?.let { stop.copy(name = it) } ?: stop }
 
     val map = RouteMapSlot(emptyList(), credit)
@@ -113,8 +113,9 @@ internal class RouteCardBarRig(
     private var plotted = 0
 
     private val t = 1_700_000_000_000L
-    private val fix = LocationFix.Update(lat = 45.32, lng = -122.63, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
-    private val origin = Waypoint(id = "origin", lat = 45.33, lng = -122.63, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1")
+    // The rig's place: fixed steps from MadeUpPlace, so its sundown clocks (ROUTE_CARD_*_CLOCK) are pinned to the sunset at [fix].
+    private val fix = LocationFix.Update(lat = 45.3676, lng = -121.6919, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
+    private val origin = Waypoint(id = "origin", lat = 45.3776, lng = -121.6919, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1")
 
     fun setScreen(withLegend: Boolean = false, reduceMotion: Boolean = false, navigating: Boolean = false, trips: List<PlannedTrip> = emptyList()) {
         val store = OneCellStore()

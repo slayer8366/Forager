@@ -227,8 +227,8 @@ class AvailabilityScreenConditionsMonthTest {
     /** Types coordinates into the dropdown and searches, exactly as a user would. */
     private fun searchAReferenceRegion() {
         openSearchDropdownToManualCoordinates()
-        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.3736")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
         // "Search coordinates", under the fields (RECORD -700), runs the typed-coordinates search.
         // performScrollTo() kept: harmless where it is already in view, and the tap would otherwise
         // land on off-screen bounds if it ever is not.

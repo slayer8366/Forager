@@ -927,9 +927,9 @@ private fun B2ScreenWith(uiState: AvailabilityUiState, mapSlot: MapSlot, isRetur
     )
 }
 
-private val B2_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val B2_REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
-private val B2_FIX_LOCATION = LatLng(45.3301, -122.6402)
+private val B2_FIX_LOCATION = LatLng(45.3777, -121.7021)
 
 // In feet: this file's state carries the Imperial default, and the strip's elevation follows Units
 // (dispatch 2026-09-28-549; 123 / 0.3048 = 403.54).

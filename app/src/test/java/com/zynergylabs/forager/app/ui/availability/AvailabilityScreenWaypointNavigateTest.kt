@@ -112,17 +112,17 @@ class AvailabilityScreenWaypointNavigateTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private val t = 1_700_000_000_000L
-    private val creek = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
-    private val oak = Waypoint("wp-2", 45.30, -122.60, null, "Big oak", "", 2_000L)
-    private val origin = Waypoint("origin", 45.31, -122.634, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
+    private val oak = Waypoint("wp-2", 45.3476, -121.6619, null, "Big oak", "", 2_000L)
+    private val origin = Waypoint("origin", 45.3576, -121.6959, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     /** A fix [metersSouth] metres due south of the creek pin, with the S22's constant 3.79 m accuracy. */
     private fun southOfCreek(metersSouth: Double) =
         LocationFix.Update(lat = creek.lat - metersSouth / 111_195.08, lng = creek.lng, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
 
     private val returnLine = RouteLine(
-        atReturn = listOf(LatLng(45.32, -122.634), LatLng(45.31, -122.634)),
-        ahead = listOf(LatLng(45.32, -122.634), LatLng(45.31, -122.634)),
+        atReturn = listOf(LatLng(45.3676, -121.6959), LatLng(45.3576, -121.6959)),
+        ahead = listOf(LatLng(45.3676, -121.6959), LatLng(45.3576, -121.6959)),
         aheadIsCurrent = true,
     )
 
@@ -233,7 +233,7 @@ class AvailabilityScreenWaypointNavigateTest {
                     isReturning = returning,
                     onToggleReturning = { returning = !returning },
                     navigationTarget = if (recording) origin else null,
-                    returnRoute = ReturnRoute.Ahead(LatLng(45.32, -122.634), 1_800.0),
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.3676, -121.6959), 1_800.0),
                     routeLine = if (returning) returnLine else null,
                     onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
                     onStopWaypointNavigation = viewModel::onStopWaypointNavigation,

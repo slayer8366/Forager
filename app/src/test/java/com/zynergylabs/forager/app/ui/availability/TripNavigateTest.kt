@@ -94,7 +94,7 @@ class TripNavigateTest {
 
     private val t = 1_700_000_000_000L
     private val trip = SADDLE
-    private val creek = Waypoint("wp-1", 45.30, -122.60, null, "Creek pin", "", 1_000L)
+    private val creek = Waypoint("wp-1", 45.3476, -121.6619, null, "Creek pin", "", 1_000L)
 
     /** A fix [metersSouth] metres due south of the trip, with the S22's constant 3.79 m accuracy. */
     private fun southOfTrip(metersSouth: Double) = LocationFix.Update(

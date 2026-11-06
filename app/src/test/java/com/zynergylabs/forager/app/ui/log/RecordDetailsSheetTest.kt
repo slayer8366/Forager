@@ -784,7 +784,7 @@ private val TRACK_T2 = Track(
 private val DETAILS_TRACKS = listOf(TRACK_T1, TRACK_T2)
 
 private val CREEK = Waypoint(
-    id = "W1", lat = 45.3260, lng = -122.6340, altitude = null, name = "Creek pin", note = "",
+    id = "W1", lat = 45.3736, lng = -121.6959, altitude = null, name = "Creek pin", note = "",
     createdAtEpochMillis = NOW - 2 * DAY, trackId = "T1",
 )
 private val OAK = Waypoint(

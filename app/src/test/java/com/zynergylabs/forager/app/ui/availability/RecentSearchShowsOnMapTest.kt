@@ -35,7 +35,7 @@ class RecentSearchShowsOnMapTest {
 
     private val rig = RealSearchScreenRig(composeRule)
 
-    private val regionA = Region(45.326, -122.634, 8)
+    private val regionA = Region(45.3736, -121.6959, 8)
     private val regionB = Region(44.0521, -123.0868, 8)
 
     /** Opens the dropdown, opens Recent searches, and touches the row whose coordinates read [coordinates]. */
@@ -52,7 +52,7 @@ class RecentSearchShowsOnMapTest {
     @Test
     fun `a real touch on an earlier recent search hands the map that search's observations`() {
         rig.setScreen()
-        rig.searchCoordinates("45.326", "-122.634")
+        rig.searchCoordinates("45.3736", "-121.6959")
         assertEquals("positive control: search A is on the map", listOf(RealSearchScreenRig.sightingAt(regionA)), rig.mapSightings)
         rig.searchCoordinates("44.0521", "-123.0868")
         assertEquals("positive control: search B is on the map", listOf(RealSearchScreenRig.sightingAt(regionB)), rig.mapSightings)
@@ -67,7 +67,7 @@ class RecentSearchShowsOnMapTest {
     @Test
     fun `a real touch on the recent search already showing keeps its observations on the map`() {
         rig.setScreen()
-        rig.searchCoordinates("45.326", "-122.634")
+        rig.searchCoordinates("45.3736", "-121.6959")
         assertEquals("positive control: search A is on the map", listOf(RealSearchScreenRig.sightingAt(regionA)), rig.mapSightings)
 
         touchRecentRow("45.3736, -121.6959")

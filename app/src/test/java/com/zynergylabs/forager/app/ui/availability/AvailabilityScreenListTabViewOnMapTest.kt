@@ -135,7 +135,7 @@ class AvailabilityScreenListTabViewOnMapTest {
     }
 }
 
-private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
 private val SPECIES = SpeciesObservationCount(
     taxonId = 47348,
@@ -159,8 +159,8 @@ private val MATCHING_SIGHTING = Sighting(
     taxonId = 47348,
     scientificName = "Cantharellus formosus",
     commonName = "Pacific Golden Chanterelle",
-    lat = 45.33,
-    lng = -122.64,
+    lat = 45.3776,
+    lng = -121.7019,
     observedOn = LocalDate.of(2026, 8, 1),
     photoUrl = null,
 )
@@ -170,8 +170,8 @@ private val OTHER_SIGHTING = Sighting(
     taxonId = 99999,
     scientificName = "Amanita muscaria",
     commonName = "Fly Agaric",
-    lat = 45.34,
-    lng = -122.65,
+    lat = 45.3876,
+    lng = -121.7119,
     observedOn = LocalDate.of(2026, 8, 2),
     photoUrl = null,
 )
