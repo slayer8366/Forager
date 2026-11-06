@@ -176,12 +176,12 @@ internal class MapTypePanelChipHarness(private val rule: ComposeContentTestRule)
     }
 
     private val entry = CartographyEntry.draft(id = "entry-1", date = LocalDate.of(2026, 8, 1), updatedAtEpochMillis = 1_000L)
-        .copy(isDraft = false, waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.5, lng = -122.5, kept = true)))
+        .copy(isDraft = false, waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.5, lng = -121.09375, kept = true)))
 
     private val mapData = CartographyEntryMapData(
         trackPolylines = emptyList(),
         findMarkers = emptyList(),
-        waypointMarkers = listOf(RecordPoint("w1", LatLng(45.5, -122.5))),
+        waypointMarkers = listOf(RecordPoint("w1", LatLng(45.5, -121.09375))),
         photoMarkers = emptyList(),
         offlineRegionCircles = emptyList(),
     )
@@ -197,7 +197,7 @@ internal class MapTypePanelChipHarness(private val rule: ComposeContentTestRule)
 
         /** One downloaded area, so no signal draws Trail Map from it in place of a chosen Topo (the grey chip). */
         fun downloadedRegion() = OfflineRegionSummary(
-            id = 1, name = "Region 1", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0,
+            id = 1, name = "Region 1", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0,
             tileCount = 100, sizeBytes = 2_000_000L, createdAtEpochMillis = 1_000L, isDownloaded = true,
         )
     }

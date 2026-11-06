@@ -7,7 +7,7 @@ import org.junit.Test
 
 class EstimateOfflineTileCountTest {
 
-    private val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 5)
+    private val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 5)
 
     @Test
     fun `roughly matches the design doc's own observed count for a 5km region at 45N`() {
@@ -23,7 +23,7 @@ class EstimateOfflineTileCountTest {
     /**
      * Tile-estimate dispatch: the served-ceiling estimate must agree with what a download actually
      * enumerates — three radii spanning the slider's range, including its 50 km maximum, at the
-     * owner's own latitude (Oregon City, ~45.36°N). **Expected values are literals computed
+     * owner's own latitude ([a city near the owner's home; removed 2026-11-06], ~45.36°N). **Expected values are literals computed
      * independently** (a separate slippy-map implementation summing zooms 10..14 over the same
      * equirectangular bounding box), not derived from the function under test; the 15 km case is
      * the region the owner downloaded, whose MapLibre status reported 480 required resources
@@ -42,17 +42,17 @@ class EstimateOfflineTileCountTest {
      */
     @Test
     fun `the served-ceiling estimate matches the download's own enumeration at three radii spanning the slider`() {
-        val oregonCity = { radiusKm: Int -> Region(lat = 45.357, lng = -122.607, radiusKm = radiusKm) }
-        assertEquals(224, estimateServedOfflineTileCount(oregonCity(5)))
-        assertEquals(1781, estimateServedOfflineTileCount(oregonCity(15)))
-        assertEquals(4304, estimateServedOfflineTileCount(oregonCity(OfflineMapRepository.MAX_RADIUS_KM)))
+        val cityNearHome = { radiusKm: Int -> Region(lat = 45.357, lng = -122.607, radiusKm = radiusKm) }
+        assertEquals(224, estimateServedOfflineTileCount(cityNearHome(5)))
+        assertEquals(1781, estimateServedOfflineTileCount(cityNearHome(15)))
+        assertEquals(4304, estimateServedOfflineTileCount(cityNearHome(OfflineMapRepository.MAX_RADIUS_KM)))
         assertEquals(24, OfflineMapRepository.MAX_RADIUS_KM)
     }
 
     @Test
     fun `a larger radius never estimates fewer tiles`() {
-        val small = estimateOfflineTileCount(Region(lat = 45.0, lng = -122.0, radiusKm = 5), 10.0, 14.0)
-        val large = estimateOfflineTileCount(Region(lat = 45.0, lng = -122.0, radiusKm = 15), 10.0, 14.0)
+        val small = estimateOfflineTileCount(Region(lat = 45.0, lng = -120.59375, radiusKm = 5), 10.0, 14.0)
+        val large = estimateOfflineTileCount(Region(lat = 45.0, lng = -120.59375, radiusKm = 15), 10.0, 14.0)
 
         assertTrue(large >= small)
     }

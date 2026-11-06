@@ -41,7 +41,7 @@ private fun species(id: Long, name: String, count: Int) = SpeciesObservationCoun
 
 class PredictAvailabilityUseCaseTest {
 
-    private val region = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
+    private val region = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
 
     @Test
     fun `ranks species by observation count descending`() = runTest {

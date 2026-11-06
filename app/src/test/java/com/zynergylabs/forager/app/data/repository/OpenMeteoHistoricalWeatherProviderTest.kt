@@ -19,7 +19,7 @@ import java.time.LocalDate
  */
 class OpenMeteoHistoricalWeatherProviderTest {
 
-    private val region = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
+    private val region = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
 
     private class FakeApi(private val response: HistoricalPrecipitationResponseDto) : OpenMeteoArchiveApi {
         var latitude: Double? = null

@@ -13,7 +13,7 @@ import org.junit.Test
 /** HUD-foundations dispatch, Item 3: the read path for [Track.originWaypointId], joined in code across two repositories. */
 class GetTrackOriginWaypointUseCaseTest {
 
-    private val trailhead = Waypoint(id = "w-origin", lat = 45.52, lng = -122.68, altitude = 50.0, name = "Trailhead", note = "", createdAtEpochMillis = 1_000L, trackId = "t1")
+    private val trailhead = Waypoint(id = "w-origin", lat = 45.52, lng = -121.68, altitude = 50.0, name = "Trailhead", note = "", createdAtEpochMillis = 1_000L, trackId = "t1")
 
     @Test
     fun `resolves the waypoint a track's origin pointer names`() = runTest {
@@ -27,7 +27,7 @@ class GetTrackOriginWaypointUseCaseTest {
 
     @Test
     fun `a track with no origin pointer resolves to null, not to its first point`() = runTest {
-        val firstPoint = TrackPoint(lat = 45.5, lng = -122.6, altitude = null, accuracyMeters = 8f, timestampEpochMillis = 1_000L)
+        val firstPoint = TrackPoint(lat = 45.5, lng = -121.6, altitude = null, accuracyMeters = 8f, timestampEpochMillis = 1_000L)
         val tracks = InMemoryTracks(Track(id = "t1", name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = null, points = listOf(firstPoint)))
 
         assertNull(GetTrackOriginWaypointUseCase(tracks, InMemoryWaypoints(trailhead))("t1").getOrThrow())
