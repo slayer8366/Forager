@@ -40,6 +40,12 @@ import org.maplibre.android.style.sources.GeoJsonSource
  * all inserted between those. One visible change came with the registry and was accepted by the
  * owner: the search centre and the sighting dots now draw above the track lines.
  *
+ * Since dispatch 2026-11-06-01 Amendment 1 (category I) "on top" means on top of the basemap's layers below its names:
+ * on Trail Map the registry's colour fields, areas, decorations and lines go just under its first name or icon layer,
+ * and the routes added above the kept tracks follow them, so the map's names and icons draw over every app line. The
+ * markers, the waypoint names and the fan-out stay over everything. Other maps keep the old placement
+ * (`AppLinesUnderNames.kt`).
+ *
  * Each layer is built with today's paint and layout ([nativeLayerFor]), then given its visibility
  * and opacities from [layersState] ([layerPaintFor]) before it is added, so a layer's opacity is
  * written in one place, the registry's base opacities. At the default state that is exactly the
@@ -72,6 +78,8 @@ internal fun initializeOverlayLayers(
     // Every bitmap marker's image, in this palette's colours. Registered here and nowhere else.
     MarkerIcon.entries.forEach { style.addImage(it.imageId, markerIconImage(it, palette, density).bitmap) }
 
+    // Category I (AppLinesUnderNames.kt): on Trail Map the registry's layers below the markers go just under its names.
+    val namesAnchor = readNamesAnchor(style)
     val addedSources = mutableSetOf<String>()
     for (spec in drawOrder) {
         // Step 8b: a layer the style itself carries (the official-trails band) is never built here and needs no source;
@@ -86,7 +94,7 @@ internal fun initializeOverlayLayers(
         }
         if (addedSources.add(spec.sourceId)) style.addSource(GeoJsonSource(spec.sourceId, emptyFeatureCollection()))
         layer.setProperties(*paintProperties(layerPaintFor(spec, layersState)))
-        style.addLayer(layer)
+        addOverlayLayer(style, layer, overlayPlacement(spec, namesAnchor))
     }
     // Dispatch -497: the way back while returning (RouteHomeLayers.kt), outside the registry as the
     // fan-out is: its lines above every track line (the kept tracks are the registry's last line, above
