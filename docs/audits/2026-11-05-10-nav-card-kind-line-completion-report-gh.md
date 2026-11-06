@@ -38,6 +38,7 @@ first), [read] is code read at the commit named, [inferred] is worked out and no
 | 7d9fe67c4 | Tests first: H7, H8, and the shared files' claims (G2, H1, H3, H5). |
 | 73b5c0812 | H7 (the strip's windows, squeezed) and H8 (status words under the parts at large text). |
 | fb1f8b4d7, 221e2b2d4 | H7 at 360 dp: the claim, then what the line keeps decided on the squeezed form. |
+| bbd07d18d, a02aa2a1b | 221e2b2d4 reverted (git revert; its message lacks the Co-Authored-By line, left as pushed), and the 360 dp claim. |
 
 ## What was built [read, at 221e2b2d4]
 
@@ -65,7 +66,7 @@ first), [read] is code read at the commit named, [inferred] is worked out and no
 - **H7** (`CompassStripWindows.kt`, `AvailabilityMapControlsUi.kt`): each value on the strip's line centred in a window sized for the
   widest it can hold (heading 150.3 dp at 1.0 with the compass words, or its widest value 61.3 where the crossed-out compass stands in;
   height 58.0, 81.7 with "Alt", 105.7 for "Alt unavailable"; the grid reference the wider of its forms here, 140.3 at P). What the line
-  keeps is decided on the values as drawn with the dots' gaps at their least (the planner's reading). Where the line is short the
+  keeps is decided on the values as drawn with today's gaps (RECORD -713, as before H7). Where the line is short the
   windows squeeze in two steps: the statuses' room and the gaps (8 to 4 dp) in proportion, down to the widest values, where nothing
   depends on the values shown; then toward the values shown. The landscape strip keeps its width (RECORD -951).
 - **H8** (`NavigationCardStatusPlace.kt`): per window and font, where the status space is narrower than the widest word of any status
@@ -140,8 +141,11 @@ The left part, the right part's daytime width, and whether H8 applies (dp):
 ## Decided beyond the dispatch
 
 - H7's squeeze in two steps (statuses' room and the gaps first, then toward the values shown), so nothing moves while the line holds
-  the widest values; the gaps' least is Spacing.xs. What the line keeps is decided with the gaps at that least, which keeps "Alt" at 360
-  dp portrait where it gave way before.
+  the widest values; the gaps' least is Spacing.xs.
+- What the strip keeps is decided as before H7 (today's gaps), not on the squeezed form the planner's reading named. Tried first
+  (221e2b2d4, run 42253096525): with the gaps at their least the heading at 320 dp fits or not with its own width ("281° W" no,
+  "89° E" yes), so it came and went as the phone turned, where before it stayed out; reverted. Kept as before, "Alt" at 360 dp comes and
+  goes with the heading's width, as it did before H7, and the line moves when it does. A question for the planner (open item 5).
 - G3: the stack's two words each centred in it (A6 had them start at the meeting point).
 - The right part never narrower than H5's floor once an evening piece is wider ("Dark since 10:23 PM" widens it; reported, as D2).
 - The left part sized for the widest figure either kind could show (G3), so where room is short it no longer follows the figure shown.
@@ -156,6 +160,9 @@ The left part, the right part's daytime width, and whether H8 applies (dp):
    182 at 2.0 (198 before, with it); the evening line steps aside (RECORD -955) and at 640 × 360 the route card has no room. Not silenced.
 2. The strip's navigating-mode code with no production caller (Q9): delete after the merge.
 3. `turnWords` unread on screen since G2.
+5. **H7's decision rule** (for the planner): as before H7 (built: 320 stable, "Alt" at 360 coming and going with the heading's width),
+   on the squeezed form (tried: the heading at 320 coming and going), or on the windows' widest values (stable everywhere, but the
+   landscape strip, kept at RECORD -951's width, is 0.9 dp short of them at 823 × 384, so the heading would drop there: a new drop).
 4. The position-note row on the strip (heading and "Approximate …") has no windows; H7 named the heading, the height and the grid
    reference.
 
