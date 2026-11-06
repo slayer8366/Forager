@@ -57,7 +57,10 @@ internal object TurnGround {
     val FOLDER = File("/made-up/routes")
 }
 
-/** [ways] for every read, or [failure] for every read; counts the reads. */
+/**
+ * Each read returns the [ways] with a point within the read's circle and 100 m more, as a read of the data's cells returns
+ * somewhat more than its circle but never the whole map; or [failure] for every read. Counts the reads.
+ */
 internal class FakeRouteWays(private val ways: List<RouteWay>, private val failure: Throwable? = null) : RouteWays {
     var reads = 0
         private set
@@ -65,7 +68,7 @@ internal class FakeRouteWays(private val ways: List<RouteWay>, private val failu
     override suspend fun near(center: LatLng, radiusMeters: Double, routeData: File): Result<List<RouteWay>> {
         reads++
         failure?.let { return Result.failure(it) }
-        return Result.success(ways.filter { way -> way.points.any { GeoDistance.metersBetween(center, it) <= radiusMeters + 5_000.0 } })
+        return Result.success(ways.filter { way -> way.points.any { GeoDistance.metersBetween(center, it) <= radiusMeters + 100.0 } })
     }
 
     companion object {
