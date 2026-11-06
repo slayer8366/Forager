@@ -35643,6 +35643,18 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
     - the test screen's wiring.
     - Item 3, a note hiding once the pin or radius moves, is visible to the user. The planner accepts it under Amendment 1 A6 ("comes to the planner … with your recommendation"), and tells the owner.
   - **Next:** the S22 check on the tools build with #495 and #497 (CI run 42182078955), then the owner's merge word.
+- **S22 session 19 (2026-11-06T08:06:06Z), Download Maps, build 1.0.4688+gd99eee0d (versionCode 4688, signer cb2f6da5…1626): tools/s22-combined with pre-main 779599c3f, edge-shade d31170fa4 (#495) and trip-download-maps 4c645fba8 (#497), CI run 42182078955 all green. Data snapshotted before install, unchanged since end-s18; end-s19 matches it in every forager.db table. Session folder ~/s22-2026-11-04/s19, off GitHub.**
+  - **D1:** a plain trip's row reads maps ("Download Maps for Test trip E"), Directions, Delete. A route trip's row reads "Test route F", then maps, then Delete.
+  - **D2:** the tap opens Records › Offline maps with "Pin at" equal to the trip's coordinates, compared on the laptop without printing them. The Name box holds the trip's name, the radius stays at 1 mi, and nothing downloads.
+    - **Back:** the first reopens Tools on the Trip Planner, the second closes it.
+  - **D3:** Tools › Offline Maps afterwards gives a blank name and a pin off the trip, so the trip is forgotten.
+  - **D4:** with the page open and panned away, tapping the trip's icon moves the pin onto the trip and fills the name.
+  - **Route:** the pin is within 3 m of the middle of the route's line, which is the 4-decimal rounding, worked out privately from the stored line. The name is "Test route F". The radius reads 1 mi, and the line needs 1 km; 1 km and 2 km both show as "1 mi", but the ~21 tiles fits 1 km.
+  - **D6** wasn't run: no route on the phone is too big for one download.
+  - **D7, landscape:** the pin, the name and Download Maps are all there.
+  - **D8:** not observed.
+  - The test trip and route were made and deleted; the Trip Planner reads "No trips planned yet".
+  - **All pass.** #497 now waits on the owner's merge word.
 **Notes:** Written by the planner by hand. Next free ID -2172.
 
 ---
@@ -35965,6 +35977,14 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **#495** is ready again.
   - **The planner's check:** no @Ignore and no removed assertion; 8 checks pass; no home-location values added.
   - **Next:** the S22 check of the drawer, on the tools build with #495 and #497 (CI run 42182078955), then the owner's merge word.
+- **S22 session 19 (2026-11-06T08:06:06Z), the drawer, build 1.0.4688+gd99eee0d (versionCode 4688, signer cb2f6da5…1626): tools/s22-combined with pre-main 779599c3f, edge-shade d31170fa4 (#495) and trip-download-maps 4c645fba8 (#497), CI run 42182078955 all green. Data snapshotted before install, unchanged since end-s18; end-s19 matches it in every forager.db table. Session folder ~/s22-2026-11-04/s19, off GitHub.**
+  - **Portrait by day:** the line on the map-facing right edge is about 4 px (1 dp), 157 to 173 against a fill of about 231, at three heights. The map just outside is identical to the before picture, so there is no shadow.
+  - **Corners:** the top corner curves away under the status bar, and the bottom one into the screen's bottom edge, with the line following.
+  - **List tab:** solid (244) to the edge, with no line.
+  - **Night:** a white line at 40%, 113 to 135 against a fill of 52 to 62; the map outside is unchanged.
+  - **Landscape:** at both rotations the drawer opens from the right. Its map-facing left edge carries the line, 138 to 145 against a fill of 60, and the map outside is unchanged.
+  - Night Mode was set to Dark and back to Light. Rotation was restored to auto-rotate on (accelerometer_rotation 1, user_rotation 0).
+  - **All pass.** #495 now waits on the owner's merge word.
 **Notes:** Written by the planner by hand. Next free ID -2181.
 
 ---
