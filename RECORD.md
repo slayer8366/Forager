@@ -35548,3 +35548,23 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Spot, coordinates and screenshots stay off GitHub.
 **Waiting on:** the walk. Afterwards: the phone plugged back in, the log writer's files and the walk log pulled, readings L1 to L3 and R1 to R5 from prompts/preserved/2026-11-05-04-report.md, then the clean-up of -2165.
 **Notes:** Written by the planner by hand. Next free ID -2169.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2169
+**Timestamp:** 2026-11-06T01:16:48Z
+**Continues:** 2026-09-28-2168
+**Title:** The walk's place: a short footpath network through a housing block near home; Part 1 fits it, Part 2 adapted to leave by the street
+**Outcome:**
+- **The owner, with a screenshot from their own phone, not the S22:** "I plan on going here".
+  - The screenshot shows a housing block near home with a small network of mapped footpaths between the houses, joining two streets.
+  - The place, its street names and the screenshot stay off GitHub.
+- **The planner's reading of the screenshot,** inferred from the house lots' spacing, not measured: the paths run about 300 m end to end, with houses on both sides.
+- **Part 1, the pick-up check, fits:** houses stand right beside the path, and streets are well within 150 m. The target stays Test trip B.
+- **Part 2, the off-trail walk, adapted:**
+  - Leaving the path at right angles would cross private gardens, so the owner leaves by the street at the path's far end instead: walking away along the pavement, which is public and safe.
+  - The walk out is about 300 m, against the plan's 400 m. That is a shortfall, not a reason to skip.
+  - W3's control, standing 15 to 20 m off beside the trail, is done on the pavement near the path's end where there's room, and skipped where there isn't.
+  - Not checked: that these footpaths are in the route data. If Return reads "following your track", Part 2 stops, as planned.
+**Notes:** Written by the planner by hand. Next free ID -2170.
