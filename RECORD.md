@@ -36258,4 +36258,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **The planner's readings, open to the owner:**
     - a fork is where the route keeps the straightest way and another way leaves within 45°;
     - past the way home's last joint, the space is blank rather than straight-ahead.
+- **The owner, verbatim (2026-11-06T12:30:27Z):** **"You have my go to begin the build when ready"**.
+  - **The planner's reading** (Amendment 1, H2): Phase 2a starts now with a fresh Hazel. It covers the domain and the M1 log line, in new files, with nothing a user sees, on branch next-turn with a draft PR.
+  - Phase 2b, the card's space and arrow, follows on the same branch after #498 merges and the owner answers G1 and G2. This keeps the dispatch's "on its own, after #498" for the card.
 **Notes:** Written by the planner by hand. Next free ID -2184.
