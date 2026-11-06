@@ -127,5 +127,8 @@ class NavigationCardCompassNoticeTest {
     fun `H3, calibrating - Compass calibrating is in the status space, under Approaching`() = assertNotice(NavigationFacing.CALIBRATING, "Compass calibrating…")
 
     @Test
-    fun `H3, north-up - Compass unavailable north up is in the status space, under Approaching`() = assertNotice(NavigationFacing.NORTH_UP, "Compass unavailable · north up")
+    // H9, the owner: "Shorten to "No compass" (Recommended)", "One short line, like "Off trail". The map turning north-up already shows
+    // what it means." Was "H3, north-up - Compass unavailable north up is in the status space, under Approaching", reading
+    // "Compass unavailable · north up".
+    fun `H3 and H9, north-up - No compass is in the status space, under Approaching`() = assertNotice(NavigationFacing.NORTH_UP, "No compass")
 }

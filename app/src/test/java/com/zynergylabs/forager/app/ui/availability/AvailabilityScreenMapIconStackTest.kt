@@ -685,7 +685,7 @@ class AvailabilityScreenMapIconStackTest {
         // Dispatch 2026-09-28-430, rulings B and E: with no compass while navigating, the map is north-up
         // and the heading label says so. Was "Compass unavailable".
         // Amendment 1, H3 (dispatch 2026-11-05-10): the notice is in the card's status space. Was textOfTag(NAVIGATION_HUD_HEADING_TAG).
-        assertEquals("Compass unavailable · north up", textOfTag(NAVIGATION_HUD_COMPASS_NOTICE_TAG))
+        assertEquals("No compass", textOfTag(NAVIGATION_HUD_COMPASS_NOTICE_TAG)) // Amendment 1, H9 (the owner: "Shorten to \"No compass\" (Recommended)"): was "Compass unavailable · north up".
         // Was "Bearing 0° N" until the two-data-corrections dispatch (Part C, owner-authorised
         // change to this assertion). Asserted by node count as well as by the tagged text: no node
         // anywhere on the screen carries a bearing.

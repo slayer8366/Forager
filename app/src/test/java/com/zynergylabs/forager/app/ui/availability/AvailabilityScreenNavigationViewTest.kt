@@ -341,7 +341,7 @@ class AvailabilityScreenNavigationViewTest {
 
         now += 2_000L
         settle()
-        assertEquals("Compass unavailable · north up", notice())
+        assertEquals("No compass", notice()) // Amendment 1, H9 (the owner: "Shorten to \"No compass\" (Recommended)"): was "Compass unavailable · north up".
         cardHasNoHeading()
         assertEquals(NavigationFacing.NORTH_UP, view()!!.facing)
         assertTrue("north-up still follows", view()!!.following)
@@ -360,7 +360,7 @@ class AvailabilityScreenNavigationViewTest {
         setScreen()
         switchReturning(true)
         assertEquals(NavigationFacing.NORTH_UP, view()!!.facing)
-        assertEquals("Compass unavailable · north up", notice())
+        assertEquals("No compass", notice()) // Amendment 1, H9 (the owner: "Shorten to \"No compass\" (Recommended)"): was "Compass unavailable · north up".
         cardHasNoHeading()
     }
 

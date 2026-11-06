@@ -105,7 +105,7 @@ class CompassStripWindowsTest : NavigationCardKindLineScreen() {
      * "Alt" comes and goes with the heading's width, as before H7.
      */
     @Test @Config(qualifiers = "w360dp-h780dp-xxhdpi")
-    fun `360 dp, font 1,0 - short of room, the line keeps the heading, the height and the grid reference as they change`() {
+    fun `360 dp, font 1,0 - short of room, the line keeps the heading, Alt and the height as they change`() {
         val problems = mutableListOf<String>()
         fun kept(): List<String> = (tags + NAVIGATION_LABEL_TAG).filter { tag ->
             composeRule.onAllNodes(hasTestTag(tag) and androidx.compose.ui.test.hasAnyAncestor(hasTestTag("compass-elevation-strip")), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
@@ -118,16 +118,36 @@ class CompassStripWindowsTest : NavigationCardKindLineScreen() {
         val turned = kept()
         setAltitude(3_000.0)
         val higher = kept()
-        // What the line keeps is decided on the values as drawn, as before H7 (RECORD -713), so "Alt" comes and goes with the heading's
-        // width here (281° W: no room for it; 89° E: room), as it did before H7; the three values stay in every state.
+        // What the line keeps is decided on the squeezed form (the planner: ""Alt" is kept where it fits, follows "It fit before, so it
+        // should still fit now""), so here it keeps all three values and "Alt", facing either way and at either height.
+        val all = tags + NAVIGATION_LABEL_TAG
         for ((name, kept) in listOf("facing 281°" to first, "facing 89°" to turned, "at 3000 m" to higher)) {
-            if (!kept.containsAll(tags)) problems += "$name, the line keeps $kept, not all of $tags"
+            if (kept != all) problems += "$name, the line keeps $kept, not $all"
         }
         assertTrue(problems.joinToString("\n"), problems.isEmpty())
     }
 
     @Test @Config(qualifiers = "w320dp-h780dp-xxhdpi")
-    fun `320 dp, font 1,0 - with the heading given way, a height or the form changing moves nothing else`() = assertNothingShifts("320/1.0", headingShown = false)
+    fun `320 dp, font 1,0 - short of room, the line keeps the height and the grid reference as the heading changes`() = assertNothingShifts320()
+
+    /**
+     * 320 dp, short of room: decided on the squeezed form, the heading is kept where the squeezed line holds it ("89° E" yes, "281° W"
+     * no), so it comes and goes as the phone turns, and the windows squeeze toward the values shown. The claim here is what is always
+     * kept, the height and the grid reference. Was "… with the heading given way, a height or the form changing moves nothing else".
+     */
+    private fun assertNothingShifts320() {
+        show(State.TRAIL, Evening.NONE, Facing.TURN)
+        setNavigating(false)
+        val problems = mutableListOf<String>()
+        for (facing in listOf(Facing.TURN, Facing.AHEAD)) {
+            show(State.TRAIL, Evening.NONE, facing)
+            setNavigating(false)
+            val s = strip()
+            for (tag in listOf(COMPASS_STRIP_ELEVATION_TAG, COMPASS_STRIP_COORDINATES_TAG)) if (s[tag] == null) problems += "320/1.0 $facing: <$tag> not kept"
+            println("STRIPWINDOWS|320/1.0|$facing|${s.mapValues { it.value?.bounds }}")
+        }
+        assertTrue(problems.joinToString("\n"), problems.isEmpty())
+    }
 
     @Test @Config(qualifiers = "w412dp-h915dp-xxhdpi")
     fun `412 dp, font 1,0 - a heading, a height or the grid reference's form changing moves nothing else`() = assertNothingShifts("412/1.0", headingShown = true)
