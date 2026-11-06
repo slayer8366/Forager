@@ -36180,6 +36180,11 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - To "Landscape, largest text, no compass, after sunset: there isn't room for both the \"Dark since…\" line and \"by trail\" on its own line ... Which should win?": **"(a) Leave out \"Dark since\""**. The option read: "In that one case the evening line doesn't show; \"by trail\" keeps its own line". The other: "(b) Keep \"Dark since\"".
   - To "the S22's landscape window (largest text, evening) has room for the evening line, which it used to leave out. The coder let it show. Keep that?": **"Keep it showing"**. The option read: "The evening line shows there now, and steps aside when the route card opens".
   - Amendment 1 gains H11 to H13.
+- **E14 built (2026-11-06):** H11 and H12 at 916a9c9f6, pre-main merged at 0b79b9a85, report 1718f7d1c. CI run 42298513392 green, 6,958 tests, none changed against pre-main; each revert failed for its own reason. A combined build (tools/s22-combined 505c55dda, run 42305542234, versionCode 4779) is on its way to the S22.
+- **Changed (2026-11-06T23:11Z), the owner, verbatim, with a screenshot of the navigation card:** **"There's a space between the 1.5 mi and the by trail. It used to not be there before 498 to 500. Please put it back to where they're next to each other"**.
+  - To "How should \"by trail\" sit next to the distance on the navigation card?": **"(a) Fixed, distance pushed right"**. The option read: "The distance hugs the right edge of its own window and \"by trail\" sits right after it. They're always side by side, and \"by trail\" never moves; a short distance leaves room on the left instead". The other: "(b) Follows the distance".
+  - To "The same gap would apply to \"straight\" (the way with no trail route). Same treatment?": **"Yes, same"**.
+  - Amendment 1 gains H14 and E15. The screenshot stays off GitHub.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
