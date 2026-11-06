@@ -724,3 +724,11 @@ Widths are in the card's own type (ForagerTheme, Noto Sans), at font 1.0 / 2.0, 
 - **Scratch:** `/mnt/work/scratch/nav-card-phase3/` is deleted at the end.
 - **No index row** was added to `docs/audits/README.md`.
 - **No coordinate** appears in anything pushed beyond the made-up point P, which the rig already used.
+
+---
+
+# Phase 3, G and H (G2, G3, H1 to H8): see the companion report
+
+The second Phase 3 session built G2, G3 and H1 to H8 on this PR. Its report, with the four disclosure sections, the widths and heights
+in each window and font, the room beside the needle, the revert table, the open items and the device check, is in
+`docs/audits/2026-11-05-10-nav-card-kind-line-completion-report-gh.md`, a file of its own because this one had passed 700 lines.
