@@ -34,14 +34,14 @@ private fun sighting(id: Long, observedOn: LocalDate?) = Sighting(
     scientificName = "Species $id",
     commonName = null,
     lat = 45.0,
-    lng = -122.0,
+    lng = -120.59375,
     observedOn = observedOn,
     photoUrl = null,
 )
 
 class GetSightingsUseCaseTest {
 
-    private val region = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
+    private val region = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
 
     @Test
     fun `sorts sightings by observed date, most recent first`() = runTest {

@@ -69,7 +69,7 @@ class GetDerivedTripUseCaseTest {
 
     @Test
     fun `a find at 11-59pm local belongs to that evening's trip, not the next day's`() = runTest {
-        val evening = MushroomLogEntry.draft(id = "evening-find", location = LatLng(45.5, -122.6), date = LocalDate.of(2026, 8, 5))
+        val evening = MushroomLogEntry.draft(id = "evening-find", location = LatLng(45.5, -121.19375), date = LocalDate.of(2026, 8, 5))
             .copy(isDraft = false)
         RoomMushroomLogRepository(database.mushroomLogDao()).save(evening).getOrThrow()
 
@@ -89,7 +89,7 @@ class GetDerivedTripUseCaseTest {
         trackRepository.create(track).getOrThrow()
         trackRepository.appendPoints(
             trackId = track.id,
-            points = listOf(TrackPoint(lat = 45.5, lng = -122.6, altitude = null, accuracyMeters = null, timestampEpochMillis = startedAt)),
+            points = listOf(TrackPoint(lat = 45.5, lng = -121.19375, altitude = null, accuracyMeters = null, timestampEpochMillis = startedAt)),
         ).getOrThrow()
         trackRepository.end(track.id, endedAt).getOrThrow()
 
@@ -111,7 +111,7 @@ class GetDerivedTripUseCaseTest {
         val waypoint = Waypoint(
             id = "dst-waypoint",
             lat = 45.5,
-            lng = -122.6,
+            lng = -121.19375,
             altitude = null,
             name = "Trailhead",
             note = "",
@@ -134,7 +134,7 @@ class GetDerivedTripUseCaseTest {
                 id = 42L,
                 name = "Chanterelle Ridge",
                 lat = 45.5,
-                lng = -122.6,
+                lng = -121.19375,
                 radiusKm = 10,
                 minZoom = 10.0,
                 maxZoom = 15.0,
@@ -161,7 +161,7 @@ class GetDerivedTripUseCaseTest {
 
     @Test
     fun `finds are not filtered by draft state - this dispatch does not decide entries-vs-drafts curation`() = runTest {
-        val draft = MushroomLogEntry.draft(id = "still-a-draft", location = LatLng(45.5, -122.6), date = LocalDate.of(2026, 8, 5))
+        val draft = MushroomLogEntry.draft(id = "still-a-draft", location = LatLng(45.5, -121.19375), date = LocalDate.of(2026, 8, 5))
         RoomMushroomLogRepository(database.mushroomLogDao()).save(draft).getOrThrow()
 
         val trip = useCase(LocalDate.of(2026, 8, 5), zone).getOrThrow()

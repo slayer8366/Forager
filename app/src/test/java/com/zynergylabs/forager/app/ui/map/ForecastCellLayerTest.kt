@@ -33,12 +33,12 @@ class ForecastCellLayerTest {
 
     @Test
     fun `only applicable cells become features, each a 0_1-degree square around its centre carrying its chance`() {
-        val collection = forecastCellsFeatureCollection(listOf(cell(45.1, -122.3, 0.3), cell(45.2, -122.3, 0.9, applicable = false)))
+        val collection = forecastCellsFeatureCollection(listOf(cell(45.0, -122.3, 0.3), cell(45.1, -122.3, 0.9, applicable = false)))
 
         val features = collection.features().orEmpty()
         assertEquals("a cell that is not applicable draws nothing", 1, features.size)
         val ring = (features.single().geometry() as Polygon).coordinates().single().map { it.longitude() to it.latitude() }
-        val expected = listOf(-122.35 to 45.05, -122.25 to 45.05, -122.25 to 45.15, -122.35 to 45.15, -122.35 to 45.05)
+        val expected = listOf(-122.35 to 44.95, -122.25 to 44.95, -122.25 to 45.05, -122.35 to 45.05, -122.35 to 44.95)
         assertEquals(expected.size, ring.size)
         ring.zip(expected).forEach { (actual, want) ->
             assertEquals(want.first, actual.first, 1e-9)
@@ -64,13 +64,13 @@ class ForecastCellLayerTest {
 
     @Test
     fun `a view asks for the blocks its cells can reach`() {
-        // Cells reach 0.05 degree past their centres, so a view whose south edge is 45.02 still shows
-        // the cells centred on 45.0 (block 45) but none centred on 44.9 (block 44).
-        assertEquals(setOf(ForecastBlock(45, -123)), forecastBlocksToRequest(zoom = 10.0, south = 45.02, west = -122.98, north = 45.5, east = -122.3))
-        // A north edge of 45.96 shows the cells centred on 46.0, which are in block 46.
+        // Cells reach 0.05 degree past their centres, so a view whose south edge is 44.92 still shows
+        // the cells centred on 44.9 (block 45) but none centred on 44.8 (block 44).
+        assertEquals(setOf(ForecastBlock(45, -123)), forecastBlocksToRequest(zoom = 10.0, south = 44.92, west = -122.98, north = 45.4, east = -122.3))
+        // A north edge of 45.86 shows the cells centred on 45.9, which are in block 46.
         assertEquals(
             setOf(ForecastBlock(45, -123), ForecastBlock(46, -123)),
-            forecastBlocksToRequest(zoom = 10.0, south = 45.02, west = -122.98, north = 45.96, east = -122.3),
+            forecastBlocksToRequest(zoom = 10.0, south = 44.92, west = -122.98, north = 45.86, east = -122.3),
         )
     }
 
@@ -84,7 +84,7 @@ class ForecastCellLayerTest {
      */
     @Test
     fun `below the minimum zoom nothing is requested, and at it even a tablet-sized view stays under the backstop`() {
-        val view = { zoom: Double -> forecastBlocksToRequest(zoom = zoom, south = 45.02, west = -122.98, north = 45.5, east = -122.3) }
+        val view = { zoom: Double -> forecastBlocksToRequest(zoom = zoom, south = 44.92, west = -122.98, north = 45.4, east = -122.3) }
         assertNull(view(MIN_FORECAST_ZOOM - 0.01))
         // Data part C: the same edge decides the legend's "Zoom in to see the forecast".
         assertTrue(isBelowForecastZoom(MIN_FORECAST_ZOOM - 0.01))
@@ -111,9 +111,9 @@ class ForecastCellLayerTest {
     fun `the dates in view are the cells' week and the earliest weather date among them`() {
         val shown = forecastCellsShownOf(
             listOf(
-                cell(45.1, -122.3, 0.3, weatherThrough = LocalDate.of(2026, 9, 26)),
-                cell(45.2, -122.3, 0.4, weatherThrough = LocalDate.of(2026, 9, 25)),
-                cell(45.3, -122.3, 0.5, applicable = false, weatherThrough = LocalDate.of(2026, 9, 20)),
+                cell(45.0, -122.3, 0.3, weatherThrough = LocalDate.of(2026, 9, 26)),
+                cell(45.1, -122.3, 0.4, weatherThrough = LocalDate.of(2026, 9, 25)),
+                cell(45.2, -122.3, 0.5, applicable = false, weatherThrough = LocalDate.of(2026, 9, 20)),
             ),
         )
 

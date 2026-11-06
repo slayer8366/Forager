@@ -54,7 +54,7 @@ class TrackOriginWaypointMigrationTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
         val legacyTrack = TrackEntity(id = "track-legacy", name = "Before the HUD", startedAtEpochMillis = 1_000L, endedAtEpochMillis = 2_000L)
-        val legacyWaypoint = WaypointEntity(id = "wp-legacy", lat = 45.5, lng = -122.6, altitude = 312.0, name = "Old parking", note = "", createdAtEpochMillis = 1_500L)
+        val legacyWaypoint = WaypointEntity(id = "wp-legacy", lat = 45.5, lng = -121.6, altitude = 312.0, name = "Old parking", note = "", createdAtEpochMillis = 1_500L)
 
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV12::class.java, dbFile.absolutePath).build()
         try {
@@ -91,15 +91,15 @@ class TrackOriginWaypointMigrationTest {
                 survivedTrack,
             )
             assertEquals(
-                listOf(Waypoint(id = "wp-legacy", lat = 45.5, lng = -122.6, altitude = 312.0, name = "Old parking", note = "", createdAtEpochMillis = 1_500L, trackId = null)),
+                listOf(Waypoint(id = "wp-legacy", lat = 45.5, lng = -121.6, altitude = 312.0, name = "Old parking", note = "", createdAtEpochMillis = 1_500L, trackId = null)),
                 waypointRepository.getAll().getOrThrow(),
             )
 
             // The new columns actually work: a linked waypoint, an unlinked one, and a track with an
             // origin pointer all round-trip through the production repositories.
-            val origin = Waypoint(id = "wp-origin", lat = 45.52, lng = -122.68, altitude = 50.0, name = "Trailhead", note = "", createdAtEpochMillis = 3_000L, trackId = "track-new")
-            val later = Waypoint(id = "wp-later", lat = 45.53, lng = -122.69, altitude = null, name = "Chanterelle patch", note = "", createdAtEpochMillis = 4_000L, trackId = "track-new")
-            val loose = Waypoint(id = "wp-loose", lat = 45.6, lng = -122.7, altitude = null, name = "No recording", note = "", createdAtEpochMillis = 3_500L, trackId = null)
+            val origin = Waypoint(id = "wp-origin", lat = 45.52, lng = -121.68, altitude = 50.0, name = "Trailhead", note = "", createdAtEpochMillis = 3_000L, trackId = "track-new")
+            val later = Waypoint(id = "wp-later", lat = 45.53, lng = -121.69, altitude = null, name = "Chanterelle patch", note = "", createdAtEpochMillis = 4_000L, trackId = "track-new")
+            val loose = Waypoint(id = "wp-loose", lat = 45.6, lng = -121.7, altitude = null, name = "No recording", note = "", createdAtEpochMillis = 3_500L, trackId = null)
             waypointRepository.save(later).getOrThrow()
             waypointRepository.save(origin).getOrThrow()
             waypointRepository.save(loose).getOrThrow()

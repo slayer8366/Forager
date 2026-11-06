@@ -71,14 +71,14 @@ class ForecastCellParsingTest {
 
     @Test
     fun `a well-formed block file parses every feature into a cell with all its properties`() {
-        val parsed = parseForecastCells(file(cell(45.1, -122.3), cell(45.0, -122.0, mapOf("applicable" to JsonPrimitive(false))))).getOrThrow()
+        val parsed = parseForecastCells(file(cell(45.5, -122.3), cell(45.4, -122.0, mapOf("applicable" to JsonPrimitive(false))))).getOrThrow()
 
         assertEquals(emptyList<ForecastCellRejection>(), parsed.rejected)
         assertEquals(
             ForecastCell(
                 group = "chanterelles",
                 week = week,
-                centre = LatLng(45.1, -122.3),
+                centre = LatLng(45.5, -122.3),
                 chance = 0.3,
                 uncertaintyLow = 0.2,
                 uncertaintyHigh = 0.4,
@@ -90,27 +90,27 @@ class ForecastCellParsingTest {
             parsed.cells.first(),
         )
         assertEquals("a cell that is not applicable parses, carrying its flag", false, parsed.cells[1].applicable)
-        assertEquals(LatLng(45.0, -122.0), parsed.cells[1].centre)
+        assertEquals(LatLng(45.4, -122.0), parsed.cells[1].centre)
     }
 
     @Test
     fun `a malformed feature is rejected and counted, and the rest of the file still parses`() {
         val parsed = parseForecastCells(
             file(
-                cell(45.1, -122.3),
-                cell(45.2, -122.3, mapOf("chance" to null)),
-                cell(45.3, -122.3, mapOf("chance" to JsonPrimitive("high"))),
-                cell(45.4, -122.3, mapOf("week" to JsonPrimitive("next week"))),
-                cell(45.5, -122.3, mapOf("drivers" to JsonPrimitive("rain"))),
-                cell(45.6, -122.3, mapOf("group" to JsonPrimitive(""))),
-                cell(45.7, -122.3, geometryType = "Point"),
-                cell(45.8, -122.3, halfSide = 0.5),
-                cell(45.83, -122.3),
-                cell(45.9, -122.3, mapOf("applicable" to JsonPrimitive("yes"))),
+                cell(45.5, -122.3),
+                cell(45.6, -122.3, mapOf("chance" to null)),
+                cell(45.7, -122.3, mapOf("chance" to JsonPrimitive("high"))),
+                cell(45.8, -122.3, mapOf("week" to JsonPrimitive("next week"))),
+                cell(45.9, -122.3, mapOf("drivers" to JsonPrimitive("rain"))),
+                cell(46.0, -122.3, mapOf("group" to JsonPrimitive(""))),
+                cell(46.1, -122.3, geometryType = "Point"),
+                cell(46.2, -122.3, halfSide = 0.5),
+                cell(46.23, -122.3),
+                cell(46.3, -122.3, mapOf("applicable" to JsonPrimitive("yes"))),
             ),
         ).getOrThrow()
 
-        assertEquals(listOf(LatLng(45.1, -122.3)), parsed.cells.map { it.centre })
+        assertEquals(listOf(LatLng(45.5, -122.3)), parsed.cells.map { it.centre })
         assertEquals(listOf(1, 2, 3, 4, 5, 6, 7, 8, 9), parsed.rejected.map { it.featureIndex })
         assertTrue(parsed.rejected.toString(), parsed.rejected.all { it.reason.isNotBlank() })
     }
@@ -119,11 +119,11 @@ class ForecastCellParsingTest {
     fun `a chance or bound outside 0 to 1 is rejected and counted, never clamped`() {
         val parsed = parseForecastCells(
             file(
-                cell(45.1, -122.3, mapOf("chance" to JsonPrimitive(0))),
-                cell(45.2, -122.3, mapOf("chance" to JsonPrimitive(1))),
-                cell(45.3, -122.3, mapOf("chance" to JsonPrimitive(1.2))),
-                cell(45.4, -122.3, mapOf("chance" to JsonPrimitive(-0.1))),
-                cell(45.5, -122.3, mapOf("uncertainty_high" to JsonPrimitive(1.01))),
+                cell(45.5, -122.3, mapOf("chance" to JsonPrimitive(0))),
+                cell(45.6, -122.3, mapOf("chance" to JsonPrimitive(1))),
+                cell(45.7, -122.3, mapOf("chance" to JsonPrimitive(1.2))),
+                cell(45.8, -122.3, mapOf("chance" to JsonPrimitive(-0.1))),
+                cell(45.9, -122.3, mapOf("uncertainty_high" to JsonPrimitive(1.01))),
             ),
         ).getOrThrow()
 
@@ -140,9 +140,9 @@ class ForecastCellParsingTest {
 
     @Test
     fun `a cell belongs to the block holding its centre, whole degrees included, south and west of zero too`() {
-        assertEquals(ForecastBlock(45, -123), ForecastBlock.containing(LatLng(45.0, -122.1)))
-        assertEquals(ForecastBlock(45, -122), ForecastBlock.containing(LatLng(45.9, -122.0)))
-        assertEquals(ForecastBlock(46, -122), ForecastBlock.containing(LatLng(46.0, -121.9)))
+        assertEquals(ForecastBlock(45, -123), ForecastBlock.containing(LatLng(45.4, -122.1)))
+        assertEquals(ForecastBlock(45, -122), ForecastBlock.containing(LatLng(46.3, -122.0)))
+        assertEquals(ForecastBlock(46, -122), ForecastBlock.containing(LatLng(46.4, -121.9)))
         assertEquals(ForecastBlock(-1, -1), ForecastBlock.containing(LatLng(-0.1, -0.1)))
         assertEquals(ForecastBlock(0, 0), ForecastBlock.containing(LatLng(0.0, 0.0)))
         // A centre computed in floating point, a hair under a whole degree, is still that degree's.
@@ -153,9 +153,9 @@ class ForecastCellParsingTest {
     fun `the blocks touching an area are every block it overlaps and no other`() {
         assertEquals(
             setOf(ForecastBlock(45, -123), ForecastBlock(45, -122), ForecastBlock(46, -123), ForecastBlock(46, -122)),
-            ForecastBlock.touching(south = 45.2, west = -122.8, north = 46.1, east = -121.9),
+            ForecastBlock.touching(south = 45.6, west = -122.8, north = 46.5, east = -121.9),
         )
-        assertEquals(setOf(ForecastBlock(45, -123)), ForecastBlock.touching(south = 45.2, west = -122.8, north = 45.6, east = -122.3))
+        assertEquals(setOf(ForecastBlock(45, -123)), ForecastBlock.touching(south = 45.6, west = -122.8, north = 46.0, east = -122.3))
     }
 
     @Test

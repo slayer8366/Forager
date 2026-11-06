@@ -65,7 +65,7 @@ class GetMapRecordsUseCaseTest {
                 listOf(
                     find("saved", LatLng(45.5, -122.5)),
                     find("saved-no-location", at = null),
-                    find("new-draft", LatLng(45.6, -122.6), isDraft = true),
+                    find("new-draft", LatLng(45.6, -122.58), isDraft = true),
                     // A re-edit's draft is its own row; the committed row it points at is what draws.
                     find("re-edit-draft", LatLng(46.0, -123.0), isDraft = true, draftOf = "saved"),
                 ),
@@ -104,7 +104,7 @@ class GetMapRecordsUseCaseTest {
      */
     @Test
     fun `the track being recorded is left out of Tracks until it has ended`() = runTest {
-        val recording = track("recording", listOf(point(45.3, -122.3), point(45.31, -122.31)), endedAt = null)
+        val recording = track("recording", listOf(point(45.28, -122.3), point(45.31, -122.31)), endedAt = null)
 
         val whileRecording = useCase(tracks = Result.success(listOf(recording)))()
         assertEquals(emptyList<RecordPolyline>(), whileRecording.trackPolylines)
@@ -122,8 +122,8 @@ class GetMapRecordsUseCaseTest {
     @Test
     fun `a find, photo or offline region with a pending delete is left out, and nothing else is`() = runTest {
         val records = useCase(
-            entries = Result.success(listOf(find("kept", LatLng(45.5, -122.5)), find("deleting", LatLng(45.6, -122.6)))),
-            photos = Result.success(listOf(photo("kept", 45.4, -122.4), photo("deleting", 45.3, -122.3))),
+            entries = Result.success(listOf(find("kept", LatLng(45.5, -122.5)), find("deleting", LatLng(45.6, -122.58)))),
+            photos = Result.success(listOf(photo("kept", 45.4, -122.4), photo("deleting", 45.28, -122.3))),
             tracks = Result.success(listOf(track("walked", listOf(point(45.1, -122.1))))),
             regions = Result.success(listOf(region(7L, 45.0, -122.0, 10), region(8L, 46.0, -121.0, 10))),
         )()

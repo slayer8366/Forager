@@ -34,7 +34,7 @@ import org.robolectric.annotation.GraphicsMode
 @Config(sdk = [36])
 class WaypointNameLayersTest {
 
-    private fun waypoint(id: String, name: String, lat: Double = 45.0, lng: Double = -122.0) = Waypoint(id, lat, lng, null, name, "", 0L)
+    private fun waypoint(id: String, name: String, lat: Double = 44.9, lng: Double = -122.0) = Waypoint(id, lat, lng, null, name, "", 0L)
 
     private fun propertiesOf(properties: Array<PropertyValue<*>>): Map<String, String> =
         properties.associate { it.name to it.value.let { v -> if (v is Array<*>) v.toList().toString() else v.toString() } }
@@ -42,12 +42,12 @@ class WaypointNameLayersTest {
     @Test
     fun `each waypoint with a name gets one label with its own id and image, and blank names get none`() {
         val labels = waypointNameLabels(
-            listOf(waypoint("a", "Creek", 45.1, -122.1), waypoint("b", ""), waypoint("c", "   "), waypoint("d", " Ridge ", 45.2, -122.2)),
+            listOf(waypoint("a", "Creek", 45.0, -122.1), waypoint("b", ""), waypoint("c", "   "), waypoint("d", " Ridge ", 45.1, -122.2)),
             drawn = true,
         )
 
         assertEquals(
-            listOf(NameLabel("a", "Creek", 45.1, -122.1), NameLabel("d", "Ridge", 45.2, -122.2)),
+            listOf(NameLabel("a", "Creek", 45.0, -122.1), NameLabel("d", "Ridge", 45.1, -122.2)),
             labels,
         )
         assertEquals(listOf("waypoint-name:Creek", "waypoint-name:Ridge"), labels.map { it.imageId })
@@ -60,12 +60,12 @@ class WaypointNameLayersTest {
 
     @Test
     fun `the name source gets a point per label, carrying the waypoint's id and its image, a stop carrying no id`() {
-        val collection = nameLabelFeatures(listOf(NameLabel("a", "Creek", 45.1, -122.1), NameLabel(null, "Ridge", 45.2, -122.2)))
+        val collection = nameLabelFeatures(listOf(NameLabel("a", "Creek", 45.0, -122.1), NameLabel(null, "Ridge", 45.1, -122.2)))
         val features = collection.features().orEmpty()
 
         assertEquals(2, features.size)
         val first = features[0].geometry() as Point
-        assertEquals(listOf(45.1, -122.1), listOf(first.latitude(), first.longitude()))
+        assertEquals(listOf(45.0, -122.1), listOf(first.latitude(), first.longitude()))
         assertEquals("a", features[0].getStringProperty(FEATURE_ID_PROPERTY))
         assertEquals("waypoint-name:Creek", features[0].getStringProperty(WaypointNameIds.IMAGE_PROPERTY))
         assertFalse("a stop has no waypoint id", features[1].hasProperty(FEATURE_ID_PROPERTY))
@@ -75,10 +75,10 @@ class WaypointNameLayersTest {
     @Test
     fun `the route's stops are labelled from RouteStop name, blank names skipped`() {
         val labels = routeStopNameLabels(
-            listOf(RouteStop("Creek", LatLng(45.1, -122.1)), RouteStop(" ", LatLng(45.3, -122.3)), RouteStop("Ridge", LatLng(45.2, -122.2))),
+            listOf(RouteStop("Creek", LatLng(45.0, -122.1)), RouteStop(" ", LatLng(45.2, -122.3)), RouteStop("Ridge", LatLng(45.1, -122.2))),
         )
 
-        assertEquals(listOf(NameLabel(null, "Creek", 45.1, -122.1), NameLabel(null, "Ridge", 45.2, -122.2)), labels)
+        assertEquals(listOf(NameLabel(null, "Creek", 45.0, -122.1), NameLabel(null, "Ridge", 45.1, -122.2)), labels)
     }
 
     @Test
@@ -99,7 +99,7 @@ class WaypointNameLayersTest {
 
     @Test
     fun `a fan hides the names of its fanned waypoints only`() {
-        fun member(layer: String, id: String) = FanMember(FanKey(layer, id), 45.0, -122.0, 0f, 0f, FanOffset(0f, 0f))
+        fun member(layer: String, id: String) = FanMember(FanKey(layer, id), 44.9, -122.0, 0f, 0f, FanOffset(0f, 0f))
         val members = listOf(member(MapLayerIds.WAYPOINTS, "a"), member(MapLayerIds.FINDS, "f"), member(MapLayerIds.WAYPOINTS, "b"))
 
         assertEquals(listOf("a", "b"), fanHiddenNameIds(members))

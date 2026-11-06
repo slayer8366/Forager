@@ -59,13 +59,13 @@ class DayScopedIndexMigrationTest {
     fun `pre-existing rows in all four indexed tables survive the 9 to 10 migration, and the new day-scoped queries find them`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
-        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -122.6), date = LocalDate.of(2026, 8, 5))
+        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -121.19375), date = LocalDate.of(2026, 8, 5))
             .copy(isDraft = false)
         val legacyTrack = TrackEntity(id = "track-1", name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = 2_000L)
         val legacyWaypoint = WaypointEntity(
             id = "waypoint-1",
             lat = 45.5,
-            lng = -122.6,
+            lng = -121.19375,
             altitude = null,
             name = "Trailhead",
             note = "",
@@ -75,7 +75,7 @@ class DayScopedIndexMigrationTest {
             id = 1L,
             name = "Chanterelle Ridge",
             lat = 45.5,
-            lng = -122.6,
+            lng = -121.19375,
             radiusKm = 10,
             minZoom = 10.0,
             maxZoom = 15.0,
