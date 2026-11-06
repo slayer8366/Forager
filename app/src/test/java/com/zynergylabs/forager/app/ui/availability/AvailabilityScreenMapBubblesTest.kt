@@ -178,7 +178,7 @@ internal val BUBBLE_DAY: LocalDate = LocalDate.of(2026, 9, 12)
 internal val BUBBLE_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.51, -122.61), date = BUBBLE_DAY)
     .copy(isDraft = false, ownIdentification = "Golden chanterelle")
 internal val BUBBLE_PHOTO = GalleryPhoto(LogPhoto("ph-1", "photos/ph-1.jpg", 1_700_000_000_000L, 45.53, -122.63), referencingEntryIds = listOf("find-1"))
-internal val BUBBLE_WAYPOINT = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
+internal val BUBBLE_WAYPOINT = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
 internal val BUBBLE_TRIP = PlannedTrip("trip-1", "Saddle loop", LatLng(45.56, -122.66), LocalDate.of(2026, 10, 3))
 internal val BUBBLE_TRACK = Track(
     id = "trk-1",
@@ -217,7 +217,7 @@ internal class OneCellStore : ForecastCellStore {
 
 /** Every kind at its own spot, clear of the chrome: the left half of the map, below the compass strip. */
 private fun glyphsAt(xDp: Dp, firstYDp: Dp): List<StubGlyph> = listOf(
-    StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", xDp, firstYDp, LatLng(45.326, -122.634)),
+    StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", xDp, firstYDp, LatLng(45.3736, -121.6959)),
     StubGlyph(MapLayerIds.FINDS, "find-1", xDp, firstYDp + 40.dp, LatLng(45.51, -122.61)),
     StubGlyph(MapLayerIds.PHOTOS, "ph-1", xDp, firstYDp + 80.dp, LatLng(45.53, -122.63)),
     StubGlyph(MapLayerIds.KEPT_TRACKS, "trk-1", xDp, firstYDp + 120.dp, LatLng(45.505, -122.6)),

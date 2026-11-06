@@ -111,7 +111,7 @@ class RouteCameraOnReturnTest {
     private var firstMode = CameraMode.NONE
 
     private val start = camera(45.20, -122.50, 10.0)
-    private val fit = camera(45.331, -122.639, 13.5)
+    private val fit = camera(45.3786, -121.7009, 13.5)
     private val panned = camera(45.40, -122.80, 15.25)
 
     private fun camera(lat: Double, lng: Double, zoom: Double): CameraPosition =

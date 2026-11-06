@@ -36,7 +36,7 @@ import kotlin.math.tan
  * since have stored it.
  *
  * **A kept tile is used only while a region still holds it** (S22 session 11: after a region was deleted, a waypoint in
- * another region sharing relief tile 11/326/734 still read "Elevation 451 ft" from this cache, with no region link left
+ * another region sharing its relief tile still read its old "Elevation" line from this cache, with no region link left
  * on disk). Each use asks [ReliefTileStore.linkedFingerprint] first, one small query and no decode: the same answer as
  * when the tile was read keeps it; anything else (no region holds it now, or its stored row changed) drops it and reads
  * the tile again, which then answers as any read does. So every way a region link goes (a delete, a replaced region, the

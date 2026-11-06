@@ -22,9 +22,9 @@ import org.junit.Test
  */
 class RouteLegElevationTest {
 
-    private val a = LatLng(45.30, -122.60)
-    private val b = LatLng(45.31, -122.61)
-    private val c = LatLng(45.32, -122.62)
+    private val a = LatLng(45.35, -121.66)
+    private val b = LatLng(45.36, -121.67)
+    private val c = LatLng(45.37, -121.68)
 
     /** A trail leg from [from] to [to] whose trail part carries [heights], one per point, between the two joins. */
     private fun trail(from: LatLng, to: LatLng, heights: List<Double?>): RouteLeg.Trail {

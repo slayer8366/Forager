@@ -13,7 +13,7 @@ import org.junit.Test
  */
 class CompactMapLocateFocusTest {
 
-    private val gps = LatLng(45.3263, -122.6339)
+    private val gps = LatLng(45.3739, -121.6958)
     private val searched = Region(47.55, -122.30, 8)
 
     private fun state(region: Region?, frame: Int, status: LocateMeStatus) =

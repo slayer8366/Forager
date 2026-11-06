@@ -36,7 +36,7 @@ import org.robolectric.shadows.ShadowLocationManager
 
 /**
  * A recording that ends leaves no sundown or back-by alert in the shade (RECORD -800; the owner: "Yes, add it
- * now (Recommended)"). On 2026-10-09 a leave-by posted at 17:45 still read "Sunset at 6:35 PM" after its
+ * now (Recommended)"). On 2026-10-09 a leave-by posted at 17:45 still read its sunset time after its
  * recording had ended.
  *
  * The real [TrackRecordingService] and [AppContainer]. The back-by alert is brought by the service itself, as

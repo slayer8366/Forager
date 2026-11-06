@@ -271,7 +271,7 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
 
     private fun assertInLine(rotation: Int, withSearch: Boolean) {
         setScreenThenTurn(rotation) {
-            if (withSearch) rig.searchCoordinates("45.326", "-122.634")
+            if (withSearch) rig.searchCoordinates("45.3736", "-121.6959")
             pickLongSpecies()
         }
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
@@ -325,7 +325,7 @@ abstract class LandscapeSearchFixesTests(private val portrait: String, private v
     fun `item 3 a species searched, Clear, then the turn, the selection is the default and the bar meets the strip`() {
         setScreenThenTurn(Surface.ROTATION_90) {
             pickLongSpecies()
-            rig.searchCoordinates("45.326", "-122.634")
+            rig.searchCoordinates("45.3736", "-121.6959")
             rig.touch(composeRule.onNodeWithTag(SEARCH_BAR_CLEAR_TAG))
         }
         assertEquals("Clear put the selection back to the default", TaxonFilter.FUNGI, rig.viewModel.uiState.value.taxonFilter)

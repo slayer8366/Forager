@@ -39,8 +39,8 @@ class AvailabilityViewModelWaypointLineTest {
     fun tearDown() = Dispatchers.resetMain()
 
     private val t = 1_700_000_000_000L
-    private val creek = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
-    private val fix = LocationFix.Update(lat = 45.3215, lng = -122.634, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
+    private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
+    private val fix = LocationFix.Update(lat = 45.3691, lng = -121.6959, altitude = 50.0, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val drawn = listOf(LatLng(fix.lat, fix.lng), LatLng(creek.lat, creek.lng))
 
     private val fixes = MutableSharedFlow<LocationFix>(replay = 1)

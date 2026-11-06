@@ -15,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.foundation.layout.padding
+import com.zynergylabs.forager.app.testing.MadeUpPlace
 import com.zynergylabs.forager.app.ui.map.MapCreditCaption
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.pointer.pointerInput
@@ -93,8 +94,9 @@ internal class RouteMapSlot(private val glyphs: List<StubGlyph>, private val cre
  */
 internal const val S22_MAP_CREDIT = "Protomaps © OpenStreetMap · Trails: USDA Forest Service, CC BY 4.0 · BLM"
 
-internal val CREEK = Waypoint("wp-creek", 45.326, -122.634, null, "Creek", "", 1_000L)
-internal val RIDGE = Waypoint("wp-ridge", 45.336, -122.644, null, "Ridge", "", 2_000L)
+/** CREEK stands at [MadeUpPlace]; RIDGE, and RouteCardBarRig's Falls to Spring, are fixed 0.01-degree steps from it. */
+internal val CREEK = Waypoint("wp-creek", MadeUpPlace.LAT, MadeUpPlace.LNG, null, "Creek", "", 1_000L)
+internal val RIDGE = Waypoint("wp-ridge", 45.3836, -121.7059, null, "Ridge", "", 2_000L)
 internal fun Waypoint.stop() = RouteStop(name, LatLng(lat, lng))
 internal fun straight(a: LatLng, b: LatLng) = RouteLeg.Straight(listOf(a, b), GeoDistance.metersBetween(a, b), StraightReason.NO_REGION_COVERS)
 internal val SAVED_ROUTE = PlottedRoute(listOf(CREEK.stop(), RIDGE.stop()), listOf(straight(CREEK.stop().position, RIDGE.stop().position)))

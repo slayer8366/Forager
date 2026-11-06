@@ -313,7 +313,7 @@ class JournalPendingDeleteTest {
                     onOpenCameraForAlbum = {},
                     onOpenCameraForCartographyEntry = {},
                     mapSlot = PD_STUB_MAP,
-                    pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                    pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
                     basemap = Basemap.DEFAULT,
                     onOpenEntry = logViewModel::onOpenEntry,
                     onCloseEntry = logViewModel::onCloseEntry,

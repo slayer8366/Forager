@@ -63,7 +63,7 @@ class CentrePinLocationPickerTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    private val region = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+    private val region = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
     @Test
     fun `OK confirms the region's own centre when the map is never panned`() {

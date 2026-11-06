@@ -79,7 +79,7 @@ import org.junit.Test
 // own default-radius dispatch) — this fixture has to match that default, not an arbitrary value,
 // since every test that runs searchTestRegion() and then asserts against REGION.radiusKm needs the
 // two to agree.
-private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 8)
+private val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 8)
 
 private val COUNTS = listOf(
     SpeciesObservationCount(
