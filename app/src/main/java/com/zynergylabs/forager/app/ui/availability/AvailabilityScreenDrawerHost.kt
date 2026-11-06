@@ -34,6 +34,7 @@ import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
+import com.zynergylabs.forager.app.ui.map.mapChromeShape
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 
 /**
@@ -102,8 +103,12 @@ internal fun AvailabilityScreenDrawerHost(
             // (Recommended)"; planner message -77, Q4); solid over the other tabs.
             val drawerColor = mapChromeFill(navigationBarContainerColor(), state.compactTab() == CompactTab.MAP)
             val drawerContentColor = contentColorFor(navigationBarContainerColor())
+            // Dispatch 2026-11-05-09: the sheet's shape, Material's own default for a modal drawer (toolsDrawerShape), built once
+            // and given to the sheet, and set on its node so a test reads the corners the sheet is filled to.
+            val drawerShape = toolsDrawerShape()
             ModalDrawerSheet(
-                modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor),
+                modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor).mapChromeShape(drawerShape),
+                drawerShape = drawerShape,
                 drawerContainerColor = drawerColor,
                 drawerContentColor = drawerContentColor,
             ) {
