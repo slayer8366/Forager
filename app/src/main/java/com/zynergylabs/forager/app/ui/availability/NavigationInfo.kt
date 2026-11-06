@@ -156,7 +156,7 @@ internal fun NavigationInfo(
         val lastBackBy = rememberLastShown(shownBackBy)
         val holdSundown = shownSundown ?: lastSundown.takeIf { sundownVisibility.currentState || !sundownVisibility.isIdle }
         val holdBackBy = shownBackBy ?: lastBackBy.takeIf { backByVisibility.currentState || !backByVisibility.isIdle }
-        val fit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy)
+        val fit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy, distanceUnit)
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -239,6 +239,7 @@ private fun measuredNavigationInfoFit(
     metrics: InfoMetrics,
     sundownLine: String?,
     backByLine: String?,
+    distanceUnit: DistanceUnit,
 ): NavigationInfoFit {
     val measurer = rememberTextMeasurer()
     val small = MaterialTheme.typography.labelMedium
@@ -265,6 +266,39 @@ private fun measuredNavigationInfoFit(
         turnWhole = turn,
         turnShort = turnShortForm(turn),
     ).let { fit -> if (fit.overflows) fit.also { android.util.Log.w(CARD_LOG_TAG, "navigation info overflows at $partsPx px: $fit") } else fit }
+        .let { fit ->
+            val reserveRight = eveningPieces(sundownLine, backByLine).isNotEmpty()
+            fit.copy(kindPlace = topLineKindPlace(readout, fit, partsPx, metrics, reserveRight, distanceUnit, figureStyle, small, ::widthOf))
+        }
+}
+
+/**
+ * Dispatch 2026-11-05-10 (RECORD -2181): where the kind goes, decided on the left part's width as [InfoParts] draws it, for the
+ * widest figure this kind can show in [distanceUnit] ([longestFigures]) or the figure on screen where it is wider.
+ */
+private fun topLineKindPlace(
+    readout: NavigationHudReadout,
+    fit: NavigationInfoFit,
+    partsPx: Int,
+    metrics: InfoMetrics,
+    reserveRight: Boolean,
+    distanceUnit: DistanceUnit,
+    figureStyle: TextStyle,
+    kindStyle: TextStyle,
+    widthOf: (String, TextStyle) -> Int,
+): KindPlace {
+    val kindText = readout.distanceKindText ?: return KindPlace.NONE
+    val longest = distanceKindOf(kindText)?.let { longestFigures(it, distanceUnit) }.orEmpty() + columnFigure(readout, fit.figureShort)
+    return kindPlace(
+        TopLineWidths(
+            leftPartPx = leftPartWidthPx(partsPx, metrics.dividerPx, fit, reserveRight),
+            gapPx = metrics.gapPx,
+            figurePx = longest.maxOf { widthOf(it, figureStyle) },
+            kindPx = widthOf(kindText, kindStyle),
+            stackedPx = kindStackOf(kindText)?.let { (top, bottom) -> maxOf(widthOf(top, kindStyle), widthOf(bottom, kindStyle)) },
+            shortPx = kindShortOf(kindText)?.let { widthOf(it, kindStyle) },
+        ),
+    )
 }
 
 /** The X's touch box: Material's icon button at its 48 dp minimum interactive size. */
