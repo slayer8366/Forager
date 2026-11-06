@@ -67,7 +67,7 @@ private const val TRAIL_NOTE = "Part of this route's trail is outside this area.
  * Dispatch 2026-11-05-08 (RECORD -2167, -2171): a trip's Download Maps in the Tools drawer's Trip Planner, through the real
  * screen and the real [AvailabilityViewModel], wired as MainActivity wires them ([MapLayersTestScreen]). Every touch is a real
  * one at screen coordinates, sampled across the control's own bounds ([ACROSS]); Back goes through the real dispatcher. The
- * picker map pans by a real drag, which settles where the test says, as [RealSearchScreenRig]'s does. Made-up points.
+ * picker map pans by a real drag, which settles where the test says, as [RealSearchScreenRig]'s does. In touch mode. Made-up points.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -75,8 +75,10 @@ class TripDownloadMapsScreenTest {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
+    // Touch mode, as a finger puts a phone (RealSearchScreenRig.touchModeHost, the SearchDropdownReopenTest precedent). Without it,
+    // a typed name's field going away handed focus to the search pill, which opened its dropdown (run 42173561071's controls).
     @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
+    val rules: RuleChain = RuleChain.outerRule(RealSearchScreenRig.touchModeHost()).around(composeRule)
 
     private val downloads = RecordingOfflineMaps()
     private lateinit var viewModel: AvailabilityViewModel
