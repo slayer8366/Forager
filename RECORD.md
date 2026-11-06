@@ -36141,6 +36141,21 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **The three-line evening part before sunset,** typed: **"Shorten to Sunset: 4:52 PM ▪︎ Dark: 5:23 PM status words are on the right panel"**.
   - The questions and option texts are quoted in Amendment 1, H3 to H5, with the planner's readings: the kept notes drop "· straight line" and wrap; only the before-sunset form changes; and the right panel keeps its width in daytime.
   - A fresh Hazel builds G and H together (E10).
+- **G and H stop (2026-11-06T13:22:49Z), from the fresh Hazel:**
+  - H5's one line ("Sunset: 4:52 PM ▪︎ Dark: 5:23 PM", 196.7 dp at font 1.0, 391.3 at 2.0) leaves the left part too narrow in most windows. At 384 dp 118.3 dp is left, at 360 dp 94.3, at 320 dp 54.3 and in landscape 87.0. Nothing is left at 2.0.
+  - Beside the needle that leaves 64.3 dp on the S22, against the next turn's 75.
+  - Throwaway run 42222326188 measured these.
+  - **The owner, verbatim,** to "The one-line \"Sunset: 4:52 PM ▪ Dark: 5:23 PM\" is too wide to sit beside the distance and turn line on most phones at today's text sizes. What should happen?": **"Split it at the ▪ (Recommended)"**. The option read: "Where the one line doesn't fit, it breaks at the ▪ into two lines, still with no countdown. The right side stays about today's width, so the distance, \"by trail\" and the next-turn arrow keep their room. Status words go under it." The others: "Its own line underneath"; "Countdown where it won't fit".
+  - **The planner's readings and calls, open to the owner:**
+    - "fits" is decided as if the next turn's space were already there, so the form doesn't flip when it arrives;
+    - the status goes under the whole evening part when that is more than one line;
+    - the daytime right panel is sized for the broken form's widest line;
+    - with the kind on its own line, the distance is centred on the top line;
+    - "Target" and "No target" stay, centred on the degrees space;
+    - a compass notice goes on its own line under other status words;
+    - with no dusk, "Sunset: 4:52 PM" shows alone, and the 24-hour form breaks the same way;
+    - wrapping is natural, with no hand-made breaks;
+    - the strip's navigating-mode code is left in this PR, flagged as having no caller, to be deleted after the merge.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
