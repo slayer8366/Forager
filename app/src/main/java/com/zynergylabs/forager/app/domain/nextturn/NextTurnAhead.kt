@@ -76,7 +76,8 @@ fun nextTurn(way: NextTurnWay, progress: WayHomeProgress?, current: LatLng?): Ne
                 left += judgement.leftPaths
                 right += judgement.rightPaths
             }
-            JunctionClass.NO_LEG -> Unit
+            // Not judged, so never a turn and no side for its ways (NO_LEG; H3's SHORT_LEG).
+            JunctionClass.NO_LEG, JunctionClass.SHORT_LEG -> Unit
         }
     }
     return if (trackAhead != null) NextTurn.Blank(NextTurnBlank.TRACK_TURNS_UNKNOWN) else NextTurn.NoTurnLeft
@@ -90,6 +91,9 @@ enum class NextTurnCardState {
     NO_DISTANCE,
     NO_FIX,
     WITHIN_FIX_CIRCLE,
+
+    /** E1's "a held-back route": the top line reads the withheld route's words, "Unable to calculate route" (2b-1). */
+    ROUTE_WITHHELD,
 }
 
 /** E1, the owner: "Blank (Recommended)". Every state of the card but a figure blanks the space, whatever [ahead] is. */
@@ -99,4 +103,5 @@ fun nextTurnSpace(card: NextTurnCardState, ahead: NextTurn): NextTurn = when (ca
     NextTurnCardState.NO_DISTANCE -> NextTurn.Blank(NextTurnBlank.NO_DISTANCE)
     NextTurnCardState.NO_FIX -> NextTurn.Blank(NextTurnBlank.NO_FIX)
     NextTurnCardState.WITHIN_FIX_CIRCLE -> NextTurn.Blank(NextTurnBlank.WITHIN_FIX_CIRCLE)
+    NextTurnCardState.ROUTE_WITHHELD -> NextTurn.Blank(NextTurnBlank.ROUTE_WITHHELD)
 }

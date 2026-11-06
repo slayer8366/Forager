@@ -68,6 +68,8 @@ internal fun createAvailabilityViewModel(
         currentTime = container.currentTimeProvider,
         // Step 6 PR 3 (dispatch 2026-10-26-11): the way to a waypoint along trails, on the shared trail engine (PR 2).
         findWayToWaypoint = { from, waypoint, accuracyMeters -> container.findWayToWaypoint(from, waypoint, accuracyMeters) },
+        // Dispatch 2026-11-06-01, H4 (2b-1): the way's junctions for the next turn, read from the data it was found on.
+        readRouteTurns = container.routeTurnsReader,
         // Dispatch 2026-10-28-13: the live height above sea level, steadied by the barometer, read while the map is open.
         pressureProvider = container.pressureProvider,
         seaLevelConverter = container.seaLevelConverter,

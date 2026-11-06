@@ -17,7 +17,7 @@ internal fun routeTurnsLogLines(kind: RouteKind, turns: RouteTurns): List<String
     fun n(c: JunctionClass) = classes[c] ?: 0
     val summary = "ways read in ${reading.millis} ms (${count(reading.reads, "read")}, ${count(reading.ways, "way")}); ${read.junctions.size} judged: " +
         "${count(n(JunctionClass.TURN), "turn")}, ${count(n(JunctionClass.FORK), "fork")}, ${n(JunctionClass.STRAIGHT_ON)} straight on, " +
-        "${n(JunctionClass.NO_LEG)} no leg, ${n(JunctionClass.UNMATCHED)} unmatched."
+        "${n(JunctionClass.NO_LEG)} no leg, ${count(n(JunctionClass.SHORT_LEG), "short leg")}, ${n(JunctionClass.UNMATCHED)} unmatched."
     // The paths passed on each side since the last turn or fork, or the last unknown junction: what the count would be
     // as each turn becomes the next one, the walker just past the one before. Beside them, the ways there that are not
     // paths (B5), left out of the count.
@@ -34,7 +34,7 @@ internal fun routeTurnsLogLines(kind: RouteKind, turns: RouteTurns): List<String
         }
         val angles = "turn ${whole(j.routeTurnDegrees)}°, margin ${whole(j.marginDegrees)}°"
         val body = when (j.junctionClass) {
-            JunctionClass.NO_LEG, JunctionClass.UNMATCHED -> j.junctionClass.name
+            JunctionClass.NO_LEG, JunctionClass.SHORT_LEG, JunctionClass.UNMATCHED -> j.junctionClass.name
             JunctionClass.TURN -> {
                 val same = if (j.side == TurnSide.LEFT) left else right
                 val notCounted = if (j.side == TurnSide.LEFT) leftNot else rightNot
@@ -56,7 +56,7 @@ internal fun routeTurnsLogLines(kind: RouteKind, turns: RouteTurns): List<String
                 leftNot = 0
                 rightNot = 0
             }
-            JunctionClass.NO_LEG -> Unit
+            JunctionClass.NO_LEG, JunctionClass.SHORT_LEG -> Unit
         }
         "#${i + 1} node ${junction.node}, ${whole(junction.alongMeters)} m, $where of ${count(junction.ways, "way")}: $body"
     }

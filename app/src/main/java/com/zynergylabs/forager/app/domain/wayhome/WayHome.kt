@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.domain.wayhome
 
 import com.zynergylabs.forager.app.domain.model.LatLng
+import java.io.File
 
 /**
  * The way home along trails (dispatch 2026-10-23-09, plan step 5; Amendment 1, part 1): the walker's own track back
@@ -113,8 +114,12 @@ enum class WayHomeNote(val text: String) {
 
 /** What [FindWayHomeUseCase] found. */
 sealed interface WayHomeResult {
-    /** The way home along trails. */
-    data class AlongTrails(val wayHome: WayHome) : WayHomeResult
+    /**
+     * The way home along trails. [routeData] is the route data folder it was found on (dispatch 2026-11-06-01, Amendment 1,
+     * H4: the next turn's junctions are read from the same data the route came from); `null` only where a result is built
+     * without one, in tests, and then the junctions are said to be unread, never guessed.
+     */
+    data class AlongTrails(val wayHome: WayHome, val routeData: File? = null) : WayHomeResult
 
     /**
      * The way home is the walker's track ([com.zynergylabs.forager.app.domain.routeHome], as today). [note] says why,

@@ -42,6 +42,8 @@ import com.zynergylabs.forager.app.routing.WayHomeRouting
 import com.zynergylabs.forager.app.domain.wayto.FindWayToWaypointUseCase
 import com.zynergylabs.forager.app.domain.nextturn.RouteKind
 import com.zynergylabs.forager.app.domain.nextturn.RouteTurnsLog
+import com.zynergylabs.forager.app.domain.nextturn.RouteTurnsReader
+import com.zynergylabs.forager.app.domain.nextturn.RouteWaysTurnsReader
 import com.zynergylabs.forager.app.domain.wayto.StreetDropOffEnds
 import com.zynergylabs.forager.app.domain.mapdata.LayeredOfflineBasemap
 import com.zynergylabs.forager.app.domain.mapdata.ReadNearbyMapData
@@ -504,12 +506,18 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
     private val trailRoutingEngine = TrailRoutingEngine(installProfile = { RoutingProfile.install(context) }, errorLog = errorLog)
     // Dispatch 2026-11-06-01, Phase 2a: the next turn's M1 line, written at info level for every trail route the way home
     // and the way to a waypoint find, with no position, once its junctions are read off the main thread. Nothing a user sees.
+    private val nextTurnRouteWays = BRouterRouteWays(profileDir = { routeWaysProfileDir })
     private val routeTurnsLog = RouteTurnsLog(
         scope = CoroutineScope(SupervisorJob() + Dispatchers.Default),
-        routeWays = BRouterRouteWays(profileDir = { routeWaysProfileDir }),
+        routeWays = nextTurnRouteWays,
         info = { tag, message -> Log.i(tag, message) },
         errorLog = errorLog,
     )
+    /**
+     * Dispatch 2026-11-06-01, Amendment 1, H4 (2b-1): each trail line's junctions for the next turn, read where the line
+     * is held (the way home's watch below, the Maps tab's way to a waypoint), from the route data it was found on.
+     */
+    val routeTurnsReader: RouteTurnsReader = RouteWaysTurnsReader(nextTurnRouteWays, errorLog)
     private val wayHomeRouting = WayHomeRouting(
         engines = trailRoutingEngine,
         offlineMapRepository = offlineMapRepository,
@@ -559,6 +567,7 @@ class AppContainer(context: Context, processStartedAtEpochMillis: Long) {
         // Returning now, not after arrival: the way home is for the walk back, and arrival ends it.
         isReturning = { id -> returnWatch.state.value.let { it.trackId == id && it.isReturning } },
         errorLog = errorLog,
+        readTurns = routeTurnsReader,
     )
 
     // The three sundown alerts, held here so they outlive the Activity, as ReturnWatch is

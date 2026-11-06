@@ -311,3 +311,270 @@ Each is open to the planner, and each is one place in the code.
 - **Scratch worktrees:** the probes' and the reverts' worktrees under `/mnt/work/scratch/next-turn-2a/` are removed. The scratch folder itself, holding the scripts, the saved copies and the downloads, is deleted at hand-back, after the last CI check.
 - **Not touched:** no other branch, no git stash, no Gradle on the laptop, and the planner's worktree.
 - **Not added:** no row in `docs/audits/README.md`, as the dispatch said.
+
+## Phase 2b-1 (draft: built, not yet run on CI, not pushed)
+
+Hazel Cairnwright, 2026-11-06. The scope is Amendment 1, H4, verbatim: "2b-1, now: `routeTurnsFor` held where each line is held (WayHomeWatch, AvailabilityWaypointRoute) with its route data folder, recomputed on each re-route. Then the card's state mapping (`NextTurnCardState`) as a pure function, and H3. These have no UI, and tests come first." The owner's go, verbatim: "#500: restart Phase 2b-1", and earlier "Carry on with the building".
+
+**Status: stopped before the first push.** The privacy scan the dispatch requires before every push (`git diff origin/next-turn HEAD`) reports 6 matches, not 0. All 6 are in six files the pre-main merge (`ec738c364`, a clean merge of `64be65216` and `61f99fbe2`: its tree equals `git merge-tree` of the two) brings in, each byte-identical to pre-main `61f99fbe2`, and on added lines only. The two 2b-1 commits alone scan 0 (`git diff ec738c364 HEAD`). The question is with the planner; nothing has been pushed.
+
+### What is built (local commits `b99797aea` tests first against stubs, `b64d6f571` the code)
+
+- **The folder.** `WayHomeResult.AlongTrails` and `WayToWaypointResult.AlongTrails` carry `routeData`, the folder the route was found on, set by both use cases. `null` only where a test builds a result without one.
+- **The reader** (`domain/nextturn/RouteTurnsReader.kt`, new). `RouteTurnsReader`, the project's own seam, and `RouteWaysTurnsReader`, which calls `routeTurnsFor`. No folder, a failed read and a reader that throws each give an explicit `RouteTurns.Unread`, warned of; a throw is named by its class, never its message.
+- **One read per holder** (`domain/nextturn/HeldRouteTurns.kt`, new). Each new line cancels the read in flight and starts its own.
+- **WayHomeWatch.** `WayHomeShown.turns`: `null` while read and with no line. Read for each line found, at Return and at each re-route; kept only on the line it was read for; cancelled by a fallback to the track and by Stop.
+- **AvailabilityWaypointRoute.** `WaypointRouteShown.turns`, the same, held while the walker is off the line, since the line is still held then. The ViewModel and its factory pass the reader on; `AppContainer` builds one for both.
+- **The card's state** (`ui/availability/NextTurnCardStateOf.kt`, new). `nextTurnCardState(readout, hasFix)` reads the card's own readout: no fix, "Arrived" (live or held), "Unable to calculate route" (a new `NextTurnCardState.ROUTE_WITHHELD`), the dash, else a figure.
+- **H3.** A join whose lead-in (or final leg), measured along the line, is shorter than `TURN_MEASURE_METERS` is a new `JunctionClass.SHORT_LEG`: never a turn, no side for its ways, counted apart in the M1 line ("0 short legs" in its header, so the pinned format test's header gains it).
+
+### Still to do once the scan is ruled on
+
+Red run on the stubs, green, the one-line revert per ruling, full CI compared by test name with pre-main, and the four disclosure sections.
+
+### Hand-back, mid-verification (Hazel, 2026-11-06)
+
+- **The scan, ruled.** The owner: "Push, check new work only (Recommended)". Before each push I ran both `git diff origin/pre-main HEAD` and `git diff ec738c364 HEAD` through the scanner, and both read 0 every time.
+- **Pushed:** `eb906bb05`, then `884f36c6e`. `884f36c6e` takes the colons out of `NextTurnCardStateTest`'s test names: the JVM refuses them (the compile log of run 42280248236, 18 lines of `Name contains illegal characters: :.`).
+- **The first red run, 42280248236, read nothing.** It had compile errors, so its results were not read.
+- **Started, not yet read:**
+  - red run 42281323874 on throwaway `next-turn-2b1-red` (`65c4c65c5`: the stubs plus the name fix), filtered to the new classes and `RouteTurnsLogTest`, `NextTurnAheadTest` and `RouteTurnsTest`;
+  - PR run 42281325309, the full CI on `884f36c6e`.
+- **Still to do:**
+  - green;
+  - four one-line reverts, with the predictions below;
+  - the full CI compared by test name with pre-main;
+  - the four disclosure sections.
+- **The four reverts and their predictions.** Run each with `/mnt/work/scratch/hazel-2b1/scripts/revert.py`, which edits one line, pushes a throwaway branch and restores from a saved copy. Read each with `results.py`, which refuses to read any run whose log has a compile error.
+  - **H3,** `legMeters < TURN_MEASURE_METERS` to `< 0.0`: 7 `ShortLegJoinTest` failures predicted.
+  - **The folder carried,** `FindWayToWaypointUseCase`'s `routeData = routes.folder` dropped: 2 predicted (the VM turns test 1, and `RouteTurnsHeldOnBRouterTest`'s way to a waypoint).
+  - **The holders' turns,** `HeldRouteTurns`' `deliver(...)` dropped: 4 predicted (`WayHomeWatchTurnsTest` 1 and 2, the VM turns tests 1 and 2).
+  - **NextTurnCardState,** the `ROUTE_UNAVAILABLE_TEXT` branch removed: 1 predicted (the held-back route).
+- **To watch:** `NextTurnAheadTest`'s 10 m lead-ins may go red under H3. Report them; don't edit them.
+- **Throwaway branch to delete afterwards:** `next-turn-2b1-red`.
+
+## Phase 2b-1, verified (Hazel, second session, 2026-11-06)
+
+Taken over from the hand-back above. The state it gave matched the remote: `origin/next-turn` at `6e7a121e3`, `next-turn-2b1-red` at `65c4c65c5`, pre-main at `61f99fbe2`, already merged in. Pre-main did not move during the session. `6e7a121e3` changes only this report from `884f36c6e`, so its runs test the same code.
+
+### Evidence
+
+Each run was read by a script in my own scratch, which refuses a run unless it is complete, on the expected commit, has a non-empty log, and that log has no Kotlin compile error (`e: file://`) and no failed compile task. Counts come from the JUnit XML, by task, class and test name.
+
+- **The previous session's scripts had one hole, so I did not use them.** `results.py` called `gh run view` without a repository. From a folder outside the repository, gh fails, the log comes back empty, and an empty log counts 0 compile errors. Mine passes the repository and refuses an empty log. `revert.py` pushed a branch but started no run, since a push to a branch other than main, pre-main or dev runs no CI. Mine starts the filtered run.
+- **The red run, 42281323874** on `65c4c65c5`, the stubs: no compile errors; 79 tests in the 9 filtered classes, 31 failed. Every failure is in a 2b-1 class, and each is the stub's reason:
+  - the reader answering `stub`;
+  - the held read never delivering (`List is empty`);
+  - the folder `null`;
+  - the card state always `SHOWS_DISTANCE`;
+  - H3's `SHORT_LEG` read as `TURN`;
+  - the M1 header with no short-leg count.
+  The 2b-1 tests that pass on the stubs are controls: the three judged joins in `ShortLegJoinTest`, and the four `SHOWS_DISTANCE` cases in `NextTurnCardStateTest` (a figure, no turn left, a stale fix, E3). Each is a case the stub's answer already gets right.
+- **Green, PR run 42281418807** on `6e7a121e3`: every job passed. 6,943 tests, 0 failed, 24 skipped.
+- **Compared by name with pre-main's push run 42245483101** on `61f99fbe2` (the exact base): 6,838 there, 6,943 here.
+  - No test of pre-main's is missing, and none changed status.
+  - The 24 skips are the same tests.
+  - The 105 new tests are in 12 new classes (999 to 1,011 XML files), the 2a and 2b-1 tests: `NextTurnAheadTest` 19, `TurnRuleTest` 19, `RouteTurnsTest` 16, `NextTurnCardStateTest` 12, `ShortLegJoinTest` 10, `RouteTurnsLogTest` 7, `WayHomeWatchTurnsTest` 6, `RouteTurnsOnBRouterTest` 5, `RouteTurnsReaderTest` 4, `AvailabilityViewModelWaypointRouteTurnsTest` 3, `PathsPassedTest` 2, `RouteTurnsHeldOnBRouterTest` 2.
+- **`NextTurnAheadTest`'s 10 m lead-ins did not go red under H3.** All 19 pass in the green run, and again in each revert run.
+
+### The four reverts
+
+Each was a one-line edit of `6e7a121e3` on a scratch worktree, pushed to a throwaway branch and run on CI with the 2b-1 filter. Each compile log was checked before its results were read: no compile errors in any. The file was restored from a copy saved before the edit, and compared with `6e7a121e3`'s: identical. Afterwards `next-turn`'s own worktree was still clean at `6e7a121e3`, with each of the four forward lines present. Each revert's failures match its prediction in count and in test, and each is one only that edit could cause.
+
+| Revert | Run | Failed of 79 | What failed |
+|---|---|---|---|
+| H3: `legMeters < TURN_MEASURE_METERS` to `< 0.0` (`8be917fa4`) | 42284711550 | 7 (predicted 7) | all 7 short-leg cases in `ShortLegJoinTest`: `expected:<SHORT_LEG> but was:<TURN>`; the trail behind counted (`expected:<0> but was:<1>`); the 5 m walker's `Turn(band=PLAIN, side=LEFT …)` for `NoTurnLeft`; the M1 line reading `0 short legs` |
+| The folder carried: `FindWayToWaypointUseCase`'s `routeData = routes.folder` dropped (`90025f830`) | 42284725439 | 2 (predicted 2) | the VM's folder test (`expected:</routes/1> but was:<null>`) and `RouteTurnsHeldOnBRouterTest`'s way to a waypoint (`the folder it was found on … but was:<null>`). The way home's own test still passes, since only the way-to edit was reverted. |
+| The holders' turns: `HeldRouteTurns`' `deliver(...)` dropped (`19292eea3`) | 42284739412 | 4 (predicted 4) | `WayHomeWatchTurnsTest`'s first read and re-route read, and the VM's first read and stray re-route: each `expected:<Read(…)> but was:<null>` |
+| `NextTurnCardState`: the `ROUTE_UNAVAILABLE_TEXT` branch made a comment (`6894dc7ae`) | 42284755068 | 1 (predicted 1) | the held-back route: `expected:<ROUTE_WITHHELD> but was:<SHOWS_DISTANCE>` |
+
+The folder run's run log came back at 1,232 lines. Its job log, read through the API, has `compileDebugUnitTestKotlin` running and "79 tests completed, 2 failed", with no compile error.
+
+### Confirmed and inferred
+
+- **[observed]** Every run, count and message above. The red run's failures, each the stub's reason. The by-name match with pre-main. The four reverts' failures. The forward lines present after each restore.
+- **[read]**
+  - `WayHomeWatch` and `AvailabilityWaypointRoute` each hold a `HeldRouteTurns`.
+  - `AppContainer` builds one `RouteWaysTurnsReader` for both.
+  - `nextTurnCardState` reads only the card's readout and the fix.
+- **[inferred]** That the way home's folder is carried as the way to a waypoint's is. Only the way-to line was reverted; the way home's line is the same shape, and its own test (`RouteTurnsHeldOnBRouterTest`, the way home) failed on the stubs.
+- **[not verified]** Anything on a phone. No screen reads the turns or the card state yet (2b-2).
+
+### Could not determine
+
+- **Whether the reads cancel cleanly under real timing on a phone.** The cancel tests run on a test dispatcher, and nothing on a device reads the result yet.
+- **The read's cost once it runs on every re-route** on a real line (M2, as in 2a).
+
+### Premises that were wrong
+
+- **The previous session's results script would have read an empty log as clean,** when run outside the repository (above). It was not used for any result cited here. I found nothing to show it had produced a wrong reading before.
+- **That revert script could not have run CI by pushing alone:** no run starts on a push to a throwaway branch.
+- The hand-back's state, its four predictions and its watch item held [observed].
+
+### Decided beyond scope
+
+- **The previous Hazel's three beyond-scope calls** went to the planner in her hand-back message. I did not find them written in this report, and I have neither restated nor changed them.
+- **Mine:** the card-state revert turns the line into a comment rather than deleting it, so the diff stays one line in and one line out. It has the same effect as removing the branch.
+
+### Clean-up
+
+The four revert branches and `next-turn-2b1-red` are deleted from origin, their worktrees removed. Their runs stay readable by the numbers above. My scratch is `/mnt/work/scratch/hazel-2b1b` (mode 700). The previous session's `/mnt/work/scratch/hazel-2b1` is left as found, less `wt-red`.
+
+## Category I, names and icons over the lines: pre-build report, stopped (Hazel, 2026-11-06)
+
+Nothing is built. Read at `744d96821`, with pre-main at `61f99fbe2`; `nav-card-kind-line` (`5427954d2`) changes no file under `ui/map/` or `map-style/`. The owner, verbatim: "Add to 500: can we have street and trail names overlap the navigation line rather than be written under?"; "All lines the app draws"; "Names and icons on top". Three of the planner's premises do not hold as written, and two choices change what a user sees beyond I. That is a stop.
+
+### What the app draws today [read]
+
+- **One map, one setup.** `SightingsMap` is the only `MapView`, at `SightingsMap.kt:268`. On every style load, `MapStyleReload.kt` calls `initializeOverlayLayers` (`OverlayLayerSetup.kt`). That function puts every app layer on top of the whole basemap, in this order:
+  1. the registry (`MAP_LAYER_REGISTRY`, `layers/MapLayers.kt`), in its bands, bottom to top: colour fields, areas, decorations, lines, markers;
+  2. then the way home and the way to a waypoint;
+  3. the plotted route;
+  4. the waypoint names;
+  5. the fan-out.
+- **Every app line, with its production caller.** Each is reached through `initializeOverlayLayers` from `MapStyleReload.kt`.
+  - The registry's lines, each a `LineLayer` from `OverlayLineSpecs.kt:213`:
+    - the offline region's night border and its outline;
+    - the recording breadcrumb and its casing;
+    - the journal halos of an offline region and of the kept tracks;
+    - the kept tracks and their casing.
+  - The way home and the way to a waypoint (`RouteHomeLayers.kt:223-273`, added at `:284-290`): passed, ahead casing, ahead, ahead dotted, ahead straight legs, the straight line, and the straight line kept offline.
+  - The plotted route (`PlottedRouteLayers.kt:104-139`): casing, straight casing, trail and straight.
+  - The fan-out's legs and their casing (`FanOutLayers.kt:90-96`). These are drawn with the fanned-out markers, above every registry layer.
+- **Not lines, beside them:**
+  - the plotted route's stop dots, a circle layer directly under the way home (`PlottedRouteLayers.kt:148`);
+  - the journal marker rings, symbol layers in the decorations band, below every line. The owner put them there: "1 A", to "Move marker rings below all lines".
+- **The puck** is MapLibre's location component, activated after the overlays.
+
+### Premises that were wrong
+
+1. **"Below the basemap's first symbol layer" on Trail Map would put roads over the app's lines.** In Trail Map v4 (`trail-style-v4.json`, the same layer ids as `map-style/forager-trail-v4.json`), the first symbol layer is `reference_fs_number`, the Forest Service trail number, at index 84 of 182. Above it come 32 line layers before the labels begin at `address_label` (117): every road, rail line, bridge and boundary. v3 is the same shape (first symbol 61, roads up to 81). v1 and v2 have no symbol below a line. So, placed literally, a way home along a road would be drawn under the road.
+2. **Topo and Street have no symbol layers.** Both are raster pictures (`a.tile.opentopomap.org`, `tile.openstreetmap.org`), with their names part of the image. On them the names can only go over the line by putting the line under the picture, which hides it. So on Topo by day and on Street, day and night, the ask cannot be done, and I's own fallback applies: today's placement, logged. Only Trail Map has names as separate layers. The offline style (`offline-style.json`, 57 layers) has none either.
+3. **Topo at night is Trail Map under a Topo picture.** It is `TrailWithTopoOver` (`TrailStyleApply.kt:26`): the Topo raster is the top style layer from zoom 9.5, and Trail Map's labels stop at 9.5. Its first symbol layer is under the picture. Lines placed below it would be covered by the Topo picture at every walking zoom, so this map also has to keep today's placement.
+
+### For the owner (stop)
+
+- **Q1. Where do the app's lines go on Trail Map?**
+  - (a) **Recommended:** just under the block of names and icons. Roads, rail, bridges and boundaries stay under the lines, as today, and every name, road number and icon draws over them. One label stays under the lines, as it does today: the Forest Service trail number, because Trail Map's style draws it among the roads.
+  - (b) Under the first label of any kind. The trail number goes over too, but every road, railway, bridge and boundary also draws over the lines.
+  - (c) As (a), and move the trail number up among the other labels in Trail Map's own style. That is a style change the Worker serves from main, beyond I.
+- **Q2. What moves with the lines?** Under the lines today are the forecast colours, the offline area's tint and the journal rings.
+  - (a) **Recommended:** all of them move down together, so they stay under the lines as now. Names and icons then also draw over the forecast colours and the offline tint.
+  - (b) Lines only. The forecast colours, the offline tint and the journal rings would then draw over the lines, which undoes "Move marker rings below all lines".
+  - Either way, the plotted route's stop dots move with the plotted route, staying under the way home. The fan-out's legs stay on top with the fanned-out markers, since they are part of that gesture and not a route. Say if the legs should move too.
+- **Q3. Is this right for the other maps?** Topo by day and Street, day and night, keep today's placement, logged, because their names are part of the picture. Topo at night keeps it too, because the Topo picture covers Trail Map there. So the change shows only on Trail Map, day and night, and on downloaded Trail Map areas.
+
+## Category I, built: the app's lines under Trail Map's names (Hazel, 2026-11-06)
+
+Built against Amendment 1's reading after I7 (`records-after-173` at `ca8b278c0`). The owner, verbatim: "Under all names, trail no. too" (I5); "Move down with the lines (Recommended)" (I6); "Stay with the markers" (I7). The starting state matched the remote: `next-turn` at `fd6eaa643`, pre-main `61f99fbe2` merged in. Pre-main moved during the session, to `a5a2a392f` (PR #501, home values out), and was merged in at `4d479107e`. Neither sibling branch touches a file changed here.
+
+**Built: the app half of I5, and I6. Not built: the trail-number style change, I5's second half.** That one is a stop, below.
+
+### What was built
+
+- **`ui/map/AppLinesUnderNames.kt` (new, about 100 lines).** It reads the loaded style's layers before any app layer is added. It finds the first layer of the basemap's top run of name and icon layers, which is the names anchor. Every registry layer in the colour-field, area, decoration and line groups is then added just below that anchor, in registry order. A style whose top layer is not a name or icon layer has no anchor, so everything is added on top, as before. One line is logged per style load, saying which of the two happened and why.
+- **`OverlayLayerSetup.kt`: two lines.** The anchor is read before the registry loop. Inside the loop, `style.addLayer(layer)` became `addOverlayLayer(style, layer, overlayPlacement(spec, namesAnchor))`.
+- **Why the rest follows without being touched.** The way home and the way to a waypoint are added above the kept tracks. The plotted route and its stop dots are added below the way home's lowest line. Both are relative adds (`RouteHomeLayers.kt:284-290`, `PlottedRouteLayers.kt:136-148`), so they land under the anchor with the kept tracks. The arrival ring and the waypoint names are added above the waypoints, and the fan-out is added on top, so they stay over the whole map. The puck is placed below the fan-out's legs (`LiveLocationPuckOrderTest`), so it stays on top too.
+- **The anchor is the top run, not the first symbol layer.** This follows I5 ("roads stay under the lines"). On every served Trail Map, v1 to v4, the top run starts at `address_label` (v4: index 117 of 182). Directly under it are the bridges, so roads, rail, bridges and boundaries stay under the lines. If the trail number is later moved up among the labels, the anchor rule still holds.
+- **Added in place, not moved afterwards.** MapLibre 13.5.0's Android `Style` has no move call, only `removeLayer` and adding the layer again. I checked this with `javap` on the pinned AAR. A layer lost between those two steps would be a missing line, so adding in place was the safer choice.
+
+### Evidence
+
+Every run was read by `/mnt/work/scratch/hazel-catI/results.py`, the second 2b-1 session's script copied unchanged. It refuses a run that is incomplete, on another commit, or whose log is empty, short, or has a compile error. The filter for the filtered runs was `AppLinesUnderNamesTest`, `MapLayerRegistryTest`, `BasemapStyleTest`, `OwnTrailStyleSourceTest` and `TrailStyleTest`, 70 tests.
+
+- **Red, 42291849106** on `9eb86c9af` (tests plus stubs that keep today's placement). No compile errors. 70 tests, 3 failed, all in `AppLinesUnderNamesTest`, each for the stub's reason:
+  - the anchor `expected:<address_label> but was:<null>`;
+  - `forecast-chicken-of-the-woods-layer must draw under the names`;
+  - the log line reading `stub`.
+- **Six of the nine new tests passed on the stubs. They are controls, and they pass before and after by design:**
+  - Topographical by day, Street and every other raster map unchanged;
+  - Topographical at night unchanged;
+  - the offline style unchanged;
+  - the block's own order;
+  - markers and the fan-out on top;
+  - roads under the lines (today's placement already has them under).
+
+  The last of these bites only against the planner's first reading. The i5anchor revert below shows that it does.
+- **Full CI, first: PR run 42293168413** on `4d479107e`. The unit tests were all green: 6,952, 0 failed, 24 skipped. One job failed, "The app builds and its tests pass with the Street map deleted". CI's error was "something outside the Street map's place still names it", at `AppLinesUnderNamesTest.kt:11` and `:185`, my test's `StreetMap` import. That was my mistake. The fix, `4d9ab8418`, checks every registered map type from `Basemap.entries`, day and night, and names no Street map.
+- **Full CI, green: PR run 42295591797** on `4d9ab8418`. Every job passed: 6,952 tests, 0 failed, 24 skipped.
+- **Compared by name with pre-main's push run 42292140229** on `a5a2a392f`, which has 6,838 tests:
+  - none missing, none changed status;
+  - the 24 skips are the same tests;
+  - 114 new tests: 2b-1's 105 and this section's 9 (`AppLinesUnderNamesTest`).
+- **The reverts ran at `4d479107e`, before the test fix.** The fix changed only one control test's coverage assertion, and no production line, so the revert results hold for `4d9ab8418`'s code.
+- **The final run, after merging pre-main `b516d520a`,** is in the hand-back, since it runs after this report is pushed.
+- **The laptop's root drive was nearly full** (14 MB free, the planner says) until about 21:10Z, during this work.
+  - My scratch is on `/mnt/work`. My commits were made and pushed in that window, and GitHub accepted each push.
+  - Afterwards, a first `git fsck` listed missing trees. A second listed none. `HEAD`'s tree reads whole, and the 364 objects in my commits enumerate without error.
+  - Two of my background wait-loop output files under `/tmp` came back empty. They were wait loops only, and every result above was re-read from CI afterwards.
+
+### The three reverts
+
+Each revert was a one-line edit of `4d479107e` in its own scratch worktree, run on CI with the filter above. Both scans read 0 before each push. No compile error appeared in any log. Each file was restored from a copy saved before the edit and compared equal with `4d479107e`'s. Afterwards `next-turn`'s worktree was clean at `4d479107e`, with all three forward lines and both wiring lines present. Each prediction was written before its results were read.
+
+| Revert | Run | Failed of 70 (predicted) | What failed |
+|---|---|---|---|
+| I5 app order: `overlayPlacement` always `OnTop` | 42293278391 | 2 (2) | the block `directly above roads_bridges_highway expected:<117> but was:<182>`; `forecast-chicken-of-the-woods-layer must draw under the names` |
+| I5's anchor rule: `namesAnchorOf` takes the first symbol layer, the planner's first reading | 42293314166 | 4 (4) | anchor `expected:<[address_label]> but was:<[reference_fs_number]>`; Topographical at night `expected null, but was:<reference_fs_number>`; `roads_bridges_highway must stay under the way home`; the log line naming `reference_fs_number (layer 84 of 182)` |
+| I6: `GROUPS_UNDER_NAMES` lines only | 42293329295 | 3 (3) | `directly under address_label expected:<136> but was:<207>`; the block's own order (forecast colours first today, lines first with the revert); `forecast-chicken-of-the-woods-layer must draw under the names` |
+
+No revert was run for I5's style half, since it is not built.
+
+### Confirmed and inferred
+
+- **[observed]** The runs, counts and messages above. Every Trail Map style the Worker serves was read: the layer order of `trail-style-v4.json`, `street-style-v4.json`, `street-style-v3.json`, `street-style-v2.json` and `street-style-v1.json`, the offline style, and the raster JSON the app builds.
+- **[read]**
+  - `OverlayLayerSetup.kt` is reached only from `MapStyleReload.kt:165`, on every style load.
+  - The routes and the waypoint names are added relative to registry layers (lines cited above).
+  - `Style.addLayerBelow(Layer, String)` exists in the pinned 13.5.0 AAR (`javap`).
+- **[modelled, not run]** The test runs the production placement for every registry layer. It models the adds after the registry, written from their code, because MapLibre's `Layer` and `Style` need the native library (`SightingsMapOverlayDataTest`'s doc comment). The wiring itself, the two lines in `OverlayLayerSetup.kt`, cannot be reached by any JVM test. Reverting it would leave the suite green. Only the device check covers it.
+- **[not verified]** Anything on a phone: that MapLibre draws the app's lines under `address_label` and the names over them.
+
+### Could not determine
+
+- **Whether the night recolour, or the pattern relayout after a reload, treats an app layer under the names differently from one on top.** Both run on the style's own layers before the overlays are added (`MapStyleReload.kt:149-160`) or touch only pattern layers. I found nothing that depends on the app's layers being on top, but this is a device question.
+- **How a downloaded Trail Map area's stored style orders its layers on a phone.** It is the same document, so the same rule applies, but that is inferred.
+
+### Premises that were wrong
+
+- **"In Trail Map's own style the Forest Service trail number moves up among the labels … Nothing else in the style changes. The style's checks must pass."** As written, these three cannot all hold. The style's checks hold v4 frozen:
+  - `tools/check-trail-night.mjs` pins `forager-street-v4.json`, its preview copy and the Worker's `street-style-v4.json` to sha256 `d27d42d1…`. On a change it reports "a new design ships as a new version".
+  - Its check 10 fails if v4 "moves a layer v3 has", and `reference_fs_number` is a v3 layer.
+  - The Worker's tests (`worker.test.mjs:509-531`) hold trail-v4 equal to street-v4 apart from the name, and street-v4 to the same sha256.
+
+  So moving the number in trail-v4 breaks the equality test. Moving it in both breaks the freeze. Either way the checks pass only if they are edited. That is a decision about an earlier ruling (D2, RECORD -2000), and not mine to make.
+
+### Decided beyond scope
+
+- **The anchor is read from the style's own layers, not from which map is chosen.** Topographical, Street, Topographical at night and the offline style keep today's placement because their top layer is not a name or icon layer. No list of maps is kept for this. The one log line per style load says which case happened.
+- **One extra revert (the anchor rule)** beyond the one per ruling. It shows that the roads test and the Topographical-at-night test bite.
+
+### For the owner (stop): the trail number in Trail Map's style
+
+The rest of I is built. The trail number still draws under the lines on today's style, as before. The fix for it can go one of three ways:
+
+- (a) Update v4 in place, at both addresses (trail-v4 and street-v4). This is how the first-zooms change was done (dispatch 2026-11-02-coder-13, the owner: "Update v4 in place"). The frozen sums and check 10 would be re-held to the new files. Downloaded areas keep their address and need nothing new.
+- (b) Ship it as trail-v5. v4 stays frozen, and the app moves to the new address. Areas downloaded on v4 would then count as an older style and show the older-style notice. That notice is something a user sees beyond I.
+- (c) Leave the trail number under the lines for now.
+
+Question: should the trail-number move update Trail Map v4 in place, as the first zooms did, or ship as trail-v5?
+
+### S22 steps (for the owner at the phone; the coder does not run it)
+
+1. **Trail Map, day.** Set a waypoint beside a named road or trail, start the way to it, and zoom to 15 or 16.
+   - The road or trail name, and any shield or icon, draws over the blue line.
+   - The road itself draws under the line.
+   - Waypoint names, markers and the position dot stay over the names.
+2. **The same at night.**
+3. **The Forest Service trail number** (zoom 14 or more, on a numbered trail under the line): it still draws under the line. Note what is seen, since this is the half that is stopped.
+4. **Topographical by day, and Street day and night:** the line draws over the picture as before.
+5. **Topographical at night** at walking zoom: as before.
+6. **logcat, tag `SightingsMap`:**
+   - On Trail Map: "App lines under the map's names: … below address_label (layer 117 of 182)".
+   - On the other maps: "… today's placement: its top layer basemap is not a name or icon layer" (the offline style names `roads_bridges_highway` instead).
+   - The exact layer number depends on the style the phone has.
+7. **A downloaded Trail Map area, offline:** as step 1.
+
+### Clean-up
+
+The throwaway branches `next-turn-catI-red` and the three `next-turn-catI-rev-*` are deleted from origin at the end, and their worktrees removed. Their runs stay readable by number. Scratch: `/mnt/work/scratch/hazel-catI` (mode 700).

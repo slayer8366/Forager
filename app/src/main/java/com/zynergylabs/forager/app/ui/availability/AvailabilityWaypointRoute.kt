@@ -15,6 +15,9 @@ import com.zynergylabs.forager.app.domain.ageMillis
 import com.zynergylabs.forager.app.domain.fixFreshness
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.nextturn.HeldRouteTurns
+import com.zynergylabs.forager.app.domain.nextturn.RouteTurns
+import com.zynergylabs.forager.app.domain.nextturn.RouteTurnsReader
 import com.zynergylabs.forager.app.domain.toTrackPoint
 import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeLine
@@ -38,6 +41,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
+import java.io.File
 
 /**
  * What the Maps tab shows of the way to a waypoint along trails (step 6 PR 3, dispatch 2026-10-26-11).
@@ -52,8 +56,12 @@ import kotlinx.coroutines.launch
  * each in its kind. `null` draws today's straight dashed line. It carries no passed line (`atReturn` is empty): the step
  * path shows three parts, and the way home's grey passed line under the thin dashed legs would show between their dashes.
  * It fades on a stale fix and greys once location is lost, as the straight line does (Amendment 2, item 1).
+ *
+ * [turns] are the junctions of the line along trails being followed, for the next turn (dispatch 2026-11-06-01, Amendment 1,
+ * H4, 2b-1), read after the line is found: `null` while they are being read and with no trail line. Held while the walker
+ * is off the line too, since the line is still held then. Nothing draws them yet (2b-2).
  */
-data class WaypointRouteShown(val hud: ReturnRoute?, val line: RouteLine?)
+data class WaypointRouteShown(val hud: ReturnRoute?, val line: RouteLine?, val turns: RouteTurns? = null)
 
 /**
  * The way to the waypoint being navigated to along trails, worked out and followed on this ViewModel's own fixes, so in
@@ -101,6 +109,8 @@ internal class AvailabilityWaypointRoute(
     private val regions: () -> List<OfflineRegionSummary>,
     private val currentTime: CurrentTimeProvider,
     private val errorLog: ErrorLog,
+    /** Reads each line's junctions for the next turn (H4, 2b-1); `null`, none (tests): [WaypointRouteShown.turns] stays `null`. */
+    private val readTurns: RouteTurnsReader? = null,
 ) {
 
     /**
@@ -152,6 +162,9 @@ internal class AvailabilityWaypointRoute(
         private val stray = WayToStray()
         private val offTrail = WayHomeOffTrail()
         private var loggedWhy: StrayVerdict? = null
+        /** [line]'s junctions once read (H4, 2b-1), `null` until then and with no line; [heldTurns] reads them. */
+        private var turns: RouteTurns? = null
+        private val heldTurns = readTurns?.let(::HeldRouteTurns)
 
         fun onFix(fix: LocationFix.Update?) {
             lastFix = fix
@@ -211,10 +224,22 @@ internal class AvailabilityWaypointRoute(
                 WaypointRouteShown(
                     hud = ReturnRoute.Ahead(it.lookahead, it.routeMeters, offTrail = state, toWaypoint = true),
                     line = RouteLine(atReturn = emptyList(), ahead = it.routeAhead, aheadIsCurrent = true, aheadParts = it.aheadParts, atReturnGeneration = generation, trailDimmed = dim),
+                    turns = turns,
                 )
-            } ?: WaypointRouteShown(hud = null, line = null)
+            } ?: WaypointRouteShown(hud = null, line = null, turns = turns)
             placed = next
             publish()
+        }
+
+        /** Reads [found]'s junctions (H4, 2b-1) and shows them, only while [found] is still the line followed. */
+        private fun readTurnsOf(found: WayHomeLine, routeData: File?) {
+            val held = heldTurns ?: return
+            held.read(scope, found.wayHome, found, routeData) { read ->
+                if (line !== found) return@read
+                turns = read
+                placed = placed?.copy(turns = read)
+                publish()
+            }
         }
 
         /** Writes [placed] with its line's freshness as of now: faded on a stale fix, grey once there is none or it is lost. */
@@ -246,6 +271,9 @@ internal class AvailabilityWaypointRoute(
                 generation++
                 lastPlace = null
                 band = HopBand.NONE
+                // A new line, or none: its junctions are read afresh (H4: "recomputed on each re-route").
+                turns = null
+                heldTurns?.cancel()
                 when (result) {
                     is WayToWaypointResult.AlongTrails -> {
                         // No 25 m trail allowance on the waypoint's figure (Amendment 3, item 5; RECORD -1671): the reach alone.
@@ -253,6 +281,7 @@ internal class AvailabilityWaypointRoute(
                         line = found
                         retry = null
                         lastHere?.let { show(found, it) }
+                        readTurnsOf(found, result.routeData)
                     }
                     // FindWayToWaypointUseCase has logged why.
                     is WayToWaypointResult.StraightLine -> {
