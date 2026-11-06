@@ -35618,6 +35618,9 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The glyph is the bottom bar's Maps glyph, with the accessibility label "Download Maps for <trip name>".
   - The note shows only when a stop falls outside the area. A route whose stops fit but whose line doesn't is a stop, because the words would be untrue there.
 - **Written as Amendment 1:** prompts/preserved/2026-11-05-08-amendment-1.md, with categories A (the owner's), B (the planner's) and C (stops).
+- **Phase 2 started (2026-11-06T05:16:08Z):** a fresh Hazel builds it on branch trip-download-maps, cut from pre-main 779599c3f.
+  - B1's triggers have both happened: #494 merged as 7357524b7 and #496 as cd3fd2730.
+  - **The planner's call:** she doesn't edit AvailabilityScreenDrawerHost.kt while the drawer outline is being built into #495. If the wiring truly needs it, she builds the rest and stops, and the planner adds the last wiring after #495 merges.
 **Notes:** Written by the planner by hand. Next free ID -2172.
 
 ---
