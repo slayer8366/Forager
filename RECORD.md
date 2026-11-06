@@ -35838,3 +35838,42 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Rotation is back to auto-rotate on (accelerometer_rotation 1, user_rotation 0). It read 0 once after the first restore and was set again. Night Mode is back to Light.
 **Waiting on:** the owner's look at the phone, then the merge word for #495.
 **Notes:** Written by the planner by hand. Next free ID -2179.
+
+---
+
+**Kind:** outcome
+**ID:** 2026-09-28-2179
+**Timestamp:** 2026-11-06T04:34:29Z
+**Continues:** 2026-09-28-2151, 2026-09-28-2174
+**Title:** Bug 14's warning built: PR #496 ready, green, four reverts held; an S22 build with it started
+**Outcome:**
+- **Hazel's Phase 2 report** for dispatch 2026-11-02-02 (Amendments 1-3) is preserved at prompts/preserved/2026-11-02-02-report.md. PR #496 (bug-14-picker-warning, head 1904e35ad, base pre-main a0535ece1) is ready and not merged.
+- **The warning:**
+  - When the pin settles with signal, the app asks the Trail Map for each zoom-11 tile of the download area.
+  - A 204, or land only with or without sea, means no detail. Any no-detail tile shows the owner's sentence, word for word (-1951).
+  - No signal, or a failed or late answer, means no line, logged.
+  - Download Maps is never disabled.
+  - The limits are -2150's: 750 ms, 4 in flight, 8 s, 1 MiB, an early stop, a session cache of 512. The tile cap is 36, derived from the tile budget.
+- **Her evidence:**
+  - Tests first: 35 of 63 failed, each for its stub's reason (run 42155245660).
+  - Forward green: 6,768 tests, 0 failures. By name, exactly 63 were added and none removed.
+  - Four one-line reverts each failed only their own cases, with clean compiles.
+  - The PR's run 42160637815 is green.
+  - 4 read-only requests to the live server.
+- **The planner's own check** at 2026-11-06T04:34:29Z:
+  - PR #496 is open, ready and mergeable, with 8 checks passing. Pre-main a0535ece1 is contained.
+  - No @Ignore or Assume was added, and no test assertion line was removed.
+  - It shares no files with edge-shade (PR #495).
+  - The one new on-screen string matches -1951's words. The other quoted text in the diff is comments or log lines.
+- **Her seven calls beyond the dispatch are accepted by the planner as technical:**
+  - no wait for cached answers, so the line doesn't blink;
+  - where the cache, the wait and the limits live;
+  - an empty 200 tile reads as unread, logged;
+  - any earth feature counts as land fill;
+  - a failed answer clears an earlier one;
+  - the cap of 36;
+  - the shared test rig's wiring.
+- **A finding, not acted on:** OfflineMapRepository.MAX_RADIUS_KM's comment sizes the radius for an archive whose northern edge was 49.60°. The tile budget now refuses a 24 km download from about 53.4°. Left for later.
+- **S22 build started:** tools/s22-combined moved 57e1a5ed3 → 1f5717a37 (merge of bug-14-picker-warning 1904e35ad, clean), CI run 42163222455. It is for her device check, D1 to D8. D6 and D7 toggle airplane mode, a phone setting under -2129, restored after.
+- **Known bug 14's row:** to be updated with the merge, as -2150 said.
+**Notes:** Written by the planner by hand. Next free ID -2180.
