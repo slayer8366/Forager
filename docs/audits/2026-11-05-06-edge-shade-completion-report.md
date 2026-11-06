@@ -12,7 +12,9 @@ Later rulings, from the planner by message, each the owner's answer to a stop of
 - **-2160:** the outline test may count the outline over the map ("Allow it"); the tail is a "Clean triangle".
 - **-2164, corrected in place:** K-2a, the map-side rule at the strip's end.
 
-**Base.** pre-main ee0651fe0, checked against the remote at the start. pre-main has since moved to 3a3d85089 (PRs #492 and #493), with no file in common with this branch. Every PR run tests the merge, so its counts include their tests. PENDING_C2_BASE
+**Base.** pre-main ee0651fe0, checked against the remote at the start. pre-main has since moved to 3a3d85089 (PRs #492 and #493), with no file in common with this branch. Every PR run tests the merge, so its counts include their tests.
+
+**C2's base** (a second session of mine, from the interim hand-back at `prompts/preserved/2026-11-05-06-interim-report.md`, records-after-173 a295c406a): PR #494, the trip bubble, merged into pre-main as 7357524b7, and pre-main was then a0535ece1 with its audit row, both checked against the remote. Merged into this branch at **09ee656f0**, a merge commit with parents 2544e080e and a0535ece1, keeping both sides, never a rebase. No file is changed on both sides since ee0651fe0, and `git merge-tree` wrote a clean tree [observed]. The merge's own run, 42151105727, had no compile errors: 6730 tests, 0 failures, 0 errors, 24 skipped, every job a success [observed]. The 50 more are #494's, by its report's counts (6695 against 6645) [inferred].
 
 Marks: **[read]** is source read at a file and line; **[observed]** is CI output or pixels I read; **[inferred]** is reasoning.
 
@@ -41,7 +43,9 @@ On `edge-shade`, PR #495 (draft into pre-main), pushed at every step.
 | b21a95ccc | J-B: the tail's base along the card's edge |
 | 5c9c97cb1 | Test-only: the straight-sides case reads 2.5 px outside the tail (accepted, -2164) |
 | b02687d2e | Test-only: K-2a in `MapChromeOutlinePixelsTest` |
-| PENDING_C2_COMMITS | |
+| 09ee656f0 | Merge of pre-main a0535ece1: PR #494 (as 7357524b7), PR #493 and their audit rows (C2's base, above) |
+| d61a1e3a2 | C2, tests first: new `SeeThroughEdgeMenuPixelsTest` (day and night); `EdgeShadeRig` takes the Journal's entries, none by default |
+| 57adcd4eb | C2: the bubble's entry-count menu, `MapFeatureBubble.kt:208-210` |
 
 ## Every surface changed
 
@@ -63,7 +67,7 @@ All of these are over a map.
 | Save-route dialog | `RouteDialogs.kt:76` | 4 dp, no line | None, plus the hairline |
 | Menus: quick settings, the journal entries chip's list | `MapQuickSettings.kt:246`, `JournalEntriesChip.kt:141` | Material's 3 dp, no line | `shadowElevation` 0 and `border` the hairline, through new `MapChromeMenuEdge.kt` |
 | Menus that follow an over-map flag: the entry report's menu, the Month menu, the species suggestions | `CartographyEntryReportScreen.kt:473` (`entryMapShown`), `SearchDropdownSections.kt:152` (`overMap`), `SpeciesSearchField.kt:178` (`suggestionsOverMap`) | as above | As above over a map; Material's 3 dp and no line elsewhere, as before |
-| The bubble's entry-count menu | `MapFeatureBubble.kt` | Material's 3 dp | PENDING_C2 |
+| The bubble's entry-count menu (C2), the list a bubble opens from "In N journal entries" | `MapFeatureBubble.kt:204` (`KeptInEntries`) | Material's 3 dp, no line | `shadowElevation` 0 and `border` the hairline, through `MapChromeMenuEdge.kt` with `overMap = true` (`:208-210`). It is drawn only where the Maps tab passes `onOpenEntry` (`:178`), so always over the map. |
 | The notice along the bottom | `ScaffoldSnackbarHost.kt:83`, new `MapChromeSnackbar.kt` | Material's `Snackbar`: 6 dp, no line, and a parameter for neither | The app's notice. On the Maps tab: no shadow, the hairline. Off it: Material's 6 dp and no line. |
 
 **How the Material pieces are done** [read, material3 1.5.0-alpha26 bytecode]:
@@ -146,6 +150,13 @@ Under the clean triangle the tail's base lies on the card's edge, so no part of 
 - The first side failed too, as predicted.
 - In the same run the outline cases passed under O-1.
 
+**C2, 42152576917 (d61a1e3a2, tests first, filtered)** [observed]. No compile errors. The filter was `*SeeThroughEdgeMenuPixels*`, `*SeeThroughEdgePixels*`, `*JournalEntriesChipTest` and `*JournalEntriesOnMapPortraitTest`: 8 suites, 51 tests, 2 failures, 0 errors. The two are the new class's cases, as predicted in d61a1e3a2's message before the run, and every other case passed.
+- **How the new class reads a menu.** The list opens in a popup window of its own, which the screen's root capture used above does not show. So it reads the whole screen, every window as composited (Robolectric's `UiAutomation.takeScreenshot`, which renders each window with the hardware renderer, shadows included, at its `getLocationOnScreen`) [read, robolectric 4.16.1 `ShadowUiAutomation` and `HardwareRenderingScreenshot` bytecode]. The list's bounds come from `SemanticsNode.positionOnScreen`, in the same frame. Each pixel is held to the fill at 0.8 over what that pixel showed before the list opened, since the list lies over the bubble and the map.
+- **By day:** every edge's hairline sample read the fill: left E3DFD4 against the line's A29B90, top EEE9DD against A8A195, right E5E1D6 against A29B90, bottom E3DFD4 against A29B90. The band was there too: left 2 dp in E2DDD3 against E7E3D8, and the same 2 to 5 dp in on the other sides.
+- **At night:** every hairline sample read the fill (left 3A3A39 against 8B8B8B), and the band showed 2 to 5 dp in (left 2 dp in 393838 against 3E3E3D).
+- **The samples landed on the list.** Those 6 dp in matched the composite over the map at the sides (E7E3D8) and over the bubble at the top (F1EDE0). So the failures are the missing line and the shadow, not a misplaced read.
+- **The job that runs every test with the Street map deleted** (it ignores the filter) logged "6678 tests completed, 2 failed, 24 skipped", the same two cases [observed, Gradle's console line; that job uploads no XML].
+
 ## Forward runs
 
 Every count below is from the JUnit XML. Each PR run tests the merge with pre-main.
@@ -220,7 +231,7 @@ PENDING_FINAL_CI
 ## Not tested, said plainly
 
 - **The phone's band.** Robolectric draws shadows on another path (Phase 1 report, section 1). These tests show the band gone where Robolectric drew it. That it is gone on the phone, at the phone's width, is the device check.
-- **Menus and dialogs** are not read from pixels: they open in their own windows, which a capture of the screen's root does not composite over the map. Their parameters were read from the code, and the device check covers them.
+- **Menus and dialogs** are not read from pixels, except C2's list: they open in their own windows, which a capture of the screen's root does not composite over the map. Their parameters were read from the code, and the device check covers them. The bubble's list of keeping entries is read from pixels over the map by `SeeThroughEdgeMenuPixelsTest`, through the whole-screen screenshot (C2, above). The same read would likely work for the other five menus [inferred], but it was not built for them: it was C2's test only.
 - **The notice's tooltip** (a long press on its dismiss) is Material's public `PlainTooltip`, not the internal one Material's snackbar uses. It is not compared.
 - **Four surfaces are not read at their edges by the new classes:** the legend chip, the icon bar, the control pill and the cluster container. B1 named the bubble, tile, panel, pill and navigation card. `MapChromeColourPixelsTest` still reads the icon bar with its looser "darkened by 0.90 to 1" rule, which passes with or without a shadow; its comment says so.
 - **Fullscreen for the centre-pin row** (its rail side drawn again once the rail has gone) is not exercised.
@@ -281,7 +292,7 @@ All are resolved by the owner's or the planner's rulings:
 6. The O-1 revert bites only at night. → -2164, K-2.
 7. K-2 as worded would turn the forward run red. → -2164 corrected, K-2a.
 
-PENDING_C2_STOP
+**C2: no stop.** Its premises held when checked against the remote: #494 merged as 7357524b7 and pre-main at a0535ece1. The merge needed no judgement: no file in common, a clean tree. The saved edit's anchor in `MapFeatureBubble.kt` was unchanged by #494. #494 adds no shadow, menu or other surface over the map: a grep of its added `app/src/main` lines finds none. Its one new notice, "Stopped navigating: that trip was deleted.", goes through `logDraftSnackbarHostState`, which `ScaffoldSnackbarHost` hosts (`AvailabilityCompactScaffold.kt:829-830`), already the app's own notice on this branch [read].
 
 ## Could not determine
 
