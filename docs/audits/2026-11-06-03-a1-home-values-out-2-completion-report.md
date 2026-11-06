@@ -156,3 +156,40 @@ longitudes on its changed review line, single values already on the branch and o
 2. One saved prompt on pre-main names a place by name as the owner's area. Remove the name too?
 
 ## CI
+
+**Stopped: five tests changed result.** Run 42294867083 on the code commit `90e336405`: six jobs
+green ("Release compiles", lint, the worker, the route-data cutter, the map styles, the debug-source
+guard), and the two test jobs red ("Build, test, publish APK" and "The app builds and its tests pass
+with the Street map deleted"). Compared by test name, from the run's `unit-test-report` JUnit XML,
+against pre-main's run 42292140229 on the base `a5a2a392f` (green):
+
+| Run | test cases | passed | skipped | failed |
+|---|---|---|---|---|
+| pre-main `a5a2a392f` | 6 838 | 6 814 | 24 | 0 |
+| this branch `90e336405` | 6 838 | 6 809 | 24 | 5 |
+
+The same 6 838 names in both. The five that changed from passed to failed:
+
+- `ForecastCellParsingTest`: "a cell belongs to the block holding its centre, whole degrees included,
+  south and west of zero too" and "the blocks touching an area are every block it overlaps and no
+  other";
+- `ForecastCellLayerTest`: "a view asks for the blocks its cells can reach" and "below the minimum
+  zoom nothing is requested, and at it even a tablet-sized view stays under the backstop";
+- `RecordsFilterChipsTest`: "EDIT_NEW_FIND lands on Finds editing with the Finds chip selected".
+
+What the messages say (by kind): the four forecast tests expect a fixed whole-degree forecast block,
+and the moved latitudes put a fixture into, or across the edge of, the next block. That is the same
+absolute-position dependence #501 met in `MapBubblesTest`, and the uniform latitude constant does not
+keep it. The filter-chips test looks for a find's displayed position text and does not find it; the
+per-value latitude in that file is the likely cause (not confirmed).
+
+The dispatch makes a test that changes result a stop, not an edit, so nothing was changed after the
+run. The fix is in reach (for the forecast files, a latitude change by whole degrees, or moving the
+expected block with the fixture as #501 did; for the filter-chips file, the expected text with its
+fixture), but each of those is a decision for the owner and the planner, below.
+
+## Questions for the owner (CI)
+
+3. Five tests changed result because their fixtures moved against a fixed forecast block or a shown
+   position text. Should the coder fix the fixtures so the five pass again (moving each expected
+   block or text with its fixture, as #501 did once), or stop B2 here?
