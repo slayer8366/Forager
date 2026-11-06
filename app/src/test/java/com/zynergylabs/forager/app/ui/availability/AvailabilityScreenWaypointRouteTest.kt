@@ -229,8 +229,13 @@ class AvailabilityScreenWaypointRouteTest {
 
     // ── Outside a downloaded area (step path 3.2) ──
 
+    /**
+     * Dispatch 2026-11-05-10 (RECORD -2181), Amendment 1, F2: "No trail routes here" only says why, so its words leave the card; the
+     * owner, F1: "the straight line is the explanation". Was "outside a downloaded area it stays today's straight line, with the
+     * note", asserting `status == note.text || status == wayToWaypointNoteShortText(note)`. The note is still the one chosen.
+     */
     @Test
-    fun `outside a downloaded area it stays today's straight line, with the note`() {
+    fun `outside a downloaded area it stays today's straight line, with no status line`() {
         setScreen(regions = emptyList())
 
         navigate()
@@ -239,9 +244,8 @@ class AvailabilityScreenWaypointRouteTest {
         assertEquals("the straight dashed line", listOf(at(0.0, 40.0), there).map { it.lat to it.lng }, route.straight!!.map { it.lat to it.lng })
         assertNull("no trail line", route.line)
         assertEquals("straight", text(NAVIGATION_HUD_DISTANCE_KIND_TAG))
-        val note = WayToWaypointNote.NO_TRAIL_ROUTES
-        val status = text(NAVIGATION_HUD_STATUS_TAG)
-        assertTrue("the note, whole or short: $status", status == note.text || status == wayToWaypointNoteShortText(note))
+        assertEquals("positive control: the note is still chosen", ReturnRoute.Straight(WayToWaypointNote.NO_TRAIL_ROUTES), viewModel.uiState.value.waypointRoute?.hud)
+        assertEquals("no status line: the straight line is the explanation", "", text(NAVIGATION_HUD_STATUS_TAG))
     }
 
     // ── Arrival, on the straight distance (step path 3.4) ──

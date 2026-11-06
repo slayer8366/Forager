@@ -168,7 +168,7 @@ class AvailabilityScreenReturnRouteTest {
         assertEquals("0.9 mi", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         // RECORD -942: on the route there is no straight-line note. Was "0.7 mi straight".
         assertEquals("", textOfTag(NAVIGATION_HUD_STATUS_TAG))
-        assertEquals("right 45°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("45°", textOfTag(NAVIGATION_HUD_TARGET_TAG)) // G2 (Amendment 1): the degrees alone. Was "right 45°".
     }
 
     @Test
@@ -213,7 +213,11 @@ class AvailabilityScreenReturnRouteTest {
         val pending = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
         val status = boundsOf(NAVIGATION_HUD_STATUS_TAG).let { it.bottom - it.top }
         assertEquals("positive control: pending's status line", "0.7 mi straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
-        assertEquals("pending, the HUD is the route's and its status line ($status)", (onRoute + status).value, pending.value, 0.5f)
+        // Dispatch 2026-11-05-10, Amendment 1, H2 ("Under the evening line (Recommended)": "The card is two lines tall"): the status
+        // words are in the right part, beside the left part's two lines, so pending is the route's height. Was `assertEquals("pending,
+        // the HUD is the route's and its status line ($status)", (onRoute + status).value, pending.value, 0.5f)`.
+        assertTrue("positive control: pending's status words take a line's height ($status)", status > 0.5.dp)
+        assertEquals("pending, the HUD is the route's: its status words sit in the right part", onRoute.value, pending.value, 0.5f)
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = false) }
         composeRule.waitForIdle()
         val withheld = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }

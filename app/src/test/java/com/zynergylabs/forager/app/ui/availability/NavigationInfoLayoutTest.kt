@@ -109,8 +109,11 @@ class NavigationInfoLayoutTest {
 
     private fun centreX(r: DpRect) = (r.left + r.right) / 2
 
-    /** The turn row's bottom: the needle's square or the heading's text, whichever is lower (dispatch 2026-11-05-10). */
-    private fun turnRowBottom(): androidx.compose.ui.unit.Dp = maxOf(one(NAVIGATION_HUD_NEEDLE_TAG).bottom, one(NAVIGATION_HUD_HEADING_TAG).bottom)
+    /**
+     * The turn row's bottom: the needle's square or the degrees, whichever is lower. Since Amendment 1, H1, the card has no heading.
+     * Was `maxOf(one(NAVIGATION_HUD_NEEDLE_TAG).bottom, one(NAVIGATION_HUD_HEADING_TAG).bottom)` (dispatch 2026-11-05-10).
+     */
+    private fun turnRowBottom(): androidx.compose.ui.unit.Dp = maxOf(one(NAVIGATION_HUD_NEEDLE_TAG).bottom, one(NAVIGATION_HUD_TARGET_TAG).bottom)
 
     private fun baseline(tag: String): androidx.compose.ui.unit.Dp {
         val results = mutableListOf<TextLayoutResult>()
@@ -158,23 +161,25 @@ class NavigationInfoLayoutTest {
 
     /**
      * Dispatch 2026-11-05-10 (RECORD -2181). Was "the distance is twice the other text, and the left part's lines share one centre",
-     * asserting `abs(centreX(figure) - lineCentre) <= 1.5` and `abs(centreX(kind) - lineCentre) <= 1.5`.
+     * asserting `abs(centreX(figure) - lineCentre) <= 1.5` and `abs(centreX(kind) - lineCentre) <= 1.5`; then (Phase 2, "Meet at the
+     * middle") "… and the distance and its kind meet at the turn line's centre on one baseline", asserting `abs(figure.right -
+     * (lineCentre - 2.dp)) <= 1` and `abs(kind.left - (lineCentre + 2.dp)) <= 1`. Amendment 1, G3, replaced the meeting: each is centred
+     * in its own space, either side of the left part's middle (exactly where, from the longest figure, NavigationCardTopLineRules
+     * checks through the real screen). The left part's middle is the top line's, the left part's width.
      */
     @Test
-    fun `the distance is twice the other text, and the distance and its kind meet at the turn line's centre on one baseline`() {
+    fun `the distance is twice the other text, and the distance and its kind share one baseline either side of the left part's middle`() {
         setScreen()
         val figureSp = fontSizeSp(NAVIGATION_HUD_DISTANCE_TAG)
         val turnSp = fontSizeSp(NAVIGATION_HUD_TARGET_TAG)
         assertEquals("the distance is twice the turn's size ($figureSp sp against $turnSp sp)", 2f * turnSp, figureSp, 0.5f)
         val figure = one(NAVIGATION_HUD_DISTANCE_TAG)
-        val turn = one(NAVIGATION_HUD_TARGET_TAG)
-        val heading = one(NAVIGATION_HUD_HEADING_TAG)
         val kind = one(NAVIGATION_HUD_DISTANCE_KIND_TAG)
-        val lineCentre = (turn.left + heading.right) / 2
-        println("MEASURED top line: figure $figure, kind $kind, turn line's centre $lineCentre")
-        // The word gap (Spacing.xs, 4 dp) is centred on the middle.
-        assertTrue("the figure $figure ends at the turn line's centre $lineCentre", abs((figure.right - (lineCentre - 2.dp)).value) <= 1f)
-        assertTrue("the kind $kind starts at the turn line's centre $lineCentre", abs((kind.left - (lineCentre + 2.dp)).value) <= 1f)
+        val topLine = one(NAVIGATION_HUD_TOP_LINE_TAG)
+        val middle = centreX(topLine)
+        println("MEASURED top line: figure $figure, kind $kind, the left part's middle $middle")
+        assertTrue("the figure $figure is left of the left part's middle $middle", figure.right <= middle - 2.dp + 0.5.dp)
+        assertTrue("the kind $kind is right of the left part's middle $middle", kind.left >= middle + 2.dp - 0.5.dp)
         assertEquals("the kind is on the figure's baseline", baseline(NAVIGATION_HUD_DISTANCE_TAG).value, baseline(NAVIGATION_HUD_DISTANCE_KIND_TAG).value, 0.5f)
     }
 

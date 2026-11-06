@@ -14,6 +14,10 @@ import org.robolectric.annotation.GraphicsMode
  * a little (Recommended)" moves the meeting point right just enough ([NavigationCardTopLineRules]). Each case names the step it
  * is chosen to reach, so a case that stopped reaching it fails rather than passing on a different step.
  *
+ * Since Amendment 1, G3, the distance and its kind are each centred in their own space instead of meeting there
+ * ([NavigationCardTopLineRules]); "at the middle" and "moved right" in the names below are where the line is divided, at the half or
+ * past it, which G3 keeps from A4. The steps are unchanged: "Dark since 5:23 PM" is wider than the right part's daytime width.
+ *
  * Expected, in Noto Sans (the reasons are in the readings each case prints): by trail beside everywhere, moved right of the middle
  * except at 384 dp; straight beside, moved, except at 320 dp, where it takes its own line, as near the meeting point as fits.
  * Before this dispatch's Phase 2 rulings the branch read the middle strictly: where the longest figure did not fit its half the

@@ -262,7 +262,9 @@ class AvailabilityScreenSundownLineTest {
 
         val words = text(NAVIGATION_HUD_SUNDOWN_LINE_TAG)
         // The fix is 550 m south of the creek, which moves sunset by seconds, so the minute is matched loosely.
-        assertTrue(words, Regex("Sunset \\d{1,2}:\\d{2} (AM|PM) · in 1 h (9|10) min · dark \\d{1,2}:\\d{2}").matches(words))
+        // Dispatch 2026-11-05-10, Amendment 1, H5 (the owner: "Shorten to Sunset: 4:52 PM ▪︎ Dark: 5:23 PM"): the navigation card's
+        // before-sunset line, the countdown gone. Was `Regex("Sunset \\d{1,2}:\\d{2} (AM|PM) · in 1 h (9|10) min · dark \\d{1,2}:\\d{2}")`.
+        assertTrue(words, Regex("Sunset: \\d{1,2}:\\d{2} (AM|PM) \u25AA\uFE0E Dark: \\d{1,2}:\\d{2} (AM|PM)").matches(words))
         assertFalse("never a start-back time without a recording: $words", words.contains("start back"))
     }
 

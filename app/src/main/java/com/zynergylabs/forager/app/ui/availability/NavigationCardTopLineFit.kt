@@ -29,10 +29,9 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
  * Phase 1's option the owner chose: "It's decided for the longest distance the card could show, so it doesn't jump between lines
  * as the number changes while walking"):
  * - for the widest figure the card could show for this kind in this unit ([longestFigures]), not the figure on screen;
- * - and, the planner's call of 2026-11-06 under that option, for the narrowest the left part can be while the card shows, across
- *   every heading and turn word ([narrowestLeftPartPx]). Where the evening pieces leave the left part short, it is as wide as its
- *   widest line, the turn row, which changes as the walker turns; decided on the width drawn, "by trail" would flip between
- *   stacked and its own line as they turned.
+ * - and on the left part as drawn, one width for the whole walk since Amendment 1, G3 and H1 ([topLinePlace]). Until then it was
+ *   decided for the narrowest the left part could be across every heading and turn word (the planner's call of 2026-11-06), since
+ *   the left part then followed the turn row, which changed as the walker turned.
  */
 internal enum class KindPlace {
     /** No kind to place: "Arrived", the dash, "within 16 ft". The word stands where the figure stands, in the left half. */
@@ -69,15 +68,6 @@ internal fun longestFigures(kind: DistanceKind, unit: DistanceUnit): List<String
     }
 }
 
-/**
- * The narrowest figure either kind can show in [unit]: one digit of feet or metres, with no "≈ " (the straight line has none when
- * the fix reports no accuracy). A floor for [narrowestLeftPartPx]: no figure the card draws is narrower.
- */
-internal fun narrowestFigure(unit: DistanceUnit): String = when (unit) {
-    DistanceUnit.MILES -> "8 ft"
-    DistanceUnit.KILOMETERS -> "8 m"
-}
-
 /** The kind [text] names, `null` for any other text. */
 internal fun distanceKindOf(text: String?): DistanceKind? = DistanceKind.entries.firstOrNull { it.words == text }
 
@@ -87,8 +77,8 @@ internal fun distanceKindOf(text: String?): DistanceKind? = DistanceKind.entries
  * trail" reads as one phrase. Then "Shift the middle a little (Recommended)": where [longestFigurePx] doesn't fit left of that
  * point, the meeting point moves right just far enough for it, so the widest figure the walk could show ends there too and the
  * point does not move as the number changes. It never moves past the left part's own right edge (a figure that wide leaves the
- * kind no room beside it, so the kind takes its own line). `null` [longestFigurePx], with no kind: the middle, unmoved (the owner:
- * "In the left half").
+ * kind no room beside it, so the kind takes its own line). `null` [longestFigurePx], with no kind: the middle, unmoved. A word with
+ * no kind is not placed on it: [CardTopLine] centres it (Amendment 1, B3 and B4).
  */
 internal class TopLineMeeting(widthPx: Int, gapPx: Int, longestFigurePx: Int?) {
     private val middleEndPx = widthPx / 2 - gapPx / 2
@@ -102,7 +92,7 @@ internal class TopLineMeeting(widthPx: Int, gapPx: Int, longestFigurePx: Int?) {
 
 /** The measured widths the top line is decided on, in pixels. */
 internal data class TopLineWidths(
-    /** The left part's width the step is decided for: the narrowest it can be on this walk ([narrowestLeftPartPx]). */
+    /** The left part's width the step is decided for: as drawn, one width for the walk ([topLinePlace]). */
     val leftPartPx: Int,
     val gapPx: Int,
     /** The widest of [longestFigures] and the figure on screen. */
@@ -139,36 +129,23 @@ internal data class TopLinePlace(val kind: KindPlace, val longestFigurePx: Int?,
 /**
  * The left part's width in [totalPx] (the two parts and the divider): what is left once the right part keeps its width. Where the
  * fit overflows, the left part stays whole and the right part takes what is left (RECORD -941). Moved here unchanged from
- * [InfoParts]'s measure block, so the top line is decided on the width the left part is drawn at.
+ * [InfoParts]'s measure block, so the top line is decided on the width the left part is drawn at. Since Amendment 1, H2 and H5, the
+ * right part always keeps its width (the status words live there, and in daytime it keeps the evening line's width), so there is no
+ * longer a case without it.
  */
-internal fun leftPartWidthPx(totalPx: Int, dividerPx: Int, fit: NavigationInfoFit, reserveRight: Boolean): Int {
-    val wantRight = if (reserveRight) fit.rightPx else 0
-    val rightWidth = if (fit.overflows) minOf(wantRight, maxOf(0, totalPx - dividerPx - fit.leftPx)) else wantRight
+internal fun leftPartWidthPx(totalPx: Int, dividerPx: Int, fit: NavigationInfoFit): Int {
+    val rightWidth = if (fit.overflows) minOf(fit.rightPx, maxOf(0, totalPx - dividerPx - fit.leftPx)) else fit.rightPx
     return maxOf(0, totalPx - dividerPx - rightWidth)
 }
 
 /**
- * The narrowest the left part can be while the card shows a kind [kindPx] wide, across every heading, turn word and figure: the
- * planner's call of 2026-11-06 (see [KindPlace]). Where the evening pieces leave the left part short it is as wide as its widest
- * line ([leftPartWidthPx]), and at its narrowest that line is the widest of:
- * - [narrowestFigurePx], the narrowest figure ([narrowestFigure]);
- * - the turn row with no turn words (on the approach, or with no compass) and the crossed-out compass in place of the north arrow
- *   and its words (a compass status where it does not fit, RECORD -934): the needle, a gap and one icon, [arrowPx] + [gapPx] +
- *   [arrowPx], as `navigationInfoFit` counts it;
- * - [kindPx], which that fit still counts as a line of the left part.
- * Never wider than the width [fit] draws, which is one of the cases this covers.
- */
-internal fun narrowestLeftPartPx(totalPx: Int, dividerPx: Int, gapPx: Int, arrowPx: Int, narrowestFigurePx: Int, kindPx: Int, fit: NavigationInfoFit, reserveRight: Boolean): Int {
-    val need = maxOf(narrowestFigurePx, arrowPx + gapPx + arrowPx, kindPx)
-    val wantRight = if (reserveRight) fit.rightPx else 0
-    val narrowest = fit.copy(leftPx = need, overflows = need + dividerPx + wantRight > totalPx)
-    return minOf(leftPartWidthPx(totalPx, dividerPx, narrowest, reserveRight), leftPartWidthPx(totalPx, dividerPx, fit, reserveRight))
-}
-
-/**
  * Where [kindText] goes on the top line: for the widest figure this kind can show in [unit] ([longestFigures]) or [shownFigure]
- * where it is wider, on the narrowest left part this walk can have ([narrowestLeftPartPx]). [figurePx] measures in the figure's
- * type, [kindPx] in the kind's.
+ * where it is wider, on the left part as drawn ([leftPartWidthPx]). [figurePx] measures in the figure's type, [kindPx] in the kind's.
+ *
+ * Was decided on the narrowest the left part could be across headings and figures (the planner's call D1, 2026-11-06), because the
+ * left part then took the turn row's width where room was short, and the turn row changed as the walker turned. Since Amendment 1,
+ * G3 and H1, the turn line is one width in every state and the left part is sized for the widest figure the walk could show
+ * (`navigationInfoFit`), so the width drawn is already the same for the whole walk.
  */
 internal fun topLinePlace(
     kindText: String?,
@@ -178,15 +155,13 @@ internal fun topLinePlace(
     totalPx: Int,
     dividerPx: Int,
     gapPx: Int,
-    arrowPx: Int,
-    reserveRight: Boolean,
     figurePx: (String) -> Int,
     kindPx: (String) -> Int,
 ): TopLinePlace {
     val kind = kindText ?: return TopLinePlace.NONE
     val longest = (distanceKindOf(kind)?.let { longestFigures(it, unit) }.orEmpty() + shownFigure).maxOf(figurePx)
     val kindWidth = kindPx(kind)
-    val leftPart = narrowestLeftPartPx(totalPx, dividerPx, gapPx, arrowPx, figurePx(narrowestFigure(unit)), kindWidth, fit, reserveRight)
+    val leftPart = leftPartWidthPx(totalPx, dividerPx, fit)
     val place = kindPlace(
         TopLineWidths(
             leftPartPx = leftPart,
@@ -199,3 +174,13 @@ internal fun topLinePlace(
     )
     return TopLinePlace(place, longest, leftPart)
 }
+
+/**
+ * G3: the widest figure the card could show in [unit] on this walk, either kind ([longestFigures]), by [widthOf]: what the left part
+ * is sized for, so it keeps one width as the number changes and as the kind does.
+ */
+internal fun longestCardFigurePx(unit: DistanceUnit, widthOf: (String) -> Int): Int =
+    DistanceKind.entries.flatMap { longestFigures(it, unit) }.maxOf(widthOf)
+
+/** The widest a turn's distance reads in [unit] (dispatch 2026-11-06-01's Phase 1: "88.8 mi", "88.8 km"), for [nextTurnReservePx]. */
+internal fun longestTurnDistance(unit: DistanceUnit): String = longestFigures(DistanceKind.BY_TRAIL, unit).last()

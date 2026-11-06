@@ -369,9 +369,13 @@ abstract class HudLandscapeT11Fixes {
         val pending = tag(NAVIGATION_HUD_TAG)
         val status = tag(NAVIGATION_HUD_STATUS_TAG)
         assertTrue("positive control: before the first route there is a status line <${textOf(NAVIGATION_HUD_STATUS_TAG)}>", !textOf(NAVIGATION_HUD_STATUS_TAG).isNullOrEmpty())
+        // Dispatch 2026-11-05-10, Amendment 1, H2: the status words sit in the right part, beside the left part's two lines, so before
+        // the first route the display is the route's height. Was `assertEquals("before the first route the display is the route's and
+        // its status line ($status): …", (onRoute.bottom - onRoute.top + (status.bottom - status.top)).value, …)`.
+        assertTrue("positive control: the status words are in the right part, right of the card's middle: $status in $pending", status.left > (pending.left + pending.right) / 2)
         assertEquals(
-            "before the first route the display is the route's and its status line ($status): $onRoute then $pending",
-            (onRoute.bottom - onRoute.top + (status.bottom - status.top)).value, (pending.bottom - pending.top).value, 0.5f,
+            "before the first route the display is the route's, its status words in the right part ($status): $onRoute then $pending",
+            (onRoute.bottom - onRoute.top).value, (pending.bottom - pending.top).value, 0.5f,
         )
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
         settle()

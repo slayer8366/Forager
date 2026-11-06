@@ -10,13 +10,13 @@ import org.junit.Test
 
 /**
  * Dispatch 2026-11-05-10 (RECORD -2181): the top line's pure half ([kindPlace], [longestFigures], [TopLineMeeting],
- * [leftPartWidthPx], [narrowestLeftPartPx], [topLinePlace]). Pinned on round numbers so each threshold is exact.
+ * [leftPartWidthPx], [topLinePlace], [longestCardFigurePx]). Pinned on round numbers so each threshold is exact.
  *
  * The owner: "Meet at the middle (Recommended)", then "Shift the middle a little (Recommended)" where the longest distance doesn't
  * fit left of the middle. The owner's steps where "2.2 mi by trail" can't share the line: "Option 1 but stack by on top of trail
  * first, then just shorten it to trail, and then drop it down"; "straight" goes straight to its own line (the planner's reading,
- * told to the owner). The planner's call of 2026-11-06: the step is decided for the narrowest left part across every heading and
- * turn word.
+ * told to the owner). The planner's call of 2026-11-06 decided the step for the narrowest left part across every heading and turn
+ * word; since Amendment 1, G3 and H1, the left part is one width for the walk, and the step is decided on it as drawn.
  */
 class NavigationCardTopLineFitTest {
 
@@ -82,12 +82,14 @@ class NavigationCardTopLineFitTest {
     }
 
     @Test
-    fun `the narrowest figure, as pinned`() {
-        assertEquals("8 ft", narrowestFigure(DistanceUnit.MILES))
-        assertEquals("8 m", narrowestFigure(DistanceUnit.KILOMETERS))
+    fun `G3, the left part is sized for the widest figure either kind could show in the unit`() {
+        // Was `the narrowest figure, as pinned`: "8 ft" and "8 m", the floor of the narrowest left part, gone with it.
+        val widths = mapOf("≈ 8888 ft" to 101, "8888 ft" to 81, "88.8 mi" to 85, "≈ 8888 m" to 105, "8888 m" to 84, "88.8 km" to 92)
+        assertEquals("≈ 8888 ft, the straight line's", 101, longestCardFigurePx(DistanceUnit.MILES) { widths.getValue(it) })
+        assertEquals("≈ 8888 m", 105, longestCardFigurePx(DistanceUnit.KILOMETERS) { widths.getValue(it) })
+        assertEquals("a turn's distance for the next-turn reserve", "88.8 mi", longestTurnDistance(DistanceUnit.MILES))
+        assertEquals("88.8 km", longestTurnDistance(DistanceUnit.KILOMETERS))
     }
-
-    // ── The meeting point ("Meet at the middle", then "Shift the middle a little") and the left part's width ──
 
     @Test
     fun `the gap is centred on the middle where the longest figure fits left of it`() {
@@ -130,40 +132,21 @@ class NavigationCardTopLineFitTest {
     }
 
     @Test
-    fun `the left part's width is what InfoParts drew before this dispatch`() {
-        val fit = NavigationInfoFit(turnText = "", headingAsIcon = false, leftPx = 150, rightPx = 80)
-        assertEquals("the right part keeps its piece's width", 300 - 10 - 80, leftPartWidthPx(300, 10, fit, reserveRight = true))
-        assertEquals("with no evening line, the left part takes it all", 290, leftPartWidthPx(300, 10, fit, reserveRight = false))
+    fun `the left part's width is what InfoParts drew before this dispatch, the right part always kept`() {
+        val fit = NavigationInfoFit(turnText = "", leftPx = 150, rightPx = 80)
+        assertEquals("the right part keeps its width", 300 - 10 - 80, leftPartWidthPx(300, 10, fit))
         val over = fit.copy(overflows = true, leftPx = 250)
-        assertEquals("overflowing, the left part stays whole and the right part takes what is left", 300 - 10 - 40, leftPartWidthPx(300, 10, over, reserveRight = true))
-        assertEquals("never less than nothing", 0, leftPartWidthPx(5, 10, fit, reserveRight = true))
+        assertEquals("overflowing, the left part stays whole and the right part takes what is left", 300 - 10 - 40, leftPartWidthPx(300, 10, over))
+        assertEquals("never less than nothing", 0, leftPartWidthPx(5, 10, fit))
+        // Was also: `assertEquals("with no evening line, the left part takes it all", 290, leftPartWidthPx(300, 10, fit, reserveRight = false))`.
+        // Since Amendment 1, H2 and H5, the right part keeps its width with no evening line (the status words live there).
     }
 
-    // ── The narrowest left part (the planner's call, 2026-11-06) ──
+    // The narrowest left part (the planner's call D1, 2026-11-06) went with G3 and H1: its two tests asserted, for example,
+    // `assertEquals("the kind, 70, the widest need", 70, narrowest(fit, figure = 30, kind = 70))`. The step is now decided on the left
+    // part as drawn, which keeps one width for the walk (below).
 
-    /** 300 px for the parts, a 10 px divider, an 80 px evening piece: 210 px left when nothing overflows. Arrows 20, gap 4. */
-    private fun narrowest(fit: NavigationInfoFit, figure: Int = 30, kind: Int = 40, reserveRight: Boolean = true) =
-        narrowestLeftPartPx(totalPx = 300, dividerPx = 10, gapPx = 4, arrowPx = 20, narrowestFigurePx = figure, kindPx = kind, fit = fit, reserveRight = reserveRight)
-
-    @Test
-    fun `where nothing overflows the narrowest left part is the one drawn`() {
-        val fit = NavigationInfoFit(turnText = "", headingAsIcon = false, leftPx = 150, rightPx = 80)
-        assertEquals(210, narrowest(fit))
-        assertEquals("no evening line", 290, narrowest(fit, reserveRight = false))
-    }
-
-    @Test
-    fun `where the drawn one overflows the narrowest is the widest of the narrowest figure, the needle and an icon, and the kind`() {
-        // The evening piece leaves 60 px; the turn row as drawn needs 250, so the left part is drawn 250 wide.
-        val fit = NavigationInfoFit(turnText = "", headingAsIcon = false, overflows = true, leftPx = 250, rightPx = 230)
-        assertEquals("positive control: drawn 250 wide", 250, leftPartWidthPx(300, 10, fit, reserveRight = true))
-        assertEquals("the kind, 70, the widest need", 70, narrowest(fit, figure = 30, kind = 70))
-        assertEquals("the needle, a gap and an icon need 44, less than the 60 the evening piece leaves", 60, narrowest(fit, figure = 30, kind = 20))
-        assertEquals("the narrowest figure, 90", 90, narrowest(fit, figure = 90, kind = 20))
-        assertEquals("never wider than the left part drawn", 250, narrowest(fit, figure = 280, kind = 20))
-    }
-
-    // ── The steps, decided on the narrowest left part ──
+    // ── The steps ──
 
     /** A 200 px left part with a 4 px gap: 98 px each side. The longest figure 90, so it fits its half. */
     private fun place(kind: Int?, stacked: Int? = null, short: Int? = null, figure: Int = 90) =
@@ -213,27 +196,28 @@ class NavigationCardTopLineFitTest {
     }
 
     @Test
-    fun `the step is decided on the narrowest left part, so turning does not change it`() {
-        val wide = NavigationInfoFit(turnText = "", headingAsIcon = false, overflows = true, leftPx = 250, rightPx = 230)
-        val narrow = wide.copy(leftPx = 120)
+    fun `the step is decided on the left part as drawn, one width for the walk`() {
+        // Was `the step is decided on the narrowest left part, so turning does not change it`, which asserted that a fit drawn 250
+        // wide and one drawn 120 wide gave the same step, decided for a 70 px narrowest left part. Since G3 and H1 the left part no
+        // longer follows the turn row, so there is one width to decide on.
+        val fit = NavigationInfoFit(turnText = "", leftPx = 150, rightPx = 80)
         fun at(fit: NavigationInfoFit) = topLinePlace(
             kindText = "by trail", shownFigure = "1280 ft", unit = DistanceUnit.MILES, fit = fit, totalPx = 300, dividerPx = 10, gapPx = 4,
-            arrowPx = 20, reserveRight = true,
-            figurePx = { when { it.startsWith("88.8") -> 100; it == "8 ft" -> 50; else -> 90 } },
+            figurePx = { if (it.startsWith("88.8")) 100 else 90 },
             kindPx = { mapOf("by trail" to 70, "by" to 20, "trail" to 40)[it] ?: 0 },
         )
-        // Drawn 250 wide the kind would fit beside (the meeting point at the middle, 123 px of room); drawn 120 wide it would take
-        // its own line. Decided for the narrowest, it is the same at both.
-        assertEquals("decided for the narrowest left part, the kind's own width", 70, at(wide).decidedForPx)
-        assertEquals(at(wide), at(narrow))
-        assertEquals(KindPlace.OWN_LINE, at(wide).kind)
-        assertEquals("the meeting point is set for the widest figure", 100, at(wide).longestFigurePx)
+        assertEquals("decided for the left part drawn, 300 - 10 - 80", 210, at(fit).decidedForPx)
+        // 210 wide, the meeting point at 103, the kind from 107: 103 px of room, so "by trail" (70) sits beside.
+        assertEquals(KindPlace.BESIDE, at(fit).kind)
+        assertEquals("the meeting point is set for the widest figure", 100, at(fit).longestFigurePx)
+        val over = fit.copy(overflows = true, leftPx = 250)
+        assertEquals("overflowing: the left part as drawn, 250", 250, at(over).decidedForPx)
     }
 
     @Test
     fun `with no kind the top line has nothing to place`() {
-        val fit = NavigationInfoFit(turnText = "", headingAsIcon = false, leftPx = 150, rightPx = 80)
-        assertEquals(TopLinePlace.NONE, topLinePlace(null, "Arrived", DistanceUnit.MILES, fit, 300, 10, 4, 20, true, { 90 }, { 40 }))
+        val fit = NavigationInfoFit(turnText = "", leftPx = 150, rightPx = 80)
+        assertEquals(TopLinePlace.NONE, topLinePlace(null, "Arrived", DistanceUnit.MILES, fit, 300, 10, 4, { 90 }, { 40 }))
     }
 
     @Test
