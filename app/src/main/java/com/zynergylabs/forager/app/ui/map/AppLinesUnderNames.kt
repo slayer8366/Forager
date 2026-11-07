@@ -43,23 +43,39 @@ internal data class BasemapLayer(val id: String, val namesOrIcons: Boolean)
  * the image; Topographical at night lays the Topographical picture over Trail Map as the top layer
  * ([trailWithTopoOverBuilder]); the offline style has no symbol layer. In each the top layer is not a name or icon.
  *
- * [layers] is the whole of `style.layers`; only the basemap's own count ([isBasemapOwnLayer]). I9 (dispatch 2026-11-06-01
- * Amendment 1, RECORD -2183), from the S22 check: after a style reload MapLibre's position-dot layers are already in the
- * style, symbol layers on top, and counting them put Topographical's and Street's app layers under the dot instead of
- * keeping today's placement. Trail Map's anchor is the same with or without them.
+ * [layers] is the whole of `style.layers`; only the basemap's own count ([isBasemapOwnLayer]), read against [styleFile].
+ * I9 (dispatch 2026-11-06-01 Amendment 1, RECORD -2183), from the S22 check: after a style reload MapLibre's position-dot
+ * layers are already in the style, symbol layers on top, and counting them put Topographical's and Street's app layers
+ * under the dot instead of keeping today's placement. I10, from the next S22 check: MapLibre's annotation layer
+ * `org.maplibre.annotations.points`, a symbol layer on top of every loaded style, did the same. Trail Map's anchor is the
+ * same with or without either.
  */
-internal fun namesAnchorOf(layers: List<BasemapLayer>): String? {
-    val basemap = basemapOwnLayers(layers)
+internal fun namesAnchorOf(layers: List<BasemapLayer>, styleFile: StyleFileLayers): String? {
+    val basemap = basemapOwnLayers(layers, styleFile)
     return basemap.getOrNull(basemap.indexOfLast { !it.namesOrIcons } + 1)?.id
 }
 
 /**
- * The prefix of every layer MapLibre 13.5.0's position dot adds (`LocationComponentConstants`, read with `javap` on the
- * pinned AAR: `mapbox-location-shadow-layer`, `-foreground-layer`, `-background-layer`, `-accuracy-layer`,
- * `-bearing-layer`, `-pulsing-circle-layer`). `MapLibreMap.notifyStyleLoaded` has `LocationComponent.onFinishLoadingStyle`
- * add them before the app's `setStyle` callback runs, on every style load after the dot was first turned on.
+ * The id prefixes of every layer MapLibre 13.5.0 adds to a style itself, read with `javap` and `strings` on the pinned AAR:
+ * - `mapbox-location-`: the position dot (`LocationComponentConstants`: `mapbox-location-shadow-layer`, `-foreground-layer`,
+ *   `-background-layer`, `-accuracy-layer`, `-bearing-layer`, `-pulsing-circle-layer`). `MapLibreMap.notifyStyleLoaded`
+ *   has `LocationComponent.onFinishLoadingStyle` add them before the app's `setStyle` callback runs, on every style load
+ *   after the dot was first turned on (I9).
+ * - `org.maplibre.`: the native core's annotations (`MapLibreConstants.LAYER_ID_ANNOTATIONS`,
+ *   `org.maplibre.annotations.points`, a symbol layer; and `org.maplibre.annotations.shape.` plus a number, one per
+ *   polyline or polygon annotation, which the app never adds). `Style.Builder`'s own layers are added below the points
+ *   layer (`Style.onDidFinishLoadingStyle`, `addLayerBelow(layer, "org.maplibre.annotations.points")`), so it is in the
+ *   style before they are, on every load (I10).
+ * Used only as the fallback when the style file cannot be read, and as a second guard beside it ([isBasemapOwnLayer]).
  */
-internal const val MAPLIBRE_LOCATION_LAYER_PREFIX = "mapbox-location-"
+internal val MAPLIBRE_LAYER_ID_PREFIXES: List<String> = listOf("mapbox-location-", "org.maplibre.")
+
+/**
+ * Layers the app adds through `Style.Builder` that are the map the user sees, and so count as the basemap's own though
+ * the style file does not declare them: the Topographical picture laid over Trail Map at night ([trailWithTopoOverBuilder]).
+ * Counting it is what keeps that map at today's placement (I9's report, "Decided beyond scope").
+ */
+internal val BUILDER_BASEMAP_LAYER_IDS: Set<String> = setOf(RASTER_LAYER_ID)
 
 /**
  * Every layer the app adds on a style load: the registry's own (not the style's own band layers, which are the
@@ -78,11 +94,22 @@ internal val APP_OVERLAY_LAYER_IDS: Set<String> by lazy {
     )
 }
 
-/** Whether the layer [id] is the basemap's own: neither MapLibre's position dot nor one the app adds. */
-internal fun isBasemapOwnLayer(id: String): Boolean = !id.startsWith(MAPLIBRE_LOCATION_LAYER_PREFIX) && id !in APP_OVERLAY_LAYER_IDS
+/**
+ * Whether the layer [id] is the basemap's own (I10): one the style file declares, or the picture the app's builder lays
+ * over it ([BUILDER_BASEMAP_LAYER_IDS]), and in either case not one MapLibre or the app adds by id. The style file is the
+ * rule, since it leaves out every layer added at run time, whatever its id; the id check is kept beside it, so a file
+ * that ever listed a run-time layer still could not anchor under MapLibre's or the app's, and alone when the file cannot
+ * be read ([StyleFileLayers.Unreadable], logged).
+ */
+internal fun isBasemapOwnLayer(id: String, styleFile: StyleFileLayers): Boolean {
+    if (MAPLIBRE_LAYER_ID_PREFIXES.any { id.startsWith(it) } || id in APP_OVERLAY_LAYER_IDS) return false
+    if (styleFile is StyleFileLayers.Read && id !in styleFile.ids && id !in BUILDER_BASEMAP_LAYER_IDS) return false
+    return true
+}
 
 /** The basemap's own layers among [layers], in their order ([isBasemapOwnLayer]). */
-internal fun basemapOwnLayers(layers: List<BasemapLayer>): List<BasemapLayer> = layers.filter { isBasemapOwnLayer(it.id) }
+internal fun basemapOwnLayers(layers: List<BasemapLayer>, styleFile: StyleFileLayers): List<BasemapLayer> =
+    layers.filter { isBasemapOwnLayer(it.id, styleFile) }
 
 /**
  * The registry groups that go under the names: the lines (I2), and with them the forecast colours, the areas (the
@@ -106,10 +133,11 @@ internal fun overlayPlacement(spec: MapLayerSpec, namesAnchor: String?): Overlay
 /**
  * The line logged once per style load: where the app's layers went on the basemap of [layers] (all of `style.layers`),
  * and why. The layer number and count are among the basemap's own layers; any layer left out ([isBasemapOwnLayer]) is
- * named, so the S22 logcat step can see what was in the style (I9).
+ * named, so the S22 logcat step can see what was in the style (I9), and so is how the own layers were told (I10): from
+ * the style file, with the number of layers it declares, or by id alone and why.
  */
-internal fun namesAnchorLogLine(namesAnchor: String?, layers: List<BasemapLayer>): String {
-    val basemap = basemapOwnLayers(layers)
+internal fun namesAnchorLogLine(namesAnchor: String?, layers: List<BasemapLayer>, styleFile: StyleFileLayers): String {
+    val basemap = basemapOwnLayers(layers, styleFile)
     val placement = if (namesAnchor != null) {
         "App lines under the map's names: the forecast colours up to the way home go below $namesAnchor " +
             "(layer ${basemap.indexOfFirst { it.id == namesAnchor }} of ${basemap.size}); markers, names and the fan-out stay on top."
@@ -117,18 +145,28 @@ internal fun namesAnchorLogLine(namesAnchor: String?, layers: List<BasemapLayer>
         "App layers over the whole map (${basemap.size} layers), today's placement: " +
             "its top layer ${basemap.lastOrNull()?.id ?: "(none)"} is not a name or icon layer."
     }
-    val leftOut = layers.filterNot { isBasemapOwnLayer(it.id) }
-    return if (leftOut.isEmpty()) placement else "$placement Left out as not the map's own: ${leftOut.joinToString { it.id }}."
+    val how = when (styleFile) {
+        is StyleFileLayers.Read -> " The map's own layers are those its style file declares (${styleFile.ids.size})."
+        is StyleFileLayers.Unreadable -> " The style file could not be read (${styleFile.reason}); layers left out by id alone."
+    }
+    val leftOut = layers.filterNot { isBasemapOwnLayer(it.id, styleFile) }
+    return if (leftOut.isEmpty()) "$placement$how" else "$placement$how Left out as not the map's own: ${leftOut.joinToString { it.id }}."
 }
 
 /**
  * The loaded [style]'s names anchor ([namesAnchorOf]), read before any app layer is added, and logged. Every layer in the
- * style is handed on, MapLibre's position dot included; [namesAnchorOf] counts only the basemap's own (I9).
+ * style is handed on, MapLibre's own included; [namesAnchorOf] counts only the basemap's own (I9), told by the style file
+ * `Style.getJson()` returns (I10). Reading Trail Map's file (about 1.5 MB) is timed in the log line, since it runs on the
+ * style-load callback and its cost on a phone is not measured anywhere else.
  */
 internal fun readNamesAnchor(style: Style): String? {
     val layers = style.layers.map { BasemapLayer(it.id, it is SymbolLayer) }
-    val anchor = namesAnchorOf(layers)
-    Log.i(SIGHTINGS_MAP_TAG, namesAnchorLogLine(anchor, layers))
+    val started = System.nanoTime()
+    val styleFile = styleFileLayersOf(style.json)
+    val readMs = (System.nanoTime() - started) / 1_000_000
+    val anchor = namesAnchorOf(layers, styleFile)
+    val line = "${namesAnchorLogLine(anchor, layers, styleFile)} Style file read in $readMs ms."
+    if (styleFile is StyleFileLayers.Unreadable) Log.w(SIGHTINGS_MAP_TAG, line) else Log.i(SIGHTINGS_MAP_TAG, line)
     return anchor
 }
 

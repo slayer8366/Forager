@@ -67,6 +67,12 @@ class AppLinesUnderNamesTest {
 
     private fun workerStyle(file: String): List<BasemapLayer> = layersOfJson(File("../server/pmtiles-worker/src/$file").readText())
 
+    /**
+     * The style file of [layers] as `readNamesAnchor` reads it (I10): every layer here is one the file declares, so the
+     * file's own list is those ids. Topographical at night, where the picture is not in the file, reads the real file.
+     */
+    private fun fileOf(layers: List<BasemapLayer>): StyleFileLayers = StyleFileLayers.Read(layers.map { it.id }.toSet())
+
     /** The registry's own layers, as `initializeOverlayLayers` walks them (the style's own band layers are not added). */
     private val registry = orderedLayers(MAP_LAYER_REGISTRY, MapLayersState.DEFAULT).filter { it.renderer != LayerRenderer.STYLE_LAYER }
 
@@ -92,7 +98,7 @@ class AppLinesUnderNamesTest {
      * (`null` is today's placement). The registry goes where [overlayPlacement] says; the rest is modelled from the add
      * calls in `OverlayLayerSetup.kt` lines 94 to 104, in their order.
      */
-    private fun stackAfterOverlays(basemap: List<BasemapLayer>, anchor: String? = namesAnchorOf(basemap)): List<String> {
+    private fun stackAfterOverlays(basemap: List<BasemapLayer>, anchor: String? = namesAnchorOf(basemap, fileOf(basemap))): List<String> {
         val stack = basemap.map { it.id }.toMutableList()
         fun indexOf(id: String) = stack.indexOf(id).also { require(it >= 0) { "$id is not in the stack" } }
         for (spec in registry) {
@@ -120,7 +126,7 @@ class AppLinesUnderNamesTest {
             val stack = stackAfterOverlays(basemap)
             val firstName = basemap.indexOfLast { !it.namesOrIcons } + 1
             val anchor = firstNameOf.getValue(file)
-            assertEquals("$file: the app goes under the first of the top run of names and icons", anchor, namesAnchorOf(basemap))
+            assertEquals("$file: the app goes under the first of the top run of names and icons", anchor, namesAnchorOf(basemap, fileOf(basemap)))
             val lastBelow = basemap[firstName - 1].id
             val blockAt = block.map { stack.indexOf(it) }
             assertEquals("$file: the block is one run, directly above $lastBelow", stack.indexOf(lastBelow) + 1, blockAt.min())
@@ -207,7 +213,7 @@ class AppLinesUnderNamesTest {
                 val source = mapStyleSourceFor(basemap, night = night, useOfflineTiles = false)
                 if (source !is MapStyleSource.Json) continue
                 val layers = layersOfJson(source.json)
-                assertNull("$basemap night=$night: a picture map has no names to go under", namesAnchorOf(layers))
+                assertNull("$basemap night=$night: a picture map has no names to go under", namesAnchorOf(layers, fileOf(layers)))
                 assertEquals("$basemap night=$night: every app layer on top, as today", stackAfterOverlays(layers, anchor = null), stackAfterOverlays(layers))
                 checked += "$basemap/$night"
             }
@@ -228,26 +234,28 @@ class AppLinesUnderNamesTest {
         assertEquals(TRAIL_STYLE_URL, (source as MapStyleSource.TrailWithTopoOver).trailUri)
         // trailWithTopoOverBuilder: the Trail Map style by URL, then the picture added as the top layer.
         val layers = workerStyle("trail-style-v4.json") + BasemapLayer(RASTER_LAYER_ID, namesOrIcons = false)
-        assertNull(namesAnchorOf(layers))
-        assertEquals(stackAfterOverlays(layers, anchor = null), stackAfterOverlays(layers))
+        // The style file is Trail Map's alone; the picture is the builder's, and counts as the map's own (BUILDER_BASEMAP_LAYER_IDS).
+        val anchor = namesAnchorOf(layers, styleFileLayersOf(File("../server/pmtiles-worker/src/trail-style-v4.json").readText()))
+        assertNull(anchor)
+        assertEquals(stackAfterOverlays(layers, anchor = null), stackAfterOverlays(layers, anchor))
     }
 
     @Test
     fun `the offline style keeps today's placement`() {
         assertEquals(MapStyleSource.Uri(OFFLINE_STYLE_URL), mapStyleSourceFor(Basemap.FORAGER_TRAIL, night = false, useOfflineTiles = true))
         val layers = workerStyle("offline-style.json")
-        assertNull(namesAnchorOf(layers))
+        assertNull(namesAnchorOf(layers, fileOf(layers)))
         assertEquals(stackAfterOverlays(layers, anchor = null), stackAfterOverlays(layers))
     }
 
     @Test
     fun `the style-load log line says where the app's layers went and why`() {
         val trail = workerStyle("trail-style-v4.json")
-        val under = namesAnchorLogLine(namesAnchorOf(trail), trail)
+        val under = namesAnchorLogLine(namesAnchorOf(trail, fileOf(trail)), trail, fileOf(trail))
         // Since I8 the trail number is the first name on v4, directly above the last bridge.
         assertTrue(under, under.contains("below ${MapLayerIds.REFERENCE_FS_NUMBER} (layer 116 of 182)"))
         val topo = layersOfJson((mapStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = false, useOfflineTiles = false) as MapStyleSource.Json).json)
-        val kept = namesAnchorLogLine(namesAnchorOf(topo), topo)
+        val kept = namesAnchorLogLine(namesAnchorOf(topo, fileOf(topo)), topo, fileOf(topo))
         assertTrue(kept, kept.contains("today's placement") && kept.contains(topo.last().id))
     }
 

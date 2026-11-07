@@ -876,3 +876,76 @@ Tag `SightingsMap`, after switching maps at least once with the position dot on,
 ### Clean-up
 
 The throwaway branch `next-turn-i9-rev-ownlayers` is deleted from origin and its worktree removed. Its run stays readable by number. Scratch: `/mnt/work/scratch/hazel-i9` (mode 700).
+
+## I10, built: the basemap's own layers are the ones its style file declares (Hazel, 2026-11-07)
+
+Built against Amendment 1's I10 (`records-after-173` at `077e6c6d5`), from the S22 check on build 4825 (`tools/s22-combined` `3529c63ff`). The starting state matched the dispatch: `next-turn` at `34eff5f8d`, the worktree clean, pre-main at `1f6901a11`. No file changed here is in the changed files of `nav-card-kind-line` or any other open PR's branch (checked before the edits and again before the merge). pre-main `1f6901a11` (PR #505) was merged in (`b4d50993c`), with no shared file.
+
+### What MapLibre 13.5.0 adds (javap and strings on the pinned AAR)
+
+- **The position dot** (I9's reading, unchanged): six layers, `mapbox-location-shadow-layer`, `-foreground-layer`, `-background-layer`, `-accuracy-layer`, `-bearing-layer`, `-pulsing-circle-layer` (`LocationComponentConstants`), symbol and circle layers, added on top on every style load after the dot was first turned on.
+- **The annotations, from the native core.** `MapLibreConstants.LAYER_ID_ANNOTATIONS` = `org.maplibre.annotations.points`. `strings` on `libmaplibre.so` (arm64-v8a) finds exactly three `org.maplibre.` ids: the source `org.maplibre.annotations`, the points layer, and the prefix `org.maplibre.annotations.shape.` (one layer per polyline or polygon annotation; the app adds none, `grep` for `addMarker`, `addPolyline`, `addPolygon` in `app/src/main` finds nothing). The points layer is in the style before `Style.Builder`'s layers: `Style.onDidFinishLoadingStyle` adds each plain builder layer with `addLayerBelow(layer, "org.maplibre.annotations.points")` (`MapSnapshotter` does the same). `strings` on the Java classes finds no other run-time layer id.
+- **The extra layer I9 could not place is this one.** The phone's counts are now all accounted for: Topographical by day, 1 picture layer + the points layer = "1 of 2"; with the dot, + 6 = "5 of 8". Topographical at night, Trail Map's 182 + the picture + the points layer = "183 of 184"; with the dot, "187 of 190". Trail Map, 182 + the points layer = 183.
+- **The style file's own layer list is readable.** `Style.getJson()` returns `NativeMap.getStyleJson()` (`NativeMapView.getStyleJson` returns `""` on a destroyed map). What the native core returns there, the file the style was loaded from rather than the style as it now stands, is native code and not readable from the AAR's Java; it is the one premise of this build the logcat step checks.
+
+### Which rule, and why
+
+- **The rule: a layer is the map's own when the style file declares it** (`StyleFileLayers.kt`, `styleFileLayersOf(style.json)`, decoding only `layers[].id`), or it is the Topographical picture the app's builder lays over Trail Map at night (`BUILDER_BASEMAP_LAYER_IDS`, which I9 already counted as the map, so that map keeps today's placement). Why this over a longer prefix list: it leaves out every layer added at run time whatever its id, so a layer a later MapLibre adds under a name nobody listed cannot become the anchor; the prefix list only covers ids someone has read.
+- **The id check stays beside it**, with `org.maplibre.` added to `mapbox-location-` (`MAPLIBRE_LAYER_ID_PREFIXES`) and the app's own layers as before: a layer is never the map's own if its id says MapLibre's or the app's, even if the file listed it. This covers the one unverified premise above: if `getJson()` ever returned the style with its run-time layers, the anchor would still be right for every layer known today.
+- **When the file cannot be read** (blank, unparseable, no layers declared) the anchor falls back to the id check alone, and the log line says so and why, at warning level. An empty list is never taken as "no layer is the map's own".
+- **The log line** now also says how the own layers were told ("those its style file declares (N)", or the fallback and its reason), and how long the file took to read, in ms: Trail Map's file is about 1.5 MB and is read on the style-load callback, and that cost on a phone is not measured anywhere else.
+
+### What was built
+
+- `ui/map/StyleFileLayers.kt` (new, 49 lines): `StyleFileLayers` (`Read` with the ids, `Unreadable` with a reason) and `styleFileLayersOf`.
+- `ui/map/AppLinesUnderNames.kt`: `namesAnchorOf`, `basemapOwnLayers`, `isBasemapOwnLayer` and `namesAnchorLogLine` take the style file's reading; `readNamesAnchor` reads it from `style.json`, times it, and logs. The placement rule, `OverlayLayerSetup.kt` and Trail Map's anchor are unchanged.
+- Tests: `AppLinesUnderNamesMapLibreLayersTest` (new, 7 tests). `AppLinesUnderNamesTest` passes each style's own ids as its file (Topographical at night reads the real Trail Map file, so the picture is held by the builder rule); `AppLinesUnderNamesForeignLayersTest` makes every I9 check both ways, the file read and unreadable. Neither lost an assertion.
+
+### Evidence
+
+Every run was read by `/mnt/work/scratch/hazel-i10/scripts/results.py` (I9's script, unchanged), which refuses a run that is incomplete, on another commit, or whose log is short or has a compile error. Filter: `AppLinesUnderNamesMapLibreLayersTest`, `AppLinesUnderNamesForeignLayersTest`, `AppLinesUnderNamesTest`, `LiveLocationPuckSwapTest`, `BasemapStyleTest`.
+
+- **Red, run 42338136946** on `8e1975c2a` (the tests, and the new parameter unused). No compile errors. 4 of 38 failed, all in the new class, as predicted before reading, each for I10's reason: Topographical by day, file read, `expected null, but was:<org.maplibre.annotations.points>`; the log line "go below org.maplibre.annotations.points (layer 1 of 2)", the phone's own words; the unknown-layer test also anchored under the points layer; the prefix list `[mapbox-location-]`. The Trail Map control and the reader test passed.
+- **Green, run 42339357192** on `7ce3979b6`: 39 of 39 passed (the seventh new test, a control that no served style declares an id under MapLibre's prefixes, was added with the rule).
+- **Full CI, green: PR run 42339403749** on `b4d50993c` (the merge of pre-main). Every job passed, the Street-deleted job included. 7,012 tests, 0 failed, 24 skipped.
+- **Compared by name with pre-main's push run 42337576510** on `1f6901a11` (6,846 tests): none missing, none changed status, the same 24 skips, 166 new. Against next-turn's previous full run, 42326986879 on `38e9d6524` (6,997): none missing or changed, 15 new, exactly this section's 7 and pre-main's 8 (`ReCenterOutlinePortraitTest` 5, `ReCenterOutlineLandscapeTest` 3).
+
+### The revert
+
+One line, the style-file rule in `isBasemapOwnLayer` replaced by a comment, on its own scratch worktree, pushed to the throwaway branch `next-turn-i10-rev-stylefile` (`e3208fb8b`) after the scan read 0. Predicted before reading: one failure, the unknown-layer test on a picture map. **Run 42339369585:** no compile errors; 1 of 39 failed, `OPEN_TOPO_MAP night=false: a-layer-no-prefix-names is not in the style file expected null, but was:<a-layer-no-prefix-names>`, a failure only this revert could produce. The annotation tests stayed green, since the id check also leaves the points layer out. The file was restored from a copy saved before the edit and compared equal with `7ce3979b6`'s; afterwards `next-turn`'s worktree was clean and the forward line was present (`grep`, 1 match).
+
+### Confirmed and inferred
+
+- **[observed]** The runs, counts and messages above.
+- **[read, javap and strings]** The ids, the builder's placement below the points layer, `getJson()`'s Java path.
+- **[inferred, fits every phone count]** The native core adds the points layer on top of the style file's layers on every load, before the builder's and the dot's. Nothing native was run.
+- **[modelled, not run]** `readNamesAnchor` needs a native `Style`; the logcat step covers it.
+
+### Could not determine
+
+- **What `Style.getJson()` returns on the phone**: the file as loaded (as built for) or the style as it now stands. Either way the anchor is right for every layer known today; only the first makes the unknown-layer protection real. The log line's "declares (N)" settles it: N equal to the style file's own count (1 for Topographical by day, 182 for Trail Map v4) is the file.
+- **The read's cost on a phone** for Trail Map's 1.5 MB file. The log line times it.
+
+### Premises that were wrong
+
+- I9's report: "The extra layer is not one of the six location layers, and I could not find its source." It is MapLibre's annotation layer, the layer I10 names.
+- None in I10.
+
+### Decided beyond scope
+
+- **Both rules, not one.** I10 asks to prefer the file over prefixes. The file is the rule, and the prefixes (with `org.maplibre.` added) stay as a second guard and as the logged fallback, so the unverified native premise above cannot put the lines under a MapLibre layer. Open to the owner.
+- **The picture at night counts as the map's own** though the file does not declare it, as in I9.
+- **The log line says how the layers were told and times the read.** Logcat only; nothing a user sees.
+
+### S22 logcat step (repeat on the next combined build; the coder does not run it)
+
+Tag `SightingsMap`, after switching maps at least once with the position dot on, so the style reloads:
+- **Topographical by day, Street day and night:** "App layers over the whole map (K layers), today's placement: its top layer basemap is not a name or icon layer. The map's own layers are those its style file declares (K). Left out as not the map's own: org.maplibre.annotations.points, mapbox-location-…" and "Style file read in N ms." K is 1 for a one-picture style (`singleLayerStyleJson`) and 2 where `BasemapStyles.kt` builds a night style with a second picture under it (line 207); I did not trace which of Street's styles takes which, so K is whatever the two numbers in the line agree on, and they must agree.
+- **Topographical at night:** "(183 layers)", top layer `basemap`, "declares (182)", the same left-out list.
+- **The offline style:** today's placement, its own top layer, "declares (57)".
+- **Trail Map:** "below address_label (layer 117 of 182)" until I8's style is live, then "below reference_fs_number (layer 116 of 182)"; "declares (182)". Never `org.maplibre.` or `mapbox-location-` as the anchor.
+- Note the ms figure on Trail Map. If any line says "could not be read", or "declares" a number other than the ones above, report it: the native premise did not hold.
+
+### Clean-up
+
+The throwaway branch `next-turn-i10-rev-stylefile` is deleted from origin and its worktree removed. Its run stays readable by number. Scratch: `/mnt/work/scratch/hazel-i10` (mode 700).
