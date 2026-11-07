@@ -48,6 +48,11 @@ data class RoutePlottingUiState(
     val saveFailed: Boolean = false,
     val pendingDiscard: PlannedTrip? = null,
     val pendingDiscardFromTripPlanner: Boolean = false,
+    /**
+     * Dispatch 2026-11-06-05, Amendment 1, step 2 (RECORD -2187): the card swiped to the screen edge, leaving its tab. User-set, so it
+     * is kept across a tab change (CLAUDE.md, UX defaults); a route closed, cancelled, saved or opened starts untucked.
+     */
+    val tucked: Boolean = false,
 )
 
 /** What the route card, the bubble and the Trip Planner ask of the plotting; [RoutePlottingViewModel] does each. */
@@ -64,6 +69,7 @@ interface RoutePlottingActions {
     fun onConfirmDiscard()
     fun onKeepPlotting()
     fun onCloseSavedRoute()
+    fun onSetTucked(tucked: Boolean)
 }
 
 /**
@@ -190,10 +196,16 @@ class RoutePlottingViewModel(
         _uiState.update { it.copy(pendingDiscard = null) }
     }
 
-    /** Back on a saved route's card: the card and the line close. */
+    /** Back, or the card's ✕ (dispatch 2026-11-06-05, Amendment 1, step 3), on a saved route's card: the card and the line close. */
     override fun onCloseSavedRoute() {
         if (_uiState.value.mode !is RoutePlotMode.Showing) return
         _uiState.value = RoutePlottingUiState(expanded = _uiState.value.expanded)
+    }
+
+    /** The card swiped to its edge ([tucked]), or brought back by its tab; only while there is a card. */
+    override fun onSetTucked(tucked: Boolean) {
+        if (_uiState.value.mode == RoutePlotMode.Off) return
+        _uiState.update { it.copy(tucked = tucked) }
     }
 
     /** Opens [trip]'s route with the card peeking (the dispatch: "peeks the card"). */

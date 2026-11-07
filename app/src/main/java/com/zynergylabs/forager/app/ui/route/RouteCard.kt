@@ -137,6 +137,8 @@ class RouteCardCallbacks(
     val onCancel: () -> Unit = {},
     val onSave: () -> Unit = {},
     val onDirections: () -> Unit = {},
+    /** The ✕ on a saved route's card (dispatch 2026-11-06-05, Amendment 1, step 3; `RouteCardEdges.kt`). */
+    val onClose: () -> Unit = {},
 )
 
 @Composable
@@ -168,6 +170,8 @@ fun RouteCard(
      * depend on the room the card is given.
      */
     onNaturalHeightsPx: (RouteCardNaturalHeights) -> Unit = {},
+    /** The screen edge the card is flush against, which its outline leaves open (dispatch 2026-11-06-05, step 6; `RouteCardEdges.kt`). */
+    openEdge: RouteCardEdge = RouteCardEdge.NONE,
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -198,11 +202,12 @@ fun RouteCard(
         val bottomPx = with(density) { contentBottomPadding.roundToPx() }
         val linesNatural = handlePx + nameNatural + totalNatural + elevationLeftOut + buttonsNatural + bottomPx
         LaunchedEffect(linesNatural, elevationPx, firstRowNatural) { if (totalNatural > 0 && buttonsNatural > 0) currentOnNatural(RouteCardNaturalHeights(linesNatural, elevationPx, firstRowNatural)) }
+        Box {
         Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING, bottom = contentBottomPadding).onSizeChanged { columnPx = it.height + with(density) { contentBottomPadding.roundToPx() } }) {
             RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
             if (content is RouteCardContent.Saved) {
                 DisposableEffect(Unit) { onDispose { nameNatural = 0 } }
-                Text(content.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.testTag(ROUTE_CARD_NAME_TAG).naturalHeight { nameNatural = it })
+                Text(content.name, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(end = ROUTE_CARD_CLOSE_TOUCH - ROUTE_CARD_SIDE_PADDING).testTag(ROUTE_CARD_NAME_TAG).naturalHeight { nameNatural = it })
             }
             if ((expanded || reveal.showsRows) && (content.legs.isNotEmpty() || content.legInFlight)) {
                 DisposableEffect(Unit) { onDispose { rowsPx = 0; firstRowNatural = 0 } }
@@ -212,6 +217,9 @@ fun RouteCard(
                 if (content.legs.isNotEmpty()) RouteTotalLine(content, distanceUnit, showElevation = !hideElevation, onElevationHeightPx = { elevationPx = it }) else RouteNoLegsLine(content)
             }
             Box(Modifier.naturalHeight { buttonsNatural = it }) { RouteCardButtons(content, callbacks) }
+        }
+        if (content is RouteCardContent.Saved) RouteCardCloseButton(callbacks.onClose)
+        RouteCardOutline(shape, openEdge)
         }
     }
 }

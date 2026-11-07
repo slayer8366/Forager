@@ -50,6 +50,7 @@ import com.zynergylabs.forager.app.ui.route.DiscardRouteDialog
 import com.zynergylabs.forager.app.ui.route.RouteCard
 import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
 import com.zynergylabs.forager.app.ui.route.RouteCardContent
+import com.zynergylabs.forager.app.ui.route.RouteCardEdge
 import com.zynergylabs.forager.app.ui.route.legInFlight
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.route.rememberRouteCardWidth
@@ -180,8 +181,12 @@ internal fun BoxScope.CompactMapRouteCard(
     val shownContent = rememberLastShown(content)
     val shownActions = rememberLastShown(actions)
     val leaving = content == null
-    LaunchedEffect(leaving) {
-        if (leaving) {
+    // Dispatch 2026-11-06-05, Amendment 1, step 2 (RECORD -2187): tucked, the card is off at its edge with its tab left, and reports
+    // nothing, as a card leaving does, so Re-center and the navigation card's evening line have their room back (RouteCardTuck.kt).
+    val tucked = !leaving && state?.tucked == true
+    val hidden = leaving || tucked
+    LaunchedEffect(hidden) {
+        if (hidden) {
             onCardHeightDp(0)
             onCardSpanPx(null)
             onCardBoundsInRoot(null)
@@ -190,10 +195,19 @@ internal fun BoxScope.CompactMapRouteCard(
     val showing = state?.mode as? RoutePlotMode.Showing
     val barOnLeft = cluster.isOnLeftSide
     val portrait = !cluster.landscape
-    val (enter, exit) = if (portrait) routeCardPortraitTransitions(barOnLeft) else navigationChromeFromBottomTransitions()
+    val cardOnLeft = routeCardOnLeft(barOnLeft, landscapeRoom)
+    // Tucking and coming back slide sideways, to and from the card's edge; opening and closing keep their own motion.
+    // Once tucked, the card keeps the sideways motion until it leaves, so coming back slides out from the edge too.
+    var tuckedOnce by remember { mutableStateOf(false) }
+    val tuckMotion = tucked || tuckedOnce
+    SideEffect { if (leaving) tuckedOnce = false else if (tucked) tuckedOnce = true }
+    val (enter, exit) = when {
+        tuckMotion && !leaving -> routeCardTuckTransitions(cardOnLeft)
+        portrait -> routeCardPortraitTransitions(barOnLeft)
+        else -> navigationChromeFromBottomTransitions()
+    }
     // C21 (RECORD -1955): on the navigation card while navigating in landscape, its lower edge tucked behind that card's top.
     val bottomPadding = landscapeRoom?.bottom ?: (bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
-    val cardOnLeft = routeCardOnLeft(barOnLeft, landscapeRoom)
     val sides = routeCardSides(barOnLeft = barOnLeft, barColumn = routeCardBarColumn(with(density) { cluster.clusterWidthPx.toDp() }))
     // C21 with C23 (RECORD -1955, -1956): on the navigation card, its width, edge to edge, whatever C19's reference is; lines wrap.
     // D32 (RECORD -1987): both narrower by the room Re-center's icon needs beside the L, where it would not fit.
@@ -213,7 +227,7 @@ internal fun BoxScope.CompactMapRouteCard(
     // the navigation card's sundown line out only where it would take the room. Its cap's top is fixed by the strip (or, raised, by the
     // controls), whatever the navigation card's height: the cap's bottom and height move together.
     var naturalHeights by remember { mutableStateOf<com.zynergylabs.forager.app.ui.route.RouteCardNaturalHeights?>(null) }
-    val onNavigationCardNow = landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp && !leaving
+    val onNavigationCardNow = landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp && !hidden
     val navigationTopLimit = naturalHeights?.takeIf { onNavigationCardNow }?.let { heights ->
         with(density) {
             val room = landscapeRoom!!
@@ -255,16 +269,16 @@ internal fun BoxScope.CompactMapRouteCard(
         routeCardPeekLeavesElevationOut(heights, with(density) { landscapeRoom.maxHeight.toPx() })
     } == true
     val hideElevation = hideElevationOpen || hideElevationPeek
-    NoTouchTargetExpansion(active = leaving) {
+    NoTouchTargetExpansion(active = hidden) {
         AnimatedVisibility(
-            visible = !leaving && (portrait || landscapeRoom != null),
+            visible = !hidden && (portrait || landscapeRoom != null),
             enter = enter,
             exit = exit,
             modifier = Modifier
                 .align(if (cardOnLeft) Alignment.BottomStart else Alignment.BottomEnd)
                 .padding(controlsPadding)
                 .padding(bottom = bottomPadding)
-                .leavingTakesNoTouches(leaving = leaving),
+                .leavingTakesNoTouches(leaving = hidden),
         ) {
             if (shownContent != null && shownActions != null) {
                 val card: @Composable (Dp) -> Unit = { width ->
@@ -278,7 +292,10 @@ internal fun BoxScope.CompactMapRouteCard(
                             onCancel = shownActions::onCancel,
                             onSave = shownActions::onOpenSaveDialog,
                             onDirections = { showing?.trip?.let { trip -> launchDirections(context, trip) } },
+                            // Step 3: the ✕ is Back's close of a saved route, without Back's reopening of the Tools drawer (the plan).
+                            onClose = shownActions::onCloseSavedRoute,
                         ),
+                        openEdge = if (!portrait) RouteCardEdge.BOTTOM else if (cardOnLeft) RouteCardEdge.LEFT else RouteCardEdge.RIGHT,
                         expandedMaxHeight = expandedMaxHeight,
                         shape = shape,
                         contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
@@ -286,10 +303,11 @@ internal fun BoxScope.CompactMapRouteCard(
                         hideElevation = hideElevation,
                         onNaturalHeightsPx = { naturalHeights = it },
                         modifier = Modifier
+                            .routeCardTuckSwipe { shownActions.onSetTucked(true) }
                             .width(width)
                             .then(if (cardMaxHeight != null) Modifier.heightIn(max = cardMaxHeight) else Modifier)
                             .onGloballyPositioned {
-                                if (!leaving) {
+                                if (!hidden) {
                                     // What rises above the card, and the map's fit, clear it wherever it sits, so a card resting on the
                                     // navigation card counts from the map's bottom edge (C21, as C11 did).
                                     onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) })
@@ -303,6 +321,9 @@ internal fun BoxScope.CompactMapRouteCard(
                 if (onNavigationCard != null) card(onNavigationCard) else RouteCardWithin(referenceWidth, sides, card)
             }
         }
+    }
+    if (tucked && actions != null && (portrait || landscapeRoom != null)) {
+        RouteCardTab(cardOnLeft = cardOnLeft, controlsPadding = controlsPadding, bottomPadding = bottomPadding, onBringBack = { actions.onSetTucked(false) })
     }
     if (content == null || state == null || actions == null) return
     val plotting = state.mode as? RoutePlotMode.Plotting
