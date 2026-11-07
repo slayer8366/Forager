@@ -76,5 +76,9 @@ val MIGRATION_22_23: Migration = object : Migration(22, 23) {
  */
 val MIGRATION_23_24: Migration = object : Migration(23, 24) {
     override fun migrate(db: SupportSQLiteDatabase) {
+        db.execSQL("ALTER TABLE `planned_trip_route_stops` ADD COLUMN `linkedWaypointId` TEXT")
+        db.execSQL("ALTER TABLE `planned_trip_route_stops` ADD COLUMN `linkedTripId` TEXT")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_planned_trip_route_stops_linkedWaypointId` ON `planned_trip_route_stops` (`linkedWaypointId`)")
+        db.execSQL("CREATE INDEX IF NOT EXISTS `index_planned_trip_route_stops_linkedTripId` ON `planned_trip_route_stops` (`linkedTripId`)")
     }
 }
