@@ -274,8 +274,9 @@ private fun measuredNavigationInfoFit(
     val figureStyle = cardFigureStyle()
     fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
     val turn = readout.targetText
-    // Amendment 1, G3 ("The turn line"): the degrees' fixed space, as wide as the widest of "0°" to "180°", measured once per type.
-    val turnSpacePx = remember(measurer, small) { widestTurnDegreesPx { widthOf(it, small) } }
+    // Amendment 1, G3 ("The turn line"): the degrees' fixed space, measured once per type; E18, as wide as the widest of "0°" to
+    // "180°", "Target" and "No target", so the needle never moves ([widestTurnSpacePx]).
+    val turnSpacePx = remember(measurer, small) { widestTurnSpacePx { widthOf(it, small) } }
     // G3: the left part is sized for the widest figure the walk could show in this unit, either kind, so where it is short of room it
     // keeps one width as the number changes ([longestCardFigurePx]).
     val longestFigurePx = remember(measurer, figureStyle, distanceUnit) { longestCardFigurePx(distanceUnit) { widthOf(it, figureStyle) } }
@@ -290,7 +291,6 @@ private fun measuredNavigationInfoFit(
             longestFigurePx = longestFigurePx,
             kindPx = readout.distanceKindText?.let { widthOf(it, small) },
             turnSpacePx = turnSpacePx,
-            turnTextPx = if (turn.isEmpty()) 0 else widthOf(turn, small),
             eveningPiecePx = eveningPieces(sundownLine, backByLine, cardEvening.breaks).maxOfOrNull { widthOf(it, evening) },
             rightFloorPx = cardEvening.rightFloorPx,
         ),
@@ -336,7 +336,7 @@ private fun rememberCardEvening(partsPx: Int, metrics: InfoMetrics, distanceUnit
     return remember(measurer, small, figureStyle, clock, partsPx, metrics.gapPx, metrics.arrowPx, metrics.dividerPx, distanceUnit) {
         fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
         val widths = cardEveningWidths(clock) { widthOf(it, evening) }
-        val turnLinePx = widestTurnDegreesPx { widthOf(it, small) } + metrics.gapPx + metrics.arrowPx
+        val turnLinePx = widestTurnSpacePx { widthOf(it, small) } + metrics.gapPx + metrics.arrowPx
         val reservePx = nextTurnReservePx(metrics.gapPx, metrics.arrowPx, widthOf(longestTurnDistance(distanceUnit), evening))
         val leftNeedPx = maxOf(longestCardFigurePx(distanceUnit) { widthOf(it, figureStyle) }, turnLinePx + reservePx)
         val breaks = eveningBreaks(partsPx, metrics.dividerPx, leftNeedPx, widths)

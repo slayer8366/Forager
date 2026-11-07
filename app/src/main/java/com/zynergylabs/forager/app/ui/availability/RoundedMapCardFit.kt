@@ -41,8 +41,6 @@ internal data class NavigationInfoFit(
     val rightPx: Int = 0,
     /** G3: the degrees' fixed space on the turn line, in pixels ([NavigationInfoWidths.turnSpacePx]). */
     val turnSpacePx: Int = 0,
-    /** Amendment 1, E17: how far right of its fixed place the needle is drawn, so a word wider than the degrees' space clears it ([needleShiftPx]). */
-    val needleShiftPx: Int = 0,
     /**
      * Dispatch 2026-11-05-10 (RECORD -2181): where the kind word goes on the left part and the figure the meeting point is set for,
      * decided once the steps above are taken ([topLinePlace]); the steps above never read it, so the turn line and the evening stack
@@ -70,10 +68,8 @@ internal data class NavigationInfoWidths(
     /** G3: the widest figure the walk could show ([longestCardFigurePx]); the left part is never sized narrower. 0 counts nothing. */
     val longestFigurePx: Int = 0,
     val kindPx: Int?,
-    /** G3: the degrees' space, the widest degrees the turn line can read ("0°" to "180°"). */
+    /** G3: the degrees' space, the widest of what the turn line can draw there ([widestTurnSpacePx]). */
     val turnSpacePx: Int,
-    /** Amendment 1, E17: the turn as drawn ([NavigationInfoFit.turnText]); 0 for none. */
-    val turnTextPx: Int = 0,
     /** The widest of the evening pieces stacked in the right part (RECORD -941); `null` with none. */
     val eveningPiecePx: Int? = null,
     /**
@@ -86,15 +82,21 @@ internal data class NavigationInfoWidths(
 /** G3: the widest of the degrees the turn line can read, "0°" to "180°" ([com.zynergylabs.forager.app.domain.turnText]), by [widthOf]. */
 internal fun widestTurnDegreesPx(widthOf: (String) -> Int): Int = (0..180).maxOf { widthOf("$it°") }
 
+/** The words the turn line draws in the degrees' space in place of degrees: with no fix for 5 minutes, and with no target. */
+internal const val TURN_LINE_LOST_WORD = "Target"
+internal const val TURN_LINE_NO_TARGET_WORD = "No target"
+
 /**
- * Amendment 1, E17 (RECORD -2181): from the S22 check on build 4825, at font 2.0 in portrait after 5 minutes without a fix, the greyed
- * needle overlapped "Target" by about 8 dp: the word is centred on the degrees' space and wider than it, so it ran past the space's end
- * and the gap into the needle. The owner: "Fix it in #498 first" ("A coder moves the needle clear of "Target" in that case (nothing
- * else changes)"). So where the word is wider than the space, the needle is drawn the half it overhangs further right, the line's own
- * gap after the word; the word stays centred where the degrees are, and with degrees (never wider than their space) this is 0, so the
- * needle keeps G3's fixed place.
+ * Amendment 1, E18 (RECORD -2181): the degrees' space, the widest of everything the turn line draws in it, "0°" to "180°"
+ * ([widestTurnDegreesPx]), [TURN_LINE_LOST_WORD] and [TURN_LINE_NO_TARGET_WORD], in every state. E17 (the S22 check on build 4825: at
+ * font 2.0 the greyed needle overlapped "Target" by about 8 dp) had drawn the needle half the word's overhang further right where a word
+ * replaced the degrees, so it moved 6 to 32 dp at that change. The owner, to "Keep that, or size the space for "No target" all the time
+ * so the needle never moves?": "Never moves" ("The degrees' space is always as wide as "No target", so the needle stays put; the card's
+ * left part is a little tighter in every case"). So the word fits its space, clears the needle by the line's own gap, and the needle
+ * keeps one place; E17's offset went.
  */
-internal fun needleShiftPx(turnTextPx: Int, turnSpacePx: Int): Int = maxOf(0, (turnTextPx - turnSpacePx + 1) / 2)
+internal fun widestTurnSpacePx(widthOf: (String) -> Int): Int =
+    maxOf(widestTurnDegreesPx(widthOf), widthOf(TURN_LINE_LOST_WORD), widthOf(TURN_LINE_NO_TARGET_WORD))
 
 /** G3 with H1: the turn line's width, the degrees' space, a gap and the needle, the same in every state. */
 internal fun turnLinePx(w: NavigationInfoWidths): Int = w.turnSpacePx + w.gapPx + w.arrowPx
@@ -115,6 +117,5 @@ internal fun navigationInfoFit(w: NavigationInfoWidths, turnText: String): Navig
         leftPx = leftPx(figureShort),
         rightPx = rightPx,
         turnSpacePx = w.turnSpacePx,
-        needleShiftPx = needleShiftPx(w.turnTextPx, w.turnSpacePx),
     )
 }
