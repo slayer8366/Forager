@@ -401,7 +401,7 @@ abstract class HudLandscapeT11Fixes {
      * [NAVIGATION_VIEW_TOP_PADDING_FRACTION] of the map's height as top padding (the walker an eighth below the centre).
      */
     @Test @Config(fontScale = 2.0f)
-    fun `item 2 at its tallest the evening lines leave rather than reach over the walker's dot, and nothing covers the needle`() {
+    fun `item 2 at its tallest the card moves up with its evening lines rather than reach over the walker's dot, and nothing covers the needle`() {
         route = ReturnRoute.Unavailable(canRetry = true)
         line = recordingLine
         backBy = BackByShown(trackId = "t1", backByAtEpochMillis = morning + 40 * minute, nowEpochMillis = morning)
@@ -418,8 +418,12 @@ abstract class HudLandscapeT11Fixes {
         // control "the evening lines and Try again are both up", and then "the display covers none of the walker's dot",
         // `hud.bottom <= walkerY - WALKER_DOT_RADIUS || hud.top >= walkerY + WALKER_DOT_RADIUS`. What overlap is left at this size is
         // accepted and measured, not asserted.
+        // Dispatch 2026-11-06-01, Amendment 1, J3 step 3 (RECORD -2183, the owner: "Own line, card moves up", "the evening line stays
+        // on the card"): the card now moves up just enough to clear the dot instead, so the lines stay and the dot is uncovered. Was
+        // "the evening lines have left the card rather than take it over the dot (-955 C)", `nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isEmpty()`.
         assertTrue("positive control: Try again is up", nodes(NAVIGATION_HUD_RETRY_TAG).isNotEmpty())
-        assertTrue("the evening lines have left the card rather than take it over the dot (-955 C)", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isEmpty())
+        assertTrue("J3 step 3: the evening line stays on the card", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isNotEmpty())
+        assertTrue("J3 step 3: the card $hud covers none of the walker's dot (y $walkerY)", hud.bottom <= walkerY - WALKER_DOT_RADIUS + 0.5.dp || hud.top >= walkerY + WALKER_DOT_RADIUS - 0.5.dp)
         println("MEASURED -955 font 2.0 at its tallest: display $hud, dot at y ${walkerY.value} r ${WALKER_DOT_RADIUS.value}, overlap ${!(hud.bottom <= walkerY - WALKER_DOT_RADIUS || hud.top >= walkerY + WALKER_DOT_RADIUS)}")
         val needle = tag(NAVIGATION_HUD_NEEDLE_TAG)
         assertTrue("the needle $needle is inside the display $hud", needle.left >= hud.left && needle.right <= hud.right && needle.top >= hud.top && needle.bottom <= hud.bottom)

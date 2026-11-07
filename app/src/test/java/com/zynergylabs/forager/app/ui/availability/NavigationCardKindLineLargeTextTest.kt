@@ -116,9 +116,13 @@ class NavigationCardKindLineLargeTextTest : NavigationCardTopLineRules() {
     @Test @Config(qualifiers = "w384dp-h823dp-xxhdpi")
     fun `384 dp, font 2,0, Dark since - by trail keeps its step as the phone turns`() = assertTheKindHoldsItsStepWhileTurning("384/2.0 turning")
 
+    // Dispatch 2026-11-06-01, Amendment 1, J3 step 3 (RECORD -2183, the owner: "Own line, card moves up", "the evening line stays on
+    // the card"): where the line with "No compass" would take the card over the walker's dot, the card now moves up instead, so H12's
+    // case no longer arises here and the line shows in all three. Was "..., the evening line left out with no compass",
+    // `leftOutWithoutCompass = true`.
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
-    fun `823 x 384, font 2,0, Dark since - by trail keeps its step as the phone turns, the evening line left out with no compass`() =
-        assertTheKindHoldsItsStepWhileTurning("823x384/2.0 turning", leftOutWithoutCompass = true)
+    fun `823 x 384, font 2,0, Dark since - by trail keeps its step as the phone turns, the evening line staying with no compass (J3 step 3)`() =
+        assertTheKindHoldsItsStepWhileTurning("823x384/2.0 turning")
 
     /**
      * Amendment 1, H12, the planner's reading: "the decision must settle, never loop. Where showing the evening line would push "by
@@ -130,7 +134,7 @@ class NavigationCardKindLineLargeTextTest : NavigationCardTopLineRules() {
      * dropped it in a four-frame cycle (E13, stop 2, run 42278700471), and this case failed as AppNotIdle.
      */
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
-    fun `823 x 384, font 2,0, Dark since - with no compass the evening line stays out and the card stays still across frames`() {
+    fun `823 x 384, font 2,0, Dark since - with no compass the evening line stays on and the card stays still across frames (J3 step 3)`() {
         val where = "823x384/2.0 settling"
         val (before, frames) = framesAfterTheCompassGoes(State.TRAIL, Evening.DARK_SINCE, where)
         val problems = mutableListOf<String>()
@@ -140,7 +144,8 @@ class NavigationCardKindLineLargeTextTest : NavigationCardTopLineRules() {
         if (frames.last().notice?.text != "No compass" && frames.last().status != "No compass") problems += "positive control: no \"No compass\" without the compass (status <${frames.last().status}>, notice <${frames.last().notice?.text}>)"
         fun still(c: Card) = listOf(c.hud, c.figure.bounds, c.kind?.bounds, c.divider, c.topLine)
         frames.forEachIndexed { i, c ->
-            if (c.eveningPieces != 0) problems += "frame ${i + 1}: ${c.eveningPieces} evening pieces drawn"
+            // J3 step 3 (see the turning test above): the card moves up and the line stays. Was `c.eveningPieces != 0` (H12, left out).
+            if (c.eveningPieces != 1) problems += "frame ${i + 1}: ${c.eveningPieces} evening pieces drawn, not the one that stays"
             if (c.kind == null || c.kind.bounds.top < c.figure.bounds.bottom - 0.5.dp) problems += "frame ${i + 1}: the kind ${c.kind?.bounds} is not on its own line under ${c.figure.bounds}"
             if (i > 0 && still(c) != still(frames[i - 1])) problems += "frame ${i + 1}: moved from ${still(frames[i - 1])} to ${still(c)}"
         }

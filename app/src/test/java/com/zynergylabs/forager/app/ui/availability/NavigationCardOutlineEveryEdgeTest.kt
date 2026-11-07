@@ -327,7 +327,9 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
 
         // E20: the end edge (right, by the side bar) over the card's bottom MAP_CARD_CORNER_RADIUS, where the side bar's rounded bottom
         // corner curves away from it. Probed 2 dp out, every 1 dp, so the narrow wedge of map between the card and that corner is met.
-        if (roundedTop) {
+        // J4: not on a card moved up, whose own bottom corner is rounded there and read below as a corner (run 42413989442: in
+        // fullscreen this straight-edge reading met the map outside the rounded corner's own shape).
+        if (roundedTop && !roundedBottom) {
             val railCorner = RAIL_CORNER_SPOT
             val alongCorner = (px(card.bottom - MAP_CARD_CORNER_RADIUS)..(bottom - 1) step px(1.dp))
             edge(railCorner, alongCorner, { y -> right + px(2.dp) to y }, { y -> (1..4).map { right - it to y } }, { y -> right - inFill to y })
@@ -360,7 +362,11 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
                 val outer = (1..4).map { at(16.dp + (it / 3f).dp) }.distinct().filter { (x, y) -> inside(x, y) }
                 val gap = lum(lineOver(map)) - lum(map)
                 fun overMap(p: Color) = (lum(p) - lum(map)) * kotlin.math.sign(gap) > abs(gap) / 2f
-                if (run.none { (x, y) -> isLine(image[x, y], fill) } && outer.none { (x, y) -> overMap(image[x, y]) }) {
+                // J4, a card moved up: its bottom corner beside the side bar is drawn out to the side bar's line too, and there the line
+                // lies at the shape's own edge, over the map (run 42413989442: at 54 degrees, 0.376 by day and 0.702 at night at 15.7 dp,
+                // the map 0.502), so a pixel of the line over the map within 14 to 16 dp counts there, by the same half-gap rule.
+                val overMapInside = roundedBottom && sy > 0 && run.any { (x, y) -> overMap(image[x, y]) }
+                if (run.none { (x, y) -> isLine(image[x, y], fill) } && outer.none { (x, y) -> overMap(image[x, y]) } && !overMapInside) {
                     misses += "$where at $deg degrees: bare map ${rgb(image[ox, oy])} at ($ox, $oy), pixels 14 to 16 dp in ${run.joinToString { (x, y) -> rgb(image[x, y]) }}, 16 to 17.3 dp ${outer.joinToString { (x, y) -> rgb(image[x, y]) }}, fill ${rgb(fill)}, the outline over it ${rgb(lineOver(fill))}"
                 }
             }
