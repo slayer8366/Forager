@@ -45,8 +45,15 @@ internal fun navigationCardLift(
     lTopPx: Float?,
     lBottomPx: Float?,
 ): NavigationCardLift {
-    // Tests first (stub): the card never moves. The forward commit decides.
-    return NavigationCardLift.OnBottomEdge
+    if (!liftCase || heightWithEveningPx.isNaN() || heightWithEveningPx <= 0f || topLimitPx == null || dotTopPx == null) {
+        return NavigationCardLift.OnBottomEdge
+    }
+    if (eveningStackFitsBelow(bottomEdgePx, heightWithEveningPx, topLimitPx)) return NavigationCardLift.OnBottomEdge
+    val liftedTop = dotTopPx - heightWithEveningPx
+    if (stripBottomPx != null && liftedTop < stripBottomPx - 0.5f) return NavigationCardLift.NoRoom("its top would pass the compass strip's bottom")
+    if (lTopPx != null && lBottomPx != null && lTopPx < dotTopPx && lBottomPx > liftedTop) return NavigationCardLift.NoRoom("it would cover the L")
+    val px = bottomEdgePx - dotTopPx
+    return if (px > 0f) NavigationCardLift.Up(px) else NavigationCardLift.OnBottomEdge
 }
 
 /** RECORD -955: the walker's dot's centre, in the root, where the navigation view puts it; `null` before the map is measured. */

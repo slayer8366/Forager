@@ -95,6 +95,11 @@ internal fun NavigationInfo(
     onEveningShown: (Boolean) -> Unit = {},
     /** The strip's live height above sea level (dispatch 2026-10-28-13), so the card's cannot differ from it. */
     heightMeters: Double? = null,
+    /**
+     * J3 step 3 and J4 ([navigationCardLift]): told the card's height with its evening line, as RECORD -955 reckons it (from parts the
+     * line does not change), or NaN with no evening line; and whether this is landscape at font 1.5 or more.
+     */
+    onHeightWithEvening: (heightPx: Float, landscapeLargeText: Boolean) -> Unit = { _, _ -> },
 ) {
     // Read here, in this leaf, never higher — see rememberTrueHeading's own doc comment.
     val reading by heading
@@ -147,6 +152,8 @@ internal fun NavigationInfo(
             bottomPaddingPx,
             eveningLineBottomLimitInRootPx,
         ) && eveningStackFitsBelow(infoBottomInRootPx, heightWithStackPx, eveningLineTopLimitInRootPx?.let { it - marginPx })
+        val currentOnHeightWithEvening by rememberUpdatedState(onHeightWithEvening)
+        SideEffect { currentOnHeightWithEvening(if (pieces.isNotEmpty() && leftHeightPx > 0f) heightWithStackPx else Float.NaN, evening.landscapeLargeText) }
         val currentOnEveningShown by rememberUpdatedState(onEveningShown)
         SideEffect {
             // D42: stepping aside leaves -955's memory as it was, so when the route card closes the lines come back on the same terms

@@ -30,7 +30,8 @@ internal enum class NextTurnPlace {
  * the line"; the step path confirmed, "Yes, that's it":
  * 1. portrait at every font, and landscape at fonts 1.0 and 1.3: J2's [decided] place, beside the needle or its own line;
  * 2. landscape at font 2.0 with no evening line: the card's right part ([NextTurnPlace.RIGHT_PART]);
- * 3. landscape at font 2.0 with an evening line: its own line (the card moving up to clear the walker's dot is not built here);
+ * 3. landscape at font 2.0 with an evening line: its own line, the card moving up where it must ([navigationCardLift]);
+ * J4 ("Follow the largest rule"): steps 2 and 3 at fonts 1.5 and 1.8 too ([isLandscapeLargeText]);
  * 4. decided once per screen, font and clock; only steps 2 and 3 follow the evening line, as the owner's own steps do.
  *
  * Why: in landscape the card sits on the screen's bottom edge (RECORD -953), and at font 2.0 one more line takes its top over the
@@ -44,11 +45,14 @@ internal fun nextTurnPlaceNow(decided: NextTurnPlace, landscapeLargeText: Boolea
     else -> NextTurnPlace.RIGHT_PART
 }
 
-/** J3: the case steps 2 and 3 name, landscape at font 2.0 (the largest Android offers; anything larger counts with it). */
+/**
+ * J3: the case steps 2 and 3 name, landscape at font 2.0 (the largest Android offers; anything larger counts with it). J4 (RECORD -2183,
+ * the owner: "Follow the largest rule"): landscape at fonts 1.5 and 1.8 too.
+ */
 internal fun isLandscapeLargeText(landscape: Boolean, fontScale: Float): Boolean = landscape && fontScale >= LANDSCAPE_LARGE_TEXT_FONT_SCALE
 
-/** J3's "font 2.0". The fonts between 1.3 and 2.0 were not ruled on; they keep step 1 (the dispatch report's "J3, built"). */
-private const val LANDSCAPE_LARGE_TEXT_FONT_SCALE = 2.0f
+/** J3's "font 2.0", and by J4 ("Follow the largest rule") 1.5 and 1.8: Android's sizes after 1.3. Was 2.0 (J3 alone). */
+private const val LANDSCAPE_LARGE_TEXT_FONT_SCALE = 1.5f
 
 /**
  * J2: where the next turn goes for this window and font. The left part at its narrowest is what the parts ([partsPx], less the divider)

@@ -213,6 +213,8 @@ internal fun NavigationHud(
     arrivalHeld: Boolean = false,
     /** The strip's live height above sea level (dispatch 2026-10-28-13); see [NavigationInfo]. */
     heightMeters: Double? = null,
+    /** J3 step 3 and J4: see [NavigationInfo]'s own. */
+    onHeightWithEvening: (heightPx: Float, landscapeLargeText: Boolean) -> Unit = { _, _ -> },
     /** Dispatch 2026-10-12-06: the rounded card's corners, and how far its fill reaches up behind the piece above (RoundedMapCard.kt). */
     cardCorners: MapCardCorners = MapCardCorners.BOTTOM,
     tuck: Dp = 0.dp,
@@ -254,6 +256,7 @@ internal fun NavigationHud(
                 onEveningShown = onEveningShown,
                 arrivalHeld = arrivalHeld,
                 heightMeters = heightMeters,
+                onHeightWithEvening = onHeightWithEvening,
             )
         }
     }

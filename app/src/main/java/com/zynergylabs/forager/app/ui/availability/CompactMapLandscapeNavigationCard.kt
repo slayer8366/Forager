@@ -38,6 +38,14 @@ import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.ui.draw.clipToBounds
+import android.util.Log
+import androidx.compose.foundation.layout.offset
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import kotlin.math.roundToInt
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.leavingTakesNoTouches
 import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
@@ -47,19 +55,25 @@ import com.zynergylabs.forager.app.ui.motion.NoTouchTargetExpansion
  * card's columns, the bottom of Reset north (the L's second row). `null` before the map is measured.
  */
 private fun cardTopLimitInRootPx(cluster: MapIconClusterState, density: androidx.compose.ui.unit.Density): Float? {
-    val mapHeight = cluster.mapContentBoxHeightPx
-    if (mapHeight <= 0f) return null
-    val dotY = cluster.mapContentBoxTopInRootPx + (mapHeight + mapHeight * com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TOP_PADDING_FRACTION.toFloat()) / 2f
+    val dotY = walkerDotCentreInRootPx(cluster) ?: return null
     val dotBottom = dotY + with(density) { WALKER_DOT_CLEARANCE.toPx() }
-    val l = cluster.clusterBoundsInRoot
-    val card = cluster.navigationCardBoundsInRoot
-    val resetBottom = if (l != null && card != null && l.left < card.right && card.left < l.right) {
+    val l = lInCardColumns(cluster)
+    val resetBottom = if (l != null) {
         l.top + with(density) { (com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET * 2 + com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING).toPx() }
     } else {
         null
     }
     return maxOf(dotBottom, resetBottom ?: dotBottom)
 }
+
+/** RECORD -955: the L's bounds in the root where it shares the card's columns; `null` otherwise. */
+private fun lInCardColumns(cluster: MapIconClusterState): androidx.compose.ui.geometry.Rect? {
+    val l = cluster.clusterBoundsInRoot
+    val card = cluster.navigationCardBoundsInRoot
+    return l?.takeIf { card != null && l.left < card.right && card.left < l.right }
+}
+
+private const val LIFT_LOG_TAG = "NavigationCard"
 
 /** RECORD -955: the walker's dot's radius, the clearance the card keeps below its centre (the tests' WALKER_DOT_RADIUS). */
 internal val WALKER_DOT_CLEARANCE = 12.dp
@@ -128,6 +142,29 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     val isNavigating = navigation.isNavigating
     val density = LocalDensity.current
     val (bottomEnter, bottomExit) = navigationChromeFromBottomTransitions()
+    // Dispatch 2026-11-06-01, Amendment 1, J3 step 3 and J4 (RECORD -2183, the owner: "Own line, card moves up", "Follow the largest
+    // rule"): in landscape at font 1.5 or more with an evening line, where that line would take the card's top over the walker's dot,
+    // the card moves up until its bottom is at the dot's top, and the line stays on it ([navigationCardLift]).
+    var heightWithEveningPx by remember { mutableFloatStateOf(Float.NaN) }
+    var landscapeLargeText by remember { mutableStateOf(false) }
+    val topLimitPx = cardTopLimitInRootPx(cluster, density)
+    val boxTopPx = cluster.mapContentBoxTopInRootPx
+    val stripBottomPx = with(density) { boxTopPx + controlsPadding.calculateTopPadding().toPx() } + layout.landscapeStripHeightPx
+    val lInColumns = lInCardColumns(cluster)
+    val lift = navigationCardLift(
+        liftCase = landscapeLargeText && !cluster.navigationEveningStepsAside,
+        heightWithEveningPx = heightWithEveningPx,
+        bottomEdgePx = with(density) { boxTopPx + cluster.mapContentBoxHeightPx - controlsPadding.calculateBottomPadding().toPx() },
+        topLimitPx = topLimitPx,
+        dotTopPx = walkerDotCentreInRootPx(cluster)?.let { it - with(density) { WALKER_DOT_CLEARANCE.toPx() } },
+        stripBottomPx = stripBottomPx.takeIf { layout.landscapeStripHeightPx > 0 },
+        lTopPx = lInColumns?.top,
+        lBottomPx = lInColumns?.bottom,
+    )
+    val noRoom = lift as? NavigationCardLift.NoRoom
+    LaunchedEffect(noRoom) { if (noRoom != null) Log.i(LIFT_LOG_TAG, "J3 step 3: the card stays on the bottom edge and the evening line leaves it (RECORD -955): ${noRoom.reason}") }
+    val liftPx = (lift as? NavigationCardLift.Up)?.px ?: 0f
+    val movedUp = liftPx > 0f
     // Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outline: its top and rounded top corners and its side facing the
     // map; its rail side once the rail has slid away, unless that side is then on the screen's edge; its bottom is the screen's.
     val cardLayoutDirection = LocalLayoutDirection.current
@@ -141,7 +178,8 @@ internal fun BoxScope.CompactMapNavigationDisplay(
         },
         innerSideDrawn = true,
         top = true,
-        bottom = false,
+        // J4 (RECORD -2183, the owner: "Round and outline"): once moved up off the screen's bottom edge, the outline goes all round.
+        bottom = movedUp,
     )
     val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
     // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
@@ -162,6 +200,8 @@ internal fun BoxScope.CompactMapNavigationDisplay(
         modifier = Modifier
             .align(if (railPortEdge == ScreenEdge.Left) Alignment.BottomStart else Alignment.BottomEnd)
             .padding(controlsPadding)
+            // J3 step 3: moved up where it must be ([navigationCardLift]); 0 on the bottom edge.
+            .offset { IntOffset(0, -liftPx.roundToInt()) }
             .width(with(density) { (layout.landscapeStripWidthPx.toDp() - narrowBy).coerceAtLeast(0.dp) })
             .clipToBounds()
             .leavingTakesNoTouches(leaving = !isNavigating),
@@ -192,18 +232,21 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             // north or the walker's dot. The dot sits where the navigation view puts it (the map's height times
             // NAVIGATION_VIEW_TOP_PADDING_FRACTION as top padding), WALKER_DOT_CLEARANCE its radius. Reset north is the L's second
             // row, counted only where the L and the card share columns.
-            eveningLineTopLimitInRootPx = cardTopLimitInRootPx(cluster, density),
+            // J3 step 3: moved up, its bottom is at the dot's top, so the limit is the compass strip's bottom.
+            eveningLineTopLimitInRootPx = if (movedUp) stripBottomPx else topLimitPx,
             // D42 (RECORD -2021, the owner: "Only where room is short"): they also step aside while the route card resting on this one
             // would not otherwise fit (the route card decides, from this card's measured heights), and come back when it closes.
             eveningStepsAside = cluster.navigationEveningStepsAside,
             onEveningShown = { cluster.navigationEveningShown = it },
-            // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck.
-            cardCorners = MapCardCorners.TOP,
+            onHeightWithEvening = { height, large -> heightWithEveningPx = height; landscapeLargeText = large },
+            // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck. J4 (RECORD -2183, the owner:
+            // "Round and outline"): moved up off that edge, its bottom corners round too.
+            cardCorners = if (movedUp) MapCardCorners.ALL else MapCardCorners.TOP,
             outlineSides = cardOutlineSides,
             modifier = Modifier
                 .fillMaxWidth()
                 // E20 (RECORD -2181, the owner: "Outline the card's end there"): its end edge beside the side bar's rounded bottom corner.
-                .navigationCardEndBesideRailCorner(com.zynergylabs.forager.app.ui.map.mapChromeOutline(), railPortEdge, railShown = !isFullscreen, bottomGap = controlsPadding.calculateBottomPadding())
+                .navigationCardEndBesideRailCorner(com.zynergylabs.forager.app.ui.map.mapChromeOutline(), railPortEdge, railShown = !isFullscreen, bottomGap = controlsPadding.calculateBottomPadding() + with(density) { liftPx.toDp() })
                 // Its own keep-out, beside the strip's (MapKeepOut's registry holds one rectangle per id).
                 .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier)
                 // RECORD -955: its columns, for cardTopLimitInRootPx (whether the L shares them).
@@ -211,8 +254,10 @@ internal fun BoxScope.CompactMapNavigationDisplay(
                     cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot()
                     // D42: the tallest it has been with its evening lines, so a frame of their grow or shrink is never taken for the
                     // card's height with them (that fed the route card's decision back into itself: Compose never idle, run 41753745001).
+                    // J3 step 3: moved up, its height plus the move, so D42's top with the evening lines (the box's bottom less this)
+                    // is where the moved card's top is, and stepping aside does not drop the card back into room it then reads as free.
                     if (cluster.navigationEveningShown) {
-                        cluster.navigationCardHeightWithEveningPx = maxOf(cluster.navigationCardHeightWithEveningPx ?: 0f, coordinates.size.height.toFloat())
+                        cluster.navigationCardHeightWithEveningPx = maxOf(cluster.navigationCardHeightWithEveningPx ?: 0f, coordinates.size.height.toFloat() + liftPx)
                     }
                 },
         )
