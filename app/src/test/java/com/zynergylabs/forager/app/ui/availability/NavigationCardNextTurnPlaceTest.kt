@@ -78,6 +78,17 @@ class NavigationCardNextTurnPlaceTest {
         }
     }
 
+    // J5 (RECORD -2183), the owner: "Into the freed right part": with a saved route's card open after sunset at fonts 1.5 and up in
+    // landscape, the evening line stepped aside (D42), the next turn sits in the right part, so the card is no taller.
+    @Test
+    fun `J5 - landscape at font 1,5 and up with the evening line stepped aside for the route card puts the next turn in the freed right part`() {
+        for (decided in listOf(NextTurnPlace.BESIDE_NEEDLE, NextTurnPlace.OWN_LINE)) {
+            assertEquals(decided.name, NextTurnPlace.RIGHT_PART, nextTurnPlaceNow(decided, landscapeLargeText = true, eveningLine = true, eveningStepsAside = true))
+            assertEquals("$decided, not stepping aside: J3 step 3's own line", NextTurnPlace.OWN_LINE, nextTurnPlaceNow(decided, landscapeLargeText = true, eveningLine = true, eveningStepsAside = false))
+            assertEquals("$decided, step 1 is not changed by stepping aside", decided, nextTurnPlaceNow(decided, landscapeLargeText = false, eveningLine = true, eveningStepsAside = true))
+        }
+    }
+
     // J4 (RECORD -2183), the owner: "Follow the largest rule": landscape at fonts 1.5 and 1.8 follow the font-2.0 rule. Was "J3 -
     // landscape at font 2,0 is the case steps 2 and 3 name, and nothing else is", with 1.5 and 1.8 not asked (they kept step 1).
     @Test

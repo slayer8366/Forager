@@ -167,6 +167,11 @@ abstract class NextTurnCardRig {
         composeRule.waitForIdle()
     }
 
+    /** J5 ("Animate the move"): changes the evening line only, with no settling, for a test that steps the clock frame by frame. */
+    protected fun setEveningUnsettled(e: Evening) {
+        composeRule.runOnUiThread { evening = e }
+    }
+
     /** The card as drawn: its bounds, the needle's square, the next turn's space, the left part, the top line's text. */
     protected class Card(
         val hud: DpRect,

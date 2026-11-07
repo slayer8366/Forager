@@ -39,7 +39,13 @@ internal enum class NextTurnPlace {
  * [eveningLine] is whether the card has an evening line to show (its pieces), never whether it is drawn, so the decision cannot feed
  * back through RECORD -955's room check.
  */
-internal fun nextTurnPlaceNow(decided: NextTurnPlace, landscapeLargeText: Boolean, eveningLine: Boolean): NextTurnPlace = when {
+internal fun nextTurnPlaceNow(
+    decided: NextTurnPlace,
+    landscapeLargeText: Boolean,
+    eveningLine: Boolean,
+    /** J5 (stub, tests first): the evening line stepped aside for the route card resting on the card (D42). */
+    @Suppress("UNUSED_PARAMETER") eveningStepsAside: Boolean = false,
+): NextTurnPlace = when {
     !landscapeLargeText -> decided
     eveningLine -> NextTurnPlace.OWN_LINE
     else -> NextTurnPlace.RIGHT_PART

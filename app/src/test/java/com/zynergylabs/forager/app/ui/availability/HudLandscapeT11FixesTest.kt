@@ -91,7 +91,14 @@ import org.robolectric.shadows.ShadowDisplay
  * lower, so the fit of the L under the display at font 1.0 with an evening line is a device item (2 dp short there, by the
  * T11 report's arithmetic).
  */
-abstract class HudLandscapeT11Fixes {
+abstract class HudLandscapeT11Fixes(
+    /**
+     * J5 (RECORD -2183, the owner: "Yes, lines leave"): whether, at font 2.0 with Try again and both evening lines, moving the card up
+     * keeps it under the compass strip in this window. Where it would pass the strip (780 x 360) the card stays on the bottom edge and
+     * the lines leave it, as RECORD -955 has it.
+     */
+    private val tallestMovesUp: Boolean = true,
+) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -401,7 +408,7 @@ abstract class HudLandscapeT11Fixes {
      * [NAVIGATION_VIEW_TOP_PADDING_FRACTION] of the map's height as top padding (the walker an eighth below the centre).
      */
     @Test @Config(fontScale = 2.0f)
-    fun `item 2 at its tallest the card moves up with its evening lines rather than reach over the walker's dot, and nothing covers the needle`() {
+    fun `item 2 at its tallest the card moves up with its evening lines rather than reach over the walker's dot, or they leave where it would pass the strip, and nothing covers the needle`() {
         route = ReturnRoute.Unavailable(canRetry = true)
         line = recordingLine
         backBy = BackByShown(trackId = "t1", backByAtEpochMillis = morning + 40 * minute, nowEpochMillis = morning)
@@ -422,7 +429,17 @@ abstract class HudLandscapeT11Fixes {
         // on the card"): the card now moves up just enough to clear the dot instead, so the lines stay and the dot is uncovered. Was
         // "the evening lines have left the card rather than take it over the dot (-955 C)", `nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isEmpty()`.
         assertTrue("positive control: Try again is up", nodes(NAVIGATION_HUD_RETRY_TAG).isNotEmpty())
-        assertTrue("J3 step 3: the evening line stays on the card", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isNotEmpty())
+        val strip = tag(T11_STRIP_TAG)
+        println("MEASURED J5 item 2: card $hud, strip bottom ${strip.bottom.value}, screen bottom ${window().bottom.value}, evening line ${nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).size}")
+        assertTrue("J3 step 3, J5: the card's top ${hud.top} is under the compass strip's bottom ${strip.bottom}", hud.top >= strip.bottom - 0.5.dp)
+        if (tallestMovesUp) {
+            assertTrue("J3 step 3: the evening line stays on the card", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isNotEmpty())
+        } else {
+            // J5 (RECORD -2183, the owner: "Yes, lines leave"): moved up, the card would pass the compass strip, so it stays on the
+            // bottom edge and the evening lines leave it (RECORD -955). Was J3 step 3's "the evening line stays on the card" here too.
+            assertTrue("J5: the card stays on the bottom edge (its bottom ${hud.bottom}, the screen's ${window().bottom})", kotlin.math.abs((hud.bottom - window().bottom).value) <= 0.5f)
+            assertTrue("J5: the evening lines leave the card", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isEmpty())
+        }
         assertTrue("J3 step 3: the card $hud covers none of the walker's dot (y $walkerY)", hud.bottom <= walkerY - WALKER_DOT_RADIUS + 0.5.dp || hud.top >= walkerY + WALKER_DOT_RADIUS - 0.5.dp)
         println("MEASURED -955 font 2.0 at its tallest: display $hud, dot at y ${walkerY.value} r ${WALKER_DOT_RADIUS.value}, overlap ${!(hud.bottom <= walkerY - WALKER_DOT_RADIUS || hud.top >= walkerY + WALKER_DOT_RADIUS)}")
         val needle = tag(NAVIGATION_HUD_NEEDLE_TAG)
@@ -706,6 +723,7 @@ abstract class HudLandscapeT11Fixes {
     private companion object {
         /** The walker's dot, a margin generous enough for MapLibre's puck and its accuracy ring at walking zoom. */
         val WALKER_DOT_RADIUS = 12.dp
+        const val T11_STRIP_TAG = "compass-elevation-strip"
         const val MAX_FRAMES = 120
     }
 }
@@ -718,4 +736,4 @@ class HudLandscapeT11FixesAt823Test : HudLandscapeT11Fixes()
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w780dp-h360dp-land-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class HudLandscapeT11FixesAt780Test : HudLandscapeT11Fixes()
+class HudLandscapeT11FixesAt780Test : HudLandscapeT11Fixes(tallestMovesUp = false)
