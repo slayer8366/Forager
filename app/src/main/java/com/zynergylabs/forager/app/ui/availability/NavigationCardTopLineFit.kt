@@ -90,6 +90,15 @@ internal class TopLineMeeting(widthPx: Int, gapPx: Int, longestFigurePx: Int?) {
     val rightRoomPx: Int = widthPx - kindStartPx
 }
 
+/**
+ * Amendment 1, H15 (the owner: "Centre them together"): where the distance's window ends on a left part [widthPx] wide, beside or
+ * stacked. The window is the widest distance exactly ([longestFigurePx]); it, the word gap ([gapPx]) and the kind as drawn
+ * ([kindPx]: the whole kind, or the stack) are one block centred in the left part, never starting left of its left edge. The
+ * distance ends here and the kind starts [gapPx] after it, so neither moves as the distance counts down.
+ */
+internal fun topLineWindowEndPx(widthPx: Int, gapPx: Int, longestFigurePx: Int, kindPx: Int): Int =
+    maxOf(0, (widthPx - (longestFigurePx + gapPx + kindPx)) / 2) + longestFigurePx
+
 /** The measured widths the top line is decided on, in pixels. */
 internal data class TopLineWidths(
     /** The left part's width the step is decided for: as drawn, one width for the walk ([topLinePlace]). */
