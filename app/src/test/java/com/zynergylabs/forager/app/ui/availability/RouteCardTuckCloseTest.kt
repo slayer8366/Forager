@@ -115,7 +115,7 @@ class RouteCardTuckCloseTest {
     private fun cardShows() = composeRule.onAllNodesWithTag(ROUTE_CARD_TAG).fetchSemanticsNodes().isNotEmpty()
     private fun tabShows() = composeRule.onAllNodesWithTag(ROUTE_CARD_TAB_TAG).fetchSemanticsNodes().isNotEmpty()
     private fun rootBounds(): DpRect = composeRule.onRoot().getUnclippedBoundsInRoot()
-    private fun bounds(tag: String): DpRect = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+    private fun bounds(tag: String): DpRect = composeRule.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
 
     /** Whether the card sits against the right edge (the icon bar on the left) or the left. */
     private fun cardOnRight(): Boolean = (rootBounds().right - bounds(ROUTE_CARD_TAG).right).value < 1f
