@@ -36537,3 +36537,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - The hand-off now points to it.
   - Checked: no home values, email or secrets.
 **Notes:** Written by the planner by hand. Next free ID -2186.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2186
+**Timestamp:** 2026-11-07T02:57:01Z
+**Title:** An outline around the map's Re-center button, as the chips': dispatch 2026-11-06-04
+**Decision:**
+- **The owner, verbatim, with a screenshot of the Maps tab while navigating:** **"Add real quick: an outline around the re-enter button"** (the Re-center button).
+- To "What should the Re-center button's outline look like?": **"Same as the chips"**. The option read: "1 dp, Bark #3B2E24 by day, pale #EDE3D0 at night, like the selected map type chip's outline".
+- To "Where should it go?": **"Its own small PR"**. The option read: "A small PR to pre-main, so it doesn't hold up #498 or #500".
+- Dispatch 2026-11-06-04 is at prompts/preserved/2026-11-06-04-recenter-outline.md. The screenshot stays off GitHub.
+**Notes:** Written by the planner by hand. Next free ID -2187.
