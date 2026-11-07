@@ -47,7 +47,6 @@ import com.zynergylabs.forager.app.ui.map.MapDataRefresh
 import com.zynergylabs.forager.app.ui.map.MapLocationDot
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.PositionLook
-import com.zynergylabs.forager.app.ui.map.SightingsMapState
 import com.zynergylabs.forager.app.ui.map.rememberCameraFixtureMapState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -94,12 +93,15 @@ class LocateKeepsCameraTest {
     private val start = camera(44.0, -121.0, 9.0)
     private val panned = camera(43.0, -118.0, 16.5)
 
-    /** The fixes the locate-me fetch answers, in order: the app-open locate, then the tap's. */
-    private val fixes = ArrayDeque(listOf(LocationResult.Success(42.0, -117.0), LocationResult.Success(42.5, -117.5)))
+    /**
+     * What the locate-me fetch answers: the app-open locate at once, then the tap's when [tapFix] completes. The production
+     * fetch (`AndroidLocationProvider`) waits for a fix from the location manager, so the tap's Loading reaches the screen
+     * frames before its fix does; the first red run answered at once and so tested a different moment (both in one frame).
+     */
+    private val tapFix = kotlinx.coroutines.CompletableDeferred<LocationResult>()
     private var fetches = 0
 
     private lateinit var made: Pair<org.maplibre.android.maps.MapLibreMap, CameraMapFixture.Recording>
-    private lateinit var mapState: SightingsMapState
 
     private fun camera(lat: Double, lng: Double, zoom: Double): CameraPosition =
         CameraPosition.Builder().target(MapLibreLatLng(lat, lng)).zoom(zoom).bearing(0.0).tilt(0.0).build()
@@ -107,7 +109,6 @@ class LocateKeepsCameraTest {
     private val slot: MapSlot = { region, content, renderMode, focusOverride, _, _, _, _, modifier ->
         val map = remember { CameraMapFixture.map(start = start, fit = start).also { made = it } }
         val state = rememberCameraFixtureMapState(map.first, rememberUpdatedState(renderMode.cameraMemory))
-        remember { mapState = state }
         val style = remember { StyleLifecycleFixture.loadedStyle() }
         LaunchedEffect(Unit) { state.loadedStyle = style }
         Box(modifier)
@@ -149,7 +150,7 @@ class LocateKeepsCameraTest {
             locationProvider = object : LocationProvider {
                 override suspend fun getCurrentLocation(): LocationResult {
                     fetches++
-                    return fixes.removeFirstOrNull() ?: LocationResult.LocationUnavailable
+                    return if (fetches == 1) LocationResult.Success(42.0, -117.0) else tapFix.await()
                 }
             },
             locationTracker = object : com.zynergylabs.forager.app.domain.LocationTracker {
@@ -248,8 +249,16 @@ class LocateKeepsCameraTest {
         assertEquals("not following after the pan", CameraMode.NONE, recording.cameraMode)
 
         touchLocate()
+        assertEquals("the tap started its own fetch", 2, fetches)
+        assertEquals(
+            "while the tap's fix was being fetched, the camera moved instantly (to ${describe(recording.camera)})",
+            jumpsAfterPan,
+            recording.jumps,
+        )
 
-        assertEquals("the tap fetched its own fix", 2, fetches)
+        tapFix.complete(LocationResult.Success(42.5, -117.5))
+        settle()
+
         assertEquals("the tap turned following on (MapLibre's own transition, zoom kept)", CameraMode.TRACKING, recording.cameraMode)
         assertEquals(
             "the locate tap moved the camera instantly (to ${describe(recording.camera)}) instead of leaving it to following",
