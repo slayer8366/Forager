@@ -36549,4 +36549,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - To "What should the Re-center button's outline look like?": **"Same as the chips"**. The option read: "1 dp, Bark #3B2E24 by day, pale #EDE3D0 at night, like the selected map type chip's outline".
 - To "Where should it go?": **"Its own small PR"**. The option read: "A small PR to pre-main, so it doesn't hold up #498 or #500".
 - Dispatch 2026-11-06-04 is at prompts/preserved/2026-11-06-04-recenter-outline.md. The screenshot stays off GitHub.
+- **Built (2026-11-07):** PR #505 (recenter-outline, 3cfebc7c1): one border line on the one Re-center surface, `onSurface` as the selected chip uses; CI run 42333465627 green, 6,846 tests, none changed against pre-main; the revert failed only the outline cases; coordinate touches across the pill still reach it.
+- **Changed (2026-11-07T04:14Z), the owner:** to "Merge #505 ... now, or see it on a phone first?": **"Merge it"**; to "The journal entry's full-screen map has its own locate button (no \"Re-center\" word). Give it the same outline?": **"Yes, same outline"** (the option: "A small follow-up: that button gets the chips' outline too"). Dispatch 2026-11-06-04, Amendment 1.
+- **Merged:** PR #505 into pre-main as 1f6901a11.
 **Notes:** Written by the planner by hand. Next free ID -2187.
