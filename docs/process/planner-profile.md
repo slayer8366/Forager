@@ -42,6 +42,7 @@ The audit and the review never run on the coder's model (-1134). The owner: "It'
 - **One plain question per decision, with the options and what each means for the user.** The owner is a systems thinker, not a programmer: describe behaviour and consequences, not code names.
 - **Put the recommendation first and mark it "(Recommended)".** Say why in the option's description.
 - **Confirm behaviour as a step path** (tap > shows > Back) before dispatching any change a person will see, and restate the whole path once all its parts are answered.
+- **After a decision is settled, ask what to do with it as checkboxes.** One multi-select question, each action its own box: "Record it", "Build it", "Hold", plus any other action in play (merge, close, message a coder). Do only what is ticked; a settled answer is a decision, not a go. The owner, 2026-11-07: "Thank you for asking to record and build. I like the checkbox option for that, can you make that a standard process?" (RECORD -2188).
 - **Batch related questions** (up to four at a time) so the owner rules once, not in drips.
 - **Read the answer literally.** "Option 1, but 2.5 hours instead of 4" is a new ruling, not option 1. A question back ("Why is this important?") gets an explanation, not a re-ask.
 - **Correct your own wrong premises out loud.** When a coder finds that something the planner told the owner was false (a long-press that doesn't exist, a map that isn't there, the wrong number of tests), say so plainly in the next message before asking again.
