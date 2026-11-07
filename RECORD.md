@@ -36185,6 +36185,8 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - To "How should \"by trail\" sit next to the distance on the navigation card?": **"(a) Fixed, distance pushed right"**. The option read: "The distance hugs the right edge of its own window and \"by trail\" sits right after it. They're always side by side, and \"by trail\" never moves; a short distance leaves room on the left instead". The other: "(b) Follows the distance".
   - To "The same gap would apply to \"straight\" (the way with no trail route). Same treatment?": **"Yes, same"**.
   - Amendment 1 gains H14 and E15. The screenshot stays off GitHub.
+- **E15 built (2026-11-07):** H14 at f9cfc9ec0 (pre-main b6f0b464d merged at 9a9a80b71), report 6cc38fdda; the distance end-aligned in its window, the kind 4 dp after it. CI run 42313208350 green, 6,966 tests, none changed against pre-main; the revert failed only the distance's own claims.
+  - **Changed (2026-11-07T00:10Z), the owner,** to "With a short distance there's room on both sides of \"98 ft by trail\". Where should the pair sit?": **"Centre them together"**. The option read: "The widest distance plus \"by trail\" are centred as one block, so \"by trail\" sits up to about 15 dp further left, slightly differently for \"by trail\" and \"straight\"". The other: "Keep it as built". Amendment 1 gains H15 and E16.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
