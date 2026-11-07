@@ -1193,3 +1193,102 @@ build 4844, landscape navigation with a saved route's card open on the navigatio
 - The owner's case could not be reproduced: in their state the card's end meets the side bar and its corner is outlined in every
   capture. Could the owner mark on their crop where the line is missing (or share the S26 screenshot again with the place circled)?
   The dispatch's rule for this case is to stop and report, so nothing was built.
+
+## E20: the card's end outlined where the side bar's bottom corner curves away (a fresh session, 2026-11-07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E20 (RECORD -2181: the owner's marked screenshot, and **"Outline the
+card's end there"** ("Where the side bar's corner curves away, the card's own end edge carries the outline, so the line is
+continuous"); go **"Build it"**). Marks as above.
+
+### Base and commits
+
+- At the start [observed]: `origin/nav-card-kind-line` 097ca1add, `origin/hazel-e19-red` 5fc0e9195, `origin/pre-main` 82d4a091a
+  (already merged at 234b96f7b, so no merge). Worktree clean on `e19-report` = 097ca1add, nothing unpushed. 390c069d4, reported
+  earlier as an unpushed local commit, sits inside `hazel-e19-red`'s pushed history (1ecf80e02, 390c069d4, 5fc0e9195), reachable
+  from the local branch `nav-card-kind-line` too; it was not on this worktree's HEAD, so I went ahead.
+- Other coders' files [observed, `git diff origin/pre-main...`]: next-turn, next-turn-j2-wip, route-card and locate-jump share no
+  file with this change (they touch `RoundedMapCardFit.kt`, which this change does not).
+
+| Commit | What |
+|---|---|
+| d02cb386d | The 36-case check moved onto #498 byte for byte from 5fc0e9195 (`git diff 5fc0e9195 HEAD` empty for the file). |
+| ff1542d3b | E20 reading added; the test's fix and start moved to the made-up point P. |
+| 1521649bb | The fix. |
+
+### Why E19's check passed
+
+- [read, the check at 5fc0e9195] The straight edges were read from 17 dp below the card's top to 17 dp above its bottom
+  (`alongY = card.top + r + 1 dp .. card.bottom - r - 1 dp`), so on the end edge the reading stopped where the side bar's line is
+  still straight. The side bar is clipped to rounded inner corners of 16 dp (`ForagerNavigationRail`, `innerCornerRadius =
+  MAP_CARD_CORNER_RADIUS`, RECORD -952), so its edge curves away only within the bottom 16 dp: exactly the band the check never read.
+
+### The reading added
+
+- The card's end edge (right, by the side bar, at both rotations, RECORD -956) over its bottom 16 dp, every 1 dp, probed 2 dp
+  outside; where that pixel is bare map, one of the four pixels where a 1 dp line lies inside the edge must be the outline.
+- With the side bar shown, the spot must be found (bare map read there at least once), or the test fails: it cannot pass without
+  reaching the spot.
+- Measured [observed, S26 size, rotation 90, route card on]: card 410.3 to 763.0 dp across, 350.3 to 411.0 dp down; side bar from
+  763.0 dp, 0 to 411.0 dp. The card's end meets the side bar and both reach the screen's bottom.
+
+### Red, tests first [observed, run 42401666610 at ff1542d3b, throwaway ref `hazel-e20-red`, deleted]
+
+- Failed-job log read first: 0 compile errors. Filtered run: 36 tests, **16 failed**, exactly the 16 landscape cases with the side
+  bar shown (both rotations, 891 x 411 and 640 x 360 at font 2.0, route card on and off, day and night). The no-Street-map job ran all
+  6999 tests and failed the same 16, nothing else.
+- Each failure's misses equal that capture's samples at the new spot (7 by day, 9 at night); all 128 miss lines are at "end edge
+  beside the side bar's bottom corner", none elsewhere. A miss reads, for example: bare map (0.502) 2 dp outside, the four pixels
+  inside the card's end all the card's fill (0.851), no line. Fullscreen and portrait passed (their end edges were already drawn).
+
+### The fix [read, 1521649bb]
+
+- New file `NavigationCardEndBesideRailCorner.kt`: `Modifier.navigationCardEndBesideRailCorner` draws the card's end edge, a stroke
+  wide in the outline's colour, over the band where the side bar's corner curves away (from the side bar's bottom minus its corner
+  radius, down to the card's bottom), only while the side bar is shown. One line in `CompactMapLandscapeNavigationCard.kt` applies it
+  to the card. Nothing else changed: the side bar, the card's other edges and its top corners are as they were.
+- The line lies inside the card's edge, not out on the side bar's line half a stroke beyond it, because the card is clipped to its
+  bounds (`clipToBounds`), so a line out there would not show. Below the corner's start the line therefore runs one stroke (1 dp)
+  nearer the map than the side bar's line above, touching it.
+
+### Green [observed, run 42403631323 at 1521649bb]
+
+- Every job green. 7053 test cases, 0 failed, 24 skipped. All 36 outline cases pass, the new spot reached in each side-bar case.
+- By name against pre-main's latest run (42337576510 at 1f6901a11, 6846 tests, 0 failed; pre-main's head 82d4a091a is a
+  `[skip ci]` commit): 36 names only on pre-main (the same count earlier sections report), 243 only here (E18's 207 plus these 36),
+  all passing, **0 names whose outcome differs**.
+
+### The revert [observed, run 42403671130 at 6f23eb9af, throwaway ref `hazel-e20-revert`, deleted]
+
+- One line: the `.navigationCardEndBesideRailCorner(...)` call removed from `CompactMapLandscapeNavigationCard.kt`. The file was
+  copied before the edit, the revert made in its own worktree, the forward branch untouched.
+- Failed-job log read first: 0 compile errors. Filtered on `*Outline*`: 107 tests, **16 failed**, the same 16 as the red run, every
+  miss at the new spot; no other outline test failed. The no-Street-map job ran the full 6999 and failed only those 16.
+- The revert worktree was restored from the saved copy and removed; on the branch the forward file is byte-identical to that copy.
+- A slip, caught: my first read of the red run's failed-job log ran `gh` outside a repository and saved an error message, which I
+  first counted as "0 compile errors". Re-read with the repository named: 4095 lines, 0 compile errors. Both runs' figures above come
+  from the re-read logs.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: the spot reproduced red at both rotations, side bar shown, route card on and off, day and night, at both
+  sizes; the fix makes it green; the revert of the one line brings back exactly those 16 failures; full CI green, 0 outcome changes by
+  name against pre-main.
+- **Inferred**: that the owner's circle is this band (the dispatch's description matches the pixels; the screenshot was not seen by
+  this session). The S26's size and insets are stand-ins (891 x 411 dp, side insets). With a bottom inset (gesture navigation) the
+  band is computed from the controls' bottom padding, but that case was not tested.
+- **Could not determine**: how the 1 dp step between the side bar's line and the card's line looks on the phone.
+- **Premises that were wrong**: none in E20. A stale one from the dispatch: 390c069d4 was described as unpushed; it is pushed, inside
+  `hazel-e19-red`'s history.
+
+### Decided beyond the dispatch
+
+- The line's place: inside the card's edge (1 dp nearer the map than the side bar's line), because the card's clip hides anything
+  beyond its bounds. Drawing it out on the side bar's line would mean removing the card's clip, which changes more than E20 asks.
+- The test's fix and start moved to the made-up point P (the dispatch's rules), as the check was joining #498.
+- The test asserts the spot is reached, so it cannot pass vacuously.
+
+### S22 step (E20)
+
+- Landscape, side bar shown, navigating (with and without a saved route's card open), by day and at night: at the bottom of the
+  screen, where the navigation card's end meets the side bar's rounded bottom corner, the card's end edge carries the outline down to
+  the screen's bottom, so no map shows there unlined. Check that the side bar's own line above and its corner arc are unchanged.
