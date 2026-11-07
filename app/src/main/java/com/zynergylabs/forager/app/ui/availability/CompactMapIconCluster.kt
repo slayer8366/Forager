@@ -78,6 +78,9 @@ internal fun BoxScope.CompactMapIconCluster(
             fillColor = barFill,
             rowSpacing = barRowSpacing,
             fullSquareHits = barFullSquareHits,
+            // Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186), the owner: "Ring replaces the pill": in landscape navigation
+            // off the follow the ringed row is Re-center; its tap is already Re-center's onReturnToRoute (Ruling D above).
+            locateRinged = locateRowStandsInForReCenter(cluster.landscape, isNavigating, navigation.navigationFollowing),
             modifier = barModifier,
         )
     }
