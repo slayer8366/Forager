@@ -465,3 +465,132 @@ The E13 steps above stand. Added:
    for at least half a minute. Then let the compass come back: "Dark since" returns and "No compass" goes (the card one line shorter); within the card the distance and
    "by trail" stay where they were.
    Evidence: a short screen recording.
+
+## E15: H14 (a fresh session, 2026-11-06/07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E15: "H14, in the same PR by the same practice". Marks as above:
+[observed] is a CI run's XML or log read this session (each log checked for compile errors first, each run's head SHA checked against
+the commit), [read] is code read at the commit named, [inferred] is worked out and not measured.
+
+### The ruling (verbatim)
+
+- H14, the owner: "There's a space between the 1.5 mi and the by trail. It used to not be there before 498 to 500. Please put it back
+  to where they're next to each other". To "How should "by trail" sit next to the distance on the navigation card?": "(a) Fixed,
+  distance pushed right" (the option read: "The distance hugs the right edge of its own window and "by trail" sits right after it.
+  They're always side by side, and "by trail" never moves; a short distance leaves room on the left instead"). For "straight": "Yes,
+  same". The planner's reading: the window keeps its width for the widest distance; the distance is end-aligned in it; the kind
+  follows the window's end with the normal word gap and never moves; the pair stays where the top line places it today; own line
+  (H8, H12) unchanged; Arrived and the dash (B3, B4) keep their centring.
+
+### Base and commits
+
+- Checked against the remote at the start [observed]: `origin/nav-card-kind-line` 1718f7d1c, `b516d520a` merged at 0b79b9a85, worktree
+  clean; `origin/pre-main` b6f0b464d (PRs #501 to #503). pre-main merged in (9a9a80b71, a clean merge). Its 96 files and this branch's
+  64 share none (`comm -12`, C locale). `next-turn` (PR #500) and `place-name-out-2` (PR #504) touch no file this section edits.
+
+| Commit | What |
+|---|---|
+| 9a9a80b71 | pre-main (b6f0b464d) merged in. |
+| b9fad7604 | Tests first: the rules' beside and stacked claims changed to H14's; `NavigationCardDistanceBesideKindTest` new; three countdown states in the rig. |
+| f9cfc9ec0 | H14 (`NavigationCardTopLine.kt`, the distance's and the kind's x). |
+
+### What was built [read, at f9cfc9ec0]
+
+- `NavigationCardTopLine.kt`: beside and stacked, the distance's x is `meeting.figureEndPx - figure.width` (it ends at its window's end,
+  the meeting point), was centred in the window; the kind's (or the stack's) x is `meeting.kindStartPx`, the word gap (Spacing.xs, 4 dp)
+  after it, was centred in the kind's space. The window and the step are unchanged (`TopLineMeeting`, `kindPlace`): the window is the
+  left half less half the gap, or the widest figure ("8888 ft" / "88.8 mi"; "≈ 8888 ft" straight) where that is wider, so its end is one
+  place for the walk. Own line, Arrived and the dash unchanged.
+
+### Measured placements [observed, run 42313208350, `PLACEMENT` lines]
+
+The window's width, the gap, and where the pair sits in the left part (from its left edge to the kind's right), dp; daytime, no evening
+line, where the kind is beside:
+
+| Window, font | Left part | By trail: window | "1.5 mi" / "1280 ft" / "98 ft": pair in the left part | Straight: window | "≈ 1250 ft" / "≈ 100 ft": pair |
+|---|---|---|---|---|---|
+| 384 portrait, 1.0 | 207.6 | 101.6 (the half) | 30.6 / 21.0 / 48.3 .. 149.3 | 101.6 (the half) | 0.6 / 14.3 .. 155.0 |
+| 823 x 384, 1.0 | 176.3 | 86.0 (the longest) | 15.0 / 5.3 / 32.6 .. 133.6 | 101.0 (the longest) | 0.0 / 13.6 .. 154.3 |
+| 360 portrait, 2.0 | 291.0 | 143.3 (the half) | 37.0 / 21.6 / 63.0 .. 233.6 | 151.6 (the longest) | 0.0 / 20.6 .. 253.0 |
+| 823 x 384, 2.0 | 263.0 | 129.3 (the half) | 23.0 / 7.6 / 49.0 .. 219.6 | 151.6 (the longest) | 0.0 / 20.6 .. 253.0 |
+
+- The gap is 4.0 dp in every case; the kind's left edge and the distance's right edge are one place for every figure in each window.
+- Free on the right of the kind: by trail 58.3 (384/1.0), 42.6 (823/1.0), 57.3 (360/2.0), 43.3 (823/2.0); straight 52.6, 22.0, 38.0, 10.0.
+- Stacked (320 portrait, 1.0, "Dark since 10:23 PM"; run 42313208350, `RULES` line): left part 125.7, window 84.7 (the longest),
+  gap 4, stack 25.7 wide starting 4 dp after the window, 11.3 free on its right.
+- At 384 portrait, font 2.0, in daytime, the kind is on its own line (H8 does not apply there), so 360 dp is the portrait case at 2.0.
+
+### Evidence
+
+- **Red, tests first**: run 42310945664 at b9fad7604 [observed; log 0 compile errors; head SHA checked]: 6966 tests, 27 failed, 24
+  skipped, all in the top-line classes, every failing line one of H14's: "does not end at its window's end" (123), "does not start at its
+  space's start" (174) or "... the kind's space's start" (6, the stack), "not the word gap" (60, e.g. "<1.5 mi> ... and <by trail> ... are
+  37.3 dp apart, not the word gap (4.0 dp)" at 823 x 384, 2.0), "the distance's right edge moved as it counted down" (24); no positive
+  control failed (the three new figures read as the rig predicts).
+- **Green**: run 42313208350 at f9cfc9ec0, the branch's full CI [observed; 0 compile errors; head SHA checked]: **6966 tests, 6942 passed,
+  24 skipped, 0 failed**, every job green. By name against pre-main's run 42308597327 at b6f0b464d (6838, 0 failed, 24 skipped): 36 names
+  only on pre-main, 164 only here (E14's 156 and the 8 new), **0 names whose outcome differs**.
+- **Revert**: one line in a throwaway worktree over f9cfc9ec0 (ref `nav-card-e15-revert`, f93987792), its diff checked to be that one
+  line: `else maxOf(0, meeting.figureEndPx - figure.width)` to `else maxOf(0, (meeting.figureEndPx - figure.width) / 2)` (the distance
+  centred in its window again, the kind left where H14 puts it). The file saved before the edit and copied back after (never from git);
+  the forward line confirmed present in the branch worktree (grep, 1 match). Run 42313321355 (workflow_dispatch, the NavigationCard,
+  RouteCard, CompassStrip, AvailabilityScreenNavigationView, AvailabilityScreenMapIconStack and NavigationInfoLayout classes, 393 tests):
+  log 0 compile errors, head SHA f93987792; **27 failed**, the same 27 names as the red run, and only with the distance's own messages:
+  "does not end at its window's end" (123), "not the word gap" (48), "the distance's right edge moved" (24). None of "does not start at
+  its space's start": the kind stayed where H14 puts it, as this revert should leave it. So the failures are this edit's.
+
+### Tests whose claims changed (none silenced, no tolerance widened, no assertion dropped)
+
+- `NavigationCardTopLineRules`, beside: "the distance ... does not end at its window's end" (was "... is not centred in its space") and
+  "the kind ... does not start at its space's start, the word gap after the distance's window" (was "... is not centred in its space");
+  the same 0.5 dp tolerance. Stacked: the stack starts at the kind's space's start, each word centred in the stack, "trail" starting
+  there too (was each word centred in the kind's space). Every class built on the rules (Portrait, Landscape, Evening, LargeText,
+  Stack) checks these; their own claims (step, shift, baseline) are unchanged.
+- New, `NavigationCardDistanceBesideKindTest`, 8 cases (384 portrait and 823 x 384 at 1.0, 360 portrait and 823 x 384 at 2.0; by trail
+  "1.5 mi" > "1280 ft" > "98 ft", straight "≈ 1250 ft" > "≈ 100 ft"): the 4 dp gap; the distance's right edge and the kind's left edge
+  one place across the countdown; a positive control that the widths differ. The kind's edge staying put passed before H14 too (G3
+  centred it in a fixed space), so it is a control, not evidence; the gap and the distance's edge are what turned red.
+- The rig (`NavigationCardKindLineScreen`): `TRAIL_MILES`, `TRAIL_SHORT` (the way home's route 2420 m and 30 m) and `STRAIGHT_SHORT` (the
+  fix 30 m short of the waypoint); the made-up point P only.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: the base and the merge; red for H14's reasons only; green full CI with 0 outcomes differing from pre-main by
+  name; the revert failing only the distance's own claims, with a clean compile log; the placements above.
+- **Inferred**: that the S22 draws within about 1% of these (as the earlier sections found), so the pair sits about where the table says.
+- **Could not determine**: the S22's own placements (no phone this session; the S22 check running now is on a build without H14); font
+  1.3; kilometres (the rig is in miles).
+- **Premises that were wrong**: none found. The dispatch's state (1718f7d1c; b516d520a merged at 0b79b9a85; pre-main at b6f0b464d)
+  matched the remote.
+
+### Decided beyond the dispatch
+
+- "The pair as a whole stays where the top line places it today" read as: the window's end stays the meeting point (G3's divide: the
+  middle less half the gap, or the widest figure's width), so the kind starts where its space started. The pair is therefore not
+  centred in the left part: at 384 dp, font 1.0, "98 ft by trail" has 48.3 dp free on its left and 58.3 on its right, and the kind's left
+  edge is the middle plus 2 dp. The other reading, the window sized to the widest figure exactly and the pair centred in the left part,
+  would move the kind left by up to about 15 dp at 384 dp and differ between by trail and straight; not built. **For the owner, if the
+  phone shows it reading oddly:** "With "98 ft by trail" there's room on both sides; should the pair stay where it is (the kind at the
+  middle), or move so the widest distance and "by trail" are centred together?"
+- Stacked: the stack starts the word gap after the window's end; its two words stay centred in it (G3's choice), so "trail", the wider,
+  starts there and "by" sits centred over it. H14 names only "by trail" beside.
+- The gap is Spacing.xs (4 dp), the meeting's gap since A2 ("a word's space apart"), not the font's own space character.
+- The merge of pre-main (9a9a80b71) went with git's default message, so it lacks the Co-Authored-By line; not amended (Rules).
+- Not changed: the KDoc and test names of the Portrait, Landscape, Evening and LargeText classes still say "in their halves" / "each
+  centred in its own space" (G3); their claims come from the rules, which now say H14. Renaming them would break the by-name comparison;
+  a follow-up if wanted.
+
+### Device check (S22, for the planner), cheapest first
+
+The E13 and E14 steps stand. Base step 7 now reads:
+7. **The fixed places (H14)**: portrait and landscape, at font 1.0 and font 2.0 (at 2.0 in portrait the kind is on its own line at the
+   S22's 384 dp in daytime, which is unchanged; note it). Navigate the way home and to a waypoint (straight). The distance and "by trail"
+   (or "straight") side by side with only the word gap between them, as the distance counts down (miles to feet, e.g. "1.5 mi" then
+   "1280 ft" then under 100 ft): the kind's left edge never moves, and a short distance leaves room on its left. Arrived and the dash
+   centred (B3, B4); a note that only says why leaves no status line (F2). Evidence: a screenshot at a long and a short distance in each
+   orientation, the kind's left edge sampled in each.
+
+### Clean-up
+
+- Throwaway ref `nav-card-e15-revert` and its worktree deleted after its run. Scratch `/mnt/work/scratch/hazel-e15/` deleted at the end.
+- No index row added to `docs/audits/README.md`. No coordinate beyond the made-up P.
