@@ -16,6 +16,8 @@ import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.RouteLinePartKind
+import com.zynergylabs.forager.app.domain.nextturn.NextTurn
+import com.zynergylabs.forager.app.domain.nextturn.NextTurnBlank
 import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeResult
@@ -107,6 +109,13 @@ data class TrackRecordingUiState(
      * [nextRouteLine] of each [routeHome], cleared wherever [routeHome] is cleared.
      */
     val routeLine: RouteLine? = null,
+    /**
+     * The way home's next turn (dispatch 2026-11-06-01, Amendment 1, J2), worked out by the route tick beside each [routeHome]
+     * from the line and the walker's place on it (`TrackRecordingRouteTicks.updateRouteHome`). The card reads it only with
+     * [routeHome] ahead ([com.zynergylabs.forager.app.ui.availability.returnRouteOf]), so a value left over where [routeHome] is
+     * cleared is never shown.
+     */
+    val nextTurn: NextTurn = NextTurn.Blank(NextTurnBlank.NOT_YET_KNOWN),
     /**
      * The way home along trails for this screen's recording (dispatch 2026-10-24-10; RECORD -1613), copied from the
      * app's `WayHomeWatch` while it is for this recording; `null` otherwise. A `null` result is still being worked out,
