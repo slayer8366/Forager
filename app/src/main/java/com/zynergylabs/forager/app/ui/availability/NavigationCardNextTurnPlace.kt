@@ -29,7 +29,8 @@ internal enum class NextTurnPlace {
  * Dispatch 2026-11-06-01, Amendment 1, J3 (RECORD -2183), the owner: "Arrow in the right part", "Own line, card moves up", "Centre
  * the line"; the step path confirmed, "Yes, that's it":
  * 1. portrait at every font, and landscape at fonts 1.0 and 1.3: J2's [decided] place, beside the needle or its own line;
- * 2. landscape at font 2.0 with no evening line: the card's right part ([NextTurnPlace.RIGHT_PART]);
+ * 2. landscape at font 2.0 with no evening line: the card's right part ([NextTurnPlace.RIGHT_PART]); J5: also while the evening line
+ *    steps aside for the route card (D42), "Into the freed right part";
  * 3. landscape at font 2.0 with an evening line: its own line, the card moving up where it must ([navigationCardLift]);
  * J4 ("Follow the largest rule"): steps 2 and 3 at fonts 1.5 and 1.8 too ([isLandscapeLargeText]);
  * 4. decided once per screen, font and clock; only steps 2 and 3 follow the evening line, as the owner's own steps do.
@@ -43,11 +44,16 @@ internal fun nextTurnPlaceNow(
     decided: NextTurnPlace,
     landscapeLargeText: Boolean,
     eveningLine: Boolean,
-    /** J5 (stub, tests first): the evening line stepped aside for the route card resting on the card (D42). */
-    @Suppress("UNUSED_PARAMETER") eveningStepsAside: Boolean = false,
+    /**
+     * J5 (RECORD -2183, the owner: "Into the freed right part"): the evening line stepped aside for the route card resting on the card
+     * (D42). The right part it leaves takes the next turn, so the card is no taller. Safe from feedback: D42 decides from the card's
+     * tallest height with its evening line ([MapIconClusterState.navigationCardHeightWithEveningPx]), never from its height while
+     * stepped aside, so the card getting shorter here cannot undo the step aside.
+     */
+    eveningStepsAside: Boolean = false,
 ): NextTurnPlace = when {
     !landscapeLargeText -> decided
-    eveningLine -> NextTurnPlace.OWN_LINE
+    eveningLine && !eveningStepsAside -> NextTurnPlace.OWN_LINE
     else -> NextTurnPlace.RIGHT_PART
 }
 

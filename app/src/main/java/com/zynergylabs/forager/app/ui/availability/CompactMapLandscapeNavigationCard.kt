@@ -36,6 +36,8 @@ import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_LANDSCAPE_ROW_SPACING
 import com.zynergylabs.forager.app.ui.map.MIN_TOUCH_TARGET
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import androidx.compose.animation.fadeIn
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.snap
 import androidx.compose.animation.fadeOut
 import androidx.compose.ui.draw.clipToBounds
 import android.util.Log
@@ -165,9 +167,19 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     LaunchedEffect(noRoom) { if (noRoom != null) Log.i(LIFT_LOG_TAG, "J3 step 3: the card stays on the bottom edge and the evening line leaves it (RECORD -955): ${noRoom.reason}") }
     val liftPx = (lift as? NavigationCardLift.Up)?.px ?: 0f
     val movedUp = liftPx > 0f
+    // J5 (RECORD -2183, the owner: "Animate the move"): the card glides to its place and back rather than jumping, on its own slide's
+    // timing (RECORD -953's), or moves at once under reduced motion, as its slide becomes a fade there. What is decided from the card's
+    // place (the evening line's limit, D42's height with the evening lines) reads where it is going, [liftPx]; what is drawn reads
+    // where it is, [drawnLiftPx].
+    val reduceMotion = LocalReduceMotion.current
+    val drawnLiftPx by animateFloatAsState(
+        targetValue = liftPx,
+        animationSpec = if (reduceMotion) snap() else MotionTokens.navigationViewChromeSpec(),
+        label = "navigationCardLift",
+    )
     // J4 (RECORD -2183, the owner: "Round and outline"): once moved up off the screen's bottom edge, its bottom corners round and its
-    // outline goes all round.
-    val bottomRoundedAndOutlined = movedUp
+    // outline goes all round. J5: read from where it is drawn, so gliding back down it keeps them until it is on the edge again.
+    val bottomRoundedAndOutlined = drawnLiftPx > 0.5f
     // Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outline: its top and rounded top corners and its side facing the
     // map; its rail side once the rail has slid away, unless that side is then on the screen's edge; its bottom is the screen's.
     val cardLayoutDirection = LocalLayoutDirection.current
@@ -204,7 +216,7 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             .align(if (railPortEdge == ScreenEdge.Left) Alignment.BottomStart else Alignment.BottomEnd)
             .padding(controlsPadding)
             // J3 step 3: moved up where it must be ([navigationCardLift]); 0 on the bottom edge.
-            .offset { IntOffset(0, -liftPx.roundToInt()) }
+            .offset { IntOffset(0, -drawnLiftPx.roundToInt()) }
             .width(with(density) { (layout.landscapeStripWidthPx.toDp() - narrowBy).coerceAtLeast(0.dp) })
             .clipToBounds()
             .leavingTakesNoTouches(leaving = !isNavigating),
@@ -249,7 +261,7 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             modifier = Modifier
                 .fillMaxWidth()
                 // E20 (RECORD -2181, the owner: "Outline the card's end there"): its end edge beside the side bar's rounded bottom corner.
-                .navigationCardEndBesideRailCorner(com.zynergylabs.forager.app.ui.map.mapChromeOutline(), railPortEdge, railShown = !isFullscreen, bottomGap = controlsPadding.calculateBottomPadding() + with(density) { liftPx.toDp() })
+                .navigationCardEndBesideRailCorner(com.zynergylabs.forager.app.ui.map.mapChromeOutline(), railPortEdge, railShown = !isFullscreen, bottomGap = controlsPadding.calculateBottomPadding() + with(density) { drawnLiftPx.toDp() })
                 // Its own keep-out, beside the strip's (MapKeepOut's registry holds one rectangle per id).
                 .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier)
                 // RECORD -955: its columns, for cardTopLimitInRootPx (whether the L shares them).

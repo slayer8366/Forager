@@ -67,7 +67,8 @@ internal fun walkerDotCentreInRootPx(cluster: MapIconClusterState): Float? {
  * J5, the defect (RECORD -2183): the height the evening pieces take in the card's right part, for RECORD -955's decision and
  * [navigationCardLift]. Each piece is its own line (RECORD -941), and wraps where the right part is narrower than it: where the card
  * is short of room the left part stays whole and the right part's lines wrap in what is left, never cut ([InfoParts]).
- * [lineHeightPx] is one line's height; [wrappedHeightPx] measures a piece wrapped at the right part's width.
+ * [lineHeightPx] is one line's height; [wrappedHeightPx] measures a piece wrapped at the right part's width. Was each piece one
+ * line ([lineHeightPx] times their number), which let the moved card's top pass the strip and leave the screen.
  */
 internal fun eveningStackHeightPx(pieces: List<String>, lineHeightPx: Int, wrappedHeightPx: (String) -> Int): Int =
-    pieces.size * lineHeightPx
+    pieces.sumOf { maxOf(lineHeightPx, wrappedHeightPx(it)) }
