@@ -816,3 +816,63 @@ Each was a one-line edit of `5e9801df7` in a scratch worktree, pushed to a throw
 ### Clean-up
 
 The throwaway branches `next-turn-2b2-red`, `next-turn-2b2-green` and the 13 `next-turn-2b2-rev-*` are deleted from origin. Their runs stay readable by number. Every scratch worktree is removed. Scratch: `/mnt/work/scratch/hazel-2b2` (mode 700), holding the scripts, the saved copies and the predictions, with the downloaded test reports removed.
+
+## I9, built: the names anchor counts only the basemap's own layers (Hazel, 2026-11-07)
+
+Built against Amendment 1's I9 (`records-after-173` at `be77bde91`), from the S22 check on `tools/s22-combined` `505c55dda`. The starting state matched the dispatch: `next-turn` at `2902c3187`, pre-main `26a5c5955` merged in, the worktree clean. No file changed here is in `git diff --name-only origin/pre-main...origin/nav-card-kind-line`.
+
+### What MapLibre 13.5.0 does (javap -c on the pinned AAR)
+
+- **The ids.** `LocationComponentConstants`: `mapbox-location-shadow-layer`, `-foreground-layer`, `-background-layer`, `-accuracy-layer`, `-bearing-layer`, `-pulsing-circle-layer`, and the source `mapbox-location-source`.
+- **The types and order.** `SymbolLocationLayerRenderer.addLayers` adds the shadow, background, foreground and bearing layers as `SymbolLayer`s (`LayerSourceProvider.generateLayer`), each below the one before. It then adds the accuracy `CircleLayer` below the background and the pulsing `CircleLayer` below the accuracy. With `bearingOnTop`, bottom to top: shadow, pulsing, accuracy, background, foreground, bearing; without it, shadow, bearing, pulsing, accuracy, background, foreground. Either way the top run of symbol layers starts at `mapbox-location-background-layer`, the layer the phone named.
+- **When they are in `style.layers`.** `MapLibreMap.notifyStyleLoaded` calls `Style.onDidFinishLoadingStyle`, then `LocationComponent.onFinishLoadingStyle`, which re-adds the layers whenever the component was initialised on an earlier style, and only then the app's `setStyle` callback. So on every style load after the dot was first turned on, `readNamesAnchor` finds them on top. On a MapView's first style they are not there yet. This is the same chain `LiveLocationPuckSwapTest` records.
+
+### What was built
+
+- **`ui/map/AppLinesUnderNames.kt`.** `namesAnchorOf` and the log line now count only the basemap's own layers (`basemapOwnLayers`, `isBasemapOwnLayer`). A layer is left out when its id starts with `mapbox-location-` or is one the app adds (`APP_OVERLAY_LAYER_IDS`: the registry's own layers, not the style's band layers, plus the way home, the plotted route, the waypoint names and the fan-out). The log line names every left-out layer. `readNamesAnchor` still hands all of `style.layers` on.
+- **Unchanged:** `OverlayLayerSetup.kt`, the placement rule, Trail Map's anchor (v4 `reference_fs_number` since I8, v1 to v3 `address_label`).
+- **Tests (new):** `AppLinesUnderNamesForeignLayersTest` (7 tests) and `LocationLayersProbe.java`, in MapLibre's package, which hands the tests the SDK's own id constants in both orders.
+
+### Evidence
+
+Every run was read by `/mnt/work/scratch/hazel-i9/scripts/results.py` (the 2b-2 session's script, unchanged). It refuses a run that is incomplete, on another commit, or whose log is short or has a compile error. Filter: `AppLinesUnderNamesForeignLayersTest`, `AppLinesUnderNamesTest`, `LiveLocationPuckSwapTest`, `BasemapStyleTest`, 32 tests.
+
+- **Red, run 42325539190** on `134678dde` (tests only). No compile errors. 5 of 32 failed, all new, each for I9's reason, as predicted before reading. For example: Topographical by day with the dot `expected null, but was:<mapbox-location-background-layer>`; `trail-style-v4.json with the position dot expected:<reference_fs_number> but was:<mapbox-location-background-layer>`; the log line `below mapbox-location-background-layer (layer 4 of 7)`. The two controls passed.
+- **Full CI, green: PR run 42326986879** on `38e9d6524`. Every job passed, the Street-deleted job included. 6,997 tests, 0 failed, 24 skipped.
+- **Compared by name with pre-main's push run 42315368330** on `3542a0c30`, the last code commit under `26a5c5955`, which is docs only (6,838 tests). None missing, none changed status, the same 24 skips, 159 new. Against next-turn's previous run, 42319742136 (6,990 tests), the 7 new are exactly this section's.
+
+### The revert
+
+One line, `basemapOwnLayers` returning `layers` unfiltered, on its own scratch worktree, pushed to the throwaway branch `next-turn-i9-rev-ownlayers` (`695779dde`) after the scan read 0. **Run 42327000547:** no compile errors. 5 of 32 failed, predicted 5: the same five as the red run, with the same messages, now with "Left out as not the map's own" in the log lines, since only the anchor's filter was reverted. The file was restored from a copy saved before the edit and compared equal with `38e9d6524`'s. Afterwards `next-turn`'s worktree was clean and the forward line was present (`grep`, 1 match).
+
+### Confirmed and inferred
+
+- **[observed]** The runs, counts and messages above.
+- **[read, javap]** The ids, types, order and timing above.
+- **[modelled, not run]** The position dot's order and types in the tests come from that javap reading, not from a running MapLibre. Its ids are the SDK's constants. `readNamesAnchor` needs a native `Style`, so it is not run, and the logcat step is what covers it.
+
+### Could not determine
+
+- **The phone's counts are one layer higher than the model on every style.** Topographical by day: phone 8 layers with the background layer at 5, model 7 at 4. Trail Map: phone "layer 117 of 183", the committed v4 has 182 layers with `address_label` at 117. Topographical at night: phone 190 at 187, model 189 at 186 for that Trail Map. No app code adds a layer before the anchor is read (the only `addLayer` callers are the overlay files, all after it). The extra layer is not one of the six location layers, and I could not find its source. It does not change any anchor. The new log line names left-out layers but not every basemap layer, so the next logcat will say whether it is the map's own.
+- Which of the two orders the phone uses. Only the bearing-on-top order reconciles with the phone's numbers once the extra layer is counted. Both orders are tested.
+
+### Premises that were wrong
+
+- None in I9 itself. One finding beyond it: the same fault reached Trail Map too. After a reload (a night toggle, or coming back from another map), its anchor would also have been the dot's background layer, putting the app's lines over every Trail Map name. The phone's Trail Map line came from a first load, before the dot's layers existed. I9's fix covers this by the same rule.
+
+### Decided beyond scope
+
+- **"Any layer the app added"** is read as the overlay layers the app adds on a style load. The Topographical picture laid over Trail Map at night is also added by the app, through `Style.Builder`, but it is the map the user sees, and counting it is what keeps that map at today's placement. So it is counted. Open to the owner.
+- **The log line names the layers it left out.** This is logcat only and changes nothing a user sees.
+
+### S22 logcat step (repeat on the next combined build; the coder does not run it)
+
+Tag `SightingsMap`, after switching maps at least once with the position dot on, so the style reloads:
+- **Topographical by day, Street day and night, the offline style:** "App layers over the whole map (N layers), today's placement: its top layer basemap is not a name or icon layer." (the offline style names its own top layer), followed by "Left out as not the map's own: mapbox-location-…" listing the dot's layers.
+- **Topographical at night:** the same, its top layer `basemap`.
+- **Trail Map, after a reload:** "… below reference_fs_number …" once I8's style is live, `address_label` before that, also followed by the left-out list. Never `mapbox-location-…` as the anchor.
+- Note N against the counts above, for the one-layer difference.
+
+### Clean-up
+
+The throwaway branch `next-turn-i9-rev-ownlayers` is deleted from origin and its worktree removed. Its run stays readable by number. Scratch: `/mnt/work/scratch/hazel-i9` (mode 700).
