@@ -1128,3 +1128,68 @@ Handed back before building, at the session's size limit, with what was found lo
   and fullscreen, the route card resting on the card, portrait; day and night) and checking that wherever bare map lies just outside a
   card edge or corner, the line is there. If it finds the gap, that's the red run; if every placement passes, the crop's phone and
   state are needed.
+
+## E19: the owner's case tested in every placement, not reproduced, stopped before any change (a fresh session, 2026-11-07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E19, after RECORD -2181's identification of the crop (the owner's S26 on
+build 4844, landscape navigation with a saved route's card open on the navigation card, day, not fullscreen). Marks as above.
+
+### Base and commits
+
+- At the start [observed]: `origin/nav-card-kind-line` 5e2c0a6c8, worktree clean, `origin/pre-main` 1f6901a11 (merged in). By the end
+  pre-main was at 82d4a091a; merged in here (234b96f7b), no conflict.
+- Build 4844 [inferred from commit counts, not read from the phone]: `origin/tools/s22-combined` b7baa2bc7 is the one ref with 4844
+  commits. Its `RoundedMapCard.kt`, `CompactMapLandscapeNavigationCard.kt`, `RouteCardPlacement.kt` and `AvailabilityCompactMapUi.kt`
+  are byte-identical to this branch's (`git diff` empty), so the outline and the cards' placement on the owner's build are this code.
+- The test, `NavigationCardOutlineEveryEdgeTest.kt` (36 tests), is **not on this branch**: it is on the throwaway ref `hazel-e19-red`
+  (1ecf80e02, 390c069d4, 5fc0e9195), kept rather than deleted because it is the only copy. Whether it joins #498 is the owner's call.
+
+### The test
+
+- The real `AvailabilityScreen` over a flat grey stand-in map, navigating, with a saved route's card opened through
+  `RoutePlottingViewModel.onOpenSavedRoute`; landscape at both rotations with phone-like insets (cutout 25 dp and navigation bar 48 dp,
+  mirrored at 270), side bar shown and fullscreen, the route card resting on the navigation card and not; portrait with and without the
+  route card; day and night; at 891 x 411 dp (the S26's size, inferred) and 640 x 360 dp at font 2.0; portrait 411 x 891 dp.
+- Claim: wherever bare map lies 3 dp outside an edge or a rounded corner of the navigation card, the outline is on that edge or corner
+  (pixels as `MapChromeOutlinePixelsTests.isLine`; outside a corner's shape, the line over the map on the line's side of it).
+
+### Runs [observed, filtered runs on `hazel-e19-red`]
+
+| Run | Head | Result | What the failures were |
+|---|---|---|---|
+| 42390107028 | 1ecf80e02 | 16 of 36 failed | The test's own: the bare map taken as the screen's commonest colour, which at 640 dp, font 2.0 was the cards' fill; the fill read on the divider at the top edge; the fix 1,562,266 minutes stale. None on the end edge by the side bar. |
+| 42396282589 | 390c069d4 | 8 of 36 failed | One place, in every capture with the side bar shown and no route card: the side bar's top corner at 30 to 36 degrees, where RECORD -990 draws the arc out to the side bar's line, just outside the card's shape. The line is there (day 0.451, night 0.694, the map 0.502); the test read only inside the shape. |
+| 42398440570 | 5fc0e9195 | **36 of 36 passed** | The corner read out to that line. |
+
+- In the owner's case (rotation 90 and 270, side bar shown, route card on the navigation card), at both sizes, day and night, the
+  end edge by the side bar has **no** bare map beyond it: map-facing samples are the inner side and inner top corner only (for example
+  `{left=14, top-left corner=6}` at 891 dp by day). The top end corner's gap shows the route card, and its arc is drawn there (crop read
+  from the 891 dp day capture).
+- Where the end edge does face the map (fullscreen), it is read (14 to 28 samples a capture) and outlined.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: in every placement tested, every navigation-card edge and corner with bare map just outside carries the
+  outline; in the owner's case the end edge meets the side bar. [read] The side bar is on the window's right at both rotations
+  (`mainWindowRailEdgeFor`, RECORD -956), and the navigation card is aligned to that side (`CompactMapLandscapeNavigationCard.kt`,
+  `Alignment.BottomEnd`), so its end edge is placed against it.
+- **Inferred**: build 4844 is `tools/s22-combined` (commit count). The S26's landscape size and insets (891 x 411 dp, side insets) are
+  stand-ins; a gesture-navigation phone has its navigation bar at the bottom, not tested.
+- **Could not determine**: what the owner's crop shows (not seen by this session). D32's narrowing (`leaveRoom` above 0) was **not
+  reached** in any capture: at 640 dp, font 2.0 the L's gap stayed wide, the cutout inset not moving the L as on the S22, so the narrowed
+  placement is covered by reading, not by pixels here.
+- **Premises that were wrong**: the planner's reading, that with the route card open both cards narrow and leave map between the
+  navigation card's end and the side bar. [read] D32's narrowing takes width from the L's side and keeps the side-bar edge
+  (`RouteCardPlacement.kt` `leaveRoom` doc; `RouteCardRecenterLeaveRoomTest` asserts both cards keep the strip's right edge), and with
+  the side bar always on the right there is no placement where it opens a gap there. Also the earlier test names "side bar left": there
+  is no left side bar since -956.
+
+### Decided beyond the dispatch
+
+- Nothing in the app changed. The test was kept off #498 (see above).
+
+### Question for the owner
+
+- The owner's case could not be reproduced: in their state the card's end meets the side bar and its corner is outlined in every
+  capture. Could the owner mark on their crop where the line is missing (or share the S26 screenshot again with the place circled)?
+  The dispatch's rule for this case is to stop and report, so nothing was built.
