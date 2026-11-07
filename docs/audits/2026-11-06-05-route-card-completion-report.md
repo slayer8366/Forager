@@ -277,3 +277,97 @@ another choice? (The night rust also sits close to the darker ground, ΔE 0.078.
 **Q-C. The expanded card's list.** Expanding the card today lists the legs ("Creek to Ridge 0.4 mi"). For selecting a waypoint, should
 the open card list the waypoints instead of the legs, or both (waypoints as tappable rows, with each leg's distance under the waypoint
 it leads to)?
+
+---
+
+# Build, part 2 (Amendment 2): the soft link and schema 24, then stopped on the version number
+
+Hazel Cairnwright (Opus), 2026-11-07 UTC. Branch `route-card`, from `3e2125c9f`. `origin/pre-main` was still `1f6901a11`, so there was
+nothing to merge in. **Stopped:** the planner passed on, with the owner's go, that version 24 is already promised to route plotting
+step 4b (heights; `MigrationRouteTrips.kt` on pre-main: "step 4b brings its own migration, 23 to 24 (Amendment 1, H3)"). By the time
+that message came I had already written and pushed a `Migration(23, 24)`. It is disclosed below, not reset (we never reset).
+
+## What was built (on the branch, at `e9da49fc5`)
+
+- **The soft link.** `RouteStop.link` holds a waypoint's or a trip's id (`domain/route/PlottedRoute.kt`, `RouteStopLink`).
+  `planned_trip_route_stops` gets `linkedWaypointId` and `linkedTripId`, each a plain, indexed, nullable column with no
+  `@ForeignKey`. All four taps that add a stop now set the link (`domain/route/RouteStopOf.kt`, new; called from
+  `CompactMapRoutePlotting.kt`, `MapBubbleLayer.kt`, `MapBubbleTripActions.kt`). The repository writes the link and reads it back.
+  A row with both links set keeps its stop and loses both links, and that is logged.
+- **Clearing.** Deleting a trip clears links to it in the same transaction (`PlannedTripRouteDao.delete`). For a waypoint, the
+  links that point at waypoints no longer on the phone are cleared at the start of `loadAll`, in the same transaction as the read. So
+  a route never reads back a link to nothing, and the stop's name and spot are never touched.
+- **Schema 24.** `MIGRATION_23_24` adds the two columns and their indexes. `24.json` is Room's own export from run 42372005536 (a
+  scratch branch with an upload step only, now deleted). Every table except the stops table is identical to `23.json`. Version,
+  `SCHEMA_VERSION` and `ALL_MIGRATIONS` all moved to 24.
+- Tests: `RouteStopLinkMigrationTest` (new). It builds a real v22 database with a trip from `22.json`, migrates it to 23 with
+  `MIGRATION_22_23` (validated against `23.json`), and writes two routes (5 stops, 3 legs) at 23. It then opens the database the
+  app's way (release path) and reads it back: every trip, stop and leg is equal and every link is null. A second case saves linked
+  stops, deletes the waypoint and the trip, and checks that the stops stay with both columns NULL. `SchemaMigrationTest` gains
+  23→24, and its chain test moves from 4→23 to 4→24.
+- Existing tests changed because of the ruled change, disclosed for the reviewer:
+  - Schema 23 → 24: `JournalTablesSchemaTest`, `JournalBackupTest` (live version during restore), and `JournalBackupTestSupport.SCHEMA`.
+  - The backup seed keeps the two link columns null (`LINK_COLUMNS`).
+  - The stop fixtures now carry the link the app makes: `Waypoint.stop()`, `TripWhilePlottingTest.saddleStop` and `TripBubbleActionsTest:201`.
+
+## Verified, and how
+
+- Red over the stub (migration registered and empty), run 42372005536: 44 tests in 6 classes, 4 failures. They are exactly the four
+  migration cases (both `RouteStopLinkMigrationTest` cases, plus `SchemaMigrationTest`'s 23→24 and 4→24), each failing with
+  "Migration didn't properly handle: planned_trip_route_stops". The other 40 passed (`TripBubbleActionsTest`, `TripWhilePlottingTest`,
+  `RouteCardTuckCloseTest`, `JournalTablesSchemaTest`, and the other `SchemaMigrationTest` cases).
+- **Not verified:** the forward run with the real migration. The PR's own run 42372888049 (at `e9da49fc5`) was still running at hand-back.
+- **Not done:** the revert checks. I set up three one-line reverts (the migration without one column, `loadAll` without the waypoint
+  sweep, a waypoint stop without its link), then cancelled their runs and deleted them at the stop, because renumbering would make
+  them stale. None of them is cited as evidence.
+
+## Not built
+
+- Navigate (item 3), selecting (item 4), the card's waypoint list, the accent marker, and Back after Navigate. The plan I traced for
+  the next coder:
+  - Navigate calls `MapRecordSources.onNavigateToWaypoint` / `onNavigateToTrip` with a new `WaypointNavigationOrigin.RouteCard`.
+  - Back needs work: `RoutePlottingBackHandler` is composed after `AvailabilityScreenBackHandlers`, so today Back closes the route
+    before it ends navigation. It must stand aside while navigation started from this card is running.
+  - The marker can be an accent `drawGlyph` symbol layer, added in `PlottedRouteLayers.kt` above `MapLayerIds.WAYPOINTS`
+    (`OverlayLayerSetup.kt` is next-turn's).
+  - `RouteCard.kt` is at 397 lines, so the list and Navigate go in new files.
+- Plan step 1 still waits for #506.
+
+## Confirmed vs inferred
+
+- Confirmed from refs on 2026-11-07, re-checked after the planner's message:
+  - No origin branch has a ForagerDatabase above 23. main and dev are at 22, pre-main at 23.
+  - `git log --remotes=origin -S "Migration(23, 24)"` finds only this branch's `0df329a58` and the records commit `75507c5b9`.
+  - `-S "version = 24,"` finds nothing. `-S MIGRATION_23_24` finds only `0df329a58`.
+  - So step 4b is **not built** on any branch.
+- Inferred: clearing a waypoint's links at read time behaves the same as clearing them at delete time. Navigate resolves against the
+  waypoints on the phone either way. The one difference: a waypoint restored from a backup before routes are next read would get its
+  link back.
+
+## Could not determine
+
+- Whether the forward suite is green. The run was in flight at hand-back.
+
+## Premises that were wrong
+
+- Amendment 2, item 2: "no remote branch has a Migration(23, 24)" was true, but 24 was already promised in a code comment to step 4b.
+  I checked refs, not comments.
+
+## Decided beyond scope
+
+- Two link columns, one per kind, not a single column. The planner may rule otherwise.
+- Waypoint links are cleared at read, not at delete. The waypoint repository is built in `AppContainer.kt`, which the next-turn
+  branch changes, so wiring a delete-time clear there would have been a shared file. I rejected a SQLite trigger because CLAUDE.md
+  says links are "joined in code".
+
+## Question for the owner
+
+**Version 24 was promised to the planned heights step (4b), and nothing for it is built anywhere. Should the route card take 24 and
+4b move to 25, or should the route card take 25?** If 25: the branch's `MIGRATION_23_24` becomes `MIGRATION_24_25` only after 4b's
+24 exists, so this PR would then wait on 4b. If the route card keeps 24, what is on the branch now stands, and the pre-main comment
+about 4b gets updated.
+
+## S22 steps (once the number is ruled and Navigate is built)
+
+Install a build at schema 23 (pre-main) with two saved routes, then install this build over it. Both routes open with every stop and
+distance as before.
