@@ -95,10 +95,10 @@ internal fun ColumnScope.RouteCardStopRows(
 @Composable
 internal fun RouteCardSavedButtons(content: RouteCardContent.Saved, callbacks: RouteCardCallbacks) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        if (content.canNavigate) {
-            Spacer(Modifier.weight(1f))
-        } else {
+        if (content.stopLeadsNowhere) {
             Text(NAVIGATE_UNAVAILABLE_REASON, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_NAVIGATE_REASON_TAG))
+        } else {
+            Spacer(Modifier.weight(1f))
         }
         TextButton(onClick = callbacks.onNavigate, enabled = content.canNavigate, modifier = Modifier.testTag(ROUTE_CARD_NAVIGATE_TAG)) { Text("Navigate") }
         TextButton(onClick = callbacks.onDirections, modifier = Modifier.testTag(ROUTE_CARD_DIRECTIONS_TAG)) { Text("Directions") }

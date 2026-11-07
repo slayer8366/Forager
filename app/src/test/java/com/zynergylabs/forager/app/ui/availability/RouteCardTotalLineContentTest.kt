@@ -79,7 +79,7 @@ class RouteCardTotalLineContentTest {
     fun `a saved route with heights shows the same elevation line under its total, name on top`() {
         val content = RouteCardContent.Saved("Loop", listOf(a, b), listOf(totalLineTrail(a.position, b.position)), listOf(RouteElevation(73.152, 97.536, 24.384)))
         setCard(content, expanded = false)
-        assertEquals(listOf("Loop", "2 Waypoints routed", "0.4 mi", "Elevation: +240 ft (↑ 320 ↓ 80)", "Directions"), texts())
+        assertEquals(listOf("Loop", "2 Waypoints routed", "0.4 mi", "Elevation: +240 ft (↑ 320 ↓ 80)", "Navigate", "Directions"), texts()) // Navigate since dispatch 2026-11-06-05, Amendment 2
     }
 
     @Test

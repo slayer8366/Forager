@@ -122,8 +122,9 @@ sealed interface RouteCardContent {
     ) : RouteCardContent
 
     /**
-     * A saved route, under its [name]. [selectedStop] is the stop Navigate goes to, and [canNavigate] whether it can (dispatch
-     * 2026-11-06-05, Amendment 2; `RouteCardStops.kt`).
+     * A saved route, under its [name]. [selectedStop] is the stop Navigate goes to, [canNavigate] whether it can, and
+     * [stopLeadsNowhere] whether that is because the stop's waypoint was moved or deleted, which the card then says (dispatch
+     * 2026-11-06-05, Amendment 2; `RouteCardStops.kt`). A host that navigates nowhere (tests) greys Navigate with no reason.
      */
     data class Saved(
         val name: String,
@@ -132,6 +133,7 @@ sealed interface RouteCardContent {
         override val legElevations: List<RouteElevation?> = emptyList(),
         val selectedStop: Int = 0,
         val canNavigate: Boolean = false,
+        val stopLeadsNowhere: Boolean = false,
     ) : RouteCardContent
 }
 

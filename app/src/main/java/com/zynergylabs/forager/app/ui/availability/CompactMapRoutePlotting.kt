@@ -145,7 +145,7 @@ private fun routeCardContent(controls: RoutePlottingControls?, sources: MapRecor
         legElevations = mode.draft.legs.map(::legElevation),
     )
     is RoutePlotMode.Showing -> mode.trip.route?.let {
-        RouteCardContent.Saved(mode.trip.name, it.stops, it.legs, selectedStop = controls.state.selectedStop, canNavigate = routeCardCanNavigate(controls, sources))
+        RouteCardContent.Saved(mode.trip.name, it.stops, it.legs, selectedStop = controls.state.selectedStop, canNavigate = routeCardCanNavigate(controls, sources), stopLeadsNowhere = selectedStopTarget(controls, sources) == null)
     }
     RoutePlotMode.Off, null -> null
 }
