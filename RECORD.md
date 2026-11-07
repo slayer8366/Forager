@@ -36616,3 +36616,15 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Amendment 3 built (route-card 5594b7258, code 79dd49447):** Back undoes whichever came last after Navigate in fullscreen (only for navigation started from the card, which also replaces the screen's fullscreen-Back rule for that case, as the owner's "If they entered navigation mode after full screen mode, then leave navigate" says); the accent hides with Waypoints; the landscape-navigation outline; CI 42383594759 green, 6,889 tests, none changed; three reverts each failed for their own reason. Ending navigation with ✕ then Back closes the card first (the card came after fullscreen).
   - **Changed (2026-11-07T16:01:33Z), the owner,** to "With the Planned Trips layer switched off, should that highlighted flag hide too?": **"Hide with its layer"**. Go: **"Record it"**, **"Build it"**.
 **Notes:** Written by the planner by hand. Next free ID -2188.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2188
+**Timestamp:** 2026-11-07T16:06:52Z
+**Title:** After a decision is settled, the planner asks Record / Build / Hold as checkboxes
+**Decision:**
+- **The owner, verbatim:** **"Thank you for asking to record and build. I like the checkbox option for that, can you make that a standard process?"**
+- **The step:** after a plan or answer is settled (restated as a step path first), one multi-select question with each action its own box: "Record it", "Build it", "Hold", plus any other action in play (merge, close, message a coder). The planner does only what is ticked.
+- To "Where else should this checkbox step be written down?": **"Record it"**, **"Planner profile"**. Written into docs/process/planner-profile.md, "Asking the owner", on pre-main at 82d4a091a, and the planner's memory.
+**Notes:** Written by the planner by hand. Next free ID -2189.
