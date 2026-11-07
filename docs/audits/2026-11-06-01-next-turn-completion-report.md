@@ -940,7 +940,7 @@ One line, the style-file rule in `isBasemapOwnLayer` replaced by a comment, on i
 ### S22 logcat step (repeat on the next combined build; the coder does not run it)
 
 Tag `SightingsMap`, after switching maps at least once with the position dot on, so the style reloads:
-- **Topographical by day, Street day and night:** "App layers over the whole map (1 layers), today's placement: its top layer basemap is not a name or icon layer. The map's own layers are those its style file declares (1). Left out as not the map's own: org.maplibre.annotations.points, mapbox-location-…" and "Style file read in N ms."
+- **Topographical by day, Street day and night:** "App layers over the whole map (K layers), today's placement: its top layer basemap is not a name or icon layer. The map's own layers are those its style file declares (K). Left out as not the map's own: org.maplibre.annotations.points, mapbox-location-…" and "Style file read in N ms." K is 1 for a one-picture style (`singleLayerStyleJson`) and 2 where `BasemapStyles.kt` builds a night style with a second picture under it (line 207); I did not trace which of Street's styles takes which, so K is whatever the two numbers in the line agree on, and they must agree.
 - **Topographical at night:** "(183 layers)", top layer `basemap`, "declares (182)", the same left-out list.
 - **The offline style:** today's placement, its own top layer, "declares (57)".
 - **Trail Map:** "below address_label (layer 117 of 182)" until I8's style is live, then "below reference_fs_number (layer 116 of 182)"; "declares (182)". Never `org.maplibre.` or `mapbox-location-` as the anchor.
