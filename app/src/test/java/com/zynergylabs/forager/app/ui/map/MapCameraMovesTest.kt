@@ -15,7 +15,7 @@ import org.maplibre.android.location.modes.CameraMode
  */
 class MapCameraMovesTest {
 
-    private val oregonCity = MapCameraSnapshot(
+    private val cityCamera = MapCameraSnapshot(
         target = LatLng(45.3739, -121.6958),
         zoom = 12.0,
         bearing = 0.0,
@@ -27,7 +27,7 @@ class MapCameraMovesTest {
 
     @Test
     fun `a search frame applied by a map the spinner replaces is the camera the next map restores, once`() {
-        val memory = MapCameraMemory().apply { saved = oregonCity }
+        val memory = MapCameraMemory().apply { saved = cityCamera }
         val target = seattle to null
 
         // What MapDataRefresh does where it applies frame 1.
