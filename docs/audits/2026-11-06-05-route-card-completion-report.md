@@ -474,6 +474,9 @@ than this one has ForagerDatabase above 23 (all 1,335 remote refs read). Version
 
 - The dispatch file names: they are `prompts/preserved/2026-11-06-05-amendment-1.md` and `-amendment-2.md`, not
   `...-route-card-amendment-N.md`. Same content; no effect.
+- "an upgrade from a schema-22 release build with saved routes" (the brief's S22 step): schema 22 has no route tables (they arrive in
+  `MIGRATION_22_23`), so no schema-22 build holds a saved route. The S22 steps split it: 22 → 24 with every other record, and 23 → 24
+  with routes.
 - "PR run 42372888049 ... read it first": it was **red** (3 failures, above), not just unread.
 
 ## Decided beyond scope (for the planner to confirm or overrule)
@@ -498,8 +501,8 @@ or should the card's navigation end before fullscreen exits?
 
 ## S22 steps (for when the phone is in; nothing was run on a phone)
 
-1. **Upgrade with saved routes.** Install a **release** build at schema 22 (main, the Play version) and save two routes... routes need
-   23, so: install a release build of pre-main (schema 23), save two routes (one through a trip), and make a backup. Install this
+1. **Upgrade with saved routes.** A schema-22 build cannot save a route (the route tables arrive at 23), so this takes two upgrades.
+   Install a **release** build of pre-main (schema 23), save two routes (one through a trip), and make a backup. Install this
    build's release APK over it. Both routes open with every stop and distance as before. A release build, because a debug build wipes
    on a schema problem instead of failing. Then, on a schema-22 release build with waypoints, trips and finds, upgrade straight to this
    build: every record is there. Restore the 23 backup: the routes come back.
