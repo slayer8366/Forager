@@ -23,7 +23,6 @@ import com.zynergylabs.forager.app.ui.map.hex
 import com.zynergylabs.forager.app.ui.map.runOf
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -47,9 +46,9 @@ import kotlin.math.ceil
  * bottom). Where the edge there is straight (the top and bottom of the pill with its word), the outline is exactly
  * ceil(1 dp) wide; where it is a curve (its round ends, and every edge of the icon alone) anti-aliasing may soften its
  * outermost pixel, so at most that wide. The icon alone (D27, beside the L where its word does not fit) is composed on
- * its own inside the same root: the same surface draws both. (That form was reached on the Maps tab only in a narrow landscape
- * window; since Amendment 2, RECORD -2186, the pill does not show in landscape navigation at all, so on the Maps tab it is no
- * longer reached. The surface still draws it.)
+ * its own inside the same root: the same surface draws both. (That form was reached on the Maps tab only beside the L in
+ * landscape; since Amendments 2 and 3, RECORD -2186, the pill shows in landscape navigation only where its word fits at bottom
+ * centre, so on the Maps tab it is no longer reached. The surface still draws it.)
  */
 abstract class ReCenterOutlineTests {
 
@@ -205,38 +204,22 @@ class ReCenterOutlinePortraitTest : ReCenterOutlineTests() {
 }
 
 /**
- * A 915 x 412 landscape phone. Until dispatch 2026-11-06-04 Amendment 2 (RECORD -2186) Re-center showed here with its word at the
- * bottom centre and these three read its outline and its touches. The owner then ruled "Ring replaces the pill" (the option read: "In
- * landscape navigation the pill doesn't show; the ringed locate icon is the re-center button. Portrait keeps the pill as now"), so the
- * same three cases now read Amendment 2's claim at this window: no Re-center, the locate row carrying Re-center's outline (the same
- * 1 dp `onSurface`, day and night), and real touches across it bringing the navigation view back. The outline itself is still read on
- * the pill in portrait, above, and on the icon alone.
+ * A 915 x 412 landscape phone: Re-center with its word at the bottom centre, inside the rail's padding. Dispatch 2026-11-06-04
+ * Amendment 2 (RECORD -2186) had the ringed locate row replace it here; Amendment 3, the owner: "(b) Pill where it fits", brings it
+ * back wherever its word at bottom centre covers no card, which it does not here (363..472 dp against the navigation card from 492 dp,
+ * run 42405188355). The claims and names are pre-main's again.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w915dp-h412dp-land-xxhdpi")
-class ReCenterOutlineLandscapeTest : LocateRingReCenterTests() {
+class ReCenterOutlineLandscapeTest : ReCenterOutlineTests() {
 
     @Test
-    fun `in landscape by day, Re-center gives way to the locate row with its 1 dp Bark outline`() {
-        setMapsTab(day)
-        moveAway()
-        assertFalse("915 landscape navigation, moved away, day: Re-center does not show, the ring replaces it", pillShown())
-        assertRing("915 landscape navigation, moved away", day)
-    }
+    fun `in landscape by day, Re-center has a 1 dp Bark outline`() = assertOutlineOnTheMapsTab("landscape", dark = false)
 
     @Test
-    fun `in landscape at night, Re-center gives way to the locate row with its 1 dp pale outline`() {
-        setMapsTab(night)
-        moveAway()
-        assertFalse("915 landscape navigation, moved away, night: Re-center does not show, the ring replaces it", pillShown())
-        assertRing("915 landscape navigation, moved away", night)
-    }
+    fun `in landscape at night, Re-center has a 1 dp pale outline`() = assertOutlineOnTheMapsTab("landscape", dark = true)
 
     @Test
-    fun `in landscape, real touches across the ringed locate row re-centre`() {
-        setMapsTab(day)
-        moveAway()
-        assertTouchesReCentre("915 landscape navigation")
-    }
+    fun `in landscape, real touches across Re-center still reach it`() = assertTouchesReachIt("landscape")
 }

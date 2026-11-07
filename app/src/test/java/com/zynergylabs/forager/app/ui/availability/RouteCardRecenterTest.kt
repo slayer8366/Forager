@@ -118,12 +118,61 @@ abstract class RouteCardRecenterTests {
         rig.closeCard()
         assertEquals("$window: the card closed, Re-center still does not show", 0, rig.count(RETURN_TO_ROUTE_TAG))
     }
+
+    /**
+     * Dispatch 2026-11-06-04, Amendment 3 (RECORD -2186), the owner: "(b) Pill where it fits" (the option: "A real fit test: where the
+     * Re-center word fits at bottom centre without covering a card, the pill shows there and there's no ring; where it doesn't fit,
+     * the ring"). Where the word at bottom centre covers neither card, whether or not the route card is open, Re-center shows there
+     * with its word: not beside the L (D17's place for a card on the navigation card, which this replaces where it fits), never
+     * risen, clear of both cards and the search bar, and in the same place with the card closed, at each stop count, peek and
+     * expanded, and closed again. Real touches across the locate row still bring the navigation view back, as before Amendment 2.
+     */
+    protected fun assertPillAtBottomCentre(window: String, stops: List<Int> = listOf(1, 3, 6)) {
+        rig.setScreen(navigating = true)
+        rig.leaveNavigationView()
+        assertEquals("$window, no card: Re-center shows, its word fitting at bottom centre", 1, rig.count(RETURN_TO_ROUTE_TAG))
+        val navigationAlone = rig.bounds(NAVIGATION_HUD_TAG)
+        val home = recenter()
+        val l = rig.bounds(MAP_ICON_CLUSTER_TAG)
+        println("A3 $window, no card: Re-center ${home.left.value}..${home.right.value} x ${home.top.value}..${home.bottom.value}, L ${l.left.value}..${l.right.value}, navigation card ${rig.bounds(NAVIGATION_HUD_TAG).left.value}..")
+        assertTrue("$window: Re-center is not beside the L (within 16 dp of the L's right ${l.right}); its left is ${home.left}", home.left > l.right + 16.dp)
+        assertTrue("$window: Re-center keeps its word, ${home.right - home.left} wide", home.right - home.left > 60.dp)
+        stops.forEach { n ->
+            listOf(false, true).forEach { expanded ->
+                val where = "$window, $n stops, ${if (expanded) "expanded" else "peek"}"
+                rig.plotTo(n)
+                rig.setExpanded(expanded)
+                rig.leaveNavigationView()
+                val card = rig.bounds(ROUTE_CARD_TAG)
+                println("A3 $where: Re-center ${recenter().left.value}..${recenter().right.value} x ${recenter().top.value}..${recenter().bottom.value}, card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}")
+                assertEquals("$where: Re-center shows, its word fitting at bottom centre", 1, rig.count(RETURN_TO_ROUTE_TAG))
+                assertCardsUnnarrowed(where, navigationAlone)
+                rig.assertSame("$where: Re-center stays at bottom centre, where it is with no card", home, recenter())
+                rig.assertApart("$where: Re-center and the route card", recenter(), card)
+                rig.assertApart("$where: Re-center and the navigation card", recenter(), rig.bounds(NAVIGATION_HUD_TAG))
+                rig.assertApart("$where: Re-center and the search bar", recenter(), rig.bounds(SEARCH_ENTRY_BAR_TAG))
+                composeRule.assertLocateRowReCentres(
+                    where = where,
+                    restoreId = { rig.map.renderMode!!.navigationView!!.restoreRequestId },
+                    settle = rig::settle,
+                    before = { at -> assertEquals("$at: Re-center shows before it", 1, rig.count(RETURN_TO_ROUTE_TAG)) },
+                    after = { rig.leaveNavigationView() },
+                )
+            }
+        }
+        rig.setExpanded(false)
+        rig.closeCard()
+        rig.leaveNavigationView()
+        rig.assertSame("$window: the card closed, Re-center", home, recenter())
+    }
 }
 
 /**
  * A 915 x 412 landscape phone, navigating: the card on the right, resting on the navigation card (the L is fixed on the left while
  * navigating, RECORD -955). Here Re-center was already in the other column and stayed put (D10); D17 (RECORD -1958) puts it beside the L
  * whenever the card sits on the navigation card, so it is in the same place on every phone, and a wider navigation card cannot reach it.
+ * Amendment 2 (RECORD -2186) put the ringed locate row in its place; Amendment 3 (the owner: "(b) Pill where it fits"): its word at
+ * bottom centre covers no card here (363..472 dp, the cards from 492 dp, run 42405188355), so it shows there again.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
@@ -131,17 +180,21 @@ abstract class RouteCardRecenterTests {
 class RouteCardRecenterLandscapeTest : RouteCardRecenterTests() {
 
     @Test
-    fun `navigating in landscape with the card on the navigation card, the ringed locate row stands in for Re-center, at peek and expanded`() = assertLocateRowStandsIn("915")
+    fun `navigating in landscape with the card on the navigation card, Re-center keeps its word at bottom centre where it fits, at peek and expanded`() = assertPillAtBottomCentre("915")
 }
 
-/** A tablet in landscape, navigating: the card on the navigation card in the column away from the L (C21, RECORD -1955); D17 as above. */
+/**
+ * A tablet in landscape, navigating: the card on the navigation card in the column away from the L (C21, RECORD -1955). D17 put
+ * Re-center beside the L here, and Amendment 2 the ringed locate row in its place. Amendment 3 (RECORD -2186, the owner: "Tablets keep
+ * the pill", then "(b) Pill where it fits"): Re-center's word at bottom centre covers no card here, so the pill shows there.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w1318dp-h824dp-land-xhdpi")
 class RouteCardRecenterTabletLandscapeTest : RouteCardRecenterTests() {
 
     @Test
-    fun `on a tablet in landscape with the card on the navigation card, the ringed locate row stands in for Re-center`() = assertLocateRowStandsIn("tablet landscape", listOf(3))
+    fun `on a tablet in landscape with the card on the navigation card, Re-center keeps its word at bottom centre where it fits`() = assertPillAtBottomCentre("tablet landscape", listOf(3))
 }
 
 /** A tablet in portrait: the card at its one width at the left edge, Re-center at the bottom centre. */

@@ -11,6 +11,8 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
@@ -176,6 +178,38 @@ abstract class LocateRingReCenterTests {
         )
     }
 
+    /**
+     * Dispatch 2026-11-06-04, Amendment 3 (RECORD -2186), the owner: "(b) Pill where it fits". Where Re-center's word fits at bottom
+     * centre the pill shows and the locate row has no ring, and the locate row's tap does what it did before Amendment 2: while
+     * navigating it brings the navigation view back (Ruling D). The same five real touches across the row
+     * ([locateRowTouchFractions]), with the pill there and no ring before each, and the camera following after it.
+     */
+    protected fun assertTouchesReCentreBesideThePill(where: String, look: Look = day) {
+        composeRule.assertLocateRowReCentres(
+            where = where,
+            restoreId = { view().restoreRequestId },
+            settle = ::settle,
+            before = { at ->
+                assertNoRing("$at, before it", look)
+                assertTrue("$at: before it Re-center shows, its word fitting at bottom centre", pillShown())
+            },
+            after = { at ->
+                assertTrue("$at: after it the camera follows the navigation again", view().following)
+                assertNoRing("$at: following again after it", look)
+                moveAway()
+            },
+        )
+    }
+
+    /** Amendment 3: the pill's bounds, for a test that reads where it is. */
+    protected fun pillBounds() = composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
+
+    /** Amendment 3: the L's bounds. */
+    protected fun lBounds() = composeRule.onNodeWithTag(MAP_ICON_CLUSTER_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
+
+    /** Amendment 3: the screen's bounds. */
+    protected fun screenBounds() = composeRule.onRoot().getUnclippedBoundsInRoot()
+
     protected companion object {
         const val LOCATE = LOCATE_ROW
     }
@@ -261,3 +295,68 @@ class LocateRingReCenterPortraitTest : LocateRingReCenterTests() {
         assertNoRing("portrait navigation, following", day)
     }
 }
+
+/**
+ * Dispatch 2026-11-06-04, Amendment 3 (RECORD -2186). The owner: "Tablets keep the pill", then "(b) Pill where it fits" (the option:
+ * "A real fit test: where the Re-center word fits at bottom centre without covering a card, the pill shows there and there's no ring;
+ * where it doesn't fit, the ring"). In the windows below the word at bottom centre covers no card (measured on run 42405188355), so
+ * in landscape navigation moved away the pill shows at bottom centre, the locate row has no ring, and the locate row's tap
+ * re-centres as it did before Amendment 2. The S22's own window, where it does cover the navigation card, is
+ * [LocateRingReCenterLandscapeTest]: the ring, as Amendment 2.
+ */
+abstract class LocateRingReCenterFitsTests : LocateRingReCenterTests() {
+
+    private fun assertPillAtBottomCentre(where: String) {
+        assertTrue("$where: Re-center shows, its word fitting at bottom centre", pillShown())
+        val pill = pillBounds()
+        val l = lBounds()
+        val screen = screenBounds()
+        println("A3 $where: pill ${pill.left.value}..${pill.right.value} x ${pill.top.value}..${pill.bottom.value}, L ${l.left.value}..${l.right.value}, screen ${screen.right.value} x ${screen.bottom.value}")
+        assertTrue("$where: Re-center is not beside the L (D17's place, within 16 dp of the L's right ${l.right}); its left is ${pill.left}", pill.left > l.right + 16.dp)
+        assertTrue("$where: Re-center keeps its word (wider than the 48 dp icon alone), ${pill.right - pill.left}", pill.right - pill.left > 60.dp)
+    }
+
+    @Test
+    fun `in landscape navigation moved away, by day, Re-center shows at bottom centre and the locate row has no ring`() {
+        setMapsTab(day)
+        moveAway()
+        assertPillAtBottomCentre("landscape navigation, moved away, day")
+        assertNoRing("landscape navigation, moved away", day)
+    }
+
+    @Test
+    fun `in landscape navigation moved away, at night, Re-center shows at bottom centre and the locate row has no ring`() {
+        setMapsTab(night)
+        moveAway()
+        assertPillAtBottomCentre("landscape navigation, moved away, night")
+        assertNoRing("landscape navigation, moved away", night)
+    }
+
+    @Test
+    fun `in fullscreen landscape navigation moved away, Re-center shows and the locate row has no ring`() {
+        setMapsTab(day)
+        enterFullscreen()
+        moveAway()
+        assertPillAtBottomCentre("fullscreen landscape navigation, moved away")
+        assertNoRing("fullscreen landscape navigation, moved away", day)
+    }
+
+    @Test
+    fun `in landscape navigation, real touches across the locate row re-centre as before, beside the pill`() {
+        setMapsTab(day)
+        moveAway()
+        assertTouchesReCentreBesideThePill("landscape navigation")
+    }
+}
+
+/** A tablet in landscape, the window `RouteCardRecenterTabletLandscapeTest` uses: the word at 565..673 dp, the cards from 894.5 dp. */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w1318dp-h824dp-land-xhdpi")
+class LocateRingReCenterTabletLandscapeTest : LocateRingReCenterFitsTests()
+
+/** A 915 x 412 landscape phone: the word at 363..472 dp, the cards from 492 dp. */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w915dp-h412dp-land-xxhdpi")
+class LocateRingReCenterWidePhoneLandscapeTest : LocateRingReCenterFitsTests()
