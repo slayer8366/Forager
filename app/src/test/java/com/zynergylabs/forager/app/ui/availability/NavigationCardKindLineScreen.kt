@@ -139,6 +139,10 @@ abstract class NavigationCardKindLineScreen {
         TRAIL_SHORT("98 ft", "by trail"),
         /** H14: the straight line 30 m from the waypoint, rounded for the fix's 3.79 m to "≈ 100 ft". */
         STRAIGHT_SHORT("≈ 100 ft", "straight"),
+        /** Amendment 1, E17: the way home after 6 minutes without a fix (lost at 5), the card's dash with "Target" and the needle greyed. */
+        LOST("—", null),
+        /** E17: the way home with no start to navigate to, "No target" in the degrees' space. */
+        NO_TARGET("—", null),
         ;
 
         /** Navigating to the waypoint, the straight line: with no route given, or with a note's straight line ([note]). */
@@ -183,7 +187,9 @@ abstract class NavigationCardKindLineScreen {
             State.STRAIGHT_SHORT -> 351.0
             else -> 0.0
         }
-        return LocationFix.Update(lat = here.lat + north / metresPerDegreeLat, lng = here.lng, altitude = altitudeNow, accuracyMeters = 3.79f, timestampEpochMillis = t, provider = FixProvider.GPS)
+        // E17: the last fix 6 minutes old, past LOST_AFTER_MILLIS (5 minutes).
+        val at = if (state == State.LOST) t - 6 * 60_000L else t
+        return LocationFix.Update(lat = here.lat + north / metresPerDegreeLat, lng = here.lng, altitude = altitudeNow, accuracyMeters = 3.79f, timestampEpochMillis = at, provider = FixProvider.GPS)
     }
 
     private var composed = false
@@ -206,7 +212,7 @@ abstract class NavigationCardKindLineScreen {
                         recording = AvailabilityScreenRecording(isRecording = true, recordingSundownLine = evening.line?.invoke(t)),
                         navigation = AvailabilityScreenNavigation(
                             isReturning = !straight && on,
-                            navigationTarget = start.takeIf { !straight && on },
+                            navigationTarget = start.takeIf { !straight && on && state != State.NO_TARGET },
                             returnRoute = if (state == State.DASH) ReturnRoute.Pending else ReturnRoute.Ahead(east, state.routeMeters),
                         ),
                         records = AvailabilityScreenRecords(waypoints = listOf(waypoint), waypointsLoaded = true),
