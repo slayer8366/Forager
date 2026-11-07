@@ -87,7 +87,7 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(mapChromeHostActivityRule()).around(composeRule)
 
-    private val t = 1_700_000_000_000L
+    private val t = ROUTE_CARD_NOON_CLOCK.nowEpochMillis()
     private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 104.9, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val start = Waypoint(id = "origin", lat = 45.5135, lng = -122.67, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private val map: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.background(Color(0xFF808080))) }
@@ -215,17 +215,12 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
     /** As `MapChromeOutlinePixelsTests.isLine`: within 0.07 of the outline over [fill], and at least 0.12 from [fill]. */
     private fun isLine(p: Color, fill: Color) = abs(lum(p) - lum(lineOver(fill))) < 0.07f && abs(lum(p) - lum(fill)) > 0.12f
 
-    /** The screen's commonest colour, read every 4 px: the stand-in map, as the chrome over it composites it (night included). */
-    private fun bareMap(): Color {
-        val counts = HashMap<Int, Int>()
-        for (y in 0 until image.height step 4) for (x in 0 until image.width step 4) {
-            val c = image[x, y]
-            val key = ((c.red * 255).roundToInt() shl 16) or ((c.green * 255).roundToInt() shl 8) or (c.blue * 255).roundToInt()
-            counts[key] = (counts[key] ?: 0) + 1
-        }
-        val key = counts.maxByOrNull { it.value }!!.key
-        return Color(red = (key shr 16 and 0xFF) / 255f, green = (key shr 8 and 0xFF) / 255f, blue = (key and 0xFF) / 255f)
-    }
+    /**
+     * The bare map: the stand-in's own grey, drawn opaque with nothing over it. A first version took the screen's commonest colour,
+     * which at 640 dp and font 2.0 was the cards' fill (run 42390107028), so it read fills as map; by day and at night the bare map
+     * there read 0.502, the stand-in's grey.
+     */
+    private val bareMap = Color(0xFF808080)
 
     private fun capture(name: String) {
         val bitmap = composeRule.onRoot().captureToImage()
@@ -243,7 +238,7 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
      */
     private fun checkEveryMapFacingEdge(name: String, card: DpRect, roundedTop: Boolean) {
         capture(name)
-        val map = bareMap()
+        val map = bareMap
         fun isMap(x: Int, y: Int) = inside(x, y) && abs(lum(image[x, y]) - lum(map)) < MAP_MATCH &&
             abs(image[x, y].red - map.red) < MAP_MATCH && abs(image[x, y].blue - map.blue) < MAP_MATCH
         val misses = mutableListOf<String>()
@@ -256,14 +251,22 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
         val bottom = px(card.bottom)
         val inFill = px(4.dp)
 
+        // The card's fill beside an edge: the middle of three readings 3 dp apart along it, so its 1 px divider, met at the top edge, is
+        // not taken for the fill (run 42390107028: the one top-edge miss per capture was at the divider, the line read against it).
+        fun fillNear(at: Pair<Int, Int>, horizontal: Boolean): Color {
+            val d = px(3.dp)
+            val (x, y) = at
+            val reads = listOf(-d, 0, d).map { o -> if (horizontal) x + o to y else x to y + o }.filter { (a, b) -> inside(a, b) }.map { (a, b) -> image[a, b] }
+            return reads.sortedBy { lum(it) }[reads.size / 2]
+        }
+
         // Straight edges: (where, probe outside, the three line pixels inside, the fill reference inside).
         fun edge(where: String, along: IntProgression, probe: (Int) -> Pair<Int, Int>, line: (Int) -> List<Pair<Int, Int>>, fillAt: (Int) -> Pair<Int, Int>) {
             for (a in along) {
                 val (ox, oy) = probe(a)
                 if (!isMap(ox, oy)) continue
                 facing[where] = (facing[where] ?: 0) + 1
-                val (fx, fy) = fillAt(a)
-                val fill = image[fx, fy]
+                val fill = fillNear(fillAt(a), horizontal = where == "top" || where == "bottom")
                 val run = line(a).filter { (x, y) -> inside(x, y) }
                 if (run.none { (x, y) -> isLine(image[x, y], fill) }) {
                     misses += "$where at ${run.first()}: bare map ${rgb(image[ox, oy])} at ($ox, $oy), line pixels ${run.joinToString { (x, y) -> rgb(image[x, y]) }}, fill ${rgb(fill)}, the outline over it ${rgb(lineOver(fill))}"
