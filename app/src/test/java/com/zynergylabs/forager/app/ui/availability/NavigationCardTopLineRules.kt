@@ -23,9 +23,16 @@ import kotlin.math.roundToInt
  *   (G3): each centred in its space, ""616 ft" centred in the left half and "by trail" centred in the right half" ("the distance …
  *   is not centred in its space", "the kind … is not centred in its space"); before that, "Meet at the middle (Recommended)", with
  *   the same places H14 gives back.
+ * - Amendment 1, H15, the owner, to "With the correct figures, where should "98 ft by trail" sit?": "Centre them together" (the
+ *   option read: "The widest distance plus "by trail" centred as one block: "by trail" moves about 20 dp right (5 to 26 dp depending
+ *   on screen and font), the distance starts further in from the left"). So beside, the block made of the distance's window (the
+ *   widest distance exactly), the word gap and the kind is centred in the left part; the distance ends at the window's end and the
+ *   kind starts the gap after it, so neither the kind nor the distance's right edge moves as the distance counts down. Stacked, the
+ *   stack stands for the kind in the block (the coder's reading, disclosed). Was (H14): the window was the left half less half the
+ *   gap, or the widest distance where wider, starting at the left part's left edge.
  * - "Option 1 but stack by on top of trail first, then just shorten it to trail, and then drop it down", where the kind doesn't
  *   fit its space; "straight" goes to its own line ("trail" alone needs what the stack needs, so it never shows).
- * - Stacked, H14 as above: the stack starts where the kind's space starts, the word gap after the distance; its two words each
+ * - Stacked, H14 and H15 as above: the stack starts the word gap after the centred block's window; its two words each
  *   centred in it (G3's reading), so "trail", the wider, starts there too; "trail" still on the distance's baseline ("On the
  *   distance's line (Recommended)") and "by" just above. Was (G3): the stack centred in the kind's space; before that (A6), both
  *   words start at the meeting point.
@@ -72,7 +79,7 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         val figure: DpRect? = null,
         val kind: DpRect? = null,
         val leftPart: Pair<Dp, Dp>? = null,
-        /** H14: the distance's window's end, as the rulings work it out on the left part as drawn. */
+        /** H14 and H15: the distance's window's end, as the rulings work it out on the left part as drawn (the centred block's). */
         val windowEnd: Dp? = null,
     )
 
@@ -192,10 +199,14 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
             problems += "positive control: the left part ${dpOf(widthPx)} is wider than the ${dpOf(basePx)} the evening piece leaves, but no piece wraps"
         }
         val ruled = stepFor(widthPx, gapPx, longestPx, kindPx, stackPx)
-        // Where the line is divided, on the left part as drawn: at the middle, moved right only for the longest figure.
+        // The step is still decided where the line is divided (the middle, moved right only for the longest figure).
         val endPx = minOf(widthPx, maxOf(figureEndAtMiddle, longestPx))
-        val kindStart = left + dpOf(endPx + gapPx)
         val roomPx = widthPx - endPx - gapPx
+        // H15: beside or stacked, the block (the window, the widest distance exactly; the gap; the kind, or the stack) is centred in
+        // the left part. Was (H14) the window ending at endPx. The step is drawn as decided, so the stack is the stacked block's kind.
+        val blockKindPx = if (drawn == Step.STACKED) stackPx ?: kindPx else kindPx
+        val windowEndPx = maxOf(0, (widthPx - (longestPx + gapPx + blockKindPx)) / 2) + longestPx
+        val kindStart = left + dpOf(windowEndPx + gapPx)
         // How near the room is to a step's threshold: within a pixel, either step is the rulings' reading.
         val marginPx = listOfNotNull(kindPx, stackPx).minOf { abs(roomPx - it) }
         val shiftPx = endPx - figureEndAtMiddle
@@ -207,10 +218,11 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         if (drawn == Step.OWN_LINE) {
             // Q4: the distance has the top line to itself, and is centred on it.
             if (!near(figureCentre, c.middle)) problems += "the distance ${c.figure.bounds} is not centred on the top line, its kind on its own line: its centre $figureCentre, the middle ${c.middle}"
-        } else if (!near(c.figure.bounds.right, left + dpOf(endPx))) {
-            // H14: "The distance hugs the right edge of its own window". Was (G3) its centre at the space's, ""616 ft" centred in the
-            // left half".
-            problems += "the distance ${c.figure.bounds} does not end at its window's end ${left + dpOf(endPx)} (window ${left}..${left + dpOf(endPx)}, half ${left + dpOf(figureEndAtMiddle)}, longest ${dpOf(longestPx)})"
+        } else if (!near(c.figure.bounds.right, left + dpOf(windowEndPx))) {
+            // H14: "The distance hugs the right edge of its own window"; H15: that window is the widest distance, at the start of the
+            // centred block. Was (H14) the window from the left part's left edge to the middle less half the gap, or the widest
+            // distance where wider; before that (G3) its centre at the space's, ""616 ft" centred in the left half".
+            problems += "the distance ${c.figure.bounds} does not end at the centred block's window end ${left + dpOf(windowEndPx)} (window ${left + dpOf(windowEndPx - longestPx)}..${left + dpOf(windowEndPx)}, longest ${dpOf(longestPx)}, left part ${left}..${c.topLine.right})"
         }
         if (c.figure.bounds.bottom > c.turnRowTop + 0.5.dp) problems += "the distance ${c.figure.bounds} is not above the turn row (top ${c.turnRowTop})"
         val kind = c.kind
@@ -228,7 +240,7 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
                 Step.BESIDE -> {
                     // H14: ""by trail" sits right after it": the word gap after the window's end. Was (G3) its centre at the centre of
                     // the space, ""by trail" centred in the right half".
-                    if (!near(kind.bounds.left, kindStart)) problems += "the kind ${kind.bounds} does not start at its space's start $kindStart, the word gap after the distance's window (space $kindStart..${c.topLine.right})"
+                    if (!near(kind.bounds.left, kindStart)) problems += "the kind ${kind.bounds} does not start at $kindStart, the word gap after the centred block's window (left part ${left}..${c.topLine.right})"
                     if (abs((kind.baseline - c.figure.baseline).value) > 0.5f) problems += "the kind's baseline ${kind.baseline} is not the distance's ${c.figure.baseline}"
                 }
                 Step.STACKED -> {
@@ -236,13 +248,13 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
                     if (upper.text != "by" || lower.text != "trail") problems += "the stack reads <${upper.text}> over <${lower.text}>"
                     // H14: the stack starts at the kind's space's start; each word centred in the stack (G3), so "trail", the wider,
                     // starts there too. Was (G3) each word's centre at the space's centre.
-                    if (!near(kind.bounds.left, kindStart)) problems += "the stack ${kind.bounds} does not start at the kind's space's start $kindStart"
+                    if (!near(kind.bounds.left, kindStart)) problems += "the stack ${kind.bounds} does not start at $kindStart, the word gap after the centred block's window"
                     val stackCentre = (kind.bounds.left + kind.bounds.right) / 2
                     for (w in c.kindWords) {
                         val centre = (w.bounds.left + w.bounds.right) / 2
                         if (!near(centre, stackCentre)) problems += "stacked <${w.text}> ${w.bounds} is not centred in the stack ${kind.bounds}: its centre $centre, the stack's $stackCentre"
                     }
-                    if (!near(lower.bounds.left, kindStart)) problems += "stacked \"trail\" ${lower.bounds} does not start at the kind's space's start $kindStart"
+                    if (!near(lower.bounds.left, kindStart)) problems += "stacked \"trail\" ${lower.bounds} does not start at $kindStart, the word gap after the centred block's window"
                     if (abs((lower.baseline - c.figure.baseline).value) > 0.5f) problems += "stacked \"trail\"'s baseline ${lower.baseline} is not the distance's ${c.figure.baseline}"
                     if (upper.bounds.bottom > lower.bounds.top + 0.5.dp) problems += "stacked \"by\" ${upper.bounds} is not above \"trail\" ${lower.bounds}"
                     if (upper.baseline >= lower.baseline) problems += "stacked \"by\"'s baseline ${upper.baseline} is not above \"trail\"'s ${lower.baseline}"
@@ -261,6 +273,6 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
                 "turn <${c.turn?.text}> needle ${c.needle.left}|card height ${c.hud.bottom - c.hud.top}",
         )
         return Reading(drawn, ruled, widthPx, longestPx, shiftPx, marginPx, problems.map { "$where $s $e $facing: $it" }, c.turn?.text.orEmpty(), c.heading?.text, c.needle.left, c.pieces.map { it.text },
-            c.figure.bounds, c.kind?.bounds, c.topLine.left to c.topLine.right, left + dpOf(endPx))
+            c.figure.bounds, c.kind?.bounds, c.topLine.left to c.topLine.right, left + dpOf(windowEndPx))
     }
 }

@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -24,6 +25,13 @@ import kotlin.math.roundToInt
  * - and each reading is checked by [NavigationCardTopLineRules] (the window's end, the kind's space's start, the baseline, the step).
  * The kind's start not moving is a control, not evidence of H14: under G3 the kind was centred in a space of fixed width, so it did
  * not move then either. What H14 changes is the gap, and the distance's right edge.
+ *
+ * Amendment 1, H15, the owner, to "With the correct figures, where should "98 ft by trail" sit?": "Centre them together" (the option
+ * read: "The widest distance plus "by trail" centred as one block: "by trail" moves about 20 dp right (5 to 26 dp depending on screen
+ * and font), the distance starts further in from the left"). So the block, from the widest distance's left edge (the distance's right
+ * edge less the widest distance's width, worked out here from the measured type) to the kind's right edge, has its centre at the left
+ * part's middle, within 0.5 dp, for "by trail" and "straight" each. Under H14 the block started at the left part's left edge, so this
+ * is the claim H15 turns red.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -47,10 +55,19 @@ class NavigationCardDistanceBesideKindTest : NavigationCardTopLineRules() {
             if (abs(gap.value - gapDp) > 0.5f) problems += "$where $s: <${s.figure}> ${figure} and <${s.kind}> ${kind} are $gap apart, not the word gap ($gapDp dp)"
             val (left, right) = checkNotNull(r.leftPart)
             val windowEnd = checkNotNull(r.windowEnd)
+            // H15: the block (the widest distance's window, the gap, the kind) centred in the left part.
+            val longest = (checkNotNull(r.longestPx) / densityPx).dp
+            val blockLeft = figure.right - longest
+            val blockCentre = (blockLeft + kind.right) / 2
+            val middle = (left + right) / 2
+            if (abs((blockCentre - middle).value) > 0.5f) {
+                problems += "$where $s: the block ${blockLeft}..${kind.right} (the widest distance ${longest}, the gap, <${s.kind}>) is not centred in the left part ${left}..${right}: its centre $blockCentre, the middle $middle"
+            }
             println(
                 "PLACEMENT|$where|$s|left part $left..$right (${right - left})|window $left..$windowEnd (${windowEnd - left})|" +
                     "distance ${figure.left}..${figure.right} (${figure.right - figure.left})|gap $gap|kind ${kind.left}..${kind.right}|" +
-                    "pair ${figure.left - left}..${kind.right - left} in the left part|room left of it ${figure.left - left}, right of it ${right - kind.right}",
+                    "pair ${figure.left - left}..${kind.right - left} in the left part|room left of it ${figure.left - left}, right of it ${right - kind.right}|" +
+                    "block ${blockLeft - left}..${kind.right - left} (${kind.right - blockLeft}), widest $longest|room left of the block ${blockLeft - left}, right ${right - kind.right}",
             )
         }
         // Positive control: the countdown changes the distance's width, so a fixed place is a claim that could fail.
