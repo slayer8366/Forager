@@ -6,6 +6,7 @@ import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.data.local.SchemaAssets
+import com.zynergylabs.forager.app.domain.RestoreMode
 import java.io.ByteArrayInputStream
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -60,7 +61,7 @@ class OlderBackupRestoreTo24Test {
         assertEquals("nothing was logged as refused or dropped: ${b.logged}", emptyList<String>(), b.logged)
         val restoredVersion = b.database.openHelper.readableDatabase.version
         assertEquals("the phone is at this build's schema", 24, restoredVersion)
-        val regionId = b.scalar("SELECT id FROM offline_regions")
+        val regionId = b.scalar("SELECT id FROM offline_regions") ?: "NULL"
         for ((table, rows) in seeded) {
             val columns = SchemaAssets.entities(version).first { it.first == table }.second.map { it.name }
             val restored = b.rows(table, columns)
