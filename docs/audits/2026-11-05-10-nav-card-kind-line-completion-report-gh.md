@@ -766,3 +766,156 @@ The E13 and E14 steps stand. Base step 7 now reads:
 
 - Throwaway ref `nav-card-e16-revert` (local and remote) and its worktree deleted after its run. Scratch `/mnt/work/scratch/hazel-e16/`
   deleted at the end. No index row added. No coordinate beyond the made-up P.
+
+## E17: the greyed needle clear of "Target" (two sessions, 2026-11-07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E17. The tests (03625fcdf) and the fix (ea4b6e7e8) were pushed by one
+Hazel, stopped before its revert check and report; this section, the reading of both runs, a fresh revert and the comparison by name are
+a second, fresh session's ("Fresh coder finishes it", the owner, relayed by the planner). Marks as above: [observed] is a CI run's XML or
+log read this session (each log checked for compile errors first, each run's head SHA checked against the commit), [read] is code read
+at the commit named, [inferred] is worked out and not measured.
+
+### The ruling (verbatim)
+
+- E17, from the S22 check on build 4825: "at font 2.0, portrait, after 5 minutes without a fix (the card's "—" and "Target"), the greyed
+  needle overlaps "Target" by about 8 dp". The owner: **"Fix it in #498 first"** ("A coder moves the needle clear of "Target" in that
+  case (nothing else changes), tests and CI, then #498 is ready for your merge word"). Build: "the needle and "Target" never overlap, in
+  every orientation and font the card supports; everything else unchanged; if clearing it needs a visible choice (shrinking, moving
+  "Target", wrapping), that's a stop with measured widths."
+
+### Base and commits
+
+- Checked against the remote at this session's start [observed]: `origin/nav-card-kind-line` ea4b6e7e8, the branch worktree clean at
+  ea4b6e7e8; `origin/pre-main` 1f6901a11 (PR #505), merged in by the first session at c76416976.
+
+| Commit | What |
+|---|---|
+| c76416976 | pre-main (1f6901a11) merged in. |
+| 03625fcdf | Tests first: `NavigationCardNeedleClearOfWordTest` new (21 cases); the rig gains `LOST` (the last fix 6 minutes old) and `NO_TARGET` (the way home with no start). |
+| ea4b6e7e8 | E17 (`RoundedMapCardFit.kt`, `needleShiftPx`; `NavigationInfo.kt`, the turn's width measured; `NavigationCardParts.kt`, the needle drawn at that offset). |
+
+### What was built [read, at ea4b6e7e8]
+
+- Why it overlapped: G3 gives the turn line a fixed space sized for the widest degrees ("0°" to "180°"), centres whatever is in it, and
+  puts the needle a gap after the space. "Target" and "No target" are wider than that space (at font 2.0: 78.3 and 119.0 dp against
+  54.7), so the centred word ran half its overhang past the space's end, through the 4 dp gap and into the needle.
+- The fix: `needleShiftPx(turnTextPx, turnSpacePx) = max(0, (turnTextPx - turnSpacePx + 1) / 2)`, the half the word overhangs, and the
+  needle is drawn that far right with `Modifier.offset`. An offset moves the drawing, not the layout, so the row, the word (still centred
+  where the degrees are) and everything beside the turn line keep their places. With degrees the shift is 0 (the space is the widest
+  degrees), so the needle keeps G3's fixed place. The word is not shrunk, moved or wrapped.
+
+### Measured placements [observed, run 42341392562, `NEEDLE` lines], dp from the window's left edge
+
+| Window, font | Left part | Degrees' space | "Target" | Needle (was) | "No target" | Needle (was) | Gap |
+|---|---|---|---|---|---|---|---|
+| 320, 1.0 | 4.0..147.7 | 28.0 | 43.3..83.0 | 87.0..109.0 (81.0) | 33.3..93.0 | 97.0..119.0 (81.0) | 4.0 |
+| 320, 1.3 | 4.0..120.0 | 35.0 | 24.0..74.3 | 78.3..100.3 (70.7) | 11.3..87.3 | 91.3..113.3 (70.7) | 4.0 |
+| 320, 2.0 | 4.0..255.0 | 54.7 | 77.7..156.0 | 160.0..182.0 (148.0) | 57.3..176.3 | 180.3..202.3 (148.0) | 4.0 |
+| 360, 1.0 | 4.0..187.7 | 28.0 | 63.3..103.0 | 107.0..129.0 (101.0) | 53.3..113.0 | 117.0..139.0 (101.0) | 4.0 |
+| 360, 1.3 | 4.0..160.0 | 35.0 | 44.0..94.3 | 98.3..120.3 (90.7) | 31.3..107.3 | 111.3..133.3 (90.7) | 4.0 |
+| 360, 2.0 | 4.0..295.0 | 54.7 | 97.7..176.0 | 180.0..202.0 (168.0) | 77.3..196.3 | 200.3..222.3 (168.0) | 4.0 |
+| 384, 1.0 | 4.0..211.7 | 28.0 | 75.3..115.0 | 119.0..141.0 (113.0) | 65.3..125.0 | 129.0..151.0 (113.0) | 4.0 |
+| 384, 1.3 | 4.0..184.0 | 35.0 | 56.0..106.3 | 110.3..132.3 (102.7) | 43.3..119.3 | 123.3..145.3 (102.7) | 4.0 |
+| 384, 2.0 | 4.0..155.7 | 54.7 | 28.0..106.3 | 110.3..132.3 (98.3) | 7.7..126.7 | 130.7..152.7 (98.3) | 4.0 |
+| 412, 1.0 | 4.0..134.0 | 28.0 | 36.3..76.0 | 80.0..102.0 (74.0) | 26.3..86.0 | 90.0..112.0 (74.0) | 4.0 |
+| 412, 1.3 | 4.0..212.0 | 35.0 | 70.0..120.3 | 124.3..146.3 (116.7) | 57.3..133.3 | 137.3..159.3 (116.7) | 4.0 |
+| 412, 2.0 | 4.0..155.7 | 54.7 | 28.0..106.3 | 110.3..132.3 (98.3) | 7.7..126.7 | 130.7..152.7 (98.3) | 4.0 |
+| 480, 1.0 | 4.0..202.0 | 28.0 | 70.3..110.0 | 114.0..136.0 (108.0) | 60.3..120.0 | 124.0..146.0 (108.0) | 4.0 |
+| 480, 1.3 | 4.0..280.0 | 35.0 | 104.0..154.3 | 158.3..180.3 (150.7) | 91.3..167.3 | 171.3..193.3 (150.7) | 4.0 |
+| 480, 2.0 | 4.0..203.3 | 54.7 | 51.7..130.0 | 134.0..156.0 (122.0) | 31.3..150.3 | 154.3..176.3 (122.0) | 4.0 |
+| 780 x 360, 1.0 | 351.3..527.7 | 28.0 | 407.0..446.7 | 450.7..472.7 (444.7) | 397.0..456.7 | 460.7..482.7 (444.7) | 4.0 |
+| 780 x 360, 1.3 | 363.0..500.0 | 35.0 | 393.3..443.7 | 447.7..469.7 (440.0) | 380.7..456.7 | 460.7..482.7 (440.0) | 4.0 |
+| 780 x 360, 2.0 | 342.7..605.7 | 54.7 | 422.3..500.7 | 504.7..526.7 (492.7) | 402.0..521.0 | 525.0..547.0 (492.7) | 4.0 |
+| 823 x 384, 1.0 | 394.3..570.7 | 28.0 | 450.0..489.7 | 493.7..515.7 (487.7) | 440.0..499.7 | 503.7..525.7 (487.7) | 4.0 |
+| 823 x 384, 1.3 | 363.0..543.0 | 35.0 | 415.0..465.3 | 469.3..491.3 (461.7) | 402.3..478.3 | 482.3..504.3 (461.7) | 4.0 |
+| 823 x 384, 2.0 | 385.7..648.7 | 54.7 | 465.3..543.7 | 547.7..569.7 (535.7) | 445.0..564.0 | 568.0..590.0 (535.7) | 4.0 |
+
+- "(was)" is the needle's left edge in the red run (42339957138, the same tests before the fix), from its failure messages; the word's
+  place is the same in both runs, to the 0.1 dp shown.
+- The gap between the word's laid-out right edge and the needle's square is 4.0 dp (the line's own gap, Spacing.xs) in all 42 cases.
+- The tightest room on the right: 384 and 412 dp at font 2.0, "No target", the needle ending at 152.7 with the left part ending at
+  155.7, 3.0 dp spare; then 320 dp at font 1.3, "No target", 6.7 dp. Everywhere else at least 17 dp.
+
+### Evidence
+
+- **Red, tests first**: run 42339957138 at 03625fcdf (pull_request; head SHA checked; failed-job logs 0 compile errors) [observed]: 6995
+  test cases in the XML, 21 failed, 24 skipped. All 21 are `NavigationCardNeedleClearOfWordTest`'s, every one of its cases, and every
+  failing line is the overlap claim; no positive control and no centring control failed, no other class failed. The message at the
+  reported case, 384 dp, font 2.0: "384/2.0 LOST: the needle 98.333336.dp..120.333336.dp overlaps <Target> 28.0.dp..106.333336.dp by
+  8.0.dp" (and "384/2.0 NO_TARGET: the needle ... overlaps <No target> 7.6666665.dp..126.666664.dp by 28.333328.dp"). The overlap at
+  font 2.0 is 8.0 dp in every window, the S22's "about 8 dp"; 3.7 at 1.3 and 2.0 at 1.0. The second job that runs the tests (the Street
+  map deleted) failed on the same 21 names and nothing else.
+- **Green**: run 42341392562 at ea4b6e7e8 (pull_request, the merge of ea4b6e7e8 into 1f6901a11; head SHA checked; logs 0 compile
+  errors; every job green) [observed]: **6995 test cases, 6971 passed, 24 skipped, 0 failed**. Red to green by name: the same 6995 names,
+  and the only outcomes that differ are the 21 above.
+- **By name against pre-main**: pre-main's latest CI run, 42337576510 at 1f6901a11 (the base merged in; every job green): 6846 test
+  cases, 0 failed, 24 skipped. 36 names only on pre-main and 185 only here (E16's 164 and the 21 new), **0 names whose outcome differs**.
+- **Revert**: one line in a throwaway worktree over ea4b6e7e8 (ref `nav-card-e17b-revert`, 7286e8ceb; its diff checked to be that
+  line): in `navigationInfoFit`, `needleShiftPx = needleShiftPx(w.turnTextPx, w.turnSpacePx),` to `needleShiftPx = 0,` (the needle at
+  G3's fixed place again, the measuring and the offset left in). The file was saved before the edit and copied back from that copy,
+  never from git; the forward line confirmed present in the branch worktree afterwards (grep, 1 match; branch worktree clean at
+  ea4b6e7e8). Run 42379914039 (workflow_dispatch, the NavigationCard, RouteCard, CompassStrip, AvailabilityScreenNavigationView,
+  AvailabilityScreenMapIconStack, NavigationInfoLayout and RoundedMapCardFit classes) [observed]: head SHA 7286e8ceb, logs 0 compile
+  errors, 425 tests; **21 failed, the same 21 names as the red run with the same messages, character for character** (e.g. "384/2.0
+  LOST: the needle 98.333336.dp..120.333336.dp overlaps <Target> 28.0.dp..106.333336.dp by 8.0.dp"), and only the overlap claim; the
+  Street-map job, which runs every test, failed the same 21 and no other (6941 tests). Matching the red run exactly is what this revert
+  should do, since the shift is the whole fix; the run is its own (its SHA, 425 tests). The first session had made the same one-line
+  revert (ref `nav-card-e17-revert`, 562764a02, run 42341410140, 418 tests, the same 21 failures); it agrees, and is not the evidence
+  cited here, since its saving and restoring were not this session's to check.
+
+### Tests whose claims changed (none silenced, no tolerance widened, no assertion dropped)
+
+- None changed. New, `NavigationCardNeedleClearOfWordTest`, 21 cases: portrait 320, 360, 384, 412 and 480 dp and landscape 780 x 360 and
+  823 x 384, each at fonts 1.0, 1.3 and 2.0, with "Target" (the way home 6 minutes after the last fix) and "No target" (the way home with
+  no start). Claims: the word's laid-out right edge at or left of the needle's square's left edge (stricter than ink, both being boxes);
+  controls, which held before E17 too and so are not evidence: the word centred where "169°" is, within 0.5 dp, and the needle inside the
+  left part. A positive control reads the turn line's words first ("169°", "Target", "No target").
+- The rig (`NavigationCardKindLineScreen`): `LOST` (the fix's time 6 minutes back, past the 5 minute `LOST_AFTER_MILLIS`) and
+  `NO_TARGET` (no navigation target). No new point; P only.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: the base; red for E17's reason only (the overlap, 8.0 dp at font 2.0, in all 21 cases, nothing else red);
+  green full CI, 0 outcomes differing by name from pre-main's run at the base; the revert failing only the overlap claim, with a clean
+  compile log; the placements above, with 4.0 dp between word and needle in every case.
+- **Inferred**: "everything else unchanged" rests on two things, not on a test written for it: the offset cannot move layout (read at
+  ea4b6e7e8), and every other card, strip and navigation test passed unchanged by name. That the S22 draws within about 1% of these,
+  as earlier sections found.
+- **Could not determine**: the S22's own placements (no phone this session, and none was to be touched); which density the 34-p20-stale
+  screenshot was taken at (its pixel figures fit about 3.5 px per dp, the rig's 384 and 412 dp rows at font 2.0 are identical, so the
+  prediction below is the same either way); "No target" on the phone (the check named "Target" only); kilometres and other locales'
+  words (the rig is English, miles).
+- **Premises that were wrong**: none found. The dispatch's state (ea4b6e7e8) matched the remote.
+
+### Decided beyond the dispatch
+
+- The first session's choice, kept: the needle moves, the word does not. The ruling says "moves the needle clear of "Target"", and it
+  lists shrinking, moving "Target" and wrapping as the visible choices that would be a stop; moving the needle is the one the owner
+  named, so it was built without a stop. **What a user sees:** when "Target" or "No target" replaces the degrees, the greyed needle sits
+  about 6 to 32 dp further right than it does beside degrees (half the word's overhang: about 6 dp at font 1.0 with "Target", 12 at 2.0,
+  32 with "No target" at 2.0), and comes back when degrees return. That is a jump G2/G3 otherwise avoid ("Fixed spaces, so nothing
+  jumps"); it happens only at the change between degrees and a word, both of which already change what is shown there. For the owner if
+  it reads oddly: the other way to clear it is a turn space sized for "No target" in every state, which moves the needle right for good
+  and narrows the left part; not built.
+- "No target" was covered as well as "Target": it is the other word drawn in the degrees' space, and wider.
+- The ink overlap on the phone (needle 361-430 px, "Target" 102-391 px) is measured on drawn pixels; the tests measure laid-out boxes,
+  which are wider than ink, so a pass here is at least as strict.
+
+### Device check (S22, for the planner), cheapest first
+
+The E13 to E16 steps stand. Add:
+8. **The needle clear of "Target" (E17)**: font 2.0, portrait. Navigate the way home, then go 5 minutes without a fix (airplane mode
+   with location off, or indoors) until the card shows "—" with "Target" and the needle greys. Expected: the needle's left edge is
+   clear of "Target"'s right edge, by about 4 dp of laid-out box (more in ink); the needle about 12 dp right of where it sat beside
+   degrees, and inside the card's left part, short of the divider. Then get a fix back: the degrees return and the needle goes back to
+   its fixed place. Repeat at font 1.0, and in landscape at font 2.0. Evidence: a screenshot of each, the needle's and "Target"'s x
+   sampled. If convenient, "No target" (navigating the way home with no start) at font 2.0, the widest case, about 3 dp short of the
+   divider in the rig. Needs a build from ea4b6e7e8 or later.
+
+### Clean-up
+
+- This session's throwaway ref `nav-card-e17b-revert` (local and remote) and its worktree deleted after its run; scratch
+  `/mnt/work/scratch/hazel-e17b/` deleted at the end. No index row added. No coordinate beyond the made-up P.
+- Left by the first session, not deleted here (not this session's to delete), for the planner: the ref `nav-card-e17-revert`
+  (562764a02, local and on the remote), its worktree at `/mnt/work/scratch/hazel-e17/revert` (its one changed file restored to the
+  forward line, uncommitted), and that scratch folder (a saved copy of the file, the red run's log and XML, and notes).
