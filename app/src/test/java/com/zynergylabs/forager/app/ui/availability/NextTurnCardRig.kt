@@ -188,7 +188,7 @@ abstract class NextTurnCardRig {
          * The right part (J3 step 2): the space starts right of the divider. Beside the needle: the space's middle is within the
          * needle's row. Own line: it starts below the needle.
          */
-        val place: NextTurnPlace?
+        internal val place: NextTurnPlace?
             get() = space?.let {
                 when {
                     it.left >= dividerLeft -> NextTurnPlace.RIGHT_PART
