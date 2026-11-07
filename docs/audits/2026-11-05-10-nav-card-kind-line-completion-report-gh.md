@@ -1071,8 +1071,8 @@ Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E18 and the owner'
   and "Dark: 9:00 PM" as two pieces). Run 42386063693 at 59a9acfee was cancelled by the push of 88453efe2 and is not cited.
 - By name against E17's green run (42341392562 at ea4b6e7e8, 6995): 0 names gone, 22 new (`NavigationCardNeedleNeverMovesTest` 21,
   the test above 1), **0 names whose outcome changed**.
-- By name against pre-main's latest run (42337576510 at 1f6901a11, 6846 tests, 0 failed): 36 names only on pre-main (the same 36
-  renamed or replaced in earlier phases, listed in the E13 and E15 sections), 207 only here, all passing, **0 names whose outcome
+- By name against pre-main's latest run (42337576510 at 1f6901a11, 6846 tests, 0 failed): 36 names only on pre-main (renamed or
+  replaced in earlier phases; the same count the earlier sections report against pre-main, names not re-matched here), 207 only here, all passing, **0 names whose outcome
   differs**.
 
 ### The revert [observed, run 42386577696 at b636747be, throwaway ref `hazel-e18-revert`, deleted]
