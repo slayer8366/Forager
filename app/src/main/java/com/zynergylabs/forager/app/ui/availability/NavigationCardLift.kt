@@ -62,3 +62,12 @@ internal fun walkerDotCentreInRootPx(cluster: MapIconClusterState): Float? {
     if (mapHeight <= 0f) return null
     return cluster.mapContentBoxTopInRootPx + (mapHeight + mapHeight * com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TOP_PADDING_FRACTION.toFloat()) / 2f
 }
+
+/**
+ * J5, the defect (RECORD -2183): the height the evening pieces take in the card's right part, for RECORD -955's decision and
+ * [navigationCardLift]. Each piece is its own line (RECORD -941), and wraps where the right part is narrower than it: where the card
+ * is short of room the left part stays whole and the right part's lines wrap in what is left, never cut ([InfoParts]).
+ * [lineHeightPx] is one line's height; [wrappedHeightPx] measures a piece wrapped at the right part's width.
+ */
+internal fun eveningStackHeightPx(pieces: List<String>, lineHeightPx: Int, wrappedHeightPx: (String) -> Int): Int =
+    pieces.size * lineHeightPx

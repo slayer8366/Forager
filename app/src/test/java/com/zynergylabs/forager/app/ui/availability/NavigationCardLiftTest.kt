@@ -52,4 +52,15 @@ class NavigationCardLiftTest {
         assertTrue("$r", r is NavigationCardLift.NoRoom && r.reason.contains("L"))
         assertEquals("an L wholly below the dot's top is not covered", NavigationCardLift.Up(144f), lift(lTop = 241f, lBottom = 384f))
     }
+
+    // J5, the defect (RECORD -2183): the card moved up was drawn from -49 to 213 dp at 640 x 360, font 2.0, after sunset, with the
+    // S22's insets (probe run 42421420016): the decision took 420 px for the card with its evening line, and it was drawn 786 px
+    // tall, because its two evening pieces wrapped in a 72 dp right part and the decision counted each as one line.
+    @Test
+    fun `J5 - a wrapped evening piece counts every line it takes`() {
+        val heights = mapOf("Sun set 12:50 AM" to 288, "dark in 24 min" to 192)
+        assertEquals(480, eveningStackHeightPx(heights.keys.toList(), lineHeightPx = 96) { heights.getValue(it) })
+        assertEquals("unwrapped, one line each", 192, eveningStackHeightPx(listOf("a", "b"), lineHeightPx = 96) { 96 })
+        assertEquals("none", 0, eveningStackHeightPx(emptyList(), lineHeightPx = 96) { 96 })
+    }
 }
