@@ -41,6 +41,8 @@ internal data class NavigationInfoFit(
     val rightPx: Int = 0,
     /** G3: the degrees' fixed space on the turn line, in pixels ([NavigationInfoWidths.turnSpacePx]). */
     val turnSpacePx: Int = 0,
+    /** Amendment 1, E17: how far right of its fixed place the needle is drawn, so a word wider than the degrees' space clears it ([needleShiftPx]). */
+    val needleShiftPx: Int = 0,
     /**
      * Dispatch 2026-11-05-10 (RECORD -2181): where the kind word goes on the left part and the figure the meeting point is set for,
      * decided once the steps above are taken ([topLinePlace]); the steps above never read it, so the turn line and the evening stack
@@ -70,6 +72,8 @@ internal data class NavigationInfoWidths(
     val kindPx: Int?,
     /** G3: the degrees' space, the widest degrees the turn line can read ("0°" to "180°"). */
     val turnSpacePx: Int,
+    /** Amendment 1, E17: the turn as drawn ([NavigationInfoFit.turnText]); 0 for none. */
+    val turnTextPx: Int = 0,
     /** The widest of the evening pieces stacked in the right part (RECORD -941); `null` with none. */
     val eveningPiecePx: Int? = null,
     /**
@@ -81,6 +85,16 @@ internal data class NavigationInfoWidths(
 
 /** G3: the widest of the degrees the turn line can read, "0°" to "180°" ([com.zynergylabs.forager.app.domain.turnText]), by [widthOf]. */
 internal fun widestTurnDegreesPx(widthOf: (String) -> Int): Int = (0..180).maxOf { widthOf("$it°") }
+
+/**
+ * Amendment 1, E17 (RECORD -2181): from the S22 check on build 4825, at font 2.0 in portrait after 5 minutes without a fix, the greyed
+ * needle overlapped "Target" by about 8 dp: the word is centred on the degrees' space and wider than it, so it ran past the space's end
+ * and the gap into the needle. The owner: "Fix it in #498 first" ("A coder moves the needle clear of "Target" in that case (nothing
+ * else changes)"). So where the word is wider than the space, the needle is drawn the half it overhangs further right, the line's own
+ * gap after the word; the word stays centred where the degrees are, and with degrees (never wider than their space) this is 0, so the
+ * needle keeps G3's fixed place.
+ */
+internal fun needleShiftPx(turnTextPx: Int, turnSpacePx: Int): Int = maxOf(0, (turnTextPx - turnSpacePx + 1) / 2)
 
 /** G3 with H1: the turn line's width, the degrees' space, a gap and the needle, the same in every state. */
 internal fun turnLinePx(w: NavigationInfoWidths): Int = w.turnSpacePx + w.gapPx + w.arrowPx
@@ -101,5 +115,6 @@ internal fun navigationInfoFit(w: NavigationInfoWidths, turnText: String): Navig
         leftPx = leftPx(figureShort),
         rightPx = rightPx,
         turnSpacePx = w.turnSpacePx,
+        needleShiftPx = needleShiftPx(w.turnTextPx, w.turnSpacePx),
     )
 }
