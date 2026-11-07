@@ -1117,3 +1117,116 @@ None: nothing is on next-turn yet.
 
 ### Clean-up
 `hazel-arrows2-probe` deleted from origin (its run stays readable by number). Kept: `next-turn-j2-wip` (eae8c8caf), the build. Scratch `/mnt/work/scratch/hazel-arrows2` (700): the probe source, its results, the WIP patch and the revert runner (gated on the scan, restoring from a saved copy). PR #500 stays a draft.
+
+## J3, built: stopped at two points, #500 stays a draft (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J2, J3 and G5. The owner, verbatim: "Arrow in the right part", "Own line, card moves up", "Centre the line", the step path "Yes, that's it", and "Build it". **Steps 1, 2 and 4 are built on next-turn. Step 3's card moving up is not built: it needs `CompactMapLandscapeNavigationCard.kt`, which E19 is editing on #498 (out of bounds, so this is a stop). Step 2 as built also moves "by trail" / "straight" onto their own line in landscape at font 2.0 in daytime, which J3 did not rule on (a second stop).** Marks: [observed] is a CI run's XML or log read this session (head SHA checked, log checked for compile errors first), [read] is code read at the commit named, [inferred] is worked out and not measured.
+
+### Base and commits [observed]
+- At the start: `origin/next-turn` e5b960b35, ref `next-turn-j2-wip` eae8c8caf, `origin/nav-card-kind-line` 5e2c0a6c8, `origin/pre-main` 82d4a091a, `origin/records-after-173` 8b0174731; worktree clean. All as the dispatch said.
+- `b84ebfac5`: the ref **merged** (not re-applied), so eae8c8caf stays in history as written.
+- `7a5ad452f`: tests first, with stubs (`nextTurnPlaceNow` returns J2's place, `isLandscapeLargeText` false).
+- `8c7f21240`: J3's code.
+- `c682bb469`: a compile fix. **The WIP's test sources never compiled**: `NextTurnCardRig.Card.place` exposed the internal `NextTurnPlace` from a protected class (`NextTurnCardRig.kt:192`). The runs at 7a5ad452f (42400948674) and on the first probe (42401065077) both stopped at `compileDebugUnitTestKotlin`, so neither is cited. The red run below re-ran the tests-first commit with only this fix on a throwaway ref.
+
+### What was built [read, c682bb469]
+- **J3's decision** (`NavigationCardNextTurnPlace.kt`): `nextTurnPlaceNow(decided, landscapeLargeText, eveningLine)`. J2's place everywhere but landscape at font 2.0 (`isLandscapeLargeText`: landscape orientation and font scale at least 2.0). There: `RIGHT_PART` with no evening line, `OWN_LINE` with one. "Evening line" means the card has evening pieces to show, not whether they are drawn, so the decision cannot feed back through RECORD -955's room check.
+- **The right part** (`NavigationCardRightPart.kt`): with no evening line, the next turn's space sits where the evening line goes, above the status words. In landscape at font 2.0 the right part is never narrower than the next turn's space, with or without an evening line (`rememberCardEvening`, `NavigationInfo.kt`), so the left part does not change width as the evening comes and goes.
+- **Step 1** is the WIP as merged: beside the needle where it fits, with the whole turn line centred; its own line where it doesn't.
+- **#498's needle claims changed, not silenced.** `NavigationCardTopLineRules.turnLineNeedleLeft` and `NavigationCardNeedleNeverMovesTest` now count the next turn where it is beside the needle: a 4 dp gap, plus 26 dp, plus the widest of "88.8 mi" and "8888 ft" in the turn line's type. So the needle sits half of that further left (`besideNextTurnDp`, `NavigationCardKindLineScreen.kt`). Elsewhere the claim is unchanged.
+- **The long-press test (WIP, never run before)**: in landscape the card is on the bottom edge, so its rows now sample above the card, not below it. It also gets a landscape 823 x 384 font 2.0 case with the next turn in the right part.
+
+### Measured placements [observed, probe run 42402017914 on throwaway ref `hazel-arrows3-probe` fec3d09f3 = c682bb469 + probe; 0 compile errors; 30 tests, 150 J3PROBE lines, 30 x 5]
+The probe ref switched off RECORD -955's top limit (one line in `CompactMapLandscapeNavigationCard.kt`, throwaway only), so landscape heights with an evening line include it. Card heights are in dp. "Dot" is the walker's dot as `cardTopLimitInRootPx` places it, radius 12.
+
+| Window | 1.0 | 1.3 | 1.5 | 1.8 | 2.0 |
+|---|---|---|---|---|---|
+| 320 / 360 portrait | own line | own line | – | – | own line |
+| 384 (S22) portrait | **beside** (61.7) | own line (87.0) | – | – | own line (154.3) |
+| 412 portrait | **beside** (61.7) | own line | – | – | own line |
+| 480 portrait | **beside** | **beside** (65.0) | – | – | own line |
+| 640 x 360 | own line | own line | own line | own line | **right part** with no evening (120.7), own line with one (153.3) |
+| 780 x 360 | own line | own line | own line | own line | **right part** with no evening (120.7), own line with one (153.3) |
+| 823 x 384 | own line | own line | own line | own line | **right part** with no evening (120.7), own line with one (153.3) |
+
+- The place is the same in all five evening states in every case except landscape at 2.0, where J3's steps 2 and 3 follow the evening line.
+- **Landscape, font 2.0, no evening line (step 2):** the card's top is 11.3 dp clear of the dot's bottom at 823 x 384, and 2.3 dp at 780 x 360 and 640 x 360. `LandscapeLargeFontTest` passes (it failed under J2).
+- **Landscape, font 2.0, with an evening line (step 3):** the card is 153.3 dp tall. Its top is 21.3 dp past the dot's bottom at 823 x 384 and 30.3 dp at 780 x 360 and 640 x 360. With the card moved up just enough to clear the dot (its bottom at the dot's top), its top would be at 74.7 dp (823 x 384) or 59.7 dp (780 x 360 and 640 x 360). That is **37.3 dp and 22.3 dp below the strip's bottom** (37.3 dp). **So it fits [inferred from those measurements; not built]**. The L (Reset north) was not read against the moved card.
+- **Fonts 1.5 and 1.8 in landscape (not ruled, J2 kept):** at 1.8 with an evening line the own line takes the card's top 6.7 dp (823) or 15.7 dp (780, 640) past the dot's bottom, so RECORD -955 would drop the evening line there. At 1.5, and at 1.8 with no evening line, the card clears the dot.
+
+### Evidence [observed]
+- **Red, tests first:** run 42402010466 at cfeaaf074 (7a5ad452f + the compile fix), filter `*NextTurn*;*NavigationCardNeedleNeverMovesTest;*NavigationCardKindLinePortraitTest;*NavigationCardLoneWordTest;*LandscapeLargeFontTest`. 0 compile errors; 164 tests, 9 failed:
+  - J3's pure tests ×3, e.g. "expected:<RIGHT_PART> but was:<BESIDE_NEEDLE>";
+  - `NextTurnPlacementTest` 780 and 823 at 2.0 ×2;
+  - the 823/2.0 long-press ×1;
+  - `LandscapeLargeFontTest` ×2 (the card's top at 244 dp, over the dot);
+  - `NavigationCardLoneWordTest` 823/2.0 Dark since ×1 (the step-3 case).
+  
+  #498's changed needle claims passed there, because the WIP's beside place was already built under them.
+- **Forward, full CI:** PR run 42402010993 at c682bb469. 0 compile errors; **7229 tests, 23 failed**, 24 skipped. By name against pre-main's latest run (42337576510 at 1f6901a11: 6846 tests, 0 failed, 24 skipped): 36 names only on pre-main (the count #498's sections report), 419 only here, 15 whose outcome differs (pass → fail), and 8 new names failing. Every one of the 23 is one of the two stops:
+  - **Step 3, not built (18).** With its own line the card would cover the dot, so RECORD -955 takes the evening line off the card:
+    - `HudLandscapeT11At780Test` / `At823Test` font 2.0 ×8 ("navigation-hud-sundown-line reads <null>");
+    - `RouteCardOnNavigationCard*Font20*` ×3 and `RouteCardSundownStepsAside*` ×4 (precondition: the card's sundown line);
+    - `NavigationCardKindLineLargeTextTest` 823/2.0 Dark since ×2;
+    - `NavigationCardLoneWordTest` 823/2.0 Dark since ×1.
+  - **Step 2's side effect (5).** The right part holding the next turn narrows the left part from 263.0 to 151.7 dp in landscape at 2.0, so the kind leaves the distance's line:
+    - `NavigationCardKindLineLargeTextTest` 780/823 "without an evening time" ×2 ("the kind is drawn OWN_LINE, this case is chosen to reach BESIDE");
+    - `NavigationCardDistanceBesideKindTest` 823/2.0 ×2;
+    - `NavigationCardStatusSpaceTest` H8 823/2.0 ×1 ("in daytime the right part is 111.3 dp wide, not empty").
+  
+  None of these was changed or silenced.
+
+### The four reverts [observed; each a one-line edit on its own worktree from c682bb469, pushed to a throwaway ref, run with the filter above; each log 0 compile errors before any result was read; each file restored from a copy saved before the edit and checked identical to c682bb469's]
+Every revert run also fails `NavigationCardLoneWordTest` 823/2.0 Dark since. That is the standing step-3 failure (it fails in the forward run too), not something any of these reverts could cause.
+
+| Ruling | The line | Run | Failed (besides that one) |
+|---|---|---|---|
+| J2's beside/own-line decision | `nextTurnPlace`'s condition → `if (false)` | 42404304012 at 21884a06b | 10. The pure decision ×4 ("expected:<BESIDE_NEEDLE> but was:<OWN_LINE>"), `NextTurnPlacementTest` 384/1.0, 412/1.0, 480/1.0, 480/1.3, `NextTurnOnCardTest` A1 J2, and the 384/1.0 long-press, each because the next turn is not beside. |
+| J3 step 2, the right part | `else -> NextTurnPlace.RIGHT_PART` → `else -> decided` | 42404312400 at c1683f0fb | 6. The step-2 pure test, `NextTurnPlacementTest` 780 and 823 at 2.0 (NONE), the 823/2.0 long-press, and `LandscapeLargeFontTest` ×2 (the card's top at 244 dp, over the dot). |
+| The wiring (way home) | `TrackRecordingRouteTicks`'s `nextTurn(nextTurnWayOf(shown), progress, here)` → a blank | 42404320779 at f35f7a794 | 2. `TrackRecordingNextTurnTest`, J2 and E2 (the route carries "Blank(NOT_YET_KNOWN)"). |
+| G5 | "keep straight for" → "keep straight in" | 42404329725 at 9cc61e570 | 6. `NextTurnWordsTest` ×2, `NextTurnSpaceShownTest` ×3, `NextTurnOnCardTest` A3 G5, each "expected:<keep straight [for] …> but was:<keep straight [in] …>". |
+| J3 step 3, the card moving up | not built (stop 1) | none | none |
+
+### Questions for the owner (stops)
+1. **The card moving up (step 3)** needs `CompactMapLandscapeNavigationCard.kt`: the card's bottom anchor, its RECORD -955 top limit and its keep-out. Probably also the card's corners and outline (`RoundedMapCard.kt`), since its bottom would no longer sit on the screen edge. E19 is editing both on #498. Measured, it fits: the moved card's top would be 37.3 dp (823 x 384) and 22.3 dp (780 x 360) below the strip. Question: "Should this wait until E19 hands #498 back, then build in next-turn after merging nav-card-kind-line? Or should the E19 coder build it on #498? And once it floats above the dot, should its bottom corners round and get an outline like its top?"
+2. **"by trail" moves to its own line (step 2).** "In landscape at the largest text, with no sunset line, putting the turn arrow in the card's right part takes 115 dp from the left side. "1.5 mi by trail" no longer fits on one line, so "by trail" drops under the distance. The card is still 2 to 11 dp clear of your blue dot. Is that all right, or should something else give way?" Options:
+   - (a) Accept it ("by trail" on its own line there, as it already does when the sunset line shows).
+   - (b) Use the right part only when "by trail"/"straight" still fits beside the distance, and its own line otherwise (the card would then reach the dot, which needs (1) too).
+3. **Fonts 1.5 and 1.8 in landscape** were not ruled on, and they keep J2's own line. At 1.8 with a sunset line the card would reach the dot, and the sunset line steps off the card. Question: "Should 1.5 and 1.8 in landscape follow the 2.0 rule (right part with no sunset line, card moves up with one)?"
+
+### Confirmed and inferred
+- **[observed]:**
+  - the base;
+  - the WIP's compile error and the fix;
+  - the red run's 9 failures, each J3's reason;
+  - the forward run's 23 failures, each one of the two stops, and 0 other outcome changes by name against pre-main;
+  - the probe's placements and heights;
+  - the reverts below;
+  - the scan reading 0 before every push (`git diff origin/pre-main HEAD`, each ref).
+- **[read]:** that the card's bottom anchor, its top limit and its keep-out live in `CompactMapLandscapeNavigationCard.kt` (`CompactMapNavigationDisplay`, `cardTopLimitInRootPx`), and its bottom corners and outline in `MapCardCorners.TOP` and `landscapeColumnOutlineSides(bottom = false)`.
+- **[inferred]:** that card-up fits (from the measured heights, not drawn), and that (b) in question 2 would reach the dot.
+
+### Could not determine
+- The phone's own figures (no phone in this dispatch).
+- The L against a moved card.
+- Fonts other than those listed.
+- The probe's portrait "strip" and "dot" columns read the strip with the card inside it, so they mean nothing in portrait and are not used.
+
+### Premises that were wrong
+- "ref next-turn-j2-wip … (the wiring, placement, G5 and tests, not yet run)": its tests did not compile (above).
+- J2's report counted the WIP's landscape long-press as sampling under the card. The card is on the bottom edge there, so under it is off-screen. Changed to above.
+
+### Decided beyond scope (open to the owner)
+- In landscape at 2.0 the right part keeps the next turn's width with or without an evening line, so the left part never changes width with the evening.
+- "Landscape at font 2.0" is read as a font scale of at least 2.0. 1.5 and 1.8 keep step 1 (question 3).
+- The step-3 case shows J2's behaviour until question 1 is answered: its own line, with RECORD -955 dropping the evening line.
+
+### S22 steps (after the answers; nothing here is for the phone yet)
+- Portrait, normal text, navigating home by trail: the turn arrow and its distance sit right of the needle, and the whole line, needle included, is centred under the distance. Turn the compass off: nothing on that line moves.
+- Portrait, next text size up: the arrow has its own line under the needle, centred, and the card is one line taller.
+- Landscape, largest text, daytime: the arrow is in the card's right part, the card stays below the blue dot, and "by trail" sits under the distance (question 2).
+
+### Clean-up
+- Deleted from origin: `next-turn-j2-wip` (its work is merged into next-turn), `hazel-arrows3-probe`, `hazel-arrows3-red` and the four `hazel-arrows3-rev-*` refs. Their runs stay readable by number.
+- Scratch `/mnt/work/scratch/hazel-arrows3` (700) holds the probe source, its lines (`probe-lines.txt`), the runs' names and the revert runner.
+- PR #500 stays a draft.
