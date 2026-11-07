@@ -117,13 +117,14 @@ internal class RouteCardBarRig(
     private val fix = LocationFix.Update(lat = 45.37, lng = -121.69, altitude = 50.0, accuracyMeters = 8f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val origin = Waypoint(id = "origin", lat = 45.38, lng = -121.69, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1")
 
-    fun setScreen(withLegend: Boolean = false, reduceMotion: Boolean = false, navigating: Boolean = false, trips: List<PlannedTrip> = emptyList()) {
+    /** [dark]: under the app's theme by day (false) or at night (true), for a test that reads colours; `null` leaves it out, as before. */
+    fun setScreen(withLegend: Boolean = false, reduceMotion: Boolean = false, navigating: Boolean = false, trips: List<PlannedTrip> = emptyList(), dark: Boolean? = null) {
         val store = OneCellStore()
         val viewModel = if (withLegend) mapLayersViewModel(store = store) else mapLayersViewModel()
         composeRule.setContent {
             val state by plotting.uiState.collectAsState()
             val navigatingShown = navigating || navigatingNow.value
-            CompositionLocalProvider(LocalReduceMotion provides reduceMotion) {
+            val screen: @androidx.compose.runtime.Composable () -> Unit = {
                 MapLayersTestScreen(
                     viewModel = viewModel,
                     mapSlot = map.slot,
@@ -139,6 +140,13 @@ internal class RouteCardBarRig(
                     recording = AvailabilityScreenRecording(isRecording = true, onToggleRecording = { stopTouches++ }),
                     currentTime = clock,
                 )
+            }
+            CompositionLocalProvider(LocalReduceMotion provides reduceMotion) {
+                if (dark == null) {
+                    screen()
+                } else {
+                    com.zynergylabs.forager.app.ui.map.ForagerThemeWithNoSignal(darkTheme = dark, noSignal = kotlinx.coroutines.flow.MutableStateFlow(false), offlineRegions = emptyList()) { screen() }
+                }
             }
         }
         settle()

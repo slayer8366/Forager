@@ -32,6 +32,7 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.route.PlottedRoute
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RouteStop
+import com.zynergylabs.forager.app.domain.route.asRouteStop
 import com.zynergylabs.forager.app.domain.route.StraightReason
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
@@ -97,7 +98,7 @@ internal const val S22_MAP_CREDIT = "Protomaps © OpenStreetMap · Trails: USDA 
 /** CREEK stands at [MadeUpPlace]; RIDGE, and RouteCardBarRig's Falls to Spring, are fixed 0.01-degree steps from it. */
 internal val CREEK = Waypoint("wp-creek", MadeUpPlace.LAT, MadeUpPlace.LNG, null, "Creek", "", 1_000L)
 internal val RIDGE = Waypoint("wp-ridge", 45.3836, -121.7059, null, "Ridge", "", 2_000L)
-internal fun Waypoint.stop() = RouteStop(name, LatLng(lat, lng))
+internal fun Waypoint.stop() = asRouteStop() // Dispatch 2026-11-06-05, Amendment 2: a tapped stop keeps its soft link, as the app makes it.
 internal fun straight(a: LatLng, b: LatLng) = RouteLeg.Straight(listOf(a, b), GeoDistance.metersBetween(a, b), StraightReason.NO_REGION_COVERS)
 internal val SAVED_ROUTE = PlottedRoute(listOf(CREEK.stop(), RIDGE.stop()), listOf(straight(CREEK.stop().position, RIDGE.stop().position)))
 internal val ROUTE_TRIP = PlannedTrip("route-1", "Creek to Ridge", CREEK.stop().position, null, SAVED_ROUTE)

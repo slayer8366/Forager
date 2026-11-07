@@ -42,6 +42,8 @@ import com.zynergylabs.forager.app.ui.route.routeCardLegDistanceTag
 import com.zynergylabs.forager.app.ui.route.routeCardLegElevationTag
 import com.zynergylabs.forager.app.ui.route.routeCardLegNameTag
 import com.zynergylabs.forager.app.ui.route.routeCardLegTag
+import com.zynergylabs.forager.app.ui.route.routeCardStopLegTag
+import com.zynergylabs.forager.app.ui.route.routeCardStopNameTag
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -190,7 +192,7 @@ class RouteCardLayoutTest {
         assertAtRightOf("the total", bounds(ROUTE_CARD_ROUTED_COUNT_TAG), bounds(ROUTE_CARD_ROUTED_TOTAL_TAG))
         assertTrue("the routed count is under the name", bounds(ROUTE_CARD_ROUTED_COUNT_TAG).top >= bounds(ROUTE_CARD_NAME_TAG).bottom)
         assertTrue("no arrow on the card: ${cardTexts()}", cardTexts().none { "→" in it })
-        assertEquals("the peek's texts", listOf("Creek to Ridge", "2 Waypoints routed", formatDistanceMeters(legMeters(0), unit), "Directions"), cardTexts())
+        assertEquals("the peek's texts", listOf("Creek to Ridge", "2 Waypoints routed", formatDistanceMeters(legMeters(0), unit), "Navigate", "Directions"), cardTexts()) // Navigate: dispatch 2026-11-06-05, Amendment 2
     }
 
     @Test
@@ -198,8 +200,13 @@ class RouteCardLayoutTest {
         setScreen()
         touchCentreOf(glyphTag(ROUTE_TRIP.id))
         touchCentreOf(ROUTE_CARD_HANDLE_TAG)
+        val unit = viewModel.uiState.value.distanceUnit
 
-        assertEquals("Creek to Ridge", text(routeCardLegNameTag(0)))
+        // Since dispatch 2026-11-06-05, Amendment 2 (the owner: "Waypoints with leg distances"), a saved route's rows are its waypoints,
+        // the leg leading to each under it; plotting keeps its leg rows (the test above).
+        assertEquals("Creek", text(routeCardStopNameTag(0)))
+        assertEquals("Ridge", text(routeCardStopNameTag(1)))
+        assertEquals(formatDistanceMeters(legMeters(0), unit), text(routeCardStopLegTag(1)))
         assertEquals("2 Waypoints routed", text(ROUTE_CARD_ROUTED_COUNT_TAG))
         assertTrue("no elevation for a saved route (step 3b): ${cardTexts()}", cardTexts().none { it.startsWith("Elevation") })
     }

@@ -4,13 +4,18 @@ import android.util.Log
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RouteStop
+import androidx.compose.ui.graphics.toArgb
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.MapPalette
+import com.zynergylabs.forager.app.ui.theme.MushroomDeep
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
@@ -33,7 +38,24 @@ import org.maplibre.geojson.Point
  * What the map draws of a plotted route: its [legs], [stopDots] (empty while plotting), and [stopNames], the stops whose
  * names are always drawn, while plotting and on a saved route (dispatch 2026-11-02-04, A2; WaypointNameLayers.kt).
  */
-data class PlottedRouteOnMap(val legs: List<RouteLeg>, val stopDots: List<LatLng> = emptyList(), val stopNames: List<RouteStop> = emptyList())
+data class PlottedRouteOnMap(
+    val legs: List<RouteLeg>,
+    val stopDots: List<LatLng> = emptyList(),
+    val stopNames: List<RouteStop> = emptyList(),
+    /** A saved route's selected stop's marker, drawn in the accent colour (dispatch 2026-11-06-05, Amendment 2, item 4); `null` for none. */
+    val selected: SelectedStopMarker? = null,
+)
+
+/** Where the selected stop's waypoint ([trip] false) or trip stands: its pin, or its flag, is drawn there again in the accent colour. */
+data class SelectedStopMarker(val at: LatLng, val trip: Boolean)
+
+/**
+ * The selected stop's accent (dispatch 2026-11-06-05, Amendment 1, step 4, the owner: "Accent colour"; Amendment 2, "Keep cream, judge
+ * on phone"): cream [Cream] #EDE3D0 by day, rust red [MushroomDeep] #A2612C at night, per the palette, on the palette's own casing. The
+ * day cream sits close to the light day ground and its white casing (measured in the completion report, part 1); kept as the owner
+ * chose, for them to judge on the phone.
+ */
+internal fun routeStopSelectedColour(palette: MapPalette): Int = (if (palette == MapPalette.NIGHT) MushroomDeep else Cream).toArgb()
 
 internal object PlottedRouteIds {
     const val SOURCE = "plotted-route"
@@ -43,6 +65,9 @@ internal object PlottedRouteIds {
     const val TRAIL_LAYER = "plotted-route-trail-layer"
     const val STRAIGHT_LAYER = "plotted-route-straight-layer"
     const val STOPS_LAYER = "plotted-route-stops-layer"
+    const val SELECTED_SOURCE = "plotted-route-selected"
+    const val SELECTED_LAYER = "plotted-route-selected-layer"
+    const val SELECTED_ICON_PROPERTY = "icon"
     const val PART_PROPERTY = "part"
     const val PART_TRAIL = "trail"
     const val PART_STRAIGHT = "straight"
@@ -146,6 +171,20 @@ internal fun addPlottedRouteLayers(style: Style, palette: MapPalette, belowLayer
         PropertyFactory.circleStrokeWidth(CASING_DP),
     )
     style.addLayerBelow(stops, belowLayerId)
+    // Dispatch 2026-11-06-05, Amendment 2, item 4: the selected stop's marker, drawn over the waypoints' own pins (and the trips' flags,
+    // which are under them), so the waypoint's pin is seen in the accent colour. Its two images are registered with every other marker's.
+    style.addSource(GeoJsonSource(PlottedRouteIds.SELECTED_SOURCE, FeatureCollection.fromFeatures(emptyList())))
+    val selected = SymbolLayer(PlottedRouteIds.SELECTED_LAYER, PlottedRouteIds.SELECTED_SOURCE).withProperties(
+        PropertyFactory.iconImage(Expression.get(PlottedRouteIds.SELECTED_ICON_PROPERTY)),
+        PropertyFactory.iconAllowOverlap(true),
+        PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
+    )
+    if (style.getLayer(MapLayerIds.WAYPOINTS) != null) {
+        style.addLayerAbove(selected, MapLayerIds.WAYPOINTS)
+    } else {
+        Log.w(SIGHTINGS_MAP_TAG, "The waypoints layer is missing; a route's selected stop is drawn above everything.")
+        style.addLayer(selected)
+    }
 }
 
 /** What each of the route's sources receives for [route]; both empty for none, so a closed route clears the map. */
@@ -159,6 +198,14 @@ internal fun plottedRouteFeatureCollections(route: PlottedRouteOnMap?): Map<Stri
     ),
     PlottedRouteIds.STOPS_SOURCE to FeatureCollection.fromFeatures(
         route?.stopDots.orEmpty().map { Feature.fromGeometry(Point.fromLngLat(it.lng, it.lat)) },
+    ),
+    PlottedRouteIds.SELECTED_SOURCE to FeatureCollection.fromFeatures(
+        listOfNotNull(route?.selected).map { marker ->
+            Feature.fromGeometry(Point.fromLngLat(marker.at.lng, marker.at.lat)).also {
+                val icon = if (marker.trip) MarkerIcon.PLANNED_TRIP_ROUTE_SELECTED else MarkerIcon.WAYPOINT_ROUTE_SELECTED
+                it.addStringProperty(PlottedRouteIds.SELECTED_ICON_PROPERTY, icon.imageId)
+            }
+        },
     ),
 )
 

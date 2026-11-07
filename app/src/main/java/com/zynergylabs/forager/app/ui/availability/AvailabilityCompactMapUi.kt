@@ -515,7 +515,10 @@ internal fun CompactMapTab(
                     onToggleFullscreen = onToggleFullscreen,
                     onCameraIdle = { location -> cameraCenter = location },
                     crowdedStacks = crowdedStacks,
-                    plottedRoute = plottedRouteOnMap(bubbleSources.routePlotting),
+                    plottedRoute = plottedRouteOnMap(
+                        bubbleSources.routePlotting, bubbleSources,
+                        waypointsLayerDrawn(renderMode.layers), plannedTripsLayerDrawn(renderMode.layers),
+                    ),
                     // D29 (RECORD -1979, -1980): while navigating in landscape with the route card expanded, the walker's dot sits in the
                     // open map beside the card, and goes back when it collapses.
                     navigationSideInsets = if (navigation.isNavigating && cluster.landscape && bubbleSources.routePlotting?.state?.expanded == true) {
@@ -535,6 +538,10 @@ internal fun CompactMapTab(
                     controls = bubbleSources.routePlotting,
                     enabled = !isDrawerOpen && pendingAction == null && !pickingSearchLocation && !showActionMenu,
                     onReopenDrawer = { bubbleSources.routePlotting?.onReturnToTripPlanner?.invoke() },
+                    // Dispatch 2026-11-06-05, Amendment 1, step 5: stands aside while the card's own Navigate runs, so Back ends it first.
+                    navigatingToWaypoint = navigation.isNavigatingToWaypoint,
+                    // Amendment 3: in fullscreen, Back undoes whichever came last of the card's Navigate and fullscreen.
+                    isFullscreen = isFullscreen,
                 )
                 // Composed right after mapSlot — see searchBarSlot's own doc comment for why this
                 // exact nesting (a direct sibling of the map's own AndroidView content, inside
@@ -669,6 +676,8 @@ internal fun CompactMapTab(
                     onCardHeightDp = { routeCardHeightDp = it },
                     onCardSpanPx = { routeCardSpanPx = it },
                     onCardBoundsInRoot = { routeCardBoundsInRoot = it },
+                    sources = bubbleSources,
+                    isFullscreen = isFullscreen,
                 )
 
                 // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the
