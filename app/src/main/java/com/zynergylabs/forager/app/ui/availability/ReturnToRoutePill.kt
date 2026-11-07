@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -112,6 +113,10 @@ private fun ReturnToRoutePillSurface(onClick: () -> Unit, iconOnly: Boolean, mod
         shape = RoundedCornerShape(percent = 50),
         color = fill,
         contentColor = content,
+        // Dispatch 2026-11-06-04 (RECORD -2186), the owner: "Add real quick: an outline around the re-enter button", "Same as
+        // the chips": the selected map type chip's outline (MapModeChips.kt, mapModeChipBorder), 1 dp in `onSurface`, Bark
+        // #3B2E24 by day and #EDE3D0 at night. Drawn inside the pill's bounds, so its size and touch area are unchanged.
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface),
         modifier = modifier
             .heightIn(min = RETURN_TO_ROUTE_PILL_HEIGHT)
             // D27: its icon alone is the minimum touch target, square, so what a finger reaches is what is drawn.
