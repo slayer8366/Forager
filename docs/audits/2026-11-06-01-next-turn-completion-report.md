@@ -1300,3 +1300,63 @@ The scope is Amendment 1, J3 step 3 and J4. The owner's go: "Record it", "Build 
 ### Clean-up
 - Deleted from origin: `hazel-arrows4-fwd`, `hazel-arrows4-wip`, the three `hazel-arrows4-rev-*` refs (their runs stay readable by number). Scratch `/mnt/work/scratch/hazel-arrows4` (700) holds the runner, run results and names.
 - PR #500 stays a draft. Final SHA: this commit.
+
+## J5, built: stopped at two findings, #500 stays a draft (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J5. The owner's go: "Record it", "Build it", "Animate the move". **Built:** "Into the freed right part" (item 1), "Yes, lines leave" as T11 item 2's claim (item 2), the defect's fix (item 3), "Animate the move" (item 4). **Full CI is not green: 17 failures on the build (run 42422989647).** Two of them are a loop my item 1 causes through the route card's room (stop 2); the rest are cases where, with the card's height now counted as drawn, the evening line cannot fit even moved up (stop 1). #500 is not taken out of draft. Marks as in the sections above.
+
+### Base and commits [observed]
+- At the start: `origin/next-turn` 9a1aca0b6, `origin/pre-main` 82d4a091a and `origin/nav-card-kind-line` 5232b15fa both already merged in (nothing to merge), `origin/records-after-173` 7ddde1199; worktree clean. All as the dispatch said.
+- `71c5fd02e` tests first, items 1, 2, 4; `951b89e85` tests first, item 3 (the count a stub); `524ca0d0e` the build; `55d5f15e7` T11 item 2's dot claim scoped (below; **not yet run in CI**).
+- Other coders' files (`git diff HEAD...origin/<branch>`: route-card 1a6a69f2d, journal-locate-outline 7e5ed4785, locate-jump 1f6d34b2e): none edited. `RouteCardRecenterCoversNoCardTest.kt` (#506's) was **not** edited; the fix did not need it. `CompactMapRoutePlotting.kt` (route-card's) was edited only on a throwaway probe branch, never on next-turn.
+
+### The defect's cause [observed, probe run 42421420016, throwaway branch]
+**The decision's height was wrong; the strip's bottom was right.** At 640 x 360, font 2.0, just after sunset, the S22's insets: the strip's bottom was estimated at 112 px (37.3 dp), exactly the strip as drawn. The decision took the card with its evening line as 420 px (140 dp); it was drawn 786 px (262 dp), from -49 to 213 dp. The card there is narrowed (D38, 293 dp wide), the fit overflows, and the right part is 72 dp: each evening piece wraps ("Sun set 12:50 AM" and "dark in 24 min", 160 dp for the two), while RECORD -955's height counted each piece as one line (`pieces.size * pieceHeightPx`). Fix: `eveningStackHeightPx` (NavigationCardLift.kt) measures each piece wrapped at the right part's width with the line (`leftPartWidthPx` of the with-line fit), in `NavigationInfo.kt`. This feeds both -955's bottom-edge decision and the lift.
+
+### What was built [read, 524ca0d0e]
+- Item 1: `nextTurnPlaceNow(..., eveningStepsAside)`: landscape at 1.5+ with the evening line stepped aside (D42), the right part.
+- Item 2: no code; the strip check from J3 already keeps the card down and -955 drops the lines. `HudLandscapeT11FixesTest` item 2 takes `tallestMovesUp` (false at 780): the card's top under the strip in both windows; at 780 the card on the bottom edge and the lines gone; at 823 the line on the card and the dot clear. Renamed (old name "...rather than reach over the walker's dot, and nothing covers the needle"), so it does not match by name.
+- Item 3: as above.
+- Item 4: `animateFloatAsState` on the move, the card's own slide timing (750 ms, RECORD -953's), at once under reduced motion; decisions read the target, drawing (offset, rounded bottom, E20's band) the animated value.
+
+### Evidence [observed; every log checked for compile errors first]
+- **Red**, PR run 42422931092 at 951b89e85: 7295 tests, 8 failed, each for its item's reason: J5 place unit ("expected RIGHT_PART but was OWN_LINE"), Font20 (leg row 0 height 0), Glides ("frames between: []"), the count unit ("expected 480 but was 192"), UnderStrip ("the card's top 15.0 is under the strip's 37.3": false), RecenterCovers AfterSunset (Re-center 160.7 wide), T11Fixes 780 (dot), T11Fixes 823 (card top 0 < strip 37.3, the same defect at 823).
+- **Forward**, workflow_dispatch run 42422989647 at 524ca0d0e (throwaway ref `hazel-arrows5-fwd`): **7295 tests, 17 failed, 24 skipped.** Passing now: UnderStrip, RecenterCovers AfterSunset, Glides, both J5 unit tests. Failing: T11At780 ×4 and T11At823 ×4 at font 2.0 ("positive control, 06: back-by-line reads null"), T11Fixes 780 (dot; claim scoped in 55d5f15e7, not run) and 823 ("the evening line stays on the card"), RouteCardOnNavigationCard Font20Evening, ShortFont20AfterSunset, ShortFont20Evening and the three StepsAsideShort classes (precondition "the sundown line with no card": 0), StepsAsideFont20 (**AppNotIdle: a loop**).
+- Pre-main's latest run (42337576510 at 1f6901a11; 82d4a091a is [skip ci]): 6846 tests, 0 failed. Compared by name: none of the 17 is a pre-main test failing there; all 17 are failures of this branch.
+- **Reverts** (each one line on its own worktree from 524ca0d0e, restored from a saved copy and checked equal to 524ca0d0e's; main worktree checked unchanged; filtered runs):
+  | Item | Line | Run | Failures specific to it |
+  |---|---|---|---|
+  | 1 | `eveningLine && !eveningStepsAside ->` → `eveningLine ->` | 42423031141 at 32ad1eab3 | the J5 place unit; Font20 back to "leg row 0 height 0" (no loop) |
+  | 2 | `stripBottomPx != null && liftedTop < stripBottomPx - 0.5f` → `stripBottomPx != null && false` | 42423912575 at fb1de6933 | T11Fixes 780 "the card's top 25.0 is under the strip's 37.3": false; Lift unit "no room under the strip" gives Up(144) |
+  | 3 | `pieces.sumOf { maxOf(lineHeightPx, wrappedHeightPx(it)) }` → `pieces.size * lineHeightPx` | 42423045553 at 944178ae5 | the count unit (192 for 480); UnderStrip (top 15.0); RecenterCovers AfterSunset; T11Fixes 823 card top 0 |
+  | 4 | `-drawnLiftPx.roundToInt()` → `-liftPx.roundToInt()` | 42423052330 at c02a4447d | Glides, "frames between: []" |
+  - The first item-2 revert (`stripBottomPx != null &&` → `false &&`, run 42423038333) **did not compile** (a smart cast on line 53); the runner found 8 compile errors and refused to read its results. Redone as above.
+
+### Questions for the owner (stops)
+1. **The evening line leaves the card in more places than the 780 case.** "With the card's height now counted as it is drawn, the sunset line can't fit even with the card moved up in these cases at the largest text in landscape: (a) heading home with the route held back ("Try again"), the sunset line and Back by, at 823 and 780 wide; (b) on the S22's own landscape screen after sunset whenever the card is narrowed for Re-center or a saved route's card. There the card would have been taller than the room between the compass strip and the blue dot (at 823: room 190.7 dp, card with the lines drawn 228 dp or more, top cut off; on the S22: room 175.7 dp, card 262 dp). Today's build drew the card over the compass strip or off the screen there. Under your 'Yes, lines leave' the card now stays at the bottom and the lines step off in all of these. Is that all right, or should something else give way?" One sunset line with no Back by still moves up with the line on the card at 640, 780 and 823 (NavigationCardMovesUpTest passes). Eleven tests whose claims say the line stays are failing until this is answered; none was changed.
+2. **The freed right part and the route card's room loop.** "When the sunset line steps aside for a saved route's card and the turn arrow moves into the freed right part, the navigation card gets one line shorter. The route card measures its room from the navigation card's height, so it then sees room for the sunset line, brings it back, the arrow goes back to its own line, the card grows, and the line steps aside again, without end (probe run 42425317006: the route card's limit 738, 836, 640 px in turn, the card's top 798 and 732 px). Fixing it means the route card reading the navigation card's height as with the arrow on its own line, which is in the route card's files (another coder's). Should I make that change in the route card's files, or keep the arrow on its own line while a route card is open?"
+
+### Confirmed and inferred
+- [observed]: everything under Evidence and the cause, from the runs named.
+- [inferred]: that the loop needs the route card's room to read a fixed height (the probe shows the cycle; the fix is not tried).
+
+### Could not determine
+- Whether 55d5f15e7's T11Fixes 780 claim passes (not run). The phone's figures (no phone).
+
+### Premises that were wrong
+- J5's "the rare 780 dp held-back case": the same case fails at 823, and the S22's narrowed-card evening cases too (stop 1).
+- J5's "the height the decision uses, or the strip's bottom": it was the height, and it was wrong wherever the right part wraps, not only in that test.
+- My own premise that item 1 could not feed back because D42 reads the tallest height: the route card's room reads the card's height too (stop 2).
+
+### Decided beyond scope (open to the owner)
+- The glide's timing is the card's own slide-in timing (750 ms); under reduced motion it moves at once.
+- The rounded bottom and outline follow the card as drawn, so gliding down it keeps them until it lands.
+
+### S22 steps (after the stops; nothing here is for the phone yet)
+- Landscape, text size 1.8 or 2.0, after sunset, navigating home by trail: the card glides up above the blue dot with the sunset line on it, and back down when the line goes.
+- The same with a saved route's card open: the sunset line steps aside and the turn arrow sits in the card's right part, the card not jumping up and down.
+- Landscape at 2.0 with Re-center showing after sunset: the card stays on the bottom edge, nothing over the compass strip.
+
+### Clean-up
+- Scratch `/mnt/work/scratch/hazel-arrows5` (700) holds the runner, the run results and both probes' worktrees. Throwaway refs deleted at the end (listed in the hand-back).
+- PR #500 stays a draft. Final SHA: this commit.
