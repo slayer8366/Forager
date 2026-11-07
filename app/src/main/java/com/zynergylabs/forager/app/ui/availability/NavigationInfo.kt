@@ -290,6 +290,7 @@ private fun measuredNavigationInfoFit(
             longestFigurePx = longestFigurePx,
             kindPx = readout.distanceKindText?.let { widthOf(it, small) },
             turnSpacePx = turnSpacePx,
+            turnTextPx = if (turn.isEmpty()) 0 else widthOf(turn, small),
             eveningPiecePx = eveningPieces(sundownLine, backByLine, cardEvening.breaks).maxOfOrNull { widthOf(it, evening) },
             rightFloorPx = cardEvening.rightFloorPx,
         ),

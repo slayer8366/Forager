@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
@@ -28,6 +29,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -142,7 +144,8 @@ private fun CardTurnLine(readout: NavigationHudReadout, fit: NavigationInfoFit) 
         Spacer(Modifier.width(Spacing.xs))
         // The needle stays whatever the degrees beside it do (T11 fixes), dimmed when there is nothing to point at. Its tag is on the
         // unrotated square it is laid out in, so its bounds are where it sits, not its rotated drawing's box.
-        Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NEEDLE_TAG)) {
+        // E17: drawn clear of a word wider than the degrees' space ([needleShiftPx]); an offset, so the row and the word keep their places.
+        Box(modifier = Modifier.offset { IntOffset(fit.needleShiftPx, 0) }.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NEEDLE_TAG)) {
             Icon(
                 imageVector = Icons.Filled.Navigation,
                 contentDescription = null,
