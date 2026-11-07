@@ -1107,3 +1107,24 @@ Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E18 and the owner'
   touches the needle.
 - At 412 dp (not the S22's 384 dp; a 412 dp phone or display size), font 1.0, before sunset: the sunset line reads on two lines,
   "Sunset: ..." over "Dark: ...", split at the ▪.
+
+## E19: read only, nothing built (same session, 2026-11-07)
+
+Handed back before building, at the session's size limit, with what was found looking for "why it stops at that corner".
+
+- [read, 96584cca1] The card's sides come from `landscapeColumnOutlineSides` (`RoundedMapCard.kt`), called from
+  `CompactMapLandscapeNavigationCard.kt` with `innerSideDrawn = true, top = true, bottom = false`. While the rail is shown the rail's
+  side is left open with `rightShared`/`leftShared`, so the card's rounded top corner on that side is drawn out to the rail's line,
+  half a stroke past the card's own edge (`mapChromeOutlinePath`), and the card is clipped to its bounds (`clipToBounds`).
+- [observed] In every capture read, that corner **is** outlined: CI captures `landscape-823-navigating-day/-night` (run 42341392562)
+  and two S22 landscape navigation screenshots from the 2026-11-06 check (private folder, not committed). The only visible flaw is
+  that, near the rail, the arc thins where its outer half is clipped. Night on the stand-in grey map: the card's top line reads 133
+  against the map's 128 (0 to 255), so it is faint there against that grey.
+- [inferred, not tested] The owner's words ("the end edge before the side bar", restated as the edge **facing the map** before the
+  side bar) fit a placement where the card's end does **not** touch the rail: then that side is still treated as shared (no line),
+  and the corner's arc is pushed past the clip. Reading the code, no placement found does that (`narrowBy` keeps the rail-side edge;
+  fullscreen draws that side where a system bar inset lies beyond it). So the placement in the owner's crop is not identified.
+- Next step proposed: the pixel test first, as the dispatch says, run over every placement (landscape at both rotations, rail shown
+  and fullscreen, the route card resting on the card, portrait; day and night) and checking that wherever bare map lies just outside a
+  card edge or corner, the line is there. If it finds the gap, that's the red run; if every placement passes, the crop's phone and
+  state are needed.
