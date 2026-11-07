@@ -434,13 +434,15 @@ abstract class HudLandscapeT11Fixes(
         assertTrue("J3 step 3, J5: the card's top ${hud.top} is under the compass strip's bottom ${strip.bottom}", hud.top >= strip.bottom - 0.5.dp)
         if (tallestMovesUp) {
             assertTrue("J3 step 3: the evening line stays on the card", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isNotEmpty())
+            assertTrue("J3 step 3: the card $hud covers none of the walker's dot (y $walkerY)", hud.bottom <= walkerY - WALKER_DOT_RADIUS + 0.5.dp || hud.top >= walkerY + WALKER_DOT_RADIUS - 0.5.dp)
         } else {
             // J5 (RECORD -2183, the owner: "Yes, lines leave"): moved up, the card would pass the compass strip, so it stays on the
             // bottom edge and the evening lines leave it (RECORD -955). Was J3 step 3's "the evening line stays on the card" here too.
             assertTrue("J5: the card stays on the bottom edge (its bottom ${hud.bottom}, the screen's ${window().bottom})", kotlin.math.abs((hud.bottom - window().bottom).value) <= 0.5f)
             assertTrue("J5: the evening lines leave the card", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isEmpty())
+            // "As today" (RECORD -955 C, "Overlap left at font 2.0 is accepted"): what overlap of the dot Try again leaves on the bottom
+            // edge is measured (the line below), not asserted, as it was before J3 step 3.
         }
-        assertTrue("J3 step 3: the card $hud covers none of the walker's dot (y $walkerY)", hud.bottom <= walkerY - WALKER_DOT_RADIUS + 0.5.dp || hud.top >= walkerY + WALKER_DOT_RADIUS - 0.5.dp)
         println("MEASURED -955 font 2.0 at its tallest: display $hud, dot at y ${walkerY.value} r ${WALKER_DOT_RADIUS.value}, overlap ${!(hud.bottom <= walkerY - WALKER_DOT_RADIUS || hud.top >= walkerY + WALKER_DOT_RADIUS)}")
         val needle = tag(NAVIGATION_HUD_NEEDLE_TAG)
         assertTrue("the needle $needle is inside the display $hud", needle.left >= hud.left && needle.right <= hud.right && needle.top >= hud.top && needle.bottom <= hud.bottom)
