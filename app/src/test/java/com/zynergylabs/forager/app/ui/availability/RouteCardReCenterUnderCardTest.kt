@@ -52,7 +52,7 @@ import org.robolectric.shadows.ShadowToast
  */
 abstract class RouteCardReCenterUnderCardTests {
 
-    private val composeRule = createAndroidComposeRule<ComponentActivity>()
+    protected val composeRule = createAndroidComposeRule<ComponentActivity>()
 
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
@@ -110,7 +110,7 @@ abstract class RouteCardReCenterUnderCardTests {
     protected fun pill(): DpRect = bounds(RETURN_TO_ROUTE_TAG)
     protected fun card(): DpRect = bounds(ROUTE_CARD_TAG)
 
-    private fun restoreId(): Int = map.renderMode?.navigationView?.restoreRequestId ?: throw AssertionError("navigating, so the map was asked for its navigation view")
+    protected fun restoreId(): Int = map.renderMode?.navigationView?.restoreRequestId ?: throw AssertionError("navigating, so the map was asked for its navigation view")
 
     /** Moves the map away from the navigation view, so Re-center shows. */
     protected fun leaveView() {
