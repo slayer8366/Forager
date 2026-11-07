@@ -15,7 +15,8 @@ import com.zynergylabs.forager.app.domain.model.Region
  * opens — not a message asking them to search first.
  */
 internal fun compactMapDisplayRegion(uiState: AvailabilityUiState): Region {
-    val located = (uiState.locateMeStatus as? LocateMeStatus.Located)?.location
+    // Through a running fetch, the fix it replaces (dispatch 2026-11-07-01 Amendment 1): see LocateMeStatus.Loading.
+    val located = uiState.locateMeStatus.lastLocateFix()?.location
     return uiState.region
         ?: located?.let { Region(lat = it.lat, lng = it.lng, radiusKm = JOURNAL_PICKER_DEFAULT_REGION.radiusKm) }
         ?: JOURNAL_PICKER_DEFAULT_REGION
