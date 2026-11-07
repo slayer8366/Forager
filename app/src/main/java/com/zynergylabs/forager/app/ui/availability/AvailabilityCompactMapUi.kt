@@ -515,7 +515,10 @@ internal fun CompactMapTab(
                     onToggleFullscreen = onToggleFullscreen,
                     onCameraIdle = { location -> cameraCenter = location },
                     crowdedStacks = crowdedStacks,
-                    plottedRoute = plottedRouteOnMap(bubbleSources.routePlotting, bubbleSources, waypointsLayerDrawn(renderMode.layers)),
+                    plottedRoute = plottedRouteOnMap(
+                        bubbleSources.routePlotting, bubbleSources,
+                        waypointsLayerDrawn(renderMode.layers), plannedTripsLayerDrawn(renderMode.layers),
+                    ),
                     // D29 (RECORD -1979, -1980): while navigating in landscape with the route card expanded, the walker's dot sits in the
                     // open map beside the card, and goes back when it collapses.
                     navigationSideInsets = if (navigation.isNavigating && cluster.landscape && bubbleSources.routePlotting?.state?.expanded == true) {

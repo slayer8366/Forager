@@ -72,14 +72,25 @@ internal fun selectRouteStopOnTap(tap: MapFeatureTap, sources: MapRecordSources)
  * The marker drawn over the selected stop's waypoint (or trip) in the accent colour, where it stands now, which is where Navigate goes;
  * `null` with no saved route, or where the stop leads nowhere (its waypoint moved or deleted: there is no marker of it to colour).
  */
-internal fun selectedStopMarker(controls: RoutePlottingControls?, sources: MapRecordSources?, waypointsDrawn: Boolean = true): SelectedStopMarker? =
+internal fun selectedStopMarker(
+    controls: RoutePlottingControls?,
+    sources: MapRecordSources?,
+    waypointsDrawn: Boolean = true,
+    tripsDrawn: Boolean = true,
+): SelectedStopMarker? =
     when (val target = selectedStopTarget(controls, sources)) {
         // Amendment 3, the owner: "Hide with the layer". With the Waypoints switch off there is no pin to colour, so no accent either.
         is RouteStopLink.Waypoint -> if (!waypointsDrawn) null else sources?.waypoints?.firstOrNull { it.id == target.id }?.let { SelectedStopMarker(LatLng(it.lat, it.lng), trip = false) }
-        is RouteStopLink.Trip -> sources?.plannedTrips?.firstOrNull { it.id == target.id }?.let { SelectedStopMarker(it.location, trip = true) }
+        // Amendment 3, last bullet, the owner: "Hide with its layer". A trip stop's flag goes with the Planned Trips switch, as above.
+        is RouteStopLink.Trip -> if (!tripsDrawn) null else sources?.plannedTrips?.firstOrNull { it.id == target.id }?.let { SelectedStopMarker(it.location, trip = true) }
         null -> null
     }
 
 /** Amendment 3: whether the map draws the waypoints layer under [layers] (the Map Layers sheet's Waypoints switch), as names read it. */
-internal fun waypointsLayerDrawn(layers: MapLayersState): Boolean =
-    MAP_LAYER_REGISTRY.firstOrNull { it.id == MapLayerIds.WAYPOINTS }?.let { layerPaintFor(it, layers).visible } ?: false
+internal fun waypointsLayerDrawn(layers: MapLayersState): Boolean = layerDrawn(MapLayerIds.WAYPOINTS, layers)
+
+/** Amendment 3, last bullet: whether the map draws the planned trips layer under [layers] (the Planned Trips switch). */
+internal fun plannedTripsLayerDrawn(layers: MapLayersState): Boolean = layerDrawn(MapLayerIds.PLANNED_TRIPS, layers)
+
+private fun layerDrawn(id: String, layers: MapLayersState): Boolean =
+    MAP_LAYER_REGISTRY.firstOrNull { it.id == id }?.let { layerPaintFor(it, layers).visible } ?: false

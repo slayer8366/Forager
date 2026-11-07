@@ -106,10 +106,15 @@ internal fun routePlottingTakesTap(tap: MapFeatureTap, sources: MapRecordSources
  * The line the map draws: the route being plotted, or a saved one with a dot at each stop (Amendment 1, Q8), and on a saved route its
  * selected stop's marker in the accent colour (dispatch 2026-11-06-05, Amendment 2, item 4; [selectedStopMarker]); `null` for none.
  */
-internal fun plottedRouteOnMap(controls: RoutePlottingControls?, sources: MapRecordSources? = null, waypointsDrawn: Boolean = true): PlottedRouteOnMap? = when (val mode = controls?.state?.mode) {
+internal fun plottedRouteOnMap(
+    controls: RoutePlottingControls?,
+    sources: MapRecordSources? = null,
+    waypointsDrawn: Boolean = true,
+    tripsDrawn: Boolean = true,
+): PlottedRouteOnMap? = when (val mode = controls?.state?.mode) {
     // Dispatch 2026-11-02-04 (A2): the stops' names, from RouteStop.name, while plotting and on a saved route.
     is RoutePlotMode.Plotting -> PlottedRouteOnMap(mode.draft.legs, stopNames = mode.draft.stops)
-    is RoutePlotMode.Showing -> mode.trip.route?.let { route -> PlottedRouteOnMap(route.legs, route.stops.map { it.position }, route.stops, selectedStopMarker(controls, sources, waypointsDrawn)) }
+    is RoutePlotMode.Showing -> mode.trip.route?.let { route -> PlottedRouteOnMap(route.legs, route.stops.map { it.position }, route.stops, selectedStopMarker(controls, sources, waypointsDrawn, tripsDrawn)) }
     RoutePlotMode.Off, null -> null
 }
 
