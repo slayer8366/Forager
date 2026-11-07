@@ -112,3 +112,151 @@ Device-only: Robolectric's pixels are its own renderer's. On the S22, with the a
 - Files checked against nav-card-kind-line (#498), next-turn (#500), revert-chip-colours (#488) and the other open PR
   branches before each edit: none touches `MapIconBar.kt`, `MapBarIconButton.kt` or the new test.
   `docs/audits/README.md` was not touched.
+
+# Amendment 2: the ring only as landscape navigation's re-center (Hazel, a fresh session)
+
+The owner's ruling (prompts/preserved/2026-11-06-04-amendment-2.md on records-after-173): the ring only in landscape while
+navigating when re-center is needed, replacing the pill there ("Ring replaces the pill"); tapping it re-centres; no ring
+anywhere else. The tests (fdf22dd85) and code (da61c9dc4) were pushed by an earlier session that was stopped before it
+reported. Its PR run, 42344323056, failed. This section covers that failure, the fix and the evidence.
+
+## Why run 42344323056 failed
+
+No compile errors: neither test job's log has an `e:` line. 6836 tests ran, 14 failed, and the same 14 failed in both the
+main job and the Street-map-deleted job. They fell into two groups:
+
+1. **One new test: `LocateRingReCenterLandscapeTest`, "real touches across the ringed locate row...".** The touch at the
+   centre passed. The touch at (0.08, 0.5) failed with "expected:<2> but was:<1>".
+   - Cause, confirmed by measurement on the fixed run: in the landscape L, the minimise handle's tap box ("Hide map
+     controls", 20 dp wide, one row tall, centred on the locate row) covers the row's outer 12 dp. The row spans 8..56 dp and
+     the handle 0..20 dp. The sample sat 3.8 dp in, so under the handle. The handle is composed after the bar, so it wins
+     that overlap.
+   - This layout is the owner's ruling (c), continuation -172 (`AvailabilityMapIconCluster.kt`, `MapIconBarHandles.kt`).
+     While navigating, the bar is fixed to the left (-955).
+   - Inferred, not observed: the touch hid the controls rather than doing nothing.
+   - So the test was wrong, not the build.
+2. **13 existing tests pinned Re-center in landscape navigation**, which is the old behaviour the owner changed. Each failed
+   with "could not find any node ... TestTag = 'return-to-route'":
+   - `ReCenterOutlineLandscapeTest`: 3 tests (#505's outline in landscape)
+   - `RouteCardRecenter{Landscape, TabletLandscape, S22Landscape, S22LandscapeFont20, ShortLandscape, ShortLandscapeFont20}Test`:
+     D17 (beside the L) and D27 (icon alone)
+   - `RouteCardRecenterCoversNoCard{,AfterSunset}Test`: D34
+   - `RouteCardRecenterCoversNoCardWideTest`: D34's counter-case
+   - `RouteCardRecenterLeaveRoomTest`: D32
+   The earlier session's tests-first commit had not converted them.
+
+## What was fixed (f0c743e99, tests only; no app code changed)
+
+- `LocateRowReCentreTouches.kt` (new, a shared test helper) holds five real touches across the locate row:
+  - the centre;
+  - 8% in from the top, the bottom and the inboard side;
+  - on the outer side, 2 dp inboard of the handle's measured box, or 8% in where no handle overlaps.
+  Each touch must bring the navigation view back (`restoreRequestId` + 1).
+- `LocateRingReCenterTest` uses that helper. Its claim is unchanged: before each touch the ring is there and the pill is
+  not; after it the camera follows and the ring is gone.
+- The 13 tests now check Amendment 2's claim, at the same windows, stop counts and peek/expanded walk:
+  - Re-center does not show;
+  - the locate row stays clear of the cards and the search bar;
+  - real touches across the locate row re-centre.
+- `ReCenterOutlineLandscapeTest` now extends `LocateRingReCenterTests` and also reads the ring's pixels at 915 x 412, day and
+  night. The outline itself is still read on the pill in portrait and on the icon alone.
+- **The claims on the cards are kept unchanged:**
+  - D32: unnarrowed where the icon fits;
+  - D32/D38: both cards narrowed at 640 x 360 font 2.0 with the S22's insets;
+  - D38: "Nothing moves".
+- No test was skipped or loosened, and no allowlist was changed. Every test whose claim changed was renamed to say so; the
+  by-name list is below.
+
+## Evidence
+
+- **Full CI on f0c743e99: run 42380446880, all 8 jobs green.**
+  - 6836 tests: 6812 passed, 24 skipped, 0 failed.
+  - pre-main's latest run (42337576510 on 1f6901a11) had 6822 tests: 6798 passed, 24 skipped.
+- **By name against pre-main:** no test changed status, and the 24 skipped tests are the same.
+  - 13 names exist only on pre-main. They are the 13 renamed tests above.
+  - 27 names exist only on this branch: the 13 renamed tests, the 9 `LocateRingReCenter*` tests and 5 `LocateRowRingTest`
+    cases (Amendments 1 and 2, not yet on pre-main).
+- **Revert checks.** Each revert was a one-line edit on its own throwaway branch from f0c743e99, run with the filter
+  `*LocateRing*;*ReCenterOutline*;*RouteCardRecenter*;*LocateRowRing*`.
+  - Each build log shows BUILD SUCCESSFUL for compilation and no `e:` line.
+  - Each run had 34 tests, which is every test in those classes.
+  - Every failure message belongs to its own edit.
+
+| Rule | Revert (one line) | Run | Result |
+| --- | --- | --- | --- |
+| The ring's condition | `locateRinged = false` (CompactMapIconCluster.kt) | 42380490966 | 7 of 34 failed, all "a #3B2E24 / #EDE3D0 ring is drawn" (landscape day, night, fullscreen, before a touch). The no-ring, portrait and pill cases passed |
+| The pill's absence | `returnToRouteShown = isNavigating && !navigationFollowing` (CompactMapBottomChrome.kt) | 42380493111 | 17 of 34 failed, all "Re-center does not show" (expected 0, was 1) across every landscape window |
+| The tap's routing | `onResumeTracking()` in place of `if (isNavigating) onReturnToRoute() else onResumeTracking()` | 42380495623 | 12 of 34 failed, all "a touch at (0.5, 0.5) on the locate row brings the navigation view back" (expected n+1, was n) |
+
+- After the checks, the forward change was confirmed still present in the PR worktree: `locateRowStandsInForReCenter(` is in
+  `CompactMapIconCluster.kt`, the tree is clean, and the reverts lived only in other worktrees.
+- **Scan:** `git diff origin/pre-main HEAD | python3 -I ~/.forager-private/scan.py stdin-diff` read 0 on every count before
+  every push, the throwaway branches included.
+
+## Device check steps (S22)
+
+Device-only: Robolectric reports no insets, and its pixels come from its own renderer.
+
+1. Rotate to landscape and start a navigation (Return). The camera follows; the locate row (crosshair) has no ring and no
+   Re-center shows.
+2. Pan the map away. The locate row gets a thin round ring, sampling #3B2E24 by day. No Re-center pill appears anywhere,
+   with or without a route card open.
+3. Tap the ringed crosshair near its centre and toward its inner side. The camera re-centres on the navigation and the ring
+   goes. Pan away again and the ring comes back.
+4. Note what a tap on the ring's outer edge does (the side toward the screen edge). The minimise handle owns the outer 12 dp
+   there (see below), so it may hide the controls. Report which.
+5. Fullscreen landscape: repeat steps 2 and 3.
+6. Portrait, navigating, pan away: Re-center shows as before, with its outline; no ring on locate. Tap Re-center: it
+   re-centres.
+7. Not navigating, in both orientations, and the journal map: no ring.
+8. Night Mode on: repeat steps 2 and 6. The ring and Re-center's outline sample #EDE3D0.
+
+## Disclosure
+
+### Confirmed and inferred
+
+- Confirmed from the logs: the failed run had no compile errors, and its 14 failures were the two groups above.
+- Confirmed by the fixed run's printed bounds: the handle's box covers the locate row's outer 12 dp in the L.
+- Inferred from code: the handle took that touch and hid the controls.
+- Confirmed from code (`ReCenterOnLocate.kt`, `CompactMapBottomChrome.kt`):
+  - "Landscape" is `MapIconClusterState.landscape` (rail and punch-hole edges present), the same flag D17 uses, so a tablet
+    in landscape counts.
+  - The ring and the pill's absence come from one function.
+  - The tap goes through Ruling D's existing `onReturnToRoute`.
+- Inferred from code: with the pill gone in landscape navigation, D17's "beside the L" place, D27's icon alone and D34's
+  word-covers-card choice are no longer reached on the Maps tab. They were landscape-only, and the portrait nav card does not
+  overlap the word. The code is still there; nothing was removed.
+
+### Could not determine
+
+- How the ring and the missing pill look and feel on the phone, and what a tap on the ring's outer arc does there (steps
+  above). The phone was not touched.
+
+### Premises that were wrong
+
+- The dispatch's state matched: origin/journal-locate-outline was da61c9dc4; the worktree was clean with nothing unpushed;
+  pre-main had not moved (1f6901a11).
+- The stopped session's test premise was wrong: it assumed every point across the 48 dp locate row is the row's. In the L,
+  the outer 12 dp belongs to the minimise handle, under a ruling (c) that predates this PR.
+
+### Decided beyond scope, and questions for the owner
+
+- **The outer arc of the ring hides the controls.**
+  - The ring is drawn 6 dp in from the row's edge, so its outer 6 dp, at the row's middle, lies under the handle's box.
+  - A tap there most likely hides the bar instead of re-centring. This is unchanged from before (the locate row's outer
+    sliver was always the handle's in the L), but the row is now the re-center button there.
+  - Not changed. The options are the owner's:
+    - (a) leave it;
+    - (b) narrow the handle's box in landscape navigation so it ends at the bar's edge;
+    - (c) move the handle off the locate row while the ring shows.
+- **The cards keep a gap for a pill that no longer shows.**
+  - D32/D38 narrow the route card and the navigation card from the L's side by Re-center's 48 dp icon plus gaps
+    (`routeCardLeaveRoomPx`, `RouteCardPlacement.kt`), whenever navigating in landscape. In narrow windows (640 x 360 at font
+    2.0 with the S22's insets) that is about 73 dp left empty.
+  - Kept, and the tests still pin it: Amendment 2 did not rule on it, and removing it would change what a user sees.
+  - Options: (a) keep the gap; (b) let both cards take the strip's width again in landscape navigation.
+- **Tablet landscape counts as landscape** (the planner's reading, recorded as open to the owner). On a tablet, Re-center
+  used to fit with its word at bottom centre, and now the ringed locate row stands in there too. The test is renamed to say
+  so (`RouteCardRecenterCoversNoCardWideTest`).
+- Test files only. Checked against nav-card-kind-line (ea4b6e7e8), next-turn (5d39c9f01) and route-card (c8ac2519d): none of
+  them changes any file this PR touches. `docs/audits/README.md` was not touched.
