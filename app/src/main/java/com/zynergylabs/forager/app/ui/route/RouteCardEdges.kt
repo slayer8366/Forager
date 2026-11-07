@@ -5,6 +5,7 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -13,6 +14,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
@@ -55,12 +57,17 @@ private val OUTLINE_PAST_EDGE = 2.dp
  * not the side flush to the screen edge". Drawn over the card's content, inside its bounds, in [shape]; the box it is drawn on reaches
  * [OUTLINE_PAST_EDGE] past each of [openEdges], where the card's clip (its Surface's shape) cuts it, so that side carries no stroke. It takes no
  * touch and changes no size.
+ *
+ * [coveredBottom]: how far up from the card's bottom another card lies over it (the landscape navigation card, C21's tuck). The outline
+ * stops at that card's top and draws nothing below it (Amendment 3, RECORD -2187, the owner: "Stop at the top"); found by the combined
+ * build, `docs/audits/2026-11-07-nav-card-outline-combined-clash.md`. 0 dp everywhere else, which leaves the outline as it was.
  */
 @Composable
-internal fun BoxScope.RouteCardOutline(shape: Shape, openEdges: Set<RouteCardEdge>) {
+internal fun BoxScope.RouteCardOutline(shape: Shape, openEdges: Set<RouteCardEdge>, coveredBottom: Dp = 0.dp) {
     Box(
         Modifier
             .matchParentSize()
+            .then(if (coveredBottom > 0.dp) Modifier.padding(bottom = coveredBottom).clipToBounds() else Modifier)
             .layout { measurable, constraints ->
                 val past = OUTLINE_PAST_EDGE.roundToPx()
                 val left = if (RouteCardEdge.LEFT in openEdges) past else 0
