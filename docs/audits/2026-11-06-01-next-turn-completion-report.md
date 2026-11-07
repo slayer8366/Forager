@@ -709,7 +709,8 @@ The scope is Amendment 1, J, step 1. The owner's word, verbatim: "Go ahead and b
 | `37a988424` | pre-main `b6f0b464d` merged in (merge, not rebase). Its four files (RECORD.md, one test, two audits) are none of this branch's. |
 | `78ccee9ce` | Tests first: four test classes, 37 tests, against stubs in the four new files. |
 | `2c572cee7` | The implementation. |
-| `5e9801df7` | The state function's arrow is its one blank gate (below), so the E1 to E3 revert bites at the state level too. **This is the code head.** |
+| `5e9801df7` | The state function's arrow is its one blank gate (below), so the E1 to E3 revert bites at the state level too. The step's own code ends here. |
+| `d8f744907` | pre-main `26a5c5955` merged in (see "Premises that were wrong"). |
 
 The four new files, each under 120 lines:
 - **`domain/nextturn/NextTurnArrow.kt`.** `NextTurnArrow`, one value per icon, and `nextTurnArrow(NextTurn)`:
@@ -790,7 +791,10 @@ Each was a one-line edit of `5e9801df7` in a scratch worktree, pushed to a throw
 
 ### Premises that were wrong
 
-- **The base moved twice.** The dispatch gave pre-main as `b6f0b464d` or later, and that held [observed]: it was merged in. During the session pre-main moved on to `26a5c5955` (PRs #503 and #504's follow-ups). Those commits change two tests (`EstimateOfflineTileCountTest`, `MapCameraMovesTest`), docs and the audit index, none of them this branch's files. **They are not merged here**, so the full CI above compares against the exact base it ran on. Step 2's merge brings them in.
+- **The base moved again.** The dispatch gave pre-main as `b6f0b464d` or later, and that held [observed]: it was merged in. During the session pre-main moved on to `26a5c5955` (PR #504 and its index row). Those commits change two tests (`EstimateOfflineTileCountTest`, `MapCameraMovesTest`), docs and the audit index, none of them this branch's.
+  - **What showed it.** With it fetched, the pre-push scan `git diff origin/pre-main HEAD` read 1 (`lon`). That 1 was in `EstimateOfflineTileCountTest.kt`, the old fixture this branch still held from `b6f0b464d`, which PR #504 replaced. My own changes (`git diff b6f0b464d HEAD`) read 0.
+  - **What I did.** I merged pre-main `26a5c5955` in at `d8f744907`, a clean merge of those five files only, by merge, not rebase. After it the scan reads 0.
+  - **Its CI.** Full PR run **42319742136** on `d8f744907`: every job passed, 6,990 tests, 0 failed, 24 skipped. Compared by name with pre-main's push run **42315368330** on `3542a0c30` (the last code commit before `26a5c5955`, which is docs only), with 6,838 tests: none missing, none changed status, the same 24 skips, and 152 new, 37 of them step 1's.
 - **The laptop's disk filled during the revert runs.** `/mnt/work` went to 100%, from things outside my scratch. My eight revert worktrees (about 137 MB each) were the last straw: the ninth `git worktree add` failed with "No space left on device". I removed my worktrees and reran the last five in one reused worktree. All 13 reverts ran and are read above. The disk stood at 99% (1.1 GB free) when I finished. **Other sessions on the laptop may hit this.**
 
 ### Decided beyond scope (each open to the owner)
@@ -804,7 +808,7 @@ Each was a one-line edit of `5e9801df7` in a scratch worktree, pushed to a throw
 
 ### What step 2 needs
 
-1. Merge origin/pre-main (now `26a5c5955` or later) and origin/nav-card-kind-line into next-turn, by merge, not rebase, after #498's E15 Hazel hands back.
+1. Merge origin/pre-main (if it has moved past `26a5c5955`) and origin/nav-card-kind-line into next-turn, by merge, not rebase, after #498's E15 Hazel hands back.
 2. In `CardTurnLine`, put `NextTurnSpace(nextTurnSpaceShown(readout, hasFix = liveFix != null, ahead = nextTurn(...), unit), unit)` beside the needle (A1). The `NextTurnWay` comes from `WayHomeShown.turns` or `WaypointRouteShown.turns`, with the line and the progress the holders already keep.
 3. Measure the fit on that layout, in portrait, in landscape and at font 2.0 (G2). If it is too big, stop with the measured widths (G4).
 4. A coordinate-touch test that the space intercepts nothing over the map, full CI, the S22 steps, and the PR out of draft.
