@@ -1,6 +1,8 @@
 package com.zynergylabs.forager.app.ui.map
 
 import android.util.Log
+import com.zynergylabs.forager.app.ui.map.layers.LayerRenderer
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerSpec
 import com.zynergylabs.forager.app.ui.map.layers.ZGroup
 import org.maplibre.android.maps.Style
@@ -40,9 +42,47 @@ internal data class BasemapLayer(val id: String, val namesOrIcons: Boolean)
  * Why this keeps every other map as it is: Topographical and Street are each one raster picture, their names part of
  * the image; Topographical at night lays the Topographical picture over Trail Map as the top layer
  * ([trailWithTopoOverBuilder]); the offline style has no symbol layer. In each the top layer is not a name or icon.
+ *
+ * [layers] is the whole of `style.layers`; only the basemap's own count ([isBasemapOwnLayer]). I9 (dispatch 2026-11-06-01
+ * Amendment 1, RECORD -2183), from the S22 check: after a style reload MapLibre's position-dot layers are already in the
+ * style, symbol layers on top, and counting them put Topographical's and Street's app layers under the dot instead of
+ * keeping today's placement. Trail Map's anchor is the same with or without them.
  */
-internal fun namesAnchorOf(basemap: List<BasemapLayer>): String? =
-    basemap.getOrNull(basemap.indexOfLast { !it.namesOrIcons } + 1)?.id
+internal fun namesAnchorOf(layers: List<BasemapLayer>): String? {
+    val basemap = basemapOwnLayers(layers)
+    return basemap.getOrNull(basemap.indexOfLast { !it.namesOrIcons } + 1)?.id
+}
+
+/**
+ * The prefix of every layer MapLibre 13.5.0's position dot adds (`LocationComponentConstants`, read with `javap` on the
+ * pinned AAR: `mapbox-location-shadow-layer`, `-foreground-layer`, `-background-layer`, `-accuracy-layer`,
+ * `-bearing-layer`, `-pulsing-circle-layer`). `MapLibreMap.notifyStyleLoaded` has `LocationComponent.onFinishLoadingStyle`
+ * add them before the app's `setStyle` callback runs, on every style load after the dot was first turned on.
+ */
+internal const val MAPLIBRE_LOCATION_LAYER_PREFIX = "mapbox-location-"
+
+/**
+ * Every layer the app adds on a style load: the registry's own (not the style's own band layers, which are the
+ * basemap's) and the adds after it, the way home, the plotted route, the waypoint names and the fan-out. None is in the
+ * style when the anchor is read today, since `setStyle` drops them and the anchor is read before the first add; I9 asks
+ * for them to be left out should that change. The Topographical picture laid over Trail Map at night is not here: it is
+ * the map the user sees, and it is what keeps that map at today's placement.
+ */
+internal val APP_OVERLAY_LAYER_IDS: Set<String> by lazy {
+    MAP_LAYER_REGISTRY.filter { it.renderer != LayerRenderer.STYLE_LAYER }.map { it.id }.toSet() + setOf(
+        RouteHomeIds.STRAIGHT_LAYER, RouteHomeIds.STRAIGHT_OFFLINE_LAYER, RouteHomeIds.PASSED_LAYER, RouteHomeIds.AHEAD_CASING_LAYER,
+        RouteHomeIds.AHEAD_LAYER, RouteHomeIds.AHEAD_DOTTED_LAYER, RouteHomeIds.AHEAD_STRAIGHT_LAYER, RouteHomeIds.ARRIVED_LAYER,
+        PlottedRouteIds.CASING_LAYER, PlottedRouteIds.STRAIGHT_CASING_LAYER, PlottedRouteIds.TRAIL_LAYER, PlottedRouteIds.STRAIGHT_LAYER,
+        PlottedRouteIds.STOPS_LAYER, WaypointNameIds.LAYER, WaypointNameIds.STOP_LAYER,
+        FanOutIds.LEGS_CASING_LAYER, FanOutIds.LEGS_LAYER, FanOutIds.DOTS_LAYER, FanOutIds.ICONS_LAYER,
+    )
+}
+
+/** Whether the layer [id] is the basemap's own: neither MapLibre's position dot nor one the app adds. */
+internal fun isBasemapOwnLayer(id: String): Boolean = !id.startsWith(MAPLIBRE_LOCATION_LAYER_PREFIX) && id !in APP_OVERLAY_LAYER_IDS
+
+/** The basemap's own layers among [layers], in their order ([isBasemapOwnLayer]). */
+internal fun basemapOwnLayers(layers: List<BasemapLayer>): List<BasemapLayer> = layers.filter { isBasemapOwnLayer(it.id) }
 
 /**
  * The registry groups that go under the names: the lines (I2), and with them the forecast colours, the areas (the
@@ -63,21 +103,32 @@ internal sealed interface OverlayPlacement {
 internal fun overlayPlacement(spec: MapLayerSpec, namesAnchor: String?): OverlayPlacement =
     if (namesAnchor != null && spec.zGroup in GROUPS_UNDER_NAMES) OverlayPlacement.Below(namesAnchor) else OverlayPlacement.OnTop
 
-/** The line logged once per style load: where the app's layers went on [basemap], and why. */
-internal fun namesAnchorLogLine(namesAnchor: String?, basemap: List<BasemapLayer>): String =
-    if (namesAnchor != null) {
+/**
+ * The line logged once per style load: where the app's layers went on the basemap of [layers] (all of `style.layers`),
+ * and why. The layer number and count are among the basemap's own layers; any layer left out ([isBasemapOwnLayer]) is
+ * named, so the S22 logcat step can see what was in the style (I9).
+ */
+internal fun namesAnchorLogLine(namesAnchor: String?, layers: List<BasemapLayer>): String {
+    val basemap = basemapOwnLayers(layers)
+    val placement = if (namesAnchor != null) {
         "App lines under the map's names: the forecast colours up to the way home go below $namesAnchor " +
             "(layer ${basemap.indexOfFirst { it.id == namesAnchor }} of ${basemap.size}); markers, names and the fan-out stay on top."
     } else {
         "App layers over the whole map (${basemap.size} layers), today's placement: " +
             "its top layer ${basemap.lastOrNull()?.id ?: "(none)"} is not a name or icon layer."
     }
+    val leftOut = layers.filterNot { isBasemapOwnLayer(it.id) }
+    return if (leftOut.isEmpty()) placement else "$placement Left out as not the map's own: ${leftOut.joinToString { it.id }}."
+}
 
-/** The loaded [style]'s names anchor ([namesAnchorOf]), read before any app layer is added, and logged. */
+/**
+ * The loaded [style]'s names anchor ([namesAnchorOf]), read before any app layer is added, and logged. Every layer in the
+ * style is handed on, MapLibre's position dot included; [namesAnchorOf] counts only the basemap's own (I9).
+ */
 internal fun readNamesAnchor(style: Style): String? {
-    val basemap = style.layers.map { BasemapLayer(it.id, it is SymbolLayer) }
-    val anchor = namesAnchorOf(basemap)
-    Log.i(SIGHTINGS_MAP_TAG, namesAnchorLogLine(anchor, basemap))
+    val layers = style.layers.map { BasemapLayer(it.id, it is SymbolLayer) }
+    val anchor = namesAnchorOf(layers)
+    Log.i(SIGHTINGS_MAP_TAG, namesAnchorLogLine(anchor, layers))
     return anchor
 }
 
