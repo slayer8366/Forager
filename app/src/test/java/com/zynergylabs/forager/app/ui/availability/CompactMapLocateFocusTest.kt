@@ -40,7 +40,16 @@ class CompactMapLocateFocusTest {
     @Test
     fun `before a search, and without a fix, there is no locate-me pan`() {
         assertNull("no search: displayRegion follows the fix instead", compactMapLocateFocus(state(null, frame = 0, status = LocateMeStatus.Located(gps, null, 0))))
-        assertNull(compactMapLocateFocus(state(searched, frame = 1, status = LocateMeStatus.Loading)))
+        assertNull(compactMapLocateFocus(state(searched, frame = 1, status = LocateMeStatus.Loading())))
         assertNull(compactMapLocateFocus(state(searched, frame = 1, status = LocateMeStatus.Idle)))
+    }
+
+    @Test
+    fun `a second locate's fetch keeps the first fix as the target until its own arrives`() {
+        // Dispatch 2026-11-07-01 Amendment 1: the fetch a locate tap starts no longer clears the pan target, so the camera
+        // target does not change at the tap (the jump to the search region the owner saw).
+        val held = LocateMeStatus.Located(gps, null, searchFrameSerial = 1)
+        assertEquals(gps, compactMapLocateFocus(state(searched, frame = 1, status = LocateMeStatus.Loading(previous = held))))
+        assertNull("a fix from an earlier search is still not this search's", compactMapLocateFocus(state(searched, frame = 2, status = LocateMeStatus.Loading(previous = held))))
     }
 }
