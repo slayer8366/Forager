@@ -249,6 +249,8 @@ internal fun mapLayersViewModel(
     currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     // Step 6 PR 3 (dispatch 2026-10-26-11): the way to a waypoint along trails. Defaulted to none, today's straight line.
     findWayToWaypoint: (suspend (LatLng, LatLng, Float?) -> WayToWaypointResult)? = null,
+    // Dispatch 2026-11-06-01, H4 (2b-1): each trail line's junctions for the next turn. Defaulted to none, as before.
+    readRouteTurns: com.zynergylabs.forager.app.domain.nextturn.RouteTurnsReader? = null,
     // Dispatch 2026-10-27-14: Settings > Map > "Crowded icons". Defaulted to nothing stored, which is "Zoom in, then fan".
     crowdedIcons: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
     // Dispatch 2026-11-02-04: Settings > Map > "Waypoint names". Defaulted to nothing stored, which is on.
@@ -306,6 +308,7 @@ internal fun mapLayersViewModel(
         readWaypoint = readWaypoint,
         currentTime = currentTime,
         findWayToWaypoint = findWayToWaypoint,
+        readRouteTurns = readRouteTurns,
         crowdedIconsRepository = crowdedIcons,
         waypointNamesRepository = waypointNames,
         entryReferenceCounts = entryReferenceCounts,

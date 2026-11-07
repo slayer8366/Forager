@@ -158,10 +158,12 @@ class NoFacingLabelTest {
     // Dispatch 2026-10-12-08 (RECORD -950): navigating, the height and its "Alt" are on the strip's line, which stays; the
     // navigation info has no label. Was "on the navigation display the heading reads alone, Alt is still drawn, and Facing is not",
     // asserting `listOf(ALTITUDE_LABEL)` in NAVIGATION_HUD_TAG.
+    // Amendment 1, H1 of dispatch 2026-11-05-10: the heading is on the strip's line navigating too. Was "navigating, the heading reads
+    // alone in the navigation info, …", asserting `textOf(NAVIGATION_HUD_HEADING_TAG)`.
     @Test
-    fun `navigating, the heading reads alone in the navigation info, Alt is drawn on the strip, and Facing is not`() {
+    fun `navigating, the heading reads alone on the strip, Alt is drawn on the strip, and Facing is not`() {
         setScreen(navigating = true)
-        assertEquals("the heading stays", "315° NW", textOf(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("the heading stays", "315° NW", textOf(COMPASS_STRIP_HEADING_TAG))
         assertEquals("no label in the navigation info", emptyList<String>(), labelsIn(NAVIGATION_HUD_TAG))
         assertEquals("positive control: labels fit on the strip's line, and Alt is the only one", listOf(ALTITUDE_LABEL), labelsIn("compass-elevation-strip"))
         assertNoFacing()

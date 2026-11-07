@@ -45,7 +45,12 @@ for (const e of errors) problems.push(`style spec: ${e.message}`);
 // street-v4 are frozen the same way since dispatch 2026-11-03-05 (D2, RECORD -2000): what they were at pre-main
 // d88db1799, every copy, for the regions downloaded against them; a later design ships as trail-v5. v2 is held by the
 // Worker's tests. street-v4 was updated in place once since, with the first zooms (dispatch 2026-11-02-coder-13; the
-// owner: "Update v4 in place"), and is held here to the new files' sums; v1 and v3 are as they were.
+// owner: "Update v4 in place"), and is held here to the new files' sums; v1 and v3 are as they were. It was updated in
+// place a second time for I8 (dispatch 2026-11-06-01 Amendment 1, RECORD -2183; the owner: "Update v4 in place"): the
+// Forest Service trail number moved up among the labels, and nothing else (check 10 holds that), so the three street-v4
+// sums below are the I8 files'. This is allowed only because Trail Map has not been released yet (the owner: "Nobody
+// is using Trail maps so updating in place is permitted. Only when we release it do we need to do it properly"); after
+// release a style change ships as a new version.
 const V1_SHA256 = {
   "forager-street-v1.json": "b2ec485ddbe65635a1b2a0f1ef5b51bbb86f6432eec1fd6896bcf4c8979bd6da",
   "forager-street-v1.preview.json": "4fc2e14feeecfdf86bc7a4f6d7597eb997732ee97620388fba69ea379926dc88",
@@ -53,13 +58,13 @@ const V1_SHA256 = {
   "forager-street-v3.json": "e2a259820bd1dda6bccfd7e05d5132adea6254002540cfbfdcfc04747de16b7f",
   "forager-street-v3.preview.json": "beb40e3a0e5624da44f52e98f0e85c52e3065cc87af5987396fbf983a8d71c97",
   "../server/pmtiles-worker/src/street-style-v3.json": "e2a259820bd1dda6bccfd7e05d5132adea6254002540cfbfdcfc04747de16b7f",
-  "forager-street-v4.json": "d27d42d163baf8a9576e2ad0407625f48aabf41713809fb61689b794d0f94e40",
-  "forager-street-v4.preview.json": "bf389ab39364db3faa46146876f00bd694bce6ae11534f341348f2ad20afec21",
-  "../server/pmtiles-worker/src/street-style-v4.json": "d27d42d163baf8a9576e2ad0407625f48aabf41713809fb61689b794d0f94e40",
+  "forager-street-v4.json": "8032de2c14725ef5d819eb229d1358146d5493e608ac2227e2bb79b9365e9f5c",
+  "forager-street-v4.preview.json": "35572d32f1d0eb5ef629b28bf7e02cd6b94267e7a54c0e74e29d6d49987ed3c0",
+  "../server/pmtiles-worker/src/street-style-v4.json": "8032de2c14725ef5d819eb229d1358146d5493e608ac2227e2bb79b9365e9f5c",
 };
 for (const [path, sum] of Object.entries(V1_SHA256)) {
   const actual = crypto.createHash("sha256").update(fs.readFileSync(here(path))).digest("hex");
-  if (actual !== sum) problems.push(`${path} changed (sha256 ${actual}): frozen (v1 since -1561, v3 and v4 since dispatch 2026-11-03-05 D2; v4 updated in place once, dispatch 2026-11-02-coder-13); a new design ships as a new version`);
+  if (actual !== sum) problems.push(`${path} changed (sha256 ${actual}): frozen (v1 since -1561, v3 and v4 since dispatch 2026-11-03-05 D2; v4 updated in place twice, dispatch 2026-11-02-coder-13 and I8 of dispatch 2026-11-06-01, before Trail Map's release); a new design ships as a new version`);
 }
 
 const channels = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255);
@@ -420,15 +425,30 @@ if (V4) {
 
 // 10. v4's creeks under the water (the fill-in rulings, "Water fill to the creek colour", superseded: the owner, "Creeks
 //     under water (Recommended)"): water_stream and water_river draw just before the water fill, so a lake or river
-//     polygon covers the line inside it and the creek shows everywhere else. Nothing else moves.
+//     polygon covers the line inside it and the creek shows everywhere else. Nothing else moves, but for I8's one layer.
+//     I8 (dispatch 2026-11-06-01 Amendment 1, RECORD -2183; the owner: "Update v4 in place"): the Forest Service trail
+//     number, reference_fs_number, moves up from just above the trail lines to the bottom of v4's top run of labels,
+//     directly above the last bridge and directly under address_label, so the app's lines, which go just under that run,
+//     draw under it (I5: "Under all names, trail no. too"). It is the one exception added to this check, and only for v4.
+//     Changing v4 in place is allowed only because Trail Map has not been released yet (the owner: "Nobody is using
+//     Trail maps so updating in place is permitted. Only when we release it do we need to do it properly"); after
+//     release a style change ships as a new version.
 if (V4) {
   const order = designOrder;
   const at = order.indexOf("water");
   const before = order.slice(at - 2, at);
   if (JSON.stringify(before) !== JSON.stringify(["water_stream", "water_river"])) problems.push(`the two layers before the water fill are ${JSON.stringify(before)}; ruled ["water_stream","water_river"]`);
-  const v3order = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8")).layers.map((l) => l.id).filter((id) => id !== "water_stream" && id !== "water_river");
-  const v4rest = order.filter((id) => id !== "water_stream" && id !== "water_river" && v3order.includes(id));
-  if (JSON.stringify(v4rest) !== JSON.stringify(v3order)) problems.push("apart from the two creek layers, v4 moves a layer v3 has");
+  const MOVED = new Set(["water_stream", "water_river", "reference_fs_number"]);
+  const v3order = JSON.parse(fs.readFileSync(here("forager-street-v3.json"), "utf8")).layers.map((l) => l.id).filter((id) => !MOVED.has(id));
+  const v4rest = order.filter((id) => !MOVED.has(id) && v3order.includes(id));
+  if (JSON.stringify(v4rest) !== JSON.stringify(v3order)) problems.push("apart from the two creek layers and I8's trail number, v4 moves a layer v3 has");
+  // I8's place, read on the whole layer list: the first of the top run of symbol layers, the run the app's lines go under.
+  const all = style2.layers;
+  const n = all.findIndex((l) => l.id === "reference_fs_number");
+  const topRun = all.findLastIndex((l) => l.type !== "symbol") + 1;
+  if (n !== topRun || all[n + 1]?.id !== "address_label") {
+    problems.push(`reference_fs_number is layer ${n} of ${all.length}, between ${all[n - 1]?.id} and ${all[n + 1]?.id}; I8 rules it first in the top run of labels (layer ${topRun}), directly under address_label`);
+  }
 }
 
 // 11. v4's orchards, plant nurseries and vineyards (the fill-in rulings, "Orchards, plant nurseries and vineyards filled":

@@ -130,3 +130,25 @@ export function withReferenceLayers(layers) {
   if (first < 0) throw new Error(`No ${TRAIL_LAYER_PREFIX}* layer: nowhere to put the official-trails band`);
   return [...layers.slice(0, first), ...bandLayers(), ...layers.slice(first, last + 1), ...labelLayers(), ...layers.slice(last + 1)];
 }
+
+/**
+ * [layers] with the Forest Service trail number moved up to the bottom of the style's top run of labels: directly above
+ * the last layer that is not a symbol layer (on v4, the last bridge) and so directly under the first label above it.
+ * Nothing else moves. v4 only (generate-trail.mjs); v3 keeps the number where withReferenceLayers() put it.
+ *
+ * Why (dispatch 2026-11-06-01 Amendment 1, I5 and I8; RECORD -2183): the app draws its lines just under that top run
+ * (app/src/main/java/com/zynergylabs/forager/app/ui/map/AppLinesUnderNames.kt), and the owner chose "Under all names,
+ * trail no. too" (I5) and, for how it ships, "Update v4 in place" (I8). The bottom of the run, and not higher in it, so
+ * the number keeps its place below every other label, as before. Changing v4 in place is allowed only because Trail Map
+ * has not been released yet (the owner: "Nobody is using Trail maps so updating in place is permitted. Only when we
+ * release it do we need to do it properly"); after release a style change ships as a new version.
+ * Throws rather than putting the number somewhere else when the style has no such layer or no top run of labels.
+ */
+export function withTrailNumberUnderLabels(layers) {
+  const number = layers.find((l) => l.id === "reference_fs_number");
+  if (!number) throw new Error("No reference_fs_number layer: nothing to move up among the labels");
+  const rest = layers.filter((l) => l !== number);
+  const at = rest.findLastIndex((l) => l.type !== "symbol") + 1;
+  if (rest[at]?.type !== "symbol") throw new Error("The style's top layer is not a label: no top run of labels to put the trail number in");
+  return [...rest.slice(0, at), number, ...rest.slice(at)];
+}
