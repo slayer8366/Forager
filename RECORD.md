@@ -36562,3 +36562,20 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - To "In landscape while navigating, when the ring shows on the locate icon, what happens to the Re-center pill?": **"Ring replaces the pill"** (the option: "In landscape navigation the pill doesn't show; the ringed locate icon is the re-center button. Portrait keeps the pill as now"). To "Is the step path right: pan away → the ring appears → tap the ringed icon → the camera re-centres on your navigation → the ring goes?": **"Yes, that's it"** (the option: "Build it as described, in #506").
   - So #505's outline on the Re-center pill is confirmed on the phone, day and night. #506 changes: dispatch 2026-11-06-04, Amendment 2.
 **Notes:** Written by the planner by hand. Next free ID -2187.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2187
+**Timestamp:** 2026-11-07T05:50:43Z
+**Title:** The waypoint route card: Re-center under it, tuck and close, a Navigate button, an outline: dispatch 2026-11-06-05
+**Decision:**
+- **The owner, verbatim, with a screenshot of the Maps tab showing a plotted route's card:** **"Have the re-center button be below the waypoint route card. Allow the card to be tucked into the side or closed entirely. Add a Navigate button to the left side of Directions. Add an outline to the waypoint route card also."**
+- **The owner's answers:**
+  - To "What should \"tucked into the side\" look like?": **"Slides to the edge, tab stays"** ("Swipe the card sideways: it slides off to the screen edge, leaving a small tab; tap or drag the tab to bring it back").
+  - To "\"Closed entirely\": what does closing do, and how does the card come back?": **"X clears the route"** ("Closing removes the card and the route from the map, as if the route was dismissed").
+  - To "What should the new Navigate button do?": **"Navigate to the first stop"** ("Starts the existing navigation to the route's first waypoint").
+  - To "The card's outline: same as the Re-center pill (1 dp, Bark by day, cream at night)?": **"Same as Re-center"**.
+  - To the step paths (swipe sideways → slides to the edge, tab stays → tap or drag the tab → back; ✕ → card and route leave the map; Navigate, left of Directions → the usual navigation to the first waypoint; Re-center just under the open card, back to today's place when tucked or closed; the outline as Re-center's): **"Yes, build it"**. To "Where should it be built?": **"Its own PR (Recommended)"**.
+- Dispatch 2026-11-06-05 is at prompts/preserved/2026-11-06-05-route-card.md. The screenshot stays off GitHub.
+**Notes:** Written by the planner by hand. Next free ID -2188.
