@@ -186,6 +186,8 @@ internal fun BoxScope.CompactMapRouteCard(
     sources: MapRecordSources? = null,
     /** Amendment 3: whether the map is fullscreen when Navigate is tapped, for the Back order (`RouteCardBackOrder.kt`). */
     isFullscreen: Boolean = false,
+    /** Amendment 1, step 1: navigating, when Re-center can show, so the portrait card leaves its room (RouteCardReCenterRoom.kt). */
+    isNavigating: Boolean = false,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -221,14 +223,21 @@ internal fun BoxScope.CompactMapRouteCard(
         portrait -> routeCardPortraitTransitions(barOnLeft)
         else -> navigationChromeFromBottomTransitions()
     }
-    // C21 (RECORD -1955): on the navigation card while navigating in landscape, its lower edge tucked behind that card's top.
-    val bottomPadding = landscapeRoom?.bottom ?: (bottomInset + LEGEND_ATTRIBUTION_CLEARANCE)
-    val sides = routeCardSides(barOnLeft = barOnLeft, barColumn = routeCardBarColumn(with(density) { cluster.clusterWidthPx.toDp() }))
+    val barColumn = routeCardBarColumn(with(density) { cluster.clusterWidthPx.toDp() })
+    val sides = routeCardSides(barOnLeft = barOnLeft, barColumn = barColumn)
     // C21 with C23 (RECORD -1955, -1956): on the navigation card, its width, edge to edge, whatever C19's reference is; lines wrap.
     // D32 (RECORD -1987): both narrower by the room Re-center's icon needs beside the L, where it would not fit.
     val onNavigationCard = landscapeRoom?.takeIf { it.onNavigationCard > 0.dp }?.onNavigationCardWidth
     val shape = if (portrait) routeCardPortraitShape(barOnLeft) else ROUTE_CARD_LANDSCAPE_SHAPE
     val referenceWidth = rememberRouteCardWidth(distanceUnit)
+    // Dispatch 2026-11-06-05, Amendment 1, step 1 (RECORD -2187, the owner: "(b) Card leaves room"): in portrait while navigating, the
+    // card sits higher by Re-center's height and a gap wherever Re-center shares its column, so Re-center is under it and the card never
+    // moves as Re-center appears or goes (RouteCardReCenterRoom.kt). The tab tucks at the card's bottom corner, so it keeps the same.
+    var reCenterWordSize by remember { mutableStateOf(IntSize.Zero) }
+    if (portrait) ReturnToRouteWordProbe { reCenterWordSize = it }
+    val reCenterRoom = routeCardReCenterRoomFor(cluster, controlsPadding, isNavigating, portrait, cardOnLeft, barColumn, referenceWidth, reCenterWordSize)
+    // C21 (RECORD -1955): on the navigation card while navigating in landscape, its lower edge tucked behind that card's top.
+    val bottomPadding = landscapeRoom?.bottom ?: (bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + reCenterRoom)
     // D37 (RECORD -2006, the owner: "Cover the top bar (Recommended)"): where the peek lines fill the cap, the expanded card's cap rises
     // over the strip; collapsing brings the cap, and so the strip, back at once (the planner accepted that, -2008).
     var linesPx by remember { mutableIntStateOf(0) }
@@ -328,7 +337,8 @@ internal fun BoxScope.CompactMapRouteCard(
                                 if (!hidden) {
                                     // What rises above the card, and the map's fit, clear it wherever it sits, so a card resting on the
                                     // navigation card counts from the map's bottom edge (C21, as C11 did).
-                                    onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: 0) })
+                                    // Step 1: in portrait, Re-center's room under it too, so the legend chip and the route's fit clear it.
+                                    onCardHeightDp(with(density) { it.size.height.toDp().value.toInt() + (landscapeRoom?.bottom?.value?.toInt() ?: reCenterRoom.value.toInt()) })
                                     val left = it.positionInRoot().x
                                     onCardSpanPx(left..left + it.size.width)
                                     onCardBoundsInRoot(it.boundsInRoot())

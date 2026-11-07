@@ -678,6 +678,7 @@ internal fun CompactMapTab(
                     onCardBoundsInRoot = { routeCardBoundsInRoot = it },
                     sources = bubbleSources,
                     isFullscreen = isFullscreen,
+                    isNavigating = navigation.isNavigating,
                 )
 
                 // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the
@@ -717,9 +718,9 @@ internal fun CompactMapTab(
                     isDrawerOpen = isDrawerOpen,
                     onBottomNavTabSelected = onBottomNavTabSelected,
                     onBottomNavHeightMeasured = onBottomNavHeightMeasured,
-                    // Dispatch 2026-10-30-08, Amendment 3: "Return to Route" rises above the route card while it shows.
+                    // Dispatch 2026-10-30-08, Amendment 4: the legend chip rises above the route card while it shows.
                     routeCardHeight = routeCardHeightDp.dp,
-                    // Amendment 17, part 2 ruled (RECORD -1943): Re-center rises only for a card it shares a column with.
+                    // D17 (RECORD -1958): the room beside the L runs to the card's left.
                     routeCardSpanPx = routeCardSpanPx,
                     // D17 (RECORD -1958): beside the L instead, while the card shows on the navigation card.
                     reCenterBesideTheL = reCenterBesideTheL(routeCardRoom, cardShowing = routeCardSpanPx != null),
