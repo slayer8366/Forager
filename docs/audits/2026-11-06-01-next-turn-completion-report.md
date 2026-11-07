@@ -697,3 +697,118 @@ None found. The three locks were as the stop described (`check-trail-night.mjs:5
 ### Clean-up
 
 The throwaway branches `next-turn-i8-red` and `next-turn-i8-rev` are deleted from origin at the end, and the revert worktree is removed. Their runs stay readable by number. Scratch: `/mnt/work/scratch/hazel-i8` (mode 700). The worktree's `map-style/node_modules` and `map-style/assets` are links into scratch, ignored by git, and are removed at the end.
+
+## 2b-2 step 1: the next turn's arrow, words and own space, in new files (Hazel, 2026-11-06)
+
+The scope is Amendment 1, J, step 1. The owner's word, verbatim: "Go ahead and begin part 2 of 500". The planner's call: the arrow (C1 to C3), the TalkBack words (G3, with the count for plain turns only), the space's own composable and its state from `nextTurnCardState`, tests first, with no file nav-card-kind-line changes. The space is **not on the card yet**. That is step 2, after #498's E15 Hazel hands the card files back.
+
+### What landed
+
+| Commit | What it does |
+|---|---|
+| `37a988424` | pre-main `b6f0b464d` merged in (merge, not rebase). Its four files (RECORD.md, one test, two audits) are none of this branch's. |
+| `78ccee9ce` | Tests first: four test classes, 37 tests, against stubs in the four new files. |
+| `2c572cee7` | The implementation. |
+| `5e9801df7` | The state function's arrow is its one blank gate (below), so the E1 to E3 revert bites at the state level too. **This is the code head.** |
+
+The four new files, each under 120 lines:
+- **`domain/nextturn/NextTurnArrow.kt`.** `NextTurnArrow`, one value per icon, and `nextTurnArrow(NextTurn)`:
+  - a turn's band and side (C1);
+  - a fork's side to keep to (C2);
+  - `NoTurnLeft` gives `STRAIGHT` (C3);
+  - a blank gives `null`.
+  It has no UI framework in it.
+- **`domain/nextturn/NextTurnWords.kt`.** `nextTurnWords(NextTurn, spokenDistance)` gives G3's words. `spokenFigure(figure)` spells out the unit of the card's figure: "400 ft" becomes "400 feet". For a figure in any other form it returns `null` and does not guess.
+- **`ui/availability/NextTurnSpaceShown.kt`.** `nextTurnSpaceShown(readout, hasFix, ahead, unit)` gives the arrow, the figure and the spoken words:
+  - it goes through `nextTurnCardState`, then `nextTurnSpace` (E1);
+  - a turn's or a fork's figure is `formatDistanceMeters(metersAway, unit)`, the top line's own formatter for a trail route (D1);
+  - the straight-ahead figure is the top line's own `distanceText` (A3).
+  A figure whose unit cannot be spelled out is spoken as written, and a warning is logged.
+- **`ui/availability/NextTurnSpace.kt`.** The composable, with the arrow first and then the figure:
+  - **Its width:** the arrow, `Spacing.xs`, and the widest of "88.8 mi" and "8888 ft" (or "88.8 km" and "8888 m"), measured in its own style. This is CLAUDE.md, "Changing info gets its own window". It holds that width blank, so nothing beside it moves.
+  - **TalkBack:** `clearAndSetSemantics`, so TalkBack reads the words alone and never the drawn figure.
+  - **The icons:** `nextTurnIcon` uses the Material Filled icons TurnSlightLeft/Right, TurnLeft/Right, TurnSharpLeft/Right, ForkLeft/Right and Straight, from `material-icons-extended` 1.7.8, already a dependency. None is AutoMirrored.
+  - **Its defaults:** style `labelMedium` (the turn line's own type on #498) and arrow size `COMPASS_ICON_SIZE`. Both are parameters, so step 2 can pass the card's own.
+
+**The one-coder-per-file check** [observed]. Before each commit I ran `git diff --name-only origin/pre-main...origin/nav-card-kind-line` (head `b9fad7604`) and compared it with my files: there was no overlap, and every file of mine is new. The only existing file I edited is this report, which is not in that list.
+
+### Evidence
+
+Each run was read by `results.py`, carried over from 2b-1. It refuses a run that is incomplete, on another SHA, has a short or empty log, or has a Kotlin compile error or a failed compile task. Counts come from the JUnit XML. The filter is `*NextTurnArrowTest;*NextTurnWordsTest;*NextTurnSpaceShownTest;*NextTurnSpaceTest`.
+
+- **Red: run 42312833368** on `78ccee9ce` (the stubs), with 0 compile errors. 37 tests, **28 failed**, each for its stub's reason: `expected:<SLIGHT_LEFT> but was:<null>`, `expected:<turn left in 400 feet> but was:<null>`, `expected:<Filled.[TurnSlightLeft]> but was:<Filled.[Navigation]>`, and the space's tag not found. The 9 that passed on the stubs are controls whose claim is "blank" or "not guessed":
+  - the arrow's and the words' blanks;
+  - the figures in other forms;
+  - E1's four states, E2 and E3 in the state test.
+  Each of those is made red by a revert below (blank, e1).
+- **Green, filtered: run 42312908709** on `2c572cee7`. 37 of 37 passed.
+- **Green, full: PR run 42315093612** on `5e9801df7`. Every job passed: 6,990 tests, 0 failed, 24 skipped.
+- **Compared by name with pre-main's push run 42308597327** on `b6f0b464d` (the base merged in). That run had 6,838 tests.
+  - None of pre-main's tests is missing here, and none changed status.
+  - The 24 skips are the same tests.
+  - There are 152 new tests. 115 are this branch's earlier work (2a, 2b-1 and category I), and 37 are step 1's: `NextTurnSpaceShownTest` 14, `NextTurnWordsTest` 13, `NextTurnArrowTest` 6, `NextTurnSpaceTest` 4.
+
+### The thirteen reverts
+
+Each was a one-line edit of `5e9801df7` in a scratch worktree, pushed to a throwaway branch and run with the filter. I wrote each prediction down before the run (`reverts.tsv` in scratch). Each compile log was checked before its results were read, and none had a compile error. The file was restored from a copy saved before the edit, and the restored file was then compared with `5e9801df7`'s: identical every time. Afterwards `next-turn`'s own worktree was clean at `5e9801df7`, and all 13 forward lines were present (`grep -cF`, 1 each). **Every revert failed in exactly the predicted count and tests**, each with a message only its own edit could produce.
+
+| Ruling | One-line revert | Run | Failed of 37 | Message |
+|---|---|---|---|---|
+| C1 bands | slight left becomes the plain arrow | 42315143740 | 1 (1) | `expected:<SLIGHT_LEFT> but was:<LEFT>` |
+| C2 fork | `keep == LEFT` becomes `RIGHT` | 42315153958 | 2 (2) | `expected:<FORK_LEFT> but was:<FORK_RIGHT>`; the fork's state |
+| C3 straight | `NoTurnLeft` becomes `null` | 42315163253 | 4 (4) | `expected:<STRAIGHT> but was:<null>`, A3 twice, the fallback |
+| E1 to E3, blank | a blank becomes `STRAIGHT` | 42315173022 | 7 (7) | `ARRIVED expected null, but was:<STRAIGHT>`; E1 four times, E2, E3: `but was:<…(arrow=STRAIGHT…` |
+| C1 to C3, Material's icons | LEFT becomes `Icons.Filled.TurnRight` | 42315183095 | 1 (1) | `LEFT expected:<Filled.Turn[Lef]t> but was:<Filled.Turn[Righ]t>` |
+| Its own window | `.width(spaceWidth)` becomes `.then(Modifier)` | 42315190347 | 1 (1) | `KILOMETERS: a space with width, [0.0.dp, 31.0.dp, 34.0.dp, 33.0.dp, 0.0.dp]` |
+| G3 counting | `sameSidePathsBefore > 0` becomes `false` | 42315198997 | 2 (2) | `expected:<t[ake the second] left …> but was:<t[urn] left …>` |
+| G3, plain only | sharp also counts | 42315206852 | 2 (2) | `expected:<[make a sharp] left …> but was:<[take the third] left …>` |
+| G3, "in 400 feet" | "ft" spoken as "ft" | 42315256878 | 5 (5) | `expected:<400 f[ee]t> but was:<400 f[]t>`, `1 f[oo]t`, and three states |
+| E1 | the card state is skipped | 42315278385 | 4 (4) | `expected:<…(arrow=null…)> but was:<…(arrow=LEFT, figure=394 ft…` |
+| D1 units | the turn's figure always in miles | 42315285567 | 2 (2) | `expected:<…figure=120 m…>`; the walk: `expected:<[96 m]> but was:<[315 ft]>` |
+| A3, the top line's string | the straight-ahead figure becomes "0 ft" | 42315290990 | 3 (3) | `expected:<0[.4 mi]> but was:<0[ ft]>`, `[64]0 m`, `[≈ 130]0 ft` |
+| A logged fallback | the warning becomes `Unit` | 42315295786 | 1 (1) | `a warning logged` |
+
+### Confirmed and inferred
+
+- **[observed]:**
+  - every run, count and message above;
+  - the by-name match with pre-main;
+  - the 13 forward lines present after the reverts;
+  - the scanner at 0 before each push (`git diff origin/pre-main HEAD`);
+  - no file shared with nav-card-kind-line.
+- **[read]:**
+  - The Material icons exist under these names in `material-icons-extended-release.aar` 1.7.8 (`androidx/compose/material/icons/filled/TurnSlightLeftKt.class` and the rest).
+  - `formatDistanceMeters` is the top line's formatter for a trail route (`NavigationReadout.kt`, the `route is ReturnRoute.Ahead` branch).
+  - `labelMedium` and `COMPASS_ICON_SIZE` are the turn line's type and icon size on nav-card-kind-line `b9fad7604` (`NavigationCardParts.kt`, `CardTurnLine`).
+- **[inferred]** That the arrow draws the right way round on screen. The tests check which icon is chosen and that it is not mirrored, not the drawing itself.
+- **[not verified]** Anything on a phone. The space is on no screen yet.
+
+### Could not determine
+
+- **Whether the space fits beside the needle (G2, G4).** That is step 2's measurement, on #498's merged layout. The window revert shows the space's figures at 31 to 34 dp in Robolectric's default font. The space's full width with `labelMedium` was not read out, and neither portrait, landscape nor font 2.0 was measured.
+- **How TalkBack voices the words on a device:** "in 0.4 miles", and figures past ten such as "11th".
+
+### Premises that were wrong
+
+- **The base moved twice.** The dispatch gave pre-main as `b6f0b464d` or later, and that held [observed]: it was merged in. During the session pre-main moved on to `26a5c5955` (PRs #503 and #504's follow-ups). Those commits change two tests (`EstimateOfflineTileCountTest`, `MapCameraMovesTest`), docs and the audit index, none of them this branch's files. **They are not merged here**, so the full CI above compares against the exact base it ran on. Step 2's merge brings them in.
+- **The laptop's disk filled during the revert runs.** `/mnt/work` went to 100%, from things outside my scratch. My eight revert worktrees (about 137 MB each) were the last straw: the ninth `git worktree add` failed with "No space left on device". I removed my worktrees and reran the last five in one reused worktree. All 13 reverts ran and are read above. The disk stood at 99% (1.1 GB free) when I finished. **Other sessions on the laptop may hit this.**
+
+### Decided beyond scope (each open to the owner)
+
+- **The spelled-out units.** G3 gave "in 400 feet". I spell the others the same way, "miles", "meters" and "kilometers", in US spelling to match the app's own "Kilometers". A figure of exactly 1 is singular ("1 foot", "1 meter"). These are new words in that pattern, not ones the owner wrote.
+- **"keep straight in 0.4 miles".** G3 says each set of words "is followed by the distance ("in 400 feet")", so the straight-ahead arrow reads "keep straight in 0.4 miles", where the figure is the distance to the target. **A question for the owner:** is "in" right here, or should it read "keep straight for 0.4 miles"?
+- **Counting past ten.** "second" to "tenth" are spelled out. From 11 on it is the figure with its suffix ("11th", "21st").
+- **The fallback.** A figure with no unit to spell out (one in a non-English number format, or the straight line's "≈" form, which the domain never pairs with an arrow) is spoken as written, with a warning logged. It is never left silent or guessed.
+- **A figure of 100 mi or more** draws past the space's end. The space keeps its width, so nothing beside it moves. "88.8 mi" is the widest figure the window is sized for (Phase 1's sample).
+- **My merge commit `37a988424` has git's default message and no `Co-Authored-By` line.** I did not pass `-m`. It was pushed before I noticed, and it is not amended (CLAUDE.md, push before you tidy).
+
+### What step 2 needs
+
+1. Merge origin/pre-main (now `26a5c5955` or later) and origin/nav-card-kind-line into next-turn, by merge, not rebase, after #498's E15 Hazel hands back.
+2. In `CardTurnLine`, put `NextTurnSpace(nextTurnSpaceShown(readout, hasFix = liveFix != null, ahead = nextTurn(...), unit), unit)` beside the needle (A1). The `NextTurnWay` comes from `WayHomeShown.turns` or `WaypointRouteShown.turns`, with the line and the progress the holders already keep.
+3. Measure the fit on that layout, in portrait, in landscape and at font 2.0 (G2). If it is too big, stop with the measured widths (G4).
+4. A coordinate-touch test that the space intercepts nothing over the map, full CI, the S22 steps, and the PR out of draft.
+
+### Clean-up
+
+The throwaway branches `next-turn-2b2-red`, `next-turn-2b2-green` and the 13 `next-turn-2b2-rev-*` are deleted from origin. Their runs stay readable by number. Every scratch worktree is removed. Scratch: `/mnt/work/scratch/hazel-2b2` (mode 700), holding the scripts, the saved copies and the predictions, with the downloaded test reports removed.
