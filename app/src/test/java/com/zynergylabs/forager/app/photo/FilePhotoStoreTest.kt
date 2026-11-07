@@ -160,13 +160,13 @@ class FilePhotoStoreTest {
     @Test
     fun `a gallery import with EXIF GPS tags reads latitude and longitude`() = runTest {
         val sourceFile = minimalJpegWithExif(sourceDir, "with-location.jpg") { exif ->
-            exif.setLatLong(45.5, -122.6)
+            exif.setLatLong(45.5, -121.6)
         }
 
         val photo = store.persist(GalleryImportPhotoSource(Uri.fromFile(sourceFile))).getOrThrow()
 
         assertEquals(45.5, photo.latitude!!, 0.0001)
-        assertEquals(-122.6, photo.longitude!!, 0.0001)
+        assertEquals(-121.6, photo.longitude!!, 0.0001)
     }
 
     @Test
@@ -211,7 +211,7 @@ class FilePhotoStoreTest {
     @Test
     fun `a camera capture never reads EXIF location, even when the source file carries one`() = runTest {
         val sourceFile = minimalJpegWithExif(sourceDir, "camera-with-embedded-location.jpg") { exif ->
-            exif.setLatLong(45.5, -122.6)
+            exif.setLatLong(45.5, -121.6)
         }
 
         val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
@@ -230,9 +230,9 @@ class FilePhotoStoreTest {
     @Test
     fun `a persisted capture carries no GPS EXIF`() = runTest {
         val sourceFile = minimalJpegWithExif(sourceDir, "capture-to-scrub.jpg") { exif ->
-            exif.setLatLong(45.5, -122.6)
+            exif.setLatLong(45.5, -121.6)
         }
-        assertEquals("precondition: the source really is location-tagged", "45.5, -122.6", ExifInterface(sourceFile.absolutePath).latLong?.joinToString())
+        assertEquals("precondition: the source really is location-tagged", "45.5, -121.6", ExifInterface(sourceFile.absolutePath).latLong?.joinToString())
 
         val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
 
@@ -252,7 +252,7 @@ class FilePhotoStoreTest {
     fun `a persisted capture keeps the orientation the display path reads`() = runTest {
         val sourceFile = minimalJpegWithExif(sourceDir, "capture-rotated.jpg") { exif ->
             exif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_ROTATE_90.toString())
-            exif.setLatLong(45.5, -122.6)
+            exif.setLatLong(45.5, -121.6)
         }
 
         val photo = store.persist(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.fromFile(sourceFile), sourceFile))).getOrThrow()
@@ -274,7 +274,7 @@ class FilePhotoStoreTest {
     @Test
     fun `a persisted import is left exactly as it was, metadata and all`() = runTest {
         val sourceFile = minimalJpegWithExif(sourceDir, "import-to-keep.jpg") { exif ->
-            exif.setLatLong(45.5, -122.6)
+            exif.setLatLong(45.5, -121.6)
             exif.setAttribute(ExifInterface.TAG_MAKE, "ACME")
         }
         val sourceBytes = sourceFile.readBytes()
@@ -284,7 +284,7 @@ class FilePhotoStoreTest {
         val persisted = File(context.filesDir, photo.relativePath)
         assertArrayEquals("an import is a byte copy, not a rewrite", sourceBytes, persisted.readBytes())
         val exif = ExifInterface(persisted.absolutePath)
-        assertEquals("45.5, -122.6", exif.latLong?.joinToString())
+        assertEquals("45.5, -121.6", exif.latLong?.joinToString())
         assertEquals("ACME", exif.getAttribute(ExifInterface.TAG_MAKE))
     }
 
@@ -344,7 +344,7 @@ class FilePhotoStoreTest {
      */
     @Test
     fun `a RAW shot persists its JPG scrubbed and its DNG beside it, and releases both scratch files`() = runTest {
-        val jpg = minimalJpegWithExif(sourceDir, "raw-shot.jpg") { exif -> exif.setLatLong(45.5, -122.6) }
+        val jpg = minimalJpegWithExif(sourceDir, "raw-shot.jpg") { exif -> exif.setLatLong(45.5, -121.6) }
         val dngBytes = byteArrayOf(0x49, 0x49, 0x2A, 0x00, 8, 0, 0, 0, 1, 2, 3)
         val dng = File(sourceDir, "raw-shot.dng").apply { writeBytes(dngBytes) }
 

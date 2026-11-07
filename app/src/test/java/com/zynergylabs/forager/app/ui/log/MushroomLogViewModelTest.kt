@@ -119,7 +119,7 @@ class MushroomLogViewModelTest {
     // isDraft = false: every test below seeds this as an already-committed, pre-existing entry
     // (loaded via getEntries()/GetMushroomLogEntriesUseCase, which excludes drafts) unless it
     // specifically exercises the draft lifecycle itself, in which case it says so.
-    private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+    private val entry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.3736, -120.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
 
     /**
      * Reworked for Workstream L4b-R (was: called `onEntryEdited` directly on the committed [entry]
@@ -420,7 +420,7 @@ class MushroomLogViewModelTest {
         val photoStore = FakePhotoStore()
         val newPhoto = LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L)
         photoStore.persistResult = Result.success(newPhoto)
-        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -121.6))
         val vm = viewModel(repository, photoStore, locationProvider)
         advanceUntilIdle()
 
@@ -429,8 +429,8 @@ class MushroomLogViewModelTest {
 
         val galleryPhoto = vm.uiState.value.galleryPhotos.single()
         assertEquals(45.5, galleryPhoto.photo.latitude!!, 0.0)
-        assertEquals(-122.6, galleryPhoto.photo.longitude!!, 0.0)
-        assertEquals(listOf(Triple(newPhoto.id, 45.5, -122.6)), repository.patchedLocations)
+        assertEquals(-121.6, galleryPhoto.photo.longitude!!, 0.0)
+        assertEquals(listOf(Triple(newPhoto.id, 45.5, -121.6)), repository.patchedLocations)
     }
 
     /**
@@ -465,7 +465,7 @@ class MushroomLogViewModelTest {
         val photoStore = FakePhotoStore()
         val newPhoto = LogPhoto(id = "import-photo", relativePath = "photos/import-photo.jpg", createdAtEpochMillis = 2_000L, latitude = 10.0, longitude = 20.0)
         photoStore.persistResult = Result.success(newPhoto)
-        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -121.6))
         val vm = viewModel(repository, photoStore, locationProvider)
         advanceUntilIdle()
 
@@ -675,7 +675,7 @@ class MushroomLogViewModelTest {
         val vm = viewModel(repository)
         advanceUntilIdle()
 
-        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        vm.onStartNewEntry(LatLng(45.0, -121.0), LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
 
         assertTrue("a brand-new entry must not appear in the committed list", vm.uiState.value.entries.isEmpty())
@@ -695,7 +695,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val vm = viewModel(repository)
         advanceUntilIdle()
-        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        vm.onStartNewEntry(LatLng(45.0, -121.0), LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
         vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "field notes"))
         advanceUntilIdle()
@@ -713,7 +713,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val vm = viewModel(repository)
         advanceUntilIdle()
-        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        vm.onStartNewEntry(LatLng(45.0, -121.0), LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
         vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "typed something before changing my mind"))
         advanceUntilIdle()
@@ -797,7 +797,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val vm = viewModel(repository)
         advanceUntilIdle()
-        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        vm.onStartNewEntry(LatLng(45.0, -121.0), LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
         vm.onEntryEdited(vm.uiState.value.editingEntry!!.copy(notes = "partial notes"))
         advanceUntilIdle()
@@ -825,7 +825,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val vm = viewModel(repository)
         advanceUntilIdle()
-        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        vm.onStartNewEntry(LatLng(45.0, -121.0), LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
 
         vm.onLeaveEditingIncidentally()
@@ -968,7 +968,7 @@ class MushroomLogViewModelTest {
     @Test
     fun `setting a location during a re-edit writes to the draft row only, never the committed entry`() = runTest(dispatcher) {
         val originalLocation = entry.foundAt
-        val newLocation = LatLng(46.0, -123.0)
+        val newLocation = LatLng(46.0, -122.0)
         val repository = FakeMushroomLogRepository(initial = listOf(entry))
         val vm = viewModel(repository)
         advanceUntilIdle()
@@ -1003,7 +1003,7 @@ class MushroomLogViewModelTest {
     @Test
     fun `Cancelling an edit discards a location changed during the session, leaving the committed entry's location untouched`() = runTest(dispatcher) {
         val originalLocation = entry.foundAt
-        val newLocation = LatLng(46.0, -123.0)
+        val newLocation = LatLng(46.0, -122.0)
         val repository = FakeMushroomLogRepository(initial = listOf(entry))
         val vm = viewModel(repository)
         advanceUntilIdle()
@@ -1033,7 +1033,7 @@ class MushroomLogViewModelTest {
      */
     @Test
     fun `an incidental exit persists a location changed during a re-edit into the draft row`() = runTest(dispatcher) {
-        val newLocation = LatLng(46.0, -123.0)
+        val newLocation = LatLng(46.0, -122.0)
         val repository = FakeMushroomLogRepository(initial = listOf(entry))
         val vm = viewModel(repository)
         advanceUntilIdle()
@@ -1174,7 +1174,7 @@ class MushroomLogViewModelTest {
     @Test
     fun `an orphaned draft from a crashed new entry is surfaced separately from committed entries and can be reinstated`() = runTest(dispatcher) {
         val committed = entry
-        val orphanedDraft = MushroomLogEntry.draft(id = "orphaned", location = LatLng(46.0, -123.0), date = LocalDate.of(2026, 8, 2))
+        val orphanedDraft = MushroomLogEntry.draft(id = "orphaned", location = LatLng(46.0, -122.0), date = LocalDate.of(2026, 8, 2))
             .copy(notes = "typed before the crash")
         val repository = FakeMushroomLogRepository(initial = listOf(committed, orphanedDraft))
         val vm = viewModel(repository)
@@ -1229,14 +1229,14 @@ class MushroomLogViewModelTest {
     @Test
     fun `a find started with no location takes the fresh device fix in hand`() = runTest(dispatcher) {
         val repository = FakeMushroomLogRepository()
-        val vm = viewModel(repository, currentFix = { fixAgedMillis(ageMillis = 10_000L, lat = 45.5, lng = -122.6) })
+        val vm = viewModel(repository, currentFix = { fixAgedMillis(ageMillis = 10_000L, lat = 45.5, lng = -121.6) })
         advanceUntilIdle()
 
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
 
-        assertEquals(LatLng(45.5, -122.6), vm.uiState.value.editingEntry?.foundAt)
-        assertEquals("the location is on the persisted draft, not only in memory", LatLng(45.5, -122.6), repository.getAll().getOrThrow().single().foundAt)
+        assertEquals(LatLng(45.5, -121.6), vm.uiState.value.editingEntry?.foundAt)
+        assertEquals("the location is on the persisted draft, not only in memory", LatLng(45.5, -121.6), repository.getAll().getOrThrow().single().foundAt)
     }
 
     @Test
@@ -1274,25 +1274,25 @@ class MushroomLogViewModelTest {
     @Test
     fun `a held fix just inside the lost bound is still used`() = runTest(dispatcher) {
         val repository = FakeMushroomLogRepository()
-        val vm = viewModel(repository, currentFix = { fixAgedMillis(ageMillis = LOST_AFTER_MILLIS - 1, lat = 44.0, lng = -121.0) })
+        val vm = viewModel(repository, currentFix = { fixAgedMillis(ageMillis = LOST_AFTER_MILLIS - 1, lat = 44.0, lng = -120.0) })
         advanceUntilIdle()
 
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
 
-        assertEquals(LatLng(44.0, -121.0), vm.uiState.value.editingEntry?.foundAt)
+        assertEquals(LatLng(44.0, -120.0), vm.uiState.value.editingEntry?.foundAt)
     }
 
     @Test
     fun `a caller-supplied location wins over the device fix`() = runTest(dispatcher) {
         val repository = FakeMushroomLogRepository()
-        val vm = viewModel(repository, currentFix = { fixAgedMillis(ageMillis = 1_000L, lat = 45.5, lng = -122.6) })
+        val vm = viewModel(repository, currentFix = { fixAgedMillis(ageMillis = 1_000L, lat = 45.5, lng = -121.6) })
         advanceUntilIdle()
 
-        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        vm.onStartNewEntry(LatLng(45.0, -121.0), LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
 
-        assertEquals(LatLng(45.0, -122.0), vm.uiState.value.editingEntry?.foundAt)
+        assertEquals(LatLng(45.0, -121.0), vm.uiState.value.editingEntry?.foundAt)
     }
 
     @Test
@@ -1300,7 +1300,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val photoStore = FakePhotoStore()
         photoStore.persistResult = Result.success(LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L))
-        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -121.6))
         val vm = viewModel(repository, photoStore, locationProvider, currentFix = { null })
         advanceUntilIdle()
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
@@ -1310,9 +1310,9 @@ class MushroomLogViewModelTest {
         vm.onAddPhoto(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.EMPTY, File(""))))
         advanceUntilIdle()
 
-        assertEquals(LatLng(45.5, -122.6), vm.uiState.value.editingEntry?.foundAt)
-        assertEquals("promoted onto the persisted draft too", LatLng(45.5, -122.6), repository.getAll().getOrThrow().single { it.id == "new-entry" }.foundAt)
-        assertEquals("the photo's own patch still happens", listOf(Triple("camera-photo", 45.5, -122.6)), repository.patchedLocations)
+        assertEquals(LatLng(45.5, -121.6), vm.uiState.value.editingEntry?.foundAt)
+        assertEquals("promoted onto the persisted draft too", LatLng(45.5, -121.6), repository.getAll().getOrThrow().single { it.id == "new-entry" }.foundAt)
+        assertEquals("the photo's own patch still happens", listOf(Triple("camera-photo", 45.5, -121.6)), repository.patchedLocations)
     }
 
     @Test
@@ -1320,17 +1320,17 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val photoStore = FakePhotoStore()
         photoStore.persistResult = Result.success(LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L))
-        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -121.6))
         val vm = viewModel(repository, photoStore, locationProvider)
         advanceUntilIdle()
-        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        vm.onStartNewEntry(LatLng(45.0, -121.0), LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
 
         vm.onAddPhoto(CameraCapturePhotoSource(CameraCaptureFiles.Capture(Uri.EMPTY, File(""))))
         advanceUntilIdle()
 
-        assertEquals(LatLng(45.0, -122.0), vm.uiState.value.editingEntry?.foundAt)
-        assertEquals(listOf(Triple("camera-photo", 45.5, -122.6)), repository.patchedLocations)
+        assertEquals(LatLng(45.0, -121.0), vm.uiState.value.editingEntry?.foundAt)
+        assertEquals(listOf(Triple("camera-photo", 45.5, -121.6)), repository.patchedLocations)
     }
 
     /** The negative that matters (dispatch §3): an imported photo's EXIF can be from another place and year. It goes on the photo row, as before, and never up to the find. */
@@ -1339,7 +1339,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val photoStore = FakePhotoStore()
         photoStore.persistResult = Result.success(LogPhoto(id = "import-photo", relativePath = "photos/import-photo.jpg", createdAtEpochMillis = 2_000L, latitude = 10.0, longitude = 20.0))
-        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -121.6))
         val vm = viewModel(repository, photoStore, locationProvider)
         advanceUntilIdle()
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
@@ -1359,7 +1359,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val albumPhoto = LogPhoto(id = "album-photo", relativePath = "photos/album-photo.jpg", createdAtEpochMillis = 2_000L, latitude = 10.0, longitude = 20.0)
         repository.addPhotoToGallery(albumPhoto)
-        val vm = viewModel(repository, locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6)))
+        val vm = viewModel(repository, locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -121.6)))
         advanceUntilIdle()
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
@@ -1379,7 +1379,7 @@ class MushroomLogViewModelTest {
         val photoStore = FakePhotoStore()
         photoStore.persistResult = Result.success(LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L))
         val gate = CompletableDeferred<Unit>()
-        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6), gate = gate)
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -121.6), gate = gate)
         val vm = viewModel(repository, photoStore, locationProvider)
         advanceUntilIdle()
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
@@ -1410,7 +1410,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val vm = viewModel(
             repository,
-            currentFix = { fixAgedMillis(ageMillis = 1_000L, lat = 45.5, lng = -122.6) },
+            currentFix = { fixAgedMillis(ageMillis = 1_000L, lat = 45.5, lng = -121.6) },
             autoSaveLocationToPhotos = { false },
         )
         advanceUntilIdle()
@@ -1434,10 +1434,10 @@ class MushroomLogViewModelTest {
         val vm = viewModel(repository, autoSaveLocationToPhotos = { false })
         advanceUntilIdle()
 
-        vm.onStartNewEntry(LatLng(45.0, -122.0), LocalDate.of(2026, 8, 1))
+        vm.onStartNewEntry(LatLng(45.0, -121.0), LocalDate.of(2026, 8, 1))
         advanceUntilIdle()
 
-        assertEquals(LatLng(45.0, -122.0), vm.uiState.value.editingEntry?.foundAt)
+        assertEquals(LatLng(45.0, -121.0), vm.uiState.value.editingEntry?.foundAt)
     }
 
     @Test
@@ -1445,7 +1445,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val photoStore = FakePhotoStore()
         photoStore.persistResult = Result.success(LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L))
-        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -121.6))
         val vm = viewModel(repository, photoStore, locationProvider, autoSaveLocationToPhotos = { false })
         advanceUntilIdle()
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
@@ -1466,7 +1466,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val photoStore = FakePhotoStore()
         photoStore.persistResult = Result.success(LogPhoto(id = "album-photo", relativePath = "photos/album-photo.jpg", createdAtEpochMillis = 2_000L))
-        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -121.6))
         val vm = viewModel(repository, photoStore, locationProvider, autoSaveLocationToPhotos = { false })
         advanceUntilIdle()
 
@@ -1485,7 +1485,7 @@ class MushroomLogViewModelTest {
         val repository = FakeMushroomLogRepository()
         val photoStore = FakePhotoStore()
         photoStore.persistResult = Result.success(LogPhoto(id = "camera-photo", relativePath = "photos/camera-photo.jpg", createdAtEpochMillis = 2_000L))
-        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -122.6))
+        val locationProvider = FakeLocationProvider(result = LocationResult.Success(lat = 45.5, lng = -121.6))
         val vm = viewModel(repository, photoStore, locationProvider, autoSaveLocationToPhotos = { true })
         advanceUntilIdle()
         vm.onStartNewEntry(null, LocalDate.of(2026, 8, 1))
@@ -1495,7 +1495,7 @@ class MushroomLogViewModelTest {
         advanceUntilIdle()
 
         assertEquals(1, locationProvider.callCount)
-        assertEquals(LatLng(45.5, -122.6), vm.uiState.value.editingEntry?.foundAt)
+        assertEquals(LatLng(45.5, -121.6), vm.uiState.value.editingEntry?.foundAt)
     }
 
 
@@ -1591,7 +1591,7 @@ class MushroomLogViewModelTest {
 
     // ---- Journal redesign J4, D1/D4: a find deleted from its report is pending until its snackbar ends ----
 
-    private val secondFind = MushroomLogEntry.draft(id = "entry-2", location = LatLng(45.4, -122.7), date = LocalDate.of(2026, 8, 2)).copy(isDraft = false)
+    private val secondFind = MushroomLogEntry.draft(id = "entry-2", location = LatLng(45.4, -121.7), date = LocalDate.of(2026, 8, 2)).copy(isDraft = false)
 
     @Test
     fun `a requested find delete closes its report, hides it from the visible state, and deletes nothing`() = runTest(dispatcher) {
@@ -2031,5 +2031,5 @@ private class FakeLocationProvider(
 /** The clock every ViewModel under test reads — fixed, so a fix's age is whatever a test builds it to be. */
 private const val NOW = 1_700_000_000_000L
 
-private fun fixAgedMillis(ageMillis: Long, lat: Double = 45.5, lng: Double = -122.6) =
+private fun fixAgedMillis(ageMillis: Long, lat: Double = 45.5, lng: Double = -121.6) =
     LocationFix.Update(lat = lat, lng = lng, altitude = null, accuracyMeters = 8f, timestampEpochMillis = NOW - ageMillis, provider = FixProvider.GPS)

@@ -51,7 +51,7 @@ class OfflineRegionRouteRowTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private fun region(id: Long, routeData: RegionRouteData) = OfflineRegionSummary(
-        id = id, name = "Region $id", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0,
+        id = id, name = "Region $id", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0,
         tileCount = 100, sizeBytes = 2_000_000L, createdAtEpochMillis = 1_000L, routeData = routeData,
     )
 

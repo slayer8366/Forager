@@ -52,12 +52,12 @@ private class FixedResponseApi(private val response: ObservationsResponseDto) : 
 
 class INaturalistMushroomRepositoryObservationMappingTest {
 
-    private val region = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+    private val region = Region(lat = 45.3736, lng = -120.28965, radiusKm = 15)
     private val taxon = TaxonDto(id = 49158L, name = "Hericium erinaceus", preferredCommonName = "lion's mane")
 
     private fun observation(
         id: Long,
-        location: String? = "45.4,-122.6",
+        location: String? = "45.4,-121.19375",
         obscured: Boolean = false,
         publicPositionalAccuracy: Int? = 10,
     ) = ObservationDto(
@@ -89,7 +89,7 @@ class INaturalistMushroomRepositoryObservationMappingTest {
             // A real obscured response still carries a valid "lat,lng" -- confirmed live -- so this
             // fixture deliberately gives it one, to prove exclusion is driven by `obscured`, not by
             // an absent location.
-            results = listOf(observation(id = 1, location = "45.4,-122.6", obscured = true, publicPositionalAccuracy = 28818)),
+            results = listOf(observation(id = 1, location = "45.4,-121.19375", obscured = true, publicPositionalAccuracy = 28818)),
         )
 
         val page = INaturalistMushroomRepository(FixedResponseApi(response))
@@ -119,7 +119,7 @@ class INaturalistMushroomRepositoryObservationMappingTest {
         // ObservationDto's own default -- no repository call needed, this is a deserialization-time
         // fact about the DTO itself. A response shape iNaturalist has never actually sent (every
         // sampled observation carries `obscured` explicitly) should still fail safe.
-        val dto = ObservationDto(id = 1, taxon = taxon, location = "45.4,-122.6")
+        val dto = ObservationDto(id = 1, taxon = taxon, location = "45.4,-121.19375")
         assertTrue(dto.obscured)
     }
 
@@ -165,7 +165,7 @@ class INaturalistMushroomRepositoryObservationMappingTest {
             results = listOf(
                 observation(id = 1),
                 observation(id = 2, location = "not,a-place"),
-                observation(id = 3, location = "95.0,-122.6"),
+                observation(id = 3, location = "95.0,-121.19375"),
                 observation(id = 4, location = null),
                 observation(id = 5, obscured = true),
                 observation(id = 6).copy(observedOn = "2026-13-45"),

@@ -13,7 +13,7 @@ import java.time.LocalDate
 
 class GetTripWindowsUseCaseTest {
 
-    private val region = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
+    private val region = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
     private val referenceDay: LocalDate = LocalDate.of(2026, 8, 16)
 
     private class FakeProvider(

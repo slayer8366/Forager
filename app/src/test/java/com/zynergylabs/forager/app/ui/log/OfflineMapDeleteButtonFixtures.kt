@@ -55,8 +55,8 @@ import kotlinx.coroutines.flow.emptyFlow
 
 /** Two downloaded regions, as JournalPendingDeleteTest's: Ridge (id 7, used in 2 entries) and Saddle (id 8, used in none). */
 internal val OMD_REGIONS = listOf(
-    OfflineRegionSummary(id = 7L, name = "Ridge", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 100, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_300_000_000L),
-    OfflineRegionSummary(id = 8L, name = "Saddle", region = Region(45.3, -122.4, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 50, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_200_000_000L),
+    OfflineRegionSummary(id = 7L, name = "Ridge", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 100, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_300_000_000L),
+    OfflineRegionSummary(id = 8L, name = "Saddle", region = Region(45.37, -120.99375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 50, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_200_000_000L),
 )
 
 /** Regions kept in memory; every [deleteRegion] call (MapLibre's tile delete and the row, in the real one) is recorded. */
