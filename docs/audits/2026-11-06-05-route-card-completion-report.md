@@ -629,3 +629,61 @@ off in Map Layers, should that flag hide too, as the waypoint pin's now does wit
 5. Turn the phone to landscape, start navigating (a recording's return), open a route. The card sits on the navigation card: its top and
    the side toward the map have the thin outline; the side against the side bar and the bottom do not. By day and in Night Mode, turned
    both ways.
+
+# Build, part 5 (Amendment 3, last bullet): a trip stop's accent flag hides with the Planned Trips layer
+
+Hazel Cairnwright (Opus), 2026-11-07 UTC, on the owner's answer to Q-E, "Hide with its layer", and their go, "Build it" (relayed by the
+planner; `prompts/preserved/2026-11-06-05-amendment-3.md`, added 2026-11-07T16:01:33Z, read on `origin/records-after-173` at
+`9bd15f23f`). Branch `route-card`, from `5594b7258`; code at `3c7529797`. `origin/pre-main` was `1f6901a11` at the start and at the end,
+so nothing was merged in.
+
+## What was built
+
+- With **Planned Trips** off in Map Layers, the selected stop's accent flag (a trip stop) is not drawn; with it on, it is. The same
+  pattern as part 4's waypoint pin: `selectedStopMarker` takes `tripsDrawn` and draws nothing for a trip stop when it is false;
+  `plottedRouteOnMap` passes it on; the map's call site in `AvailabilityCompactMapUi.kt` hands it `plannedTripsLayerDrawn(renderMode.layers)`,
+  read from what the map draws, as `waypointsLayerDrawn` is (both now share one private `layerDrawn`). Nothing else changes.
+- Files: `CompactMapRouteStops.kt` 85 → 96, `CompactMapRoutePlotting.kt` 420 → 425, `AvailabilityCompactMapUi.kt` 772 → 775; one new
+  test file, `RouteCardTripAccentLayerTest.kt` (130 lines), in its own class rather than growing `RouteCardFullscreenBackTest`. None of these
+  is in journal-locate-outline's, next-turn's or nav-card-kind-line's diff from pre-main (checked before the edit and before the commit);
+  `CompactMapBottomChrome.kt` is not touched.
+
+## Verified, and how
+
+- **Red first, on the code before this part.** The new test alone on `5594b7258` (throwaway branch, run **42389370516**, filtered to
+  `RouteCardTripAccentLayerTest` and `RouteCardFullscreenBackTest`; 0 compile errors in either test job's log): 6 tests, 1 failed, from the
+  run's JUnit XML: "with Planned Trips off, no accent flag is drawn expected null, but was:<SelectedStopMarker(..., trip=true)>". The
+  preconditions before it passed (the route opened, the flag at the first stop, a trip, the switch turned the layer off), so it failed for
+  the reason expected. The unfiltered "Street map deleted" job in the same run: 6836 tests, that one failed, nothing else.
+- **Full CI, run 42389454137 at `3c7529797`: green**, every job. By name against pre-main's latest run (**42337576510** at `1f6901a11`),
+  from both runs' JUnit XML: 6890 vs 6846 test cases (6866 passed, 24 skipped vs 6822 and 24), **no outcome changed**. One name gone
+  (`SchemaMigrationTest` "4 to 23", renamed in part 2), 45 new, all passing: the 44 of parts 1 to 4 and this part's 1.
+- **One one-line revert**, on a throwaway branch from `3c7529797` in its own scratch worktree, so the forward tree was never edited:
+  `if (!tripsDrawn) null else` dropped from the trip line of `selectedStopMarker`. Run **42389466321**, filtered as above; each test job's
+  log read for compile errors first: **0**. 6 tests, 1 failed: "with Planned Trips off, no accent flag is drawn expected null, but
+  was:<SelectedStopMarker(..., trip=true)>", the assertion that line governs; the five `RouteCardFullscreenBackTest` cases, the waypoint
+  accent's included, passed. Its unfiltered job: 6836, that one failed, nothing else. After it, the forward file matched the copy saved
+  before the revert, and `git diff 3c7529797 HEAD` held only this report.
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, the real compact Maps tab, the switch reached by real touches through Tools > Map Layers): the flag as the
+  data handed to the map, hidden with the layer off and back with it on; the route card stays open with the layer off.
+- Inferred, not run: the flag hidden on a real MapLibre map (the map is a stub, as in parts 3 and 4).
+
+## Could not determine
+
+- Nothing new.
+
+## Premises that were wrong
+
+- None found: the branch, worktree and pre-main were as the brief stated.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- None. Part 4's "a trip keeps its flag with Planned Trips off" is now superseded by the owner's answer.
+
+## S22 steps (nothing was run on a phone)
+
+6. Open a saved route whose first stop is a planned trip: its flag is in the accent. Tools > Map Layers > Planned Trips off: the accent
+   flag goes with the trips; the route card stays. On again: it is back.
