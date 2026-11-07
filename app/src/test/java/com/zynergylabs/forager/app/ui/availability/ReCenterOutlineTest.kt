@@ -46,8 +46,9 @@ import kotlin.math.ceil
  * bottom). Where the edge there is straight (the top and bottom of the pill with its word), the outline is exactly
  * ceil(1 dp) wide; where it is a curve (its round ends, and every edge of the icon alone) anti-aliasing may soften its
  * outermost pixel, so at most that wide. The icon alone (D27, beside the L where its word does not fit) is composed on
- * its own inside the same root: the same surface draws both, and reaching that form on the Maps tab needs a route card on
- * the navigation card in a narrow landscape window, which [RouteCardRecenterTest] already sets up for its place.
+ * its own inside the same root: the same surface draws both. (That form was reached on the Maps tab only beside the L in
+ * landscape; since Amendments 2 and 3, RECORD -2186, the pill shows in landscape navigation only where its word fits at bottom
+ * centre, so on the Maps tab it is no longer reached. The surface still draws it.)
  */
 abstract class ReCenterOutlineTests {
 
@@ -202,7 +203,12 @@ class ReCenterOutlinePortraitTest : ReCenterOutlineTests() {
     fun `real touches across Re-center still reach it`() = assertTouchesReachIt("portrait")
 }
 
-/** A 915 x 412 landscape phone: Re-center with its word at the bottom centre, inside the rail's padding. */
+/**
+ * A 915 x 412 landscape phone: Re-center with its word at the bottom centre, inside the rail's padding. Dispatch 2026-11-06-04
+ * Amendment 2 (RECORD -2186) had the ringed locate row replace it here; Amendment 3, the owner: "(b) Pill where it fits", brings it
+ * back wherever its word at bottom centre covers no card, which it does not here (363..472 dp against the navigation card from 492 dp,
+ * run 42405188355). The claims and names are pre-main's again.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w915dp-h412dp-land-xxhdpi")

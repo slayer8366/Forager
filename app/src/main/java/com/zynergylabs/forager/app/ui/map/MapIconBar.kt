@@ -139,6 +139,12 @@ internal fun MapIconBar(
      */
     fullSquareHits: Boolean = false,
     /**
+     * Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186): whether the locate row carries its ring, standing in for Re-center
+     * (`locateRowStandsInForReCenter`: the Maps tab in landscape navigation, the camera off the follow). `false` for every
+     * other caller, the journal entry's map included.
+     */
+    locateRinged: Boolean = false,
+    /**
      * The bar's 5th (last) row — fullscreen-maps dispatch: a second map surface (the Cartography
      * entry map) needs this row to mean something other than "plan a trip or log a find here,"
      * since neither concept exists there. A "+" button captioned for trip-planning that actually
@@ -189,10 +195,10 @@ internal fun MapIconBar(
                 icon = Icons.Filled.MyLocation,
                 contentDescription = "Center on my location",
                 onClick = onLocateMe,
-                // Dispatch 2026-11-06-04 Amendment 1 (RECORD -2186), the owner: "(b) Ring it on both maps" ("A 1 dp Bark/cream ring
-                // around the locate row on the journal map and the Maps tab"): Re-center's outline (#505, ReturnToRoutePill.kt), the
-                // selected map type chip's colour source; both maps draw this one bar, so both get it.
-                ring = BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface),
+                // Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186), replacing Amendment 1's ring on both maps; the owner: "Only have
+                // the ring in landscape when needing to re-center the map camera during navigation": Re-center's outline (#505,
+                // ReturnToRoutePill.kt), the selected map type chip's colour source, only while [locateRinged].
+                ring = if (locateRinged) BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface) else null,
             )
             if (mapModePickerEnabled) {
                 // The map type panel (dispatch 2026-10-28-02; the Layers sheet from L0b until then). The old

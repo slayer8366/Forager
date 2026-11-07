@@ -26,9 +26,7 @@ import com.zynergylabs.forager.app.ui.log.CartographyEntryReportScreen
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.RuleChain
@@ -36,23 +34,18 @@ import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
-import kotlin.math.ceil
 
 /**
- * Dispatch 2026-11-06-04, Amendment 1 (RECORD -2186). The owner, to "The journal map's locate button is one row of the
- * shared icon bar, which already has a thin outline as a whole. What do you want?": "(b) Ring it on both maps" (the option
- * read: "A 1 dp Bark/cream ring around the locate row on the journal map and the Maps tab, so both bars stay the same").
+ * Dispatch 2026-11-06-04, Amendment 1 (RECORD -2186) ringed the locate row on both maps ("(b) Ring it on both maps");
+ * Amendment 2 replaces that build. The owner, seeing it on the S22: "Yeah, no ring. Only have the ring in landscape when
+ * needing to re-center the map camera during navigation [...] every other situation it doesn't have a ring." So these
+ * cases now read that the ring is absent where Amendment 1 drew it: the Maps tab not navigating, and the journal entry's
+ * map in fullscreen (the only place that map draws the bar), by day and with the app's Night Mode on. The landscape
+ * navigation ring, and its absence in the other navigating cases, are `LocateRingReCenterTest`'s.
  *
- * The ring is read from the drawn pixels of the locate row ("Center on my location") of the real icon bar on both maps:
- * the Maps tab, and the journal entry's map in fullscreen (the only place that map draws the bar), inside `MainActivity`'s
- * own root ([ForagerThemeWithNoSignal]) by day and with the app's Night Mode on. The colours are written out as the ruled
- * hex (Re-center's outline, #505: `onSurface`, Bark by day, Cream at night), not read from the code under test, so a ring
- * drawn in any other colour, or none, fails. Each side of the ring is read inwards from the row's own edge along its
- * middle row (left, right) and centre column (top, bottom), in the first 11 dp only: the icon's glyph starts at about
- * 13 dp, and by day it is Bark too. The ring is a circle the size of the bar's round badges ([MAP_ICON_BAR_FILL_DIAMETER],
- * 36 dp, inset 6 dp), so where it crosses those lines anti-aliasing may soften its outermost pixel: at most ceil(1 dp)
- * wide. The bar's own outline, Bark or white at 40%, composites to a different colour and cannot be mistaken for it.
- * The reset-orientation row beside it is read the same way and must carry no ring.
+ * The ring is read from the drawn pixels of the locate row ("Center on my location") as before: each side inwards from
+ * the row's own edge along its middle row and centre column, in the first 11 dp only (the glyph starts at about 13 dp),
+ * for the ruled hex written out (`onSurface`, Bark #3B2E24 by day, Cream #EDE3D0 at night). No side may carry it.
  */
 abstract class LocateRowRingTests {
 
@@ -93,8 +86,6 @@ abstract class LocateRowRingTests {
     }
 
     private fun px(dp: Float): Int = with(composeRule.density) { dp.dp.roundToPx() }
-
-    private fun ringWidthPx(): Int = with(composeRule.density) { ceil(1.dp.toPx()).toInt() }
 
     private fun setMapsTab(look: Look) {
         val viewModel = mapLayersViewModel()
@@ -146,41 +137,31 @@ abstract class LocateRowRingTests {
         )
     }
 
-    private fun assertRing(where: String, look: Look) {
+    private fun assertNoRing(where: String, look: Look) {
         val bounds = composeRule.onNodeWithContentDescription(LOCATE).getUnclippedBoundsInRoot()
         assertEquals("$where: the locate row's width is unchanged, the 48 dp target", 48f, (bounds.right - bounds.left).value, 0.5f)
         assertEquals("$where: the locate row's height is unchanged, the 48 dp target", 48f, (bounds.bottom - bounds.top).value, 0.5f)
-        val width = ringWidthPx()
         for ((side, edge) in sides(LOCATE)) {
-            val run = runOf(edge, look.ring)
-            assertNotNull("$where, ${look.name}, locate row, $side side: a ${look.ring.hex()} ring is drawn; the edge reads ${edge.map { it.hex() }}", run)
-            run!!
-            val drawn = run.last - run.first + 1
-            println("MEASURED $where, ${look.name}, locate row, $side side: ${look.ring.hex()} for $drawn px from ${run.first} px in (6 dp = ${px(6f)} px, ceil(1 dp) = $width px); the edge reads ${edge.map { it.hex() }}")
-            assertTrue("$where, ${look.name}, $side side: the ring is at most ceil(1 dp) = $width px wide, drew $drawn", drawn <= width)
-            assertTrue("$where, ${look.name}, $side side: the ring sits on the badge circle, 6 dp (${px(6f)} px) in, found ${run.first} px in", run.first in (px(6f) - 1)..(px(7f)))
-        }
-        for ((side, edge) in sides(RESET)) {
-            assertNull("$where, ${look.name}, reset-orientation row, $side side: no ring there; the edge reads ${edge.map { it.hex() }}", runOf(edge, look.ring))
+            assertNull("$where, ${look.name}, locate row, $side side: no ring; the edge reads ${edge.map { it.hex() }}", runOf(edge, look.ring))
         }
     }
 
-    protected fun assertRingOnTheMapsTab(dark: Boolean) {
+    protected fun assertNoRingOnTheMapsTab(dark: Boolean) {
         val look = if (dark) night else day
         setMapsTab(look)
-        assertRing("Maps tab", look)
+        assertNoRing("Maps tab, not navigating", look)
     }
 
-    protected fun assertRingOnTheJournalMap(dark: Boolean) {
+    protected fun assertNoRingOnTheJournalMap(dark: Boolean) {
         val look = if (dark) night else day
         setJournalMap(look)
-        assertRing("journal map", look)
+        assertNoRing("journal map", look)
     }
 
     /**
      * CLAUDE.md: a semantic click proves wiring, not routing, and a finger is not a point. Real touches at five points across
-     * the journal map's locate row, inside and outside the ring, each asking for the location once. A guard that the ring
-     * changes neither the row's touch area nor what lies over it: it passes the same before and after the ring, by design.
+     * the journal map's locate row (centre, and 8% in from each side), each asking for the location once. A guard on the row's
+     * touch area and what lies over it: it passes the same before and after either amendment, by design.
      * The Maps tab's locate row has its own coordinate touches, unchanged (`AvailabilityScreenMapIconStackTest`).
      */
     protected fun assertTouchesReachTheJournalLocate() {
@@ -195,7 +176,6 @@ abstract class LocateRowRingTests {
 
     private companion object {
         const val LOCATE = "Center on my location"
-        const val RESET = "Reset orientation to north"
         val ACROSS = listOf(0.5f to 0.5f, 0.08f to 0.5f, 0.92f to 0.5f, 0.5f to 0.08f, 0.5f to 0.92f)
     }
 }
@@ -207,16 +187,16 @@ abstract class LocateRowRingTests {
 class LocateRowRingTest : LocateRowRingTests() {
 
     @Test
-    fun `by day, the Maps tab's locate row has a 1 dp Bark ring`() = assertRingOnTheMapsTab(dark = false)
+    fun `by day, the Maps tab's locate row has no ring when not navigating`() = assertNoRingOnTheMapsTab(dark = false)
 
     @Test
-    fun `at night, the Maps tab's locate row has a 1 dp pale ring`() = assertRingOnTheMapsTab(dark = true)
+    fun `at night, the Maps tab's locate row has no ring when not navigating`() = assertNoRingOnTheMapsTab(dark = true)
 
     @Test
-    fun `by day, the journal map's locate row has a 1 dp Bark ring`() = assertRingOnTheJournalMap(dark = false)
+    fun `by day, the journal map's locate row has no ring`() = assertNoRingOnTheJournalMap(dark = false)
 
     @Test
-    fun `at night, the journal map's locate row has a 1 dp pale ring`() = assertRingOnTheJournalMap(dark = true)
+    fun `at night, the journal map's locate row has no ring`() = assertNoRingOnTheJournalMap(dark = true)
 
     @Test
     fun `real touches across the journal map's locate row still reach it`() = assertTouchesReachTheJournalLocate()
