@@ -687,3 +687,126 @@ so nothing was merged in.
 
 6. Open a saved route whose first stop is a planned trip: its flag is in the accent. Tools > Map Layers > Planned Trips off: the accent
    flag goes with the trips; the route card stays. On again: it is back.
+
+# Build, part 6 (Amendment 1, plan step 1): Re-center under the route card, verified
+
+Hazel Cairnwright (Opus), 2026-11-07 UTC, a fresh coder on the owner's "Fresh coder finishes it" (RECORD -2187's last bullet, read on
+`origin/records-after-173` at `d9ed39a72`), verifying the step 1 build an earlier Hazel wrote and pushed at `cb0cc25a0` without reading
+any result. Branch `route-card`, from `cb0cc25a0`; ends at `1da75bb12` plus this report. `origin/pre-main` was `82d4a091a` at the start
+and at the end (one `[skip ci]` profile line past `1f6901a11`, the commit its latest CI run is on), so nothing was merged in.
+
+## What was built (by the earlier Hazel, `cb0cc25a0`, read here, not changed)
+
+- Step 1, the owner: "(b) Card leaves room" ("The card always sits high enough for Re-center, leaving an empty band under it while
+  following"), replacing -1861's "Pill sits above the card" and -1943's rise. New `RouteCardReCenterRoom.kt` (84 lines, pure geometry
+  plus one composable): in portrait while navigating, where Re-center at its own place (bottom centre) shares the card's columns, the card
+  sits higher by Re-center's height (at least 48 dp) and an 8 dp gap. Re-center no longer rises for the card (`reCenterRisesForRouteCard`
+  and its span measurement removed). The card's reported height counts that room, so the legend chip and the route's camera fit clear it.
+  Not navigating, and on a tablet in portrait (card in the other column), nothing changes. Landscape is #506's (the ringed locate row or
+  the word where it fits).
+- Files: `CompactMapRoutePlotting.kt` 425 → 435, `CompactMapBottomChrome.kt` 327 → 322, `RouteCardPlacement.kt` 315 → 307,
+  `AvailabilityCompactMapUi.kt` 775 → 776 (one argument, `isNavigating`). None is in next-turn's (#500) diff from pre-main, checked before
+  each edit here.
+- **This session changed tests only**, never a claim:
+  - `8a3d0fc9b`: the shared test base made its compose rule and the navigation view's restore count `protected`. The tests as pushed did
+    not compile (4 errors: subclasses reading two `private` members), so both earlier runs (red 42413575796 and the PR run 42413932854 on
+    `cb0cc25a0`) were compile failures and proved nothing.
+  - `1da75bb12`: one long-press sample. "Beside Re-center, toward the card's end" was the midpoint of Re-center's right and the card's
+    right; on the S22 the card (0..198 dp) ends inside Re-center's span (167..217 dp), so that point (207 dp) was on Re-center, which takes
+    the press. Now 12 dp past whichever reaches further, beside both.
+
+## Verified, and how
+
+- **Red, on the tests alone** (`3052051fe` + the visibility fix, throwaway branch, run **42414397848**; filtered job and the unfiltered
+  "Street map deleted" job, **0 compile errors** in either log, head SHA `dd3746a8e`). Unfiltered: 6865 tests, **6 failed**, nothing else.
+  Each is step 1's, from the JUnit XML and log:
+  - "Re-center under the open card, where it is with no card: expected ... top=663.0.dp ... was ... top=527.0.dp" (the pill risen above
+    the card, not under it); the same in "tucked or closed" once the card comes back;
+  - "navigating, the card's bottom is Re-center's height and a gap higher expected:<655.0> but was:<711.0>" (the card not raised);
+  - the long-press "in the gap between the card and Re-center" did not reach the map (with the pill above the card that point is the card);
+  - `RoutePlottingChromeTest`: "the pill's top 547.0.dp is at or under the card's bottom 711.0.dp";
+  - `RouteCardRecenterSharedColumnTest` at `RouteCardRecenterTest.kt:233` (Re-center's top under the card's bottom).
+  - Passed on the old code, as expected, so they are not evidence for the build: "the open card never moves" (with the rise, the card
+    never moved either; the pill did), the touches across Navigate, Directions and ✕, and the tablet case (no band either way). The
+    long-press fix in `1da75bb12` was not re-run red: in the red that test already stops at the gap press, before the line changed.
+- **Green: full CI, run 42416307227 at `1da75bb12`, every job.** (Run 42414398322 at `8a3d0fc9b` had one failure, the long-press sample
+  on Re-center above, fixed in `1da75bb12`.) By name against pre-main's latest run (**42337576510** at `1f6901a11`), both runs' JUnit XML:
+  6923 vs 6846 test cases (6899 passed, 24 skipped vs 6822 and 24), **no outcome changed** on any name in both. 12 names gone, 89 new,
+  all passing:
+  - **Step 1's two renamed claims:** `RoutePlottingChromeTest` "Return to Route sits above the card, ..." → "Re-center sits under the card,
+    ..."; `RouteCardRecenterSharedColumnTest` "... Re-center stays clear of it, ... and goes back when it closes" → "... Re-center sits under
+    it where it is with no card, ... and stays when it closes".
+  - Step 1's 11 new: `RouteCardReCenterUnderCardTest` (6), `RouteCardReCenterBesideCardTabletTest` (1), `RouteCardReCenterRoomTest` (4).
+  - `SchemaMigrationTest` "4 to 23" → "4 to 24" (part 2); 45 new from parts 1 to 5 (part 5's count against the same pre-main run).
+  - The rest, 9 renames and the remaining new names (the `LocateRingReCenter*` classes among them), are in test files #506 changed
+    (journal-locate-outline, merged in at `ceb15321c`); not checked one by one against #506's own run.
+- **One one-line revert**, in its own scratch worktree on a throwaway branch from `8a3d0fc9b`, the forward tree never edited: `+ reCenterRoom`
+  dropped from the card's `bottomPadding` in `CompactMapRoutePlotting.kt` (the card leaves no room). Run **42414465151**; **0 compile
+  errors** in both test jobs' logs, read before the results. Unfiltered: 6869 tests, **6 failed**, nothing else, each the card sitting
+  at today's bottom with Re-center 48 dp into it:
+  - "Re-center's top sits one gap (Spacing.sm, 8 dp) under the card's bottom expected:<8.0> but was:<-48.0>";
+  - "navigating, the card's bottom is Re-center's height and a gap higher expected:<655.0> but was:<711.0>";
+  - "a touch at (0.9, 0.1) on Directions reaches it expected:<2> but was:<1>" (Re-center over the card's corner takes the touch);
+  - the gap long-press (no gap: the point is on the card); `RoutePlottingChromeTest` "the pill's top 663.0.dp is at or under the card's
+    bottom 711.0.dp"; `RouteCardRecenterSharedColumnTest` at line 233.
+  - Not caught by this revert, and not expected to be: "the open card never moves" (with no room the card also never moves) and "tucked
+    or closed". So "never moves" guards against a card that follows Re-center, not against the room; the room itself is pinned by the
+    655/711 and 8 dp assertions.
+  - After it: the forward file matches the copy saved before the edit (`cmp`), the `+ reCenterRoom` line is present, and
+    `git diff cb0cc25a0 HEAD` holds only the two test fixes (and now this report).
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, the real compact Maps tab, real touches at screen coordinates): at the S22's portrait window, navigating,
+  Re-center 8 dp under the open card at exactly its no-card place; the card 56 dp higher navigating than not (48 dp Re-center + 8 dp), the
+  same size; the card still as Re-center comes and goes through five real touches across it; tucked, back and closed, Re-center at its
+  place; Navigate, Directions and ✕ reached across their bounds with Re-center showing; long-presses in the gap, beside Re-center, above
+  the card and in the empty band reach the map; a tablet in portrait leaves no band.
+- Inferred, not run: real insets (Robolectric reports none, CLAUDE.md), so the band's height on the phone above the navigation bar; RTL
+  (from reading `routeCardReCenterRoomFor`); larger font scales in portrait (the room follows Re-center's measured word, read from the code);
+  the tucked tab following the raised bottom (the earlier Hazel's call, not asserted here).
+
+## Could not determine
+
+- How the empty band reads on the phone while following (the owner chose it knowingly: "leaving an empty band under it while following").
+- Whether the legend chip, now clearing the raised card, still fits under the search bar at the largest font with a long route card (not
+  measured).
+
+## Premises that were wrong
+
+- The brief's "red run 42413575796 ... never read": it had been run, but it was a compile failure, not a red; the PR run on `cb0cc25a0`
+  was the same compile failure. Neither could have failed for step 1's reason.
+- The brief's "RouteCardRecenterSharedColumnTest" is a class inside `RouteCardRecenterTest.kt`; a filter on the file name did not pick it
+  up, so it was read from the unfiltered job in each run.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- The long-press sample's change of place (`1da75bb12`) is a test-geometry fix; its claim ("long-presses around Re-center and the card
+  reach the map") is unchanged, and the press that sat on Re-center is not one the claim covers.
+- The earlier Hazel's own calls stand as written in RECORD -2187: no room on a tablet in portrait; the tucked tab follows the raised
+  bottom; RTL from reading.
+
+## S22 steps for the whole route card plan (nothing was run on a phone)
+
+Portrait unless named. Day, then Night Mode where a colour is named.
+
+1. **Re-center under the card (step 1).** Record a short walk, start the return, open a saved route (tap its pin). The card sits higher
+   than it does when not navigating. Pan the map: Re-center appears just under the card, about a finger's gap below it, at the same spot
+   it uses with no card; the card does not move. Tap Re-center at its middle and both ends: the view follows again, Re-center goes, the
+   card stays put. Long-press the map in the empty band and beside Re-center: a waypoint prompt opens each time.
+2. Stop navigating with the card open: the card drops back to its usual place. Tuck it, and close it: Re-center is at its usual place.
+3. **Tuck (step 2).** Swipe the card sideways: it slides to the edge away from the icon bar, leaving the grip tab at its bottom corner. Tap
+   the tab, then drag it: the card comes back. In landscape it tucks to the corner away from the L. While plotting, tucking works too.
+4. **Close (step 3).** ✕ on a saved route's card: the card and the route leave the map. From Trip Planner, ✕ closes without reopening
+   Tools.
+5. **Selecting (step 4).** Open a route: the first stop's pin is in the accent (cream by day, rust in Night Mode; judge the cream by day).
+   Tap another stop's pin: its bubble opens and its pin takes the accent. Drag the card's handle up: each waypoint is a row with the leg's
+   distance; tap one: its pin takes the accent. Waypoints off in Map Layers: the accent pin goes; a trip stop's flag goes with Planned
+   Trips off.
+6. **Navigate (step 5).** Navigate (left of Directions) goes to the selected stop. Back ends navigation, the card stays; Back again closes
+   it. In fullscreen: card → Navigate → Fullscreen: Back leaves fullscreen first; Fullscreen → card → Navigate: Back ends navigation
+   first. A stop whose waypoint was moved or deleted: Navigate greyed, "This stop's waypoint was moved or deleted".
+7. **Outline (step 6).** The card has the thin outline on the three sides facing the map, not the screen-edge side; in landscape on the
+   navigation card, on the top and the map side only.
+8. **Upgrade (part 2/3).** On release builds only: schema 23 with two saved routes → this build: both open with every stop; schema 22 with
+   records → this build: every record there.
