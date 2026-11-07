@@ -260,3 +260,140 @@ Device-only: Robolectric reports no insets, and its pixels come from its own ren
   so (`RouteCardRecenterCoversNoCardWideTest`).
 - Test files only. Checked against nav-card-kind-line (ea4b6e7e8), next-turn (5d39c9f01) and route-card (c8ac2519d): none of
   them changes any file this PR touches. `docs/audits/README.md` was not touched.
+
+# Amendment 3: the pill where it fits (Hazel, a fresh session)
+
+The owner (prompts/preserved/2026-11-06-04-amendment-3.md on records-after-173): "Tablets keep the pill". On the first pass I stopped
+because D17's condition was not a fit test. The owner then chose "(b) Pill where it fits" (the option: "A real fit test: where the
+Re-center word fits at bottom centre without covering a card, the pill shows there and there's no ring; where it doesn't fit, the
+ring"), relayed by the planner. "Leave it" (the ring's edge under the handle) and "Keep the gap" need no code.
+
+## D17's condition, as found
+
+- D17 is `reCenterBesideTheL` (`RouteCardPlacement.kt:241`, called at `AvailabilityCompactMapUi.kt:716`): the route card showing
+  and resting on the navigation card, in landscape navigation. It measures nothing.
+- The only fit test is D34, `reCenterWordCoversCard` (`RouteCardPlacement.kt:274`): Re-center's word at its own place, bottom centre,
+  against the route card and the navigation card.
+- Before this change the pill went beside the L when either held (`CompactMapBottomChrome.kt`). pre-main's
+  `RouteCardRecenterTabletLandscapeTest` pinned the pill beside the L on a tablet whenever the route card was open.
+
+## What was built (ed15feb32, 7493d03a1)
+
+- `ReCenterOnLocate.kt`:
+  - `reCenterWordFitsAtBottomCentre(word, cards)`: D34's word rect overlaps no card. A word not yet measured counts as not fitting,
+    so Amendment 2's ring holds until the measurement exists.
+  - `locateRowStandsInForReCenter` and `reCenterPillShown` take that answer: the ring, and no pill, only where the word does not fit.
+  - `reCenterGoesBesideTheL`: a pill whose word fits stays at bottom centre, including where D17 would have put it beside the L.
+- `CompactMapBottomChrome.kt` computes the answer once. It writes it through `SideEffect` to a new field,
+  `MapIconClusterState.reCenterWordFitsAtBottomCentre`. `CompactMapIconCluster.kt` reads that field for the ring.
+- The locate row's tap is unchanged. While navigating it calls `onReturnToRoute`, as it did before Amendment 2 (Ruling D).
+- **`AvailabilityCompactMapUi.kt` was not changed.** For #507: this branch touches no route-card file.
+
+## Figures: where the word fits
+
+Measured on run 42405188355, a throwaway build that forced the pill to bottom centre in landscape. No insets unless stated.
+
+| Window | Word at bottom centre (dp) | Cards' left edge (dp) | Result |
+| --- | --- | --- | --- |
+| 1318 x 824, tablet | 565..673 | 894.5 | fits: pill |
+| 1280 x 800, insets 25 / 48 | 534.5..642.5 | 808.5 | fits: pill |
+| 915 x 412, phone | 363.3..471.7 | 492.3 | fits: pill |
+| 823 x 384, S22 size | 317.3..425.7 | 400.3 | covers: ring |
+| 823 x 384, with the S22's insets | 306..414.3 | 352.3 | covers: ring |
+| 640 x 360 (font 1.0 and 2.0) | 226..334.3 / 175.3..336 | 288 / 193 | covers: ring |
+| 823 x 384, fullscreen (run 42409624489) | 355.7..467.3 | 476.3 | fits: pill |
+
+- The route card rests on the navigation card at the same width, in its column. So opening it never changed the answer at any
+  window above, at 1, 3 and 6 stops, peek or expanded.
+- The pill never rose for the card: their horizontal spans never overlapped.
+
+## Evidence
+
+- **Tests first: run 42405924782 on dd33240d0.**
+  - 6868 tests, 14 failed. The build log has no `e:` line.
+  - All 14 failures were the new or changed tests: "Re-center shows, its word fitting at bottom centre", "no ring", or no
+    `return-to-route` node.
+  - The 14, by class:
+    - `LocateRingReCenterTabletLandscapeTest`: 4
+    - `LocateRingReCenterWidePhoneLandscapeTest`: 4
+    - `ReCenterOutlineLandscapeTest`: 3
+    - `RouteCardRecenterCoversNoCardWideTest`: 1
+    - `RouteCardRecenterLandscapeTest` (915): 1
+    - `RouteCardRecenterTabletLandscapeTest`: 1
+- **Run 42407642764 on ed15feb32 failed one test.**
+  - The test: `LocateRingReCenterLandscapeTest`'s fullscreen case, which still read Amendment 2's ring at 823.
+  - Measured on run 42409624489:
+    - in fullscreen the rail leaves and the navigation card moves from 396.3 dp to 476.3 dp;
+    - the word, at 355.7..467.3 dp, clears it by 9 dp.
+  - So the build was right under the ruling and the test's claim was not. It was rewritten to read the pill (7493d03a1). See the
+    question below.
+- **Full CI on 7493d03a1: run 42410272354, all 8 jobs green.**
+  - 6868 tests, 0 failed, 24 skipped. pre-main's latest run, 42337576510 on 1f6901a11, had 6846 tests and 24 skipped.
+  - By name, no test changed status, and the skipped tests are the same.
+  - `RouteCardRecenterCoversNoCardWideTest` and `ReCenterOutlineLandscapeTest` are back to pre-main's names and claims. So against
+    pre-main:
+    - 9 names exist only on pre-main: Amendment 2's renames.
+    - 31 names exist only on this branch: Amendments 1, 2 and 3.
+- **Revert check: run 42407661820**, on a throwaway branch from ed15feb32.
+  - The one-line edit: `val reCenterWordFits = false` in `CompactMapBottomChrome.kt`.
+  - The filter: `*LocateRing*;*ReCenterOutline*;*RouteCardRecenter*;*LocateRowRing*`.
+  - The build log shows `compileDebugKotlin`, BUILD SUCCESSFUL, and no `e:` line.
+  - 42 tests ran; 14 failed. They are the same 14 as the tests-first run, each with this edit's own message.
+  - The forward change was confirmed still present in the PR worktree afterwards. The revert lived only in its own worktree.
+  - The fullscreen test was changed after this check, so the revert never ran against it. Under the reverted build it read the
+    ring and passed, which is Amendment 2's behaviour.
+- **Scan:** `git diff origin/pre-main HEAD | python3 -I ~/.forager-private/scan.py stdin-diff` read 0 on every count before every
+  push, the throwaway branches included.
+
+## Device check steps (S22 and tablet)
+
+These are device-only. Robolectric reports no insets, and the result can turn on a few dp: 9 dp in fullscreen at the S22's size.
+
+1. **S22**, landscape, navigating, panned away, not fullscreen. Robolectric shows the ring and no pill. Note which shows on the
+   phone. Session 9 (b1-n-closed) saw the word sit clear of the navigation card there, so the phone may show the pill instead.
+2. **S22**, the same in fullscreen. Robolectric shows the pill at bottom centre and no ring. Note which shows on the phone, and
+   whether it changes on entering and leaving fullscreen.
+3. **S22**: wherever the pill shows, tap it, then tap the locate row. Each re-centres. Wherever the ring shows, Amendment 2's steps
+   apply.
+4. **Tablet** (the owner's J6 tablet), landscape, navigating, panned away: the pill with its word at bottom centre and no ring on
+   locate.
+   - Open a route (3 stops). The pill stays where it is, peek and expanded.
+   - Tap the pill, then the locate row. Each re-centres.
+5. **Tablet**, fullscreen: the same as step 4.
+6. Portrait, on both devices: the pill as before, no ring.
+7. Night Mode: steps 2 and 4. The pill's outline samples #EDE3D0, and no ring shows.
+
+## Disclosure
+
+### Confirmed and inferred
+
+- Confirmed from the code: D17 is not a fit test, and D34 is.
+- Confirmed by measurement under Robolectric: the figures in the table.
+- Confirmed by the runs: the tests failed for this reason before the code, the code passes, and the revert fails the same 14.
+- Inferred from the code: Re-center beside the L (D17, D27 and D34's place) is now reached on the Maps tab only by a pill that does
+  not show. Those code paths remain; nothing was removed.
+
+### Could not determine
+
+- What the S22 and the tablet show. The phone was not touched.
+- Whether the one-frame gap through `SideEffect` is ever visible. Robolectric settles before reading. The answer is computed whenever
+  the cards are measured, not only once the user pans away, so it should already be current when the pill or ring appears. This is
+  inferred, not observed.
+
+### Premises that were wrong
+
+- The planner's first reading ("D17's condition" = "can't fit at bottom centre"): D17 does not measure fit. This was reported, and
+  ruled as (b).
+- The state matched on arrival (87e20f9d0, clean). pre-main (82d4a091a) was merged in with `-m` as c4a0d3e71.
+
+### Decided beyond scope, and questions for the owner
+
+- **A 915 dp landscape phone shows the pill, not the ring.** The fit test is not tablet-only. Its word fits there, so Amendment 2's
+  ring is gone at that width. The tests were changed to read the ruling.
+- **At the S22's own size, fullscreen changes the answer under Robolectric**: the ring out of fullscreen, the pill in fullscreen, by
+  9 dp. This follows the ruling. The question: is a switch between the ring and the pill on entering fullscreen acceptable, or should
+  one answer hold for both? No code is needed if it stands.
+- `docs/audits/README.md` was not touched.
+- One coder per file, checked against `origin/pre-main...` for locate-jump (#508, 54e4829ff), route-card (c6d7fb352), next-turn
+  (7a5ad452f) and nav-card-kind-line (097ca1add): none of them changes `ReCenterOnLocate.kt`, `CompactMapBottomChrome.kt`,
+  `CompactMapIconCluster.kt`, `MapIconClusterState.kt` or the test files here.
