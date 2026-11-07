@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.ui.motion.WordSwap
 
 /**
@@ -43,11 +44,19 @@ internal fun RightPart(
     /** H8: the status words are here; `false` where they take their own line under the parts, and the right part holds the evening only. */
     statusInRight: Boolean,
     onStatusHeight: (Float) -> Unit,
+    /**
+     * Dispatch 2026-11-06-01, Amendment 1, J3 step 2 (the owner: "Arrow in the right part"): in landscape at font 2.0 with no evening
+     * line, the next turn's space, in the evening line's place; `null` everywhere else.
+     */
+    nextTurn: NextTurnSpaceShown? = null,
+    distanceUnit: DistanceUnit,
 ) {
     val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
     Column(modifier = Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally) {
         if (eveningHeld) {
             EveningStack(sundownLine, backByLine, sundownVisibility, backByVisibility, eveningBreaks)
+        } else if (nextTurn != null) {
+            NextTurnSpace(nextTurn, distanceUnit)
         } else if (statusInRight) {
             val lineHeight = with(LocalDensity.current) { rememberTextMeasurer().measure("Sunset", eveningStyle, maxLines = 1).size.height.toDp() }
             Spacer(Modifier.height(lineHeight))

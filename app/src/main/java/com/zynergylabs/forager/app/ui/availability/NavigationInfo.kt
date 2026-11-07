@@ -5,6 +5,8 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.animation.core.MutableTransitionState
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import com.zynergylabs.forager.app.ui.motion.rememberLastShown
+import android.content.res.Configuration
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -170,6 +172,8 @@ internal fun NavigationInfo(
         // Dispatch 2026-11-06-01, Amendment 1, J2: the next turn the route carries (worked out where the line and the walker's place
         // live), as the space draws and says it; blank in every state but a figure (E1) and on a way with no trail route (E2, E3).
         val nextTurnShown = nextTurnSpaceShown(readout, hasFix = liveFix != null, ahead = nextTurnOf(route), unit = distanceUnit)
+        // J3: in landscape at font 2.0 the right part with no evening line, its own line with one; J2's decision everywhere else.
+        val nextTurnPlace = nextTurnPlaceNow(evening.nextTurnPlace, evening.landscapeLargeText, eveningLine = pieces.isNotEmpty())
         val heldFit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy, distanceUnit, evening)
         // Amendment 1, H12 (the owner: "(a) Leave out "Dark since"", the option reading "In that one case the evening line doesn't show;
         // "by trail" keeps its own line"; the planner's reading: "the decision must settle, never loop"): where the evening line would
@@ -199,7 +203,7 @@ internal fun NavigationInfo(
                     eveningHeld = eveningPieces(holdSundown, holdBackBy).isNotEmpty(),
                     statusInRight = !evening.statusBelow,
                     nextTurn = nextTurnShown,
-                    nextTurnPlace = evening.nextTurnPlace,
+                    nextTurnPlace = nextTurnPlace,
                     distanceUnit = distanceUnit,
                     onLeftHeight = { leftHeightPx = it },
                     onStatusHeight = { statusHeightPx = it },
@@ -330,6 +334,8 @@ internal class CardEvening(
     val statusBelow: Boolean = false,
     /** J2: beside the needle or on its own line, for this window and font ([nextTurnPlace]). */
     val nextTurnPlace: NextTurnPlace = NextTurnPlace.OWN_LINE,
+    /** J3: landscape at font 2.0, where the evening line decides between the right part and the own line ([nextTurnPlaceNow]). */
+    val landscapeLargeText: Boolean = false,
 )
 
 /**
@@ -345,7 +351,12 @@ private fun rememberCardEvening(partsPx: Int, metrics: InfoMetrics, distanceUnit
     val evening = small.copy(fontFeatureSettings = "tnum")
     val figureStyle = cardFigureStyle()
     val clock = rememberSundownClock()
-    return remember(measurer, small, figureStyle, clock, partsPx, metrics.gapPx, metrics.arrowPx, metrics.dividerPx, distanceUnit) {
+    // J3: landscape at font 2.0, read once per configuration like the rest of this decision.
+    val landscapeLargeText = isLandscapeLargeText(
+        landscape = LocalConfiguration.current.orientation == Configuration.ORIENTATION_LANDSCAPE,
+        fontScale = LocalDensity.current.fontScale,
+    )
+    return remember(measurer, small, figureStyle, clock, partsPx, metrics.gapPx, metrics.arrowPx, metrics.dividerPx, distanceUnit, landscapeLargeText) {
         fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
         val widths = cardEveningWidths(clock) { widthOf(it, evening) }
         val turnLinePx = widestTurnSpacePx { widthOf(it, small) } + metrics.gapPx + metrics.arrowPx
@@ -356,13 +367,15 @@ private fun rememberCardEvening(partsPx: Int, metrics: InfoMetrics, distanceUnit
         // H8: the left part's widest need with no reserve (the widest figure, the turn line, the wider kind), as the fit counts it.
         val leftPartNeedPx = maxOf(longestCardFigurePx(distanceUnit) { widthOf(it, figureStyle) }, turnLinePx, DistanceKind.entries.maxOf { widthOf(it.words, small) })
         val statusBelow = statusBelowTheParts(partsPx, metrics.dividerPx, leftPartNeedPx, floorPx, widestStatusWordPx { widthOf(it, small) })
-        val rightFloorPx = if (statusBelow) 0 else floorPx
         // J2: beside the needle only where it fits the left part at its narrowest, every evening piece counted, so it never flips as the
         // evening comes. The next turn's space as NextTurnSpace sizes it: its arrow (the needle's size), a gap, the widest figure.
         val nextTurnSpacePx = metrics.arrowPx + metrics.gapPx + NEXT_TURN_WIDEST_FIGURES.getValue(distanceUnit).maxOf { widthOf(it, small) }
+        // J3 step 2: where the next turn can be in the right part, that part is never narrower than its space, evening line or none, so
+        // the left part keeps one width as the evening comes and goes.
+        val rightFloorPx = maxOf(if (statusBelow) 0 else floorPx, if (landscapeLargeText) nextTurnSpacePx else 0)
         val widestEveningPiecePx = cardEveningPiecesAtWidest(clock, breaks).maxOf { widthOf(it, evening) }
         val place = nextTurnPlace(partsPx, metrics.dividerPx, leftPartNeedPx, rightFloorPx, widestEveningPiecePx, turnLinePx, metrics.gapPx, nextTurnSpacePx)
-        CardEvening(breaks = breaks, rightFloorPx = rightFloorPx, statusBelow = statusBelow, nextTurnPlace = place)
+        CardEvening(breaks = breaks, rightFloorPx = rightFloorPx, statusBelow = statusBelow, nextTurnPlace = place, landscapeLargeText = landscapeLargeText)
     }
 }
 

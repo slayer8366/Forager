@@ -38,12 +38,17 @@ internal enum class NextTurnPlace {
  * [eveningLine] is whether the card has an evening line to show (its pieces), never whether it is drawn, so the decision cannot feed
  * back through RECORD -955's room check.
  */
-@Suppress("UNUSED_PARAMETER") // tests-first stub: J2's decision everywhere
-internal fun nextTurnPlaceNow(decided: NextTurnPlace, landscapeLargeText: Boolean, eveningLine: Boolean): NextTurnPlace = decided
+internal fun nextTurnPlaceNow(decided: NextTurnPlace, landscapeLargeText: Boolean, eveningLine: Boolean): NextTurnPlace = when {
+    !landscapeLargeText -> decided
+    eveningLine -> NextTurnPlace.OWN_LINE
+    else -> NextTurnPlace.RIGHT_PART
+}
 
 /** J3: the case steps 2 and 3 name, landscape at font 2.0 (the largest Android offers; anything larger counts with it). */
-@Suppress("UNUSED_PARAMETER") // tests-first stub
-internal fun isLandscapeLargeText(landscape: Boolean, fontScale: Float): Boolean = false
+internal fun isLandscapeLargeText(landscape: Boolean, fontScale: Float): Boolean = landscape && fontScale >= LANDSCAPE_LARGE_TEXT_FONT_SCALE
+
+/** J3's "font 2.0". The fonts between 1.3 and 2.0 were not ruled on; they keep step 1 (the dispatch report's "J3, built"). */
+private const val LANDSCAPE_LARGE_TEXT_FONT_SCALE = 2.0f
 
 /**
  * J2: where the next turn goes for this window and font. The left part at its narrowest is what the parts ([partsPx], less the divider)
