@@ -165,6 +165,9 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     LaunchedEffect(noRoom) { if (noRoom != null) Log.i(LIFT_LOG_TAG, "J3 step 3: the card stays on the bottom edge and the evening line leaves it (RECORD -955): ${noRoom.reason}") }
     val liftPx = (lift as? NavigationCardLift.Up)?.px ?: 0f
     val movedUp = liftPx > 0f
+    // J4 (RECORD -2183, the owner: "Round and outline"): once moved up off the screen's bottom edge, its bottom corners round and its
+    // outline goes all round.
+    val bottomRoundedAndOutlined = movedUp
     // Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outline: its top and rounded top corners and its side facing the
     // map; its rail side once the rail has slid away, unless that side is then on the screen's edge; its bottom is the screen's.
     val cardLayoutDirection = LocalLayoutDirection.current
@@ -179,7 +182,7 @@ internal fun BoxScope.CompactMapNavigationDisplay(
         innerSideDrawn = true,
         top = true,
         // J4 (RECORD -2183, the owner: "Round and outline"): once moved up off the screen's bottom edge, the outline goes all round.
-        bottom = movedUp,
+        bottom = bottomRoundedAndOutlined,
     )
     val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
     // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
@@ -241,7 +244,7 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             onHeightWithEvening = { height, large -> heightWithEveningPx = height; landscapeLargeText = large },
             // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck. J4 (RECORD -2183, the owner:
             // "Round and outline"): moved up off that edge, its bottom corners round too.
-            cardCorners = if (movedUp) MapCardCorners.ALL else MapCardCorners.TOP,
+            cardCorners = if (bottomRoundedAndOutlined) MapCardCorners.ALL else MapCardCorners.TOP,
             outlineSides = cardOutlineSides,
             modifier = Modifier
                 .fillMaxWidth()
