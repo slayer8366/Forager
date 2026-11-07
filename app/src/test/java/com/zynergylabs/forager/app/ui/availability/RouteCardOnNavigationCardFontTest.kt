@@ -192,14 +192,18 @@ class RouteCardOnNavigationCardFont20EveningTest : RouteCardOnNavigationCardFont
 class RouteCardOnNavigationCardFont13EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = true)
 
 /**
- * Font 2.0 in the short landscape window, in the evening. The sundown line does not show here: the evening lines leave the navigation
- * card where they would take its top over Reset north or the walker's dot (RECORD -955), as run 41728736456 showed (its navigation
- * card 242..360 dp at 22:28 UTC).
+ * Font 2.0 in the short landscape window, in the evening. The sundown line shows here since dispatch 2026-11-05-10, Amendment 1, H10
+ * (RECORD -2181; the owner: "The more urgent one (Recommended)", "only one shows: "No fix 6 min" ahead of "No compass". The card stays
+ * one line taller at most, and the route card keeps its buttons"): the rig's lost fix and missing compass now take one line under the
+ * parts, not two, so the evening line fits under RECORD -955's rule (CI run 42278603468). With it shown, the expanded card's top is
+ * held to the evening case's claim (it rises over the strip), as in every other evening class here. Was `sundownLineShown = false`:
+ * "The sundown line does not show here: the evening lines leave the navigation card where they would take its top over Reset north
+ * or the walker's dot (RECORD -955), as run 41728736456 showed (its navigation card 242..360 dp at 22:28 UTC)."
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
-class RouteCardOnNavigationCardShortFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = false)
+class RouteCardOnNavigationCardShortFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = true)
 
 /** 2026-11-03 12:00 PST (20:00 UTC): 4 h 50 min before sunset at the rig's place, so no sundown line. */
 internal val ROUTE_CARD_NOON_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-03T20:00:00Z").toEpochMilli() }

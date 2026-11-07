@@ -127,7 +127,8 @@ class AvailabilityViewModelWaypointOffTrailTest {
         assertEquals("the trail dims", true, vm.dimmed())
         assertTrue("the waypoint's words", vm.ahead()!!.toWaypoint)
         val readout = navigationReadout(TrueHeadingReading.Available(0f), fixAt(off), pin, DistanceUnit.MILES, t + testScheduler.currentTime, route = vm.ahead())
-        assertEquals(WAYPOINT_OFF_TRAIL_TEXT, readout.statusText)
+        // Amendment 1, H4: "Off trail" alone on the card. Was WAYPOINT_OFF_TRAIL_TEXT, "Off trail · Head back to the line".
+        assertEquals(WAYPOINT_OFF_TRAIL_SHORT_TEXT, readout.statusText)
         assertEquals("46 m is not a stray: one route", 1, router.asked.size)
     }
 

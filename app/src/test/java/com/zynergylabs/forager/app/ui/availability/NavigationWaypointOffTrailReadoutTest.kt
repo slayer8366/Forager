@@ -25,11 +25,17 @@ class NavigationWaypointOffTrailReadoutTest {
     private fun readout(route: ReturnRoute) = navigationReadout(TrueHeadingReading.Available(0f), fix, pin, DistanceUnit.MILES, t + 1_000L, route = route)
 
     @Test
-    fun `off the trail to a waypoint the line reads Head back to the line, with Off trail as its short form and no empty one`() {
+    /**
+     * Dispatch 2026-11-05-10, Amendment 1, H4, the owner: "Shorten the lines to just Off trail since it's obvious what to do from
+     * there." So the card reads "Off trail", whole and short alike, with no empty form. Was `off the trail to a waypoint the line
+     * reads Head back to the line, with Off trail as its short form and no empty one`: `assertEquals("Off trail · Head back to the
+     * line", r.statusText)` and `assertEquals(listOf("Off trail · Head back to the line", "Off trail"), r.statusForms())`.
+     */
+    fun `off the trail to a waypoint the line reads Off trail, with no other form and no empty one`() {
         val r = readout(ReturnRoute.Ahead(east, 1_500.0, offTrail = OffTrailState.OFF, toWaypoint = true))
-        assertEquals("Off trail · Head back to the line", r.statusText)
-        assertEquals(listOf("Off trail · Head back to the line", "Off trail"), r.statusForms())
-        assertEquals("Off trail", r.statusShortText)
+        assertEquals("Off trail", r.statusText)
+        assertEquals(listOf("Off trail"), r.statusForms())
+        assertEquals("no shorter form, and never dropped", null, r.statusShortText)
     }
 
     @Test

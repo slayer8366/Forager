@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.DistanceKind
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -50,6 +51,9 @@ import kotlinx.coroutines.delay
  * | ahead 1° ▲ ▲ 134° SE  | in 2 h 28 min    |
  * |       by trail        | dark 1:13        |
  * ```
+ * Since dispatch 2026-11-05-10 (RECORD -2181) the kind is on the distance's line, and since its Amendment 1 the turn line is the
+ * degrees and the needle alone ("1° ▲"; G2 dropped the words, H1 gave the north arrow and the heading back to the strip), each in a
+ * fixed space (G3). The bullets below describe the drawing as approved.
  * - **Left part**, each line centred (RECORD -945, "Both (Recommended)"): the distance, about twice the other text; the turn words
  *   with the needle after them and the north arrow and heading right after that, the two arrows neighbours ("The arrows being
  *   side by side is a compass visual"); the kind word, "by trail" or "straight", a small line of its own (RECORD -945, "Full
@@ -105,7 +109,9 @@ internal fun NavigationInfo(
     // RECORD -955: the info's own bottom in the root, for a card anchored to the bottom edge (RECORD -953), whose top is its bottom
     // less its height. The height the decision uses is built from parts the evening stack does not change (the top padding, the left
     // part, the lines below, the bottom padding), never read back from the card: a first build read the card's measured height,
-    // which mid-animation fed the decision back into itself and never settled (CI 38304300338, the T11 harness at font 2.0).
+    // which mid-animation fed the decision back into itself and never settled (CI 38304300338, the T11 harness at font 2.0). Since
+    // G3 and A3 the kind's step, and so the left part's height, depends on the evening line; H12 (below, `fit`) keeps the left part
+    // as with the line wherever that would differ, so this holds again.
     var infoBottomInRootPx by remember { mutableFloatStateOf(Float.NaN) }
     var lastEveningShown by remember { mutableStateOf(false) }
     BoxWithConstraints(
@@ -120,17 +126,22 @@ internal fun NavigationInfo(
         var partsTopInRootPx by remember { mutableFloatStateOf(Float.NaN) }
         var leftHeightPx by remember { mutableFloatStateOf(0f) }
         var linesBelowHeightPx by remember { mutableFloatStateOf(0f) }
-        val pieces = eveningPieces(sundownLine, backByLine)
+        // Amendment 1, H2 to H4: the status words are in the right part, under the evening lines; their measured height.
+        var statusHeightPx by remember { mutableFloatStateOf(0f) }
+        // Amendment 1, H5: whether the evening line breaks at the owner's ▪︎, and the right part's width with none showing.
+        val evening = rememberCardEvening(partsPx, metrics, distanceUnit)
+        val pieces = eveningPieces(sundownLine, backByLine, evening.breaks)
         val eveningStyle = MaterialTheme.typography.labelMedium.copy(fontFeatureSettings = "tnum")
         val pieceHeightPx = rememberTextMeasurer().measure("Sunset", eveningStyle, maxLines = 1).size.height
         val bottomPaddingPx = with(LocalDensity.current) { Spacing.xs.toPx() }
         val topPaddingPx = with(LocalDensity.current) { CARD_TOP_PADDING.toPx() }
-        val heightWithStackPx = topPaddingPx + maxOf(leftHeightPx, (pieces.size * pieceHeightPx).toFloat()) + linesBelowHeightPx + bottomPaddingPx
+        val rightWithStackPx = pieces.size * pieceHeightPx + statusHeightPx
+        val heightWithStackPx = topPaddingPx + maxOf(leftHeightPx, rightWithStackPx) + linesBelowHeightPx + bottomPaddingPx
         // A margin once shown, so a top a pixel either side of the limit cannot flip the decision back and forth.
         val marginPx = if (lastEveningShown) with(LocalDensity.current) { EVENING_LIMIT_MARGIN.toPx() } else 0f
         val eveningShown = !eveningStepsAside && pieces.isNotEmpty() && eveningLineFits(
             partsTopInRootPx + linesBelowHeightPx,
-            maxOf(leftHeightPx, (pieces.size * pieceHeightPx).toFloat()),
+            maxOf(leftHeightPx, rightWithStackPx),
             bottomPaddingPx,
             eveningLineBottomLimitInRootPx,
         ) && eveningStackFitsBelow(infoBottomInRootPx, heightWithStackPx, eveningLineTopLimitInRootPx?.let { it - marginPx })
@@ -156,7 +167,16 @@ internal fun NavigationInfo(
         val lastBackBy = rememberLastShown(shownBackBy)
         val holdSundown = shownSundown ?: lastSundown.takeIf { sundownVisibility.currentState || !sundownVisibility.isIdle }
         val holdBackBy = shownBackBy ?: lastBackBy.takeIf { backByVisibility.currentState || !backByVisibility.isIdle }
-        val fit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy)
+        val heldFit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy, distanceUnit, evening)
+        // Amendment 1, H12 (the owner: "(a) Leave out "Dark since"", the option reading "In that one case the evening line doesn't show;
+        // "by trail" keeps its own line"; the planner's reading: "the decision must settle, never loop"): where the evening line would
+        // change the kind's step and is left out for room (not stepping aside for the route card, D42), the card is laid out as with
+        // it: the kind keeps its step and the right part the line's width. So the left part's height the decision above reads is the
+        // same whether or not the line shows, and the decision cannot feed back into itself. Was the card as drawn without the line,
+        // so at 823 x 384, font 2.0, with no compass, leaving the line out put the kind beside the distance, which made room for the
+        // line again, every few frames (E13, stop 2, run 42278700471).
+        val withEveningFit = measuredNavigationInfoFit(readout, partsPx, metrics, sundownLine, backByLine, distanceUnit, evening)
+        val fit = if (!eveningStepsAside && pieces.isNotEmpty() && withEveningFit.topLine.kind != heldFit.topLine.kind) withEveningFit else heldFit
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -172,14 +192,20 @@ internal fun NavigationInfo(
                     backByLine = shownBackBy,
                     sundownVisibility = sundownVisibility,
                     backByVisibility = backByVisibility,
-                    reserveRight = eveningPieces(holdSundown, holdBackBy).isNotEmpty(),
+                    eveningBreaks = evening.breaks,
+                    eveningHeld = eveningPieces(holdSundown, holdBackBy).isNotEmpty(),
+                    statusInRight = !evening.statusBelow,
                     onLeftHeight = { leftHeightPx = it },
+                    onStatusHeight = { statusHeightPx = it },
                     modifier = Modifier
                         .fillMaxWidth()
                         .onGloballyPositioned { partsTopInRootPx = it.positionInRoot().y },
                 )
                 Column(modifier = Modifier.onGloballyPositioned { linesBelowHeightPx = it.size.height.toFloat() }) {
-                    CardRouteAndStatusLines(readout, partsPx, onRetryRoute)
+                    CardRouteLines(readout, partsPx, onRetryRoute)
+                    // H8: where the right part is too narrow for the status words' widest word, they keep their own full-width line here;
+                    // H10: one line, the more urgent ([oneStatusLine]).
+                    if (evening.statusBelow) StatusSpace(readout, oneLine = true)
                 }
             }
             // The X at the card's right edge, top-aligned beside the parts and the lines under them, its own 48 dp touch box.
@@ -239,6 +265,8 @@ private fun measuredNavigationInfoFit(
     metrics: InfoMetrics,
     sundownLine: String?,
     backByLine: String?,
+    distanceUnit: DistanceUnit,
+    cardEvening: CardEvening,
 ): NavigationInfoFit {
     val measurer = rememberTextMeasurer()
     val small = MaterialTheme.typography.labelMedium
@@ -246,6 +274,12 @@ private fun measuredNavigationInfoFit(
     val figureStyle = cardFigureStyle()
     fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
     val turn = readout.targetText
+    // Amendment 1, G3 ("The turn line"): the degrees' fixed space, measured once per type; E18, as wide as the widest of "0°" to
+    // "180°", "Target" and "No target", so the needle never moves ([widestTurnSpacePx]).
+    val turnSpacePx = remember(measurer, small) { widestTurnSpacePx { widthOf(it, small) } }
+    // G3: the left part is sized for the widest figure the walk could show in this unit, either kind, so where it is short of room it
+    // keeps one width as the number changes ([longestCardFigurePx]).
+    val longestFigurePx = remember(measurer, figureStyle, distanceUnit) { longestCardFigurePx(distanceUnit) { widthOf(it, figureStyle) } }
     return navigationInfoFit(
         NavigationInfoWidths(
             availablePx = partsPx,
@@ -254,17 +288,64 @@ private fun measuredNavigationInfoFit(
             arrowPx = metrics.arrowPx,
             figurePx = widthOf(columnFigure(readout), figureStyle),
             figureShortPx = distanceShortForm(readout.distanceText)?.let { widthOf(it, figureStyle) },
+            longestFigurePx = longestFigurePx,
             kindPx = readout.distanceKindText?.let { widthOf(it, small) },
-            turnWholePx = turn.takeIf { it.isNotEmpty() }?.let { widthOf(it, small) },
-            turnShortPx = turnShortForm(turn)?.let { widthOf(it, small) },
-            headingPx = if (readout.secondRowShown) widthOf(readout.headingText, small.copy(fontFeatureSettings = "tnum")) else 0,
-            headingIsStatus = !readout.headingIsReading,
-            headingIconPx = metrics.arrowPx,
-            eveningPiecePx = eveningPieces(sundownLine, backByLine).maxOfOrNull { widthOf(it, evening) },
+            turnSpacePx = turnSpacePx,
+            eveningPiecePx = eveningPieces(sundownLine, backByLine, cardEvening.breaks).maxOfOrNull { widthOf(it, evening) },
+            rightFloorPx = cardEvening.rightFloorPx,
         ),
-        turnWhole = turn,
-        turnShort = turnShortForm(turn),
+        turnText = turn,
     ).let { fit -> if (fit.overflows) fit.also { android.util.Log.w(CARD_LOG_TAG, "navigation info overflows at $partsPx px: $fit") } else fit }
+        .let { fit ->
+            // Dispatch 2026-11-05-10 (RECORD -2181): where the kind goes on the top line ([topLinePlace]).
+            val place = topLinePlace(
+                kindText = readout.distanceKindText,
+                shownFigure = columnFigure(readout, fit.figureShort),
+                unit = distanceUnit,
+                fit = fit,
+                totalPx = partsPx,
+                dividerPx = metrics.dividerPx,
+                gapPx = metrics.gapPx,
+                figurePx = { widthOf(it, figureStyle) },
+                kindPx = { widthOf(it, small) },
+            )
+            fit.copy(topLine = place)
+        }
+}
+
+/**
+ * Amendment 1, H5: whether the evening line breaks at the ▪︎ ([eveningBreaks]), and the right part's width with no evening line; H8:
+ * whether the status words take their own line under the parts ([statusBelowTheParts]), where the right part then keeps no daytime
+ * width.
+ */
+internal class CardEvening(val breaks: Boolean, val rightFloorPx: Int, val statusBelow: Boolean = false)
+
+/**
+ * H5 and the planner's reading of Q3: decided once for the card's width, font and the phone's clock, never from today's times, so it
+ * does not change as the evening comes. The line breaks unless it fits whole beside the left part's widest need with the next-turn
+ * space reserved ([nextTurnReservePx]); the right part is then as wide as the broken form's wider line (or the whole line), evening
+ * line or none.
+ */
+@Composable
+private fun rememberCardEvening(partsPx: Int, metrics: InfoMetrics, distanceUnit: DistanceUnit): CardEvening {
+    val measurer = rememberTextMeasurer()
+    val small = MaterialTheme.typography.labelMedium
+    val evening = small.copy(fontFeatureSettings = "tnum")
+    val figureStyle = cardFigureStyle()
+    val clock = rememberSundownClock()
+    return remember(measurer, small, figureStyle, clock, partsPx, metrics.gapPx, metrics.arrowPx, metrics.dividerPx, distanceUnit) {
+        fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+        val widths = cardEveningWidths(clock) { widthOf(it, evening) }
+        val turnLinePx = widestTurnSpacePx { widthOf(it, small) } + metrics.gapPx + metrics.arrowPx
+        val reservePx = nextTurnReservePx(metrics.gapPx, metrics.arrowPx, widthOf(longestTurnDistance(distanceUnit), evening))
+        val leftNeedPx = maxOf(longestCardFigurePx(distanceUnit) { widthOf(it, figureStyle) }, turnLinePx + reservePx)
+        val breaks = eveningBreaks(partsPx, metrics.dividerPx, leftNeedPx, widths)
+        val floorPx = if (breaks) widths.brokenPx else widths.oneLinePx
+        // H8: the left part's widest need with no reserve (the widest figure, the turn line, the wider kind), as the fit counts it.
+        val leftPartNeedPx = maxOf(longestCardFigurePx(distanceUnit) { widthOf(it, figureStyle) }, turnLinePx, DistanceKind.entries.maxOf { widthOf(it.words, small) })
+        val statusBelow = statusBelowTheParts(partsPx, metrics.dividerPx, leftPartNeedPx, floorPx, widestStatusWordPx { widthOf(it, small) })
+        CardEvening(breaks = breaks, rightFloorPx = if (statusBelow) 0 else floorPx, statusBelow = statusBelow)
+    }
 }
 
 /** The X's touch box: Material's icon button at its 48 dp minimum interactive size. */

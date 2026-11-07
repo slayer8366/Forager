@@ -61,6 +61,18 @@ internal data class NavigationHudReadout(
      * RECORD -950, already says. The navigation info's status line leaves it out. The readout still carries it, as data.
      */
     val statusIsPositionStatus: Boolean = false,
+    /**
+     * Dispatch 2026-11-05-10, Amendment 1, H3 (RECORD -2181): the compass notice the card's status space shows while the map's
+     * navigation view retries a stuck compass, or once it has turned north-up ("Compass calibrating…", "Compass unavailable · north
+     * up"); `null` otherwise. The same words [headingText] carries in those states (dispatch 2026-09-28-430, ruling E: "this label is
+     * the notice"), which the card no longer draws since H1 gave the heading back to the strip.
+     */
+    val compassNoticeText: String? = null,
+    /**
+     * Amendment 1, H10 (RECORD -2181): [statusText] warns of the fix's age, stale or lost ("Last fix 45 s ago", "No fix for 6 min"),
+     * which comes first where the status words have one line under the parts ([oneStatusLine]).
+     */
+    val statusIsFixAge: Boolean = false,
 ) {
     /**
      * The status's forms, longest first (T11 fixes). With "By trail ·" leading the line ([kindInStatus]) the straight-line
