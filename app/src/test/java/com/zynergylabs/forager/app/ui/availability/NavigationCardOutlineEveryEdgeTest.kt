@@ -79,6 +79,13 @@ import org.robolectric.shadows.ShadowDisplay
  * pixel from 14 to 16 dp from the corner's centre, inside the card's shape, must be the outline. Edges whose outside is another piece
  * (the side bar, the route card, the search pill) or off the window are not read. Each placement is also written as a PNG under the
  * build's test-results directory, which CI uploads.
+ *
+ * **E20** (RECORD -2181; the owner's marked screenshot: the missing line is at the bottom, where the card's end meets the side bar's
+ * rounded bottom corner; "Outline the card's end there"). The straight edges above are read only from 17 dp above the card's bottom,
+ * and the side bar's corner curves away within its bottom 16 dp, so the reading never reached that spot (E19's 36 cases passed for
+ * that reason). The end edge is now read there too: every 1 dp up the bottom [MAP_CARD_CORNER_RADIUS] of the side the side bar is on,
+ * the pixel 2 dp outside; where it is bare map, one of the four pixels where a 1 dp line lies inside that edge must be the outline.
+ * With the side bar shown, the spot must be found (bare map read there at least once), so the reading cannot pass without reaching it.
  */
 abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
 
@@ -88,8 +95,9 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
     val rules: RuleChain = RuleChain.outerRule(mapChromeHostActivityRule()).around(composeRule)
 
     private val t = ROUTE_CARD_NOON_CLOCK.nowEpochMillis()
-    private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 104.9, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
-    private val start = Waypoint(id = "origin", lat = 45.5135, lng = -122.67, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    // The made-up point P (dispatch 2026-11-05-10's rules), and the start a short way from it.
+    private val fix = LocationFix.Update(lat = P_LAT, lng = P_LNG, altitude = 104.9, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
+    private val start = Waypoint(id = "origin", lat = P_LAT - 0.0065, lng = P_LNG + 0.01, altitude = null, name = "Start", note = "", createdAtEpochMillis = t, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private val map: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.background(Color(0xFF808080))) }
     private val outline = if (dark) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT
     private val theme = if (dark) "night" else "day"
@@ -127,7 +135,10 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
             assertTrue("the route card rests on the navigation card: route card $route, navigation card $card", route.bottom > card.top && route.top < card.top)
         }
         val name = "landscape-${if (rotation90) "rot90" else "rot270"}-${if (fullscreen) "fullscreen" else "bar-shown"}-${if (routeCard) "route-card" else "no-route-card"}"
-        checkEveryMapFacingEdge(name, card, roundedTop = true)
+        // E20: the side bar is on the right at both rotations (RECORD -956), so the card's end is its right edge.
+        val rail = if (fullscreen) null else bounds(COMPACT_NAVIGATION_RAIL_TAG)
+        println("MEASURED E20 $name $theme: card $card, side bar $rail")
+        checkEveryMapFacingEdge(name, card, roundedTop = true, railCornerSpotExpected = !fullscreen)
     }
 
     protected fun portrait(routeCard: Boolean) {
@@ -146,7 +157,7 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
                     navigation = AvailabilityScreenNavigation(
                         isReturning = true,
                         navigationTarget = start,
-                        returnRoute = ReturnRoute.Ahead(LatLng(45.5135, -122.67), 245.0),
+                        returnRoute = ReturnRoute.Ahead(LatLng(start.lat, start.lng), 245.0),
                     ),
                     compassProvider = FixedCompass(134f),
                     computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
@@ -240,7 +251,7 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
      * The claim (see the class doc). [roundedTop]: the landscape card's top two corners are rounded and its bottom is square on the
      * screen's edge; the portrait strip's bottom two are rounded.
      */
-    private fun checkEveryMapFacingEdge(name: String, card: DpRect, roundedTop: Boolean) {
+    private fun checkEveryMapFacingEdge(name: String, card: DpRect, roundedTop: Boolean, railCornerSpotExpected: Boolean = false) {
         capture(name)
         val map = bareMap
         fun isMap(x: Int, y: Int) = inside(x, y) && abs(lum(image[x, y]) - lum(map)) < MAP_MATCH &&
@@ -285,6 +296,14 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
         edge("left", alongY, { y -> left - out to y }, { y -> (1..3).map { left + it to y } }, { y -> left + inFill to y })
         edge("right", alongY, { y -> right + out to y }, { y -> (2..4).map { right - it to y } }, { y -> right - inFill to y })
 
+        // E20: the end edge (right, by the side bar) over the card's bottom MAP_CARD_CORNER_RADIUS, where the side bar's rounded bottom
+        // corner curves away from it. Probed 2 dp out, every 1 dp, so the narrow wedge of map between the card and that corner is met.
+        if (roundedTop) {
+            val railCorner = RAIL_CORNER_SPOT
+            val alongCorner = (px(card.bottom - MAP_CARD_CORNER_RADIUS)..(bottom - 1) step px(1.dp))
+            edge(railCorner, alongCorner, { y -> right + px(2.dp) to y }, { y -> (1..4).map { right - it to y } }, { y -> right - inFill to y })
+        }
+
         // Rounded corners: centre, and the signs that point from it to the corner.
         val corners = if (roundedTop) {
             listOf(Triple("top-left corner", -1, -1), Triple("top-right corner", 1, -1))
@@ -317,6 +336,12 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
         println("MEASURED E19 $name $theme: card $card, bare map ${rgb(map)}, map-facing samples $facing, without the outline ${misses.size}")
         misses.forEach { println("MISS E19 $name $theme: $it") }
         assertTrue("$name: the navigation card faces the map somewhere (its samples by edge $facing)", facing.isNotEmpty())
+        if (railCornerSpotExpected) {
+            assertTrue(
+                "$name, $theme: the spot beside the side bar's bottom corner was not reached (no bare map read there; by edge $facing)",
+                (facing[RAIL_CORNER_SPOT] ?: 0) > 0,
+            )
+        }
         assertTrue("$name, $theme: ${misses.size} map-facing places on the navigation card without the outline (by edge, map-facing $facing); first: ${misses.firstOrNull()}", misses.isEmpty())
     }
 
@@ -330,6 +355,13 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
 
     private companion object {
         const val STRIP_TAG = "compass-elevation-strip"
+
+        /** E20's reading, by name (see the class doc). */
+        const val RAIL_CORNER_SPOT = "end edge beside the side bar's bottom corner"
+
+        /** The made-up point P, from dispatch 2026-11-05-10's rules. */
+        const val P_LAT = 45.3736
+        const val P_LNG = -121.6959
 
         /** How close to the bare map a pixel is read as bare map: the cards' fills over it are 0.2 or more away, day and night. */
         const val MAP_MATCH = 0.04f
