@@ -36369,6 +36369,8 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **Merged:** PR #503 into pre-main as b6f0b464d, at its head 092a7f886 (last code commit 41d0d676e green).
   - **B6 hand-back:** PR #504 (place-name-out-2, code 1c3bc65c9, CI run 42309269100 matching pre-main by name) and records commit 3482abb31 (the name out of 8 files, 13 places). The coder did not move the fixture by whole tile widths, reasoning that it keeps the old point's place within its tile, and used a separate made-up point with the same counts instead.
   - **Changed (2026-11-06T23:31Z), the owner,** to "keep the coder's made-up point (same counts, old position can't be worked back), or move it by whole tile widths as you first chose?": **"Whole tile widths, as I said"** (the option: "Redo it your original way: the old position could be worked back by someone who knows the method"); and for #504: **"Merge it"** once settled. Amendment 1, D6.
+  - **D6 done and merged:** the fixture is the original point moved 3 whole zoom-10 tile widths (latitude unmoved), every count held; CI run 42312981202 matching pre-main by name. PR #504 merged into pre-main as 3542a0c30; index rows for #503 and #504 at 26a5c5955.
+  - **Disk (2026-11-06):** both drives filled during the day. On the owner's words ("Remove the 34 (Recommended)"; "26 old coder folders (~2.9 GB)", "Old scratch folders (~8 GB)") the planner removed 57 clean, pushed worktrees (23 of the 26 were still there; 5 finished today were removed as dispatch clean-up) and five old scratch folders. Worktrees with unsaved changes or unpushed commits were kept.
 **Notes:** Written by the planner by hand. Next free ID -2183.
 
 ---
