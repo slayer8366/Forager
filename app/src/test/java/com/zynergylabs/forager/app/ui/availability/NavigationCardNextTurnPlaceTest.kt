@@ -78,8 +78,13 @@ class NavigationCardNextTurnPlaceTest {
         }
     }
 
+    // J4 (RECORD -2183), the owner: "Follow the largest rule": landscape at fonts 1.5 and 1.8 follow the font-2.0 rule. Was "J3 -
+    // landscape at font 2,0 is the case steps 2 and 3 name, and nothing else is", with 1.5 and 1.8 not asked (they kept step 1).
     @Test
-    fun `J3 - landscape at font 2,0 is the case steps 2 and 3 name, and nothing else is`() {
+    fun `J3 and J4 - landscape at font 1,5 and up is the case steps 2 and 3 name, and nothing else is`() {
+        assertTrue("J4: landscape 1.5 follows the largest rule", isLandscapeLargeText(landscape = true, fontScale = 1.5f))
+        assertTrue("J4: landscape 1.8 follows the largest rule", isLandscapeLargeText(landscape = true, fontScale = 1.8f))
+        assertEquals("portrait 1.5 is step 1's", false, isLandscapeLargeText(landscape = false, fontScale = 1.5f))
         assertTrue(isLandscapeLargeText(landscape = true, fontScale = 2.0f))
         assertTrue("the largest Android offers is 2.0; nothing larger falls back to J2", isLandscapeLargeText(landscape = true, fontScale = 2.2f))
         assertEquals("landscape 1.3 is step 1's", false, isLandscapeLargeText(landscape = true, fontScale = 1.3f))

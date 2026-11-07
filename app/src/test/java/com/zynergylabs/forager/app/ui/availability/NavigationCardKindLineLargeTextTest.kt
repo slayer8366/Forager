@@ -60,18 +60,26 @@ class NavigationCardKindLineLargeTextTest : NavigationCardTopLineRules() {
         topLine("320/2.0", State.STRAIGHT, Evening.DARK_SINCE, step = Step.OWN_LINE, shifted = true),
     )
 
+    // Dispatch 2026-11-06-01, Amendment 1, J4 (RECORD -2183, the owner: "Accept it", to ""by trail"/"straight" under the distance where
+    // the arrow takes the right part"): with no evening time the next turn takes the right part (J3 step 2), so both kinds take their own
+    // line under the distance. Was "by trail at the middle and straight moved right without an evening time", `step = Step.BESIDE` with
+    // `shifted = false` and `true` (the right part had no width then).
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
-    fun `823 x 384, font 2,0 - by trail at the middle and straight moved right without an evening time, both on their own line with one`() = assertClean(
-        topLine("823x384/2.0", State.TRAIL, Evening.NONE, step = Step.BESIDE, shifted = false),
-        topLine("823x384/2.0", State.STRAIGHT, Evening.NONE, step = Step.BESIDE, shifted = true),
+    fun `823 x 384, font 2,0 - J4 - both on their own line, the next turn in the right part without an evening time and the card up with one`() = assertClean(
+        topLine("823x384/2.0", State.TRAIL, Evening.NONE, step = Step.OWN_LINE),
+        topLine("823x384/2.0", State.STRAIGHT, Evening.NONE, step = Step.OWN_LINE),
         topLine("823x384/2.0", State.TRAIL, Evening.DARK_SINCE, step = Step.OWN_LINE, shifted = true),
         topLine("823x384/2.0", State.STRAIGHT, Evening.DARK_SINCE, step = Step.OWN_LINE, shifted = true),
     )
 
+    // Dispatch 2026-11-06-01, Amendment 1, J4 (RECORD -2183, the owner: "Accept it", to ""by trail"/"straight" under the distance where
+    // the arrow takes the right part"): with no evening time the next turn takes the right part (J3 step 2), so both kinds take their own
+    // line under the distance. Was "by trail at the middle and straight moved right without an evening time", `step = Step.BESIDE` with
+    // `shifted = false` and `true` (the right part had no width then).
     @Test @Config(qualifiers = "w780dp-h360dp-land-xxhdpi")
-    fun `780 x 360, font 2,0 - by trail at the middle and straight moved right without an evening time, both on their own line with one`() = assertClean(
-        topLine("780x360/2.0", State.TRAIL, Evening.NONE, step = Step.BESIDE, shifted = false),
-        topLine("780x360/2.0", State.STRAIGHT, Evening.NONE, step = Step.BESIDE, shifted = true),
+    fun `780 x 360, font 2,0 - J4 - both on their own line, the next turn in the right part without an evening time and the card up with one`() = assertClean(
+        topLine("780x360/2.0", State.TRAIL, Evening.NONE, step = Step.OWN_LINE),
+        topLine("780x360/2.0", State.STRAIGHT, Evening.NONE, step = Step.OWN_LINE),
         topLine("780x360/2.0", State.TRAIL, Evening.DARK_SINCE, step = Step.OWN_LINE, shifted = true),
         topLine("780x360/2.0", State.STRAIGHT, Evening.DARK_SINCE, step = Step.OWN_LINE, shifted = true),
     )

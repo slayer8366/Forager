@@ -196,7 +196,10 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         val statusBelow = minOf(floorPx, totalPx - dividerPx - leftNeedPx) < widestWordPx
         // H12: a piece left out keeps its width ([eveningLeftOut]), in the evening's tabular type.
         val leftOutPx = eveningLeftOut?.let { widthPx(kindType, it, tabular = true) } ?: 0
-        val wantRightPx = maxOf(if (statusBelow) 0 else floorPx, c.pieces.maxOfOrNull { widthPx(it, it.text) } ?: 0, leftOutPx)
+        // Dispatch 2026-11-06-01, Amendment 1, J3 step 2 and J4 (RECORD -2183, the owner: "Accept it", "Follow the largest rule"): in
+        // landscape at font 1.5 or more the right part is never narrower than the next turn's space, drawn there with no evening line.
+        val nextTurnRightPx = c.nextTurnSpace?.takeIf { it.left >= c.leftPartRight }?.let { px(it.right - it.left) } ?: 0
+        val wantRightPx = maxOf(if (statusBelow) 0 else floorPx, c.pieces.maxOfOrNull { widthPx(it, it.text) } ?: 0, leftOutPx, nextTurnRightPx)
         val basePx = totalPx - dividerPx - wantRightPx
         // Positive controls on that arithmetic: the left part is never narrower than what the evening piece leaves it, and where it
         // is wider (the fit overflowed) the right part is narrower than its widest piece, so that piece wraps.

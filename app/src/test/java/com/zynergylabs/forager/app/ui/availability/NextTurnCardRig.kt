@@ -11,6 +11,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
@@ -134,7 +135,7 @@ abstract class NextTurnCardRig {
                         }),
                         currentTime = CurrentTimeProvider { t + 1_000L },
                         mapSlot = { _, _, _, _, _, _, _, _, modifier ->
-                            Box(modifier.pointerInput(Unit) { detectTapGestures(onLongPress = { mapLongPresses++ }) })
+                            Box(modifier.testTag(NEXT_TURN_RIG_MAP_TAG).pointerInput(Unit) { detectTapGestures(onLongPress = { mapLongPresses++ }) })
                         },
                         searchInputs = AvailabilityScreenSearchInputs(
                             onUseCurrentLocation = {}, onManualLatChanged = {}, onManualLngChanged = {}, onSearchManualCoordinates = {},
@@ -226,3 +227,6 @@ abstract class NextTurnCardRig {
     protected fun Card.describe() = "card $hud, needle $needle, space $space ($spaceCount), arrow $arrow, figure <$figure>, " +
         "spoken <$spoken>, left part ${topLine.left}..$leftPartRight, top line <$distanceText>"
 }
+
+/** J3 step 3 and J4: the rig's map box, for where the walker's dot sits (NavigationCardMovesUpTest). */
+internal const val NEXT_TURN_RIG_MAP_TAG = "next-turn-rig-map"

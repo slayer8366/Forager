@@ -65,8 +65,9 @@ class NextTurnPlacementTest : NextTurnCardRig() {
     }
 
     /**
-     * J3 steps 2 and 3 (the owner: "Arrow in the right part", "Own line, card moves up"): in landscape at font 2.0, the right part with
-     * no evening line; its own line with one. Step 3's card moving up is not built (stopped, the dispatch report's "J3, built").
+     * J3 steps 2 and 3 (the owner: "Arrow in the right part", "Own line, card moves up"): in landscape at font 2.0, and by J4 ("Follow
+     * the largest rule") at 1.5 and 1.8, the right part with no evening line; its own line with one (the card moving up where it must is
+     * NavigationCardMovesUpTest's).
      */
     private val landscapeLargeText: (Evening) -> NextTurnPlace = { e -> if (e == Evening.NONE) RIGHT_PART else OWN_LINE }
 
@@ -88,6 +89,11 @@ class NextTurnPlacementTest : NextTurnCardRig() {
     @Test @Config(qualifiers = "w780dp-h360dp-land-xxhdpi") fun `780 x 360, font 1,0 - never flipping - own line in daytime too`() = placed("780x360/1.0", OWN_LINE)
     @Test @Config(qualifiers = "w780dp-h360dp-land-xxhdpi", fontScale = 1.3f) fun `780 x 360, font 1,3`() = placed("780x360/1.3", OWN_LINE)
     @Test @Config(qualifiers = "w780dp-h360dp-land-xxhdpi", fontScale = 2.0f) fun `780 x 360, font 2,0 - J3 - the right part with no evening line, its own line with one`() = placed("780x360/2.0", landscapeLargeText)
+    // J4 (RECORD -2183), the owner: "Follow the largest rule": landscape at fonts 1.5 and 1.8 as at 2.0.
+    @Test @Config(qualifiers = "w780dp-h360dp-land-xxhdpi", fontScale = 1.5f) fun `780 x 360, font 1,5 - J4 - the right part with no evening line, its own line with one`() = placed("780x360/1.5", landscapeLargeText)
+    @Test @Config(qualifiers = "w780dp-h360dp-land-xxhdpi", fontScale = 1.8f) fun `780 x 360, font 1,8 - J4 - the right part with no evening line, its own line with one`() = placed("780x360/1.8", landscapeLargeText)
+    @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 1.5f) fun `823 x 384, font 1,5 - J4 - the right part with no evening line, its own line with one`() = placed("823x384/1.5", landscapeLargeText)
+    @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 1.8f) fun `823 x 384, font 1,8 - J4 - the right part with no evening line, its own line with one`() = placed("823x384/1.8", landscapeLargeText)
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi") fun `823 x 384, font 1,0 - never flipping - own line in daytime too`() = placed("823x384/1.0", LANDSCAPE_823_AT_1_0)
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 1.3f) fun `823 x 384, font 1,3`() = placed("823x384/1.3", OWN_LINE)
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f) fun `823 x 384, font 2,0 - J3 - the right part with no evening line, its own line with one`() = placed("823x384/2.0", landscapeLargeText)

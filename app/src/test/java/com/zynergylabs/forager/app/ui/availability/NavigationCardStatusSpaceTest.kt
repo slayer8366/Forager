@@ -92,9 +92,13 @@ class NavigationCardStatusSpaceTest : NavigationCardKindLineScreen() {
             if (box.top < c.turnRowBottom - 0.5.dp) problems += "the status ${box} is not under the parts (the turn row ends at ${c.turnRowBottom})"
             if (box.left > c.hud.left + 8.5.dp) problems += "the status ${box} does not start at the card's left ${c.hud.left}"
         }
-        // In daytime the right part keeps no width: the divider is at the X's side, the left part has the parts' width.
+        // In daytime the right part keeps no width: the divider is at the X's side, the left part has the parts' width. Dispatch
+        // 2026-11-06-01, Amendment 1, J3 step 2 and J4 (RECORD -2183, "Arrow in the right part", "Follow the largest rule"): in landscape
+        // at font 1.5 or more the next turn is there in daytime, so the right part is the next turn's space and nothing more.
         val (rightLeft, rightRight) = rightPart(c)
-        if (rightRight - rightLeft > 0.5.dp) problems += "in daytime the right part is ${rightRight - rightLeft} wide, not empty ($rightLeft..$rightRight)"
+        val nextTurnHere = c.nextTurnSpace?.takeIf { it.left >= rightLeft - 0.5.dp }
+        val allowed = nextTurnHere?.let { it.right - it.left } ?: 0.dp
+        if (rightRight - rightLeft > allowed + 0.5.dp) problems += "in daytime the right part is ${rightRight - rightLeft} wide, more than the next turn's ${nextTurnHere ?: "(none there)"} ($rightLeft..$rightRight)"
         println("STATUSPLACE|$where|H8|status ${c.statusBox}|divider ${c.divider}|card height ${c.hud.bottom - c.hud.top}")
         assertTrue(problems.joinToString("\n") { "$where: $it" }, problems.isEmpty())
     }
@@ -138,7 +142,7 @@ class NavigationCardStatusSpaceTest : NavigationCardKindLineScreen() {
     fun `H2, 384 dp, font 2,0, no evening time - Approaching in the right part`() = h2("384/2.0", Evening.NONE, twoLines = false)
 
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
-    fun `H8, 823 x 384, font 2,0 - the status words take their own line under the parts, and the right part no daytime width`() = h8("823x384/2.0")
+    fun `H8, 823 x 384, font 2,0 - the status words take their own line under the parts, and the right part in daytime only the next turn (J3, J4)`() = h8("823x384/2.0")
 
     @Test @Config(qualifiers = "w360dp-h780dp-xxhdpi", fontScale = 2.0f)
     fun `H8, 360 dp, font 2,0 - the status words take their own line under the parts, and the right part no daytime width`() = h8("360/2.0")
