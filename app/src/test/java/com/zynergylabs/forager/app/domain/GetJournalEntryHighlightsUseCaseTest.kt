@@ -30,13 +30,13 @@ class GetJournalEntryHighlightsUseCaseTest {
     private val dayB = LocalDate.of(2026, 9, 5)
 
     // The records the Maps tab draws: live geometry, which differs from every entry's snapshot.
-    private val trackLive = RecordPolyline("track-1", listOf(LatLng(45.0, -122.0), LatLng(45.01, -122.01)))
-    private val trackOther = RecordPolyline("track-other", listOf(LatLng(46.0, -123.0), LatLng(46.01, -123.01)))
-    private val findLive = RecordPoint("find-1", LatLng(45.2, -122.2))
-    private val photoLive = RecordPoint("photo-1", LatLng(45.3, -122.3))
-    private val regionLive = RecordRegion("7", Region(lat = 45.5, lng = -122.5, radiusKm = 12))
-    private val waypointLive = Waypoint(id = "waypoint-1", lat = 45.44, lng = -122.66, altitude = null, name = "Trailhead (moved)", note = "", createdAtEpochMillis = 0L)
-    private val waypointOther = Waypoint(id = "waypoint-other", lat = 44.0, lng = -121.0, altitude = null, name = "Other", note = "", createdAtEpochMillis = 0L)
+    private val trackLive = RecordPolyline("track-1", listOf(LatLng(45.2, -121.1), LatLng(45.21, -121.11)))
+    private val trackOther = RecordPolyline("track-other", listOf(LatLng(46.2, -123.0), LatLng(46.21, -123.01)))
+    private val findLive = RecordPoint("find-1", LatLng(45.4, -121.3))
+    private val photoLive = RecordPoint("photo-1", LatLng(45.5, -122.3))
+    private val regionLive = RecordRegion("7", Region(lat = 45.7, lng = -121.6, radiusKm = 12))
+    private val waypointLive = Waypoint(id = "waypoint-1", lat = 45.64, lng = -121.76, altitude = null, name = "Trailhead (moved)", note = "", createdAtEpochMillis = 0L)
+    private val waypointOther = Waypoint(id = "waypoint-other", lat = 44.2, lng = -121.0, altitude = null, name = "Other", note = "", createdAtEpochMillis = 0L)
 
     private val records = MapRecords(
         findMarkers = listOf(findLive, RecordPoint("find-other", LatLng(1.0, 1.0))),
@@ -64,11 +64,11 @@ class GetJournalEntryHighlightsUseCaseTest {
             TrackDecision(trackId = "track-other", name = null, distanceMeters = 1.0, durationMillis = 1L, pointCount = 2, kept = false),
         ),
         waypointDecisions = listOf(
-            WaypointDecision(waypointId = "waypoint-1", name = "Trailhead", lat = 45.4, lng = -122.6, kept = true),
-            WaypointDecision(waypointId = "waypoint-other", name = "Other", lat = 44.0, lng = -121.0, kept = false),
+            WaypointDecision(waypointId = "waypoint-1", name = "Trailhead", lat = 45.6, lng = -121.7, kept = true),
+            WaypointDecision(waypointId = "waypoint-other", name = "Other", lat = 44.2, lng = -121.0, kept = false),
         ),
         offlineRegionDecisions = listOf(
-            OfflineRegionDecision(offlineRegionId = 7L, name = "Ridge", lat = 45.4, lng = -122.6, radiusKm = 10, kept = true),
+            OfflineRegionDecision(offlineRegionId = 7L, name = "Ridge", lat = 45.6, lng = -121.7, radiusKm = 10, kept = true),
             OfflineRegionDecision(offlineRegionId = 8L, name = "Other", lat = 3.0, lng = 3.0, radiusKm = 5, kept = false),
         ),
         photos = listOf(PhotoAttachment(photoId = "photo-1", attachedAtEpochMillis = 1L)),
@@ -86,8 +86,8 @@ class GetJournalEntryHighlightsUseCaseTest {
         assertEquals(listOf(trackLive), highlights.trackPolylines)
         assertEquals(listOf(findLive), highlights.findMarkers)
         assertEquals(listOf(photoLive), highlights.photoMarkers)
-        // The waypoint at its live position (45.44, -122.66), not the entry's snapshot (45.4, -122.6).
-        assertEquals(listOf(RecordPoint("waypoint-1", LatLng(45.44, -122.66))), highlights.waypointMarkers)
+        // The waypoint at its live position (45.64, -121.76), not the entry's snapshot (45.6, -121.7).
+        assertEquals(listOf(RecordPoint("waypoint-1", LatLng(45.64, -121.76))), highlights.waypointMarkers)
         // The region at its live radius (12 km), not the snapshot's 10.
         assertEquals(listOf(regionLive), highlights.offlineRegionCircles)
         assertEquals(

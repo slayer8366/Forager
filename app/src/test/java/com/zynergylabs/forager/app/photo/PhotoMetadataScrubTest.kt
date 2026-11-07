@@ -90,11 +90,11 @@ class PhotoMetadataScrubTest {
     @Test
     fun `GPS is gone, orientation survives, and the image itself is untouched`() {
         val file = jpeg("gps.jpg") { exif ->
-            exif.setLatLong(45.5, -122.6)
+            exif.setLatLong(45.5, -121.6)
             exif.setAttribute(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_ROTATE_90.toString())
         }
         val scanBefore = scanData(file.readBytes())
-        assertEquals("precondition: the fixture really does carry a coordinate", "45.5, -122.6", ExifInterface(file.absolutePath).latLong?.joinToString())
+        assertEquals("precondition: the fixture really does carry a coordinate", "45.5, -121.6", ExifInterface(file.absolutePath).latLong?.joinToString())
 
         val outcome = scrubPhotoMetadata(file)
 

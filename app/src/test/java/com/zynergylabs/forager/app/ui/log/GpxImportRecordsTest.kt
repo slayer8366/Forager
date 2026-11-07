@@ -219,7 +219,7 @@ class GpxImportRecordsTest {
     fun `an imported track's row shows its name and Imported, and a recorded walk's row is unchanged`() {
         val start = Instant.parse("2026-09-20T15:00:00Z").toEpochMilli()
         val date = DateTimeFormatter.ofPattern("MMM d, yyyy, h:mm a").format(Instant.ofEpochMilli(start).atZone(ZoneId.systemDefault()))
-        val points = listOf(TrackPoint(45.5, -122.6, null, null, start), TrackPoint(45.6, -122.6, null, null, start + 60_000L))
+        val points = listOf(TrackPoint(45.5, -121.6, null, null, start), TrackPoint(45.6, -121.6, null, null, start + 60_000L))
         setScreen(
             initialTracks = listOf(
                 Track("imp", "Ridge loop", start, start + 60_000L, points, importedAtEpochMillis = importNow),
@@ -234,7 +234,7 @@ class GpxImportRecordsTest {
     @Test
     fun `a track whose file had no times says so in its details where the times would be`() {
         val start = importNow
-        val points = listOf(TrackPoint(45.5, -122.6, null, null, start), TrackPoint(45.6, -122.6, null, null, start + 1_000L))
+        val points = listOf(TrackPoint(45.5, -121.6, null, null, start), TrackPoint(45.6, -121.6, null, null, start + 1_000L))
         setScreen(initialTracks = listOf(Track("imp", "Planned loop", start, start + 1_000L, points, importedAtEpochMillis = importNow, importedWithoutTimes = true)))
 
         composeRule.onNodeWithTag(trackExportRowTag("imp")).performTouchInput { click(center) }

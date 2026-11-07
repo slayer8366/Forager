@@ -157,7 +157,7 @@ abstract class OfflineMapsPanelTextTests(private val landscape: Boolean) {
             offlineMapRadiusKm = 24,
             offlineRegions = listOf(
                 OfflineRegionSummary(
-                    id = 9L, name = "North edge", region = Region(lat = 49.60, lng = -122.607, radiusKm = 24),
+                    id = 9L, name = "North edge", region = Region(lat = 49.60, lng = -121.903875, radiusKm = 24),
                     minZoom = OfflineMapRepository.MIN_ZOOM, maxZoom = OfflineMapRepository.MAX_ZOOM,
                     tileCount = 10_240, sizeBytes = 90_000_000L, createdAtEpochMillis = 1_755_000_000_000L,
                 ),

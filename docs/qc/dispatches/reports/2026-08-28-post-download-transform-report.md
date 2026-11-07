@@ -264,7 +264,7 @@ for this app's actual default region size, using this app's own tile-count formu
 (`EstimateOfflineTileCount.kt`) and real fetched tiles from the actual tile server, not estimates:
 
 - **Default region**: `AvailabilityUiState.radiusKm = 15` (the picker's own default). Centered near
-  Mt. Hood, OR (45.5, -122.6) — this app's own domain. `OfflineMapRepository`'s real constants:
+  Mt. Hood, OR (45.5, -121.6) — this app's own domain. `OfflineMapRepository`'s real constants:
   `MIN_ZOOM = 10.0`, `MAX_ZOOM = 15.0`.
 - **Real tile-pyramid count**, computed with this app's exact `estimateOfflineTileCount` math:
 

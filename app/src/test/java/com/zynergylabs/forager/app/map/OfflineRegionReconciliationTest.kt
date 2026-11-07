@@ -213,7 +213,7 @@ class OfflineRegionReconciliationTest {
 
     @Test
     fun `a Room row with no MapLibre region is offered as not downloaded, with its stored centre, radius and zoom`() {
-        val rows = listOf(row(1), row(2).copy(name = "Cedar Creek", lat = 45.5, lng = -122.6, radiusKm = 8, minZoom = 10.0, maxZoom = 15.0))
+        val rows = listOf(row(1), row(2).copy(name = "Cedar Creek", lat = 45.5, lng = -121.19375, radiusKm = 8, minZoom = 10.0, maxZoom = 15.0))
 
         val listed = notDownloadedRegions(rows, liveIds = setOf(1L))
 
@@ -221,7 +221,7 @@ class OfflineRegionReconciliationTest {
         val region = listed.single()
         assertEquals(false, region.isDownloaded)
         assertEquals("Cedar Creek", region.name)
-        assertEquals(com.zynergylabs.forager.app.domain.model.Region(lat = 45.5, lng = -122.6, radiusKm = 8), region.region)
+        assertEquals(com.zynergylabs.forager.app.domain.model.Region(lat = 45.5, lng = -121.19375, radiusKm = 8), region.region)
         assertEquals(10.0, region.minZoom, 0.0)
         assertEquals(15.0, region.maxZoom, 0.0)
         assertEquals(0, region.tileCount)

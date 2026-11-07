@@ -59,7 +59,7 @@ class FindPhotosOffEntryMapTest {
     }
 
     private suspend fun photo(id: String, toFind: String? = null) {
-        log.addPhotoToGallery(LogPhoto(id = id, relativePath = "photos/$id.jpg", createdAtEpochMillis = 1L, latitude = 45.5, longitude = -122.6)).getOrThrow()
+        log.addPhotoToGallery(LogPhoto(id = id, relativePath = "photos/$id.jpg", createdAtEpochMillis = 1L, latitude = 45.5, longitude = -121.6)).getOrThrow()
         if (toFind != null) log.attachPhotoToEntry(toFind, id).getOrThrow()
     }
 
@@ -73,7 +73,7 @@ class FindPhotosOffEntryMapTest {
     /** Amendment 1, "No icon anywhere (Recommended)". */
     @Test
     fun `a photo the entry attaches that a saved, located find links to is not drawn, and a standalone one is`() = runTest {
-        find("find-1", LatLng(45.5, -122.6))
+        find("find-1", LatLng(45.5, -121.6))
         photo("ph-of-find", toFind = "find-1")
         photo("standalone")
 
@@ -93,11 +93,11 @@ class FindPhotosOffEntryMapTest {
     /** Amendment 1, "Hide only after Save (Recommended)". */
     @Test
     fun `a photo of a draft find is drawn until the find is saved`() = runTest {
-        find("new-find", LatLng(45.5, -122.6), draft = true)
+        find("new-find", LatLng(45.5, -121.6), draft = true)
         photo("ph-a", toFind = "new-find")
         assertEquals("while a draft", listOf("ph-a"), drawnPhotos("ph-a"))
 
-        log.commitDraft("new-find", MushroomLogEntry.draft(id = "new-find", location = LatLng(45.5, -122.6), date = day).copy(isDraft = false)).getOrThrow()
+        log.commitDraft("new-find", MushroomLogEntry.draft(id = "new-find", location = LatLng(45.5, -121.6), date = day).copy(isDraft = false)).getOrThrow()
 
         assertEquals("once saved", emptyList<String>(), drawnPhotos("ph-a"))
     }
@@ -105,7 +105,7 @@ class FindPhotosOffEntryMapTest {
     /** Amendment 1, "Fine, they reappear (Recommended)". */
     @Test
     fun `a photo of a deleted find is drawn again`() = runTest {
-        find("find-1", LatLng(45.5, -122.6))
+        find("find-1", LatLng(45.5, -121.6))
         photo("ph-a", toFind = "find-1")
         assertEquals("positive control: hidden while the find is saved", emptyList<String>(), drawnPhotos("ph-a"))
 
@@ -116,7 +116,7 @@ class FindPhotosOffEntryMapTest {
 
     @Test
     fun `when the finds cannot be read, linked photos are left out, standalone ones drawn, and the failure is logged`() = runTest {
-        find("find-1", LatLng(45.5, -122.6))
+        find("find-1", LatLng(45.5, -121.6))
         photo("ph-of-find", toFind = "find-1")
         photo("standalone")
         val failing = object : MushroomLogRepository by log {

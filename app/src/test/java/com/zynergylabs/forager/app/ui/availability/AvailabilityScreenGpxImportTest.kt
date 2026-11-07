@@ -55,7 +55,7 @@ class AvailabilityScreenGpxImportTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
-    private val points = listOf(TrackPoint(45.5, -122.6, null, null, 1_000_000L), TrackPoint(45.6, -122.6, null, null, 1_060_000L))
+    private val points = listOf(TrackPoint(45.5, -121.6, null, null, 1_000_000L), TrackPoint(45.6, -121.6, null, null, 1_060_000L))
     private val imported = listOf(
         Track("imp-1", "Day one", 1_000_000L, 1_060_000L, points, importedAtEpochMillis = 2_000_000L),
         Track("imp-2", "Day two", 1_000_000L, 1_060_000L, points, importedAtEpochMillis = 2_000_000L),

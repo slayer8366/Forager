@@ -152,7 +152,7 @@ class ReferenceTrailBubbleScreenTest {
         Box(
             modifier
                 .testTag(MAP_TAG)
-                .pointerInput(Unit) { detectTapGestures { handler.onMapTap(LatLng(45.3, -115.0), it.x, it.y) } },
+                .pointerInput(Unit) { detectTapGestures { handler.onMapTap(LatLng(45.4, -115.0), it.x, it.y) } },
         )
     }
 
