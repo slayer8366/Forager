@@ -73,3 +73,5 @@ Sorrel's review (Fable) is docs/reviews/2026-10-30-sorrel-pr445-pr446.md (sorrel
 - **N2, on #446:** PlotRouteUseCaseTest.kt:212-216 collects the reasons actually asserted above it into a set and compares that with StraightReason.entries. Do a revert check that deletes one assertStraight line.
 - Merge pre-main into each branch if it has moved, then get both green on CI. The planner merges #445, then #446.
 - **N8**, a test pinning the stored reason names, goes with step 3, as do N9 and N10. N3 to N7 are record only.
+
+- **Changed (2026-11-07T12:36:12Z), RECORD -2187:** the owner, to "Database version 24 was promised to the planned heights step (4b), which nothing has built yet. Which way?": **"Route card takes 24"**. So version 24 is the route card's (route stops' soft link, MIGRATION_23_24 on PR #507), and the heights saved with a route (step 4b / 3b) bring their own migration **24→25**. Re-check the number against every remote ref before building.

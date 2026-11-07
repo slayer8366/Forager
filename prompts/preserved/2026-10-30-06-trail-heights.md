@@ -111,3 +111,5 @@ Aspen's note is prompts/aspen/2026-10-31-01 (25cbebea7). The fixture is PR #452 
 5. **The noted typo:** the fixture README says "seven routes" and routes.json holds eight. Fix it only if #452 didn't.
 
 Fail first where a test is new, then revert checks. Full CI green. Update the PR body. No merge, and never force-push.
+
+- **Changed (2026-11-07T12:36:12Z), RECORD -2187:** the owner, to "Database version 24 was promised to the planned heights step (4b), which nothing has built yet. Which way?": **"Route card takes 24"**. So version 24 is the route card's (route stops' soft link, MIGRATION_23_24 on PR #507), and the heights saved with a route (step 4b / 3b) bring their own migration **24→25**. Re-check the number against every remote ref before building.
