@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 // Moved from MapChrome.kt unchanged (UI split Phase 1, PR 7, dispatch 2026-10-19-16).
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,7 @@ import androidx.compose.material.icons.filled.Layers
 import androidx.compose.material.icons.filled.MyLocation
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -26,6 +28,7 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.MapIconBarAccent
@@ -136,6 +139,12 @@ internal fun MapIconBar(
      */
     fullSquareHits: Boolean = false,
     /**
+     * Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186): whether the locate row carries its ring, standing in for Re-center
+     * (`locateRowStandsInForReCenter`: the Maps tab in landscape navigation, the camera off the follow). `false` for every
+     * other caller, the journal entry's map included.
+     */
+    locateRinged: Boolean = false,
+    /**
      * The bar's 5th (last) row — fullscreen-maps dispatch: a second map surface (the Cartography
      * entry map) needs this row to mean something other than "plan a trip or log a find here,"
      * since neither concept exists there. A "+" button captioned for trip-planning that actually
@@ -186,6 +195,10 @@ internal fun MapIconBar(
                 icon = Icons.Filled.MyLocation,
                 contentDescription = "Center on my location",
                 onClick = onLocateMe,
+                // Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186), replacing Amendment 1's ring on both maps; the owner: "Only have
+                // the ring in landscape when needing to re-center the map camera during navigation": Re-center's outline (#505,
+                // ReturnToRoutePill.kt), the selected map type chip's colour source, only while [locateRinged].
+                ring = if (locateRinged) BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface) else null,
             )
             if (mapModePickerEnabled) {
                 // The map type panel (dispatch 2026-10-28-02; the Layers sheet from L0b until then). The old
