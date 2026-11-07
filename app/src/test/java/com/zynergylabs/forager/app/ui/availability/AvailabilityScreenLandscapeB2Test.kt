@@ -614,7 +614,7 @@ class AvailabilityScreenLandscapeB2Test {
             return
         }
         val text = nodes.singleOrNull()?.config?.getOrNull(androidx.compose.ui.semantics.SemanticsProperties.Text)?.joinToString()
-        assertTrue("the HUD's sundown line at dusk reads sunset, 37 min and dark; was <$text>", text != null && B2_DUSK_LINE.matches(text))
+        assertTrue("the HUD's sundown line at dusk reads sunset and dark (H5; was sunset, 37 min and dark); was <$text>", text != null && B2_DUSK_LINE.matches(text))
         val line = composeRule.onNodeWithTag(NAVIGATION_HUD_SUNDOWN_LINE_TAG, useUnmergedTree = true).getUnclippedBoundsInRoot()
         val hud = tagBounds(NAVIGATION_HUD_TAG)
         assertTrue("the sundown line $line is laid out inside the HUD $hud", line.isInside(hud) && line.height > 0.dp)
@@ -966,7 +966,11 @@ private val B2_DUSK_NOW: Long = java.time.Instant.parse("2026-10-07T01:00:00Z").
  * "Sunset 6:37 PM · in 37 min · dark 7:06" in Pacific time. The clock times follow the JVM's zone
  * (a laptop in PDT, CI in UTC), so only the countdown, which depends on instants alone, is exact.
  */
-private val B2_DUSK_LINE = Regex("Sunset .+ · in 37 min · dark .+")
+/**
+ * The card's before-sunset line. Dispatch 2026-11-05-10, Amendment 1, H5 (the owner: "Shorten to Sunset: 4:52 PM ▪︎ Dark: 5:23 PM"): no
+ * countdown. Was `Regex("Sunset .+ · in 37 min · dark .+")`.
+ */
+private val B2_DUSK_LINE = Regex("Sunset: .+ \u25AA\uFE0E Dark: .+")
 
 /** A live fix, so the strip shows heading, elevation and coordinates rather than its no-fix line. */
 private fun b2FixStateAt(now: Long) = B2_SEARCHED_STATE.copy(
