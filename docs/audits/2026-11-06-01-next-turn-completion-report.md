@@ -1230,3 +1230,73 @@ Every revert run also fails `NavigationCardLoneWordTest` 823/2.0 Dark since. Tha
 - Deleted from origin: `next-turn-j2-wip` (its work is merged into next-turn), `hazel-arrows3-probe`, `hazel-arrows3-red` and the four `hazel-arrows3-rev-*` refs. Their runs stay readable by number.
 - Scratch `/mnt/work/scratch/hazel-arrows3` (700) holds the probe source, its lines (`probe-lines.txt`), the runs' names and the revert runner.
 - PR #500 stays a draft.
+
+## J3/J4, built: stopped at two points, #500 stays a draft (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J3 step 3 and J4. The owner's go: "Record it", "Build #500's rest". **Built:** the card moving up (J3 step 3), its rounded and outlined bottom once up (J4 "Round and outline"), fonts 1.5 and 1.8 following the 2.0 rule (J4 "Follow the largest rule"), and #498/J3 claims changed to J4's "Accept it". **Full CI is not green: 3 failures, two of them stops (below).** Marks as in the sections above. Handed back at the session's size limit.
+
+### Base and commits [observed]
+- At the start: `origin/next-turn` ca03fa6d4, `origin/nav-card-kind-line` 5232b15fa, `origin/pre-main` 82d4a091a (unmoved, nothing to merge), `origin/records-after-173` 06b724837; worktree clean. All as the dispatch said.
+- Merge of nav-card-kind-line (with -m, no conflict); `65ad98a4b` tests first (the lift decision a stub); `7c34a5084` the build; `f7dc3ea72` one value for the rounded and outlined bottom; `b48c3e3d4` claims changed to J3 step 3, and the outline check taught to read a moved-up card's own bottom corners.
+- Other coders' files (`git diff origin/pre-main...` route-card 3052051fe, journal-locate-outline, locate-jump): none shared with mine. One of the 3 failures is in a test file journal-locate-outline changes (`RouteCardRecenterCoversNoCardTest.kt`); not touched.
+
+### What was built [read, b48c3e3d4]
+- `NavigationCardLift.kt` (new, pure): on the bottom edge unless landscape at font 1.5 or more with an evening line (not stepping aside for the route card, D42) would take the card's top past RECORD -955's limit; then up until its bottom is at the walker's dot's top. If moved up it would pass the compass strip's bottom or cover the L in its columns, it stays and -955 drops the line, logged once ("NoRoom").
+- `CompactMapLandscapeNavigationCard.kt`: the move (an offset), the evening line's limit becomes the strip's bottom once up, corners `ALL` and the bottom outlined once up, E20's band given the move so it draws nothing once up (moved more than 16 dp), and D42's "height with the evening lines" recorded plus the move so the route card's decision cannot drop the card back into room it then reads as free.
+- `NavigationInfo.kt`/`NavigationHud.kt`: the card reports its -955 height with the evening line and whether it is landscape at 1.5+.
+- `NavigationCardNextTurnPlace.kt`: the threshold 2.0 → 1.5. `RoundedMapCard.kt` needed no change.
+
+### Measured placements [observed, forward run 42416209350, `NavigationCardMovesUpTest`'s MOVEDUP lines; dp; through the real screen, no insets]
+| Window | 1.5 with evening | 1.8 with evening | 2.0 with evening | no evening (1.5-2.0) |
+|---|---|---|---|---|
+| 640 x 360 | bottom edge, 118.7 tall, top 4.3 below the dot | up, 138.7 tall, bottom at the dot's top, top 38.3 below the strip | up, 153.3, top 22.3 below the strip | bottom edge, right part |
+| 780 x 360 | bottom edge, top 4.3 below the dot | up, top 38.3 below the strip | up, top 22.3 below the strip | bottom edge, right part |
+| 823 x 384 | bottom edge, top 13.3 below the dot | up, top 53.3 below the strip | up, top 37.3 below the strip | bottom edge, right part |
+- Evening line on the card in every case; the L (the rig's default side) not covered in any.
+- Outline check (640 x 360, font 2.0, both rotations, side bar and fullscreen, day and night): card 59.7 to 213.0 down, the screen's bottom 360; every map-facing edge and all four corners outlined.
+
+### Evidence [observed; every log read for compile errors first: 0 in each]
+- **Red** (tests first): PR run 42413846076 at 65ad98a4b: 7291 tests, 42 failed, each J3/J4's reason (the stub's "expected Up but was OnBottomEdge", "the evening line left the card", 1.5/1.8 not yet the rule, the moved-up outline cases' "the evening line is on the card" positive control).
+- **Forward, full CI:** PR run 42416209350 at b48c3e3d4: **7291 tests, 3 failed**, 24 skipped. Of the 23 earlier failures, 22 pass: 18 by the build, 4 by changed claims (`NavigationCardKindLineLargeTextTest` 780/823 no-evening, `NavigationCardDistanceBesideKindTest` 823/2.0 ×2 renamed, `NavigationCardStatusSpaceTest` H8 renamed). Those 4 claim changes pass at the red commit too (J3 step 2 was already built), so they test the ruling's words, not this build. Also changed to J3 step 3's words: `HudLandscapeT11FixesTest` item 2 (was: the lines leave) and H12's two 823/2.0 no-compass cases (was: left out). Not compared by name against pre-main's latest run in this session.
+- **The 3 failures:**
+  1. `RouteCardSundownStepsAsideFont20Test` (one of the 23): **stop 1**.
+  2. `HudLandscapeT11FixesAt780Test` item 2 (my changed claim): at 780 x 360, font 2.0, Try again plus both evening lines, the card stays and the lines leave (no room moved up). **Stop 2.**
+  3. `RouteCardRecenterCoversNoCardAfterSunsetTest` (new failure, a file journal-locate-outline changes): its print reads the navigation card at **-49 to 213 dp**, its top off the screen, so the strip check did not stop the move there. **A defect in this build, not fixed** (inferred cause: the card's -955 height, which the decision uses, is less than the card's drawn height in that state, or the strip's bottom is estimated wrongly there; not checked).
+- **Reverts** (each one line on its own worktree from b48c3e3d4, file restored from a saved copy and checked equal to b48c3e3d4's, worktree checked unchanged after; filtered runs; failures 1 and 2 above fail in each and are left out here):
+  | Item | Line | Run | Failed besides those |
+  |---|---|---|---|
+  | Card up | `val liftPx = (lift as? NavigationCardLift.Up)?.px ?: 0f` → `0f` | 42416233254 at 62c6425b4 | 34: every MovesUp 1.8/2.0 case ("the evening line left the card"), the 8 moved-up outline cases (positive control), T11 05 ×8, the 3 RouteCardOnNavigationCard and 3 short StepsAside preconditions, LoneWord, KindLine ×4, T11Fixes 823. |
+  | Rounded/outlined bottom | `val bottomRoundedAndOutlined = movedUp` → `false` | 42416240766 at 5d2dc4357 | 8: the moved-up outline cases, 142 to 166 map-facing places unlined each. |
+  | 1.5/1.8 rule | `LANDSCAPE_LARGE_TEXT_FONT_SCALE = 1.5f` → `2.0f` | 42416247869 at e7557b556 | 8: MovesUp 1.8 ×3, the pure scale test, NextTurnPlacement 1.5/1.8 ×4. |
+
+### Questions for the owner (stops)
+1. **Route card open while the evening line steps aside.** "In landscape at the largest text after sunset, when a saved route's card is open, the sunset line steps off the navigation card (your D42 ruling) and the card goes back to the bottom. But the turn arrow keeps its own line, so the card stays one line taller and the route card's rows get no room. Should the arrow move to the card's right part while the sunset line is stepped aside (the card one line shorter), or should something else give way?" Found: this failure was counted under "step 3, not built" in "J3, built"; it is the own line's height, not the move.
+2. **780 x 360 at the largest text, route withheld with Try again, sunset and Back by lines:** moved up, the card would pass the compass strip, so the lines leave it as before (-955). Measured: without them the card is 252 to 360 dp; with them it does not fit under the strip (the exact height was not printed). "Is the lines leaving in that one case all right?"
+3. Not a question, a defect to fix next: failure 3 (the card drawn off the top of the screen in `RouteCardRecenterCoversNoCardAfterSunsetTest`).
+
+### Confirmed and inferred
+- [observed]: the base, the runs and counts above, the placements, the reverts, scan 0 before every push.
+- [inferred]: failure 3's cause; that "just enough" means no move where the card already clears the dot (decided, below).
+
+### Could not determine
+- The L against the moved card with the L on the rail side: the rig shows the L on its default side only (not covered there); the T11 rail-side cases pass with the line shown but assert nothing about the L.
+- The phone's own figures (no phone). The by-name comparison with pre-main's latest run (not done this session).
+
+### Premises that were wrong
+- "J3, built" counted `RouteCardSundownStepsAsideFont20Test` under step 3; with the card moved up it still fails (stop 1).
+- My own premise that the strip check bounds the move everywhere (failure 3).
+
+### Decided beyond scope (open to the owner)
+- "Just enough": at 1.5 with an evening line the card already clears the dot from the bottom edge (4.3 / 13.3 dp), so it does not move.
+- The move is instant, not animated.
+- Where moving up would pass the strip or cover the L, the card stays and -955 drops the line, logged.
+- The outline check's own reading for a moved-up card (E20's straight-edge band skipped where the corner is rounded; a line pixel over the map at the corner's edge counted, moved-up cases only).
+
+### S22 steps (after the fixes; nothing here is for the phone yet)
+- Landscape, text size 1.8 or 2.0, after sunset, navigating home by trail: the card sits above the blue dot with the sunset line on it, its bottom corners rounded and outlined all round; the dot is uncovered.
+- The same at 1.5: the card stays on the bottom edge, below the dot, with the sunset line.
+- Landscape at 1.5 or 1.8 in daytime: the arrow in the card's right part, "by trail" under the distance.
+
+### Clean-up
+- Deleted from origin: `hazel-arrows4-fwd`, `hazel-arrows4-wip`, the three `hazel-arrows4-rev-*` refs (their runs stay readable by number). Scratch `/mnt/work/scratch/hazel-arrows4` (700) holds the runner, run results and names.
+- PR #500 stays a draft. Final SHA: this commit.
