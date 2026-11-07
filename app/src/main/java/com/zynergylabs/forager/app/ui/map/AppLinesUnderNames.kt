@@ -68,7 +68,7 @@ internal fun namesAnchorOf(layers: List<BasemapLayer>, styleFile: StyleFileLayer
  *   style before they are, on every load (I10).
  * Used only as the fallback when the style file cannot be read, and as a second guard beside it ([isBasemapOwnLayer]).
  */
-internal val MAPLIBRE_LAYER_ID_PREFIXES: List<String> = listOf("mapbox-location-")
+internal val MAPLIBRE_LAYER_ID_PREFIXES: List<String> = listOf("mapbox-location-", "org.maplibre.")
 
 /**
  * Layers the app adds through `Style.Builder` that are the map the user sees, and so count as the basemap's own though
@@ -103,6 +103,7 @@ internal val APP_OVERLAY_LAYER_IDS: Set<String> by lazy {
  */
 internal fun isBasemapOwnLayer(id: String, styleFile: StyleFileLayers): Boolean {
     if (MAPLIBRE_LAYER_ID_PREFIXES.any { id.startsWith(it) } || id in APP_OVERLAY_LAYER_IDS) return false
+    if (styleFile is StyleFileLayers.Read && id !in styleFile.ids && id !in BUILDER_BASEMAP_LAYER_IDS) return false
     return true
 }
 

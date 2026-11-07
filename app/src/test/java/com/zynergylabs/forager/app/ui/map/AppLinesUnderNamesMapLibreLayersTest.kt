@@ -136,6 +136,17 @@ class AppLinesUnderNamesMapLibreLayersTest {
     }
 
     @Test
+    fun `no served style file declares a layer under one of MapLibre's id prefixes`() {
+        // A control: the id fallback must never leave out a layer a basemap declares itself.
+        val files = keptMaps().mapValues { it.value.fileText } + trailFirstNameOf.keys.associateWith { workerText(it) }
+        for ((name, text) in files) {
+            for (layer in layersOfJson(text)) {
+                assertTrue("$name: ${layer.id}", MAPLIBRE_LAYER_ID_PREFIXES.none { layer.id.startsWith(it) })
+            }
+        }
+    }
+
+    @Test
     fun `the style-load log lines read as the phone's should, counting only the map's own layers`() {
         // Topographical by day: the phone logged "layer 1 of 2" with the annotation layer counted.
         val topo = Loaded((mapStyleSourceFor(Basemap.OPEN_TOPO_MAP, night = false, useOfflineTiles = false) as MapStyleSource.Json).json)
