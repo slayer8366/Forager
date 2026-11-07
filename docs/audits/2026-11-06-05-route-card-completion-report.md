@@ -514,3 +514,118 @@ or should the card's navigation end before fullscreen exits?
 5. Move the first stop's waypoint (edit its position) on an old route, or delete it. Reopen the route. Navigate is greyed, with "This
    stop's waypoint was moved or deleted".
 6. In fullscreen, after Navigate: note the Back order (Q-D).
+
+# Build, part 4 (Amendment 3): Back in fullscreen after Navigate, the accent marker with the Waypoints layer, the outline in landscape navigation
+
+Hazel Cairnwright (Opus), 2026-11-07 UTC, on the owner's "Build needle + route Back" (Amendment 3) and, relayed by the planner, "Build it"
+(the outline in landscape navigation). Branch `route-card`, from `27a2723b2`; code at `79dd49447`. `origin/pre-main` was `1f6901a11` at
+the start and at the end, so nothing was merged in.
+
+## What was built
+
+- **Back after Navigate in fullscreen** (the owner: "Only leave full screen if they entered full screen after tapping navigate. If they
+  entered navigation mode after full screen mode, then leave navigate."; restated, "Yes, that's it"). New `domain/route/RouteCardBackOrder.kt`
+  (pure Kotlin, 45 lines): Navigate records whether fullscreen was already on; leaving fullscreen by any route clears that; Back ending the
+  card's navigation in fullscreen, where Navigate came after fullscreen, makes the next Back leave fullscreen. The order is held in
+  `RoutePlottingUiState.backOrder`, so it survives recomposition and resets when a route opens or closes. `RoutePlottingBackHandler` reads it:
+  - card → Navigate → fullscreen: the card's tier stands aside, so Back 1 is the screen's fullscreen step; Back 2 is the screen's
+    waypoint-navigation step (as part 3 built); Back 3 closes the card.
+  - fullscreen → card → Navigate: Back 1 is the card's tier, which ends the navigation through the screen's own `endWaypointNavigation(true)`
+    (passed in as `RoutePlottingControls.onEndNavigation`, one line in `AvailabilityScreen.kt`); Back 2: the card's tier stands aside, so
+    the screen leaves fullscreen; Back 3 closes the card.
+  - Fullscreen left and entered again after Navigate counts as the later of the two (Back leaves it first).
+  - With no Navigate from the card, the card's Back still goes before fullscreen (-1852 "Yes, cancel first"), unchanged.
+- **The accent marker hides with the Waypoints layer** ("Hide with the layer"): `selectedStopMarker` draws nothing for a waypoint stop when
+  the map's layer state (`renderMode.layers`, what the map draws) has Waypoints off; it comes back when the switch is on again.
+- **The outline in landscape navigation** ("Every edge facing the map"): the outline now takes a set of open edges
+  (`RouteCardEdges.kt`, `routeCardOpenEdges`). Resting on the navigation card in landscape, the bottom and the card's own side (the side
+  bar's, `routeCardOnLeft`) are open; the top and the side toward the map carry the 1 dp `onSurface` outline. Portrait, landscape off
+  navigation and the tucked tab are as before.
+- Files: one new main file (45 lines), two new test files (`RouteCardFullscreenBackTest`, 228 lines; `RouteCardOutlineOnNavigationCardTest`,
+  91 lines). `CompactMapRoutePlotting.kt` 392 → 421, `RoutePlottingViewModel.kt` 307 → 328, small edits to `CompactMapRouteStops.kt`,
+  `RouteCardEdges.kt`, `RouteCard.kt`, `RouteCardTuck.kt`, `AvailabilityCompactMapUi.kt` (769 → 772), `AvailabilityScreen.kt` (754 → 755);
+  the test rig `RouteCardBarRig.kt` gained an optional theme (`dark`), default unchanged. None of these is in next-turn's,
+  nav-card-kind-line's (at `746bb8df2`, then `f1a0a3bbd`) or journal-locate-outline's diff, checked before the edits and again before
+  the commit. `CompactMapBottomChrome.kt` is not touched.
+
+## Verified, and how
+
+- **Red first, on the code before this part.** The new tests alone on `27a2723b2` (throwaway branch, run **42383530270**, filtered to the
+  two new classes; 0 compile errors in its log): 8 tests, **5 failed**, each for its own reason, from the run's JUnit XML:
+  - fullscreen → card → Navigate: "Back 1 ends the navigation expected null, but was:<wp-creek>" (Back left fullscreen instead);
+  - the layer: "with Waypoints off, no accent marker is drawn expected null, but was:<SelectedStopMarker(...)>";
+  - the outline, all three (day and night at ROTATION_90, day at ROTATION_270): "the side against the side bar carries no outline; it reads
+    [#3B2E24 ×3, #F5F1E6 ...]" (night: #EDE3D0 ×3): a 3 px stroke on the side bar's edge. The top and the map side passed: they were
+    already outlined.
+  - Three passed on the old code, as expected: card → Navigate → fullscreen (part 3 already built that order, Q-D), fullscreen re-entered
+    after Navigate (the same path), and Back without Navigate (the unchanged -1852 case, a guard). They are not evidence for the new code;
+    only the revert below is evidence for the Back change.
+- **Full CI, run 42383594759 at `79dd49447`: green**, every job. By name against pre-main's latest run (**42337576510** at `1f6901a11`):
+  6889 vs 6846 test cases (6865 passed, 24 skipped vs 6822 and 24), **no outcome changed**. One name gone (`SchemaMigrationTest` "4 to 23",
+  renamed "4 to 24" in part 2), 44 new, all passing: the 36 of parts 1 to 3 and this part's 8.
+- **Three one-line reverts**, each on a throwaway branch from `79dd49447` in its own scratch worktree, so the forward tree was never edited
+  (after all three, `git diff 79dd49447 HEAD` is empty, and each forward line is present). Each run filtered to `RouteCardFullscreenBackTest`,
+  `RouteCardOutlineOnNavigationCardTest`, `RouteCardNavigateTest`, `RouteCardTuckCloseTest` (27 tests). Each log read for compile errors
+  first: **0 in each**.
+
+  | Revert (one line) | Run | Failed | The failure, from its message |
+  |---|---|---|---|
+  | Back: `END_NAVIGATION -> isFullscreen` made `-> false` (the card's tier never ends navigation in fullscreen) | 42385483720 | 1 of 27 | fullscreen → card → Navigate: "Back 1 ends the navigation expected null, but was:<wp-creek>" |
+  | accent: `if (!waypointsDrawn) null else` dropped | 42385486178 | 1 of 27 | "with Waypoints off, no accent marker is drawn expected null, but was:<SelectedStopMarker(...)>" |
+  | outline: `onNavigationCard != null` made `false` | 42385488222 | 3 of 27 | the three outline cases: "the side against the side bar carries no outline", a #3B2E24 (night #EDE3D0) run at 0..2 |
+
+  Each failure belongs to its own edit. Nothing else failed; part 3's Back test and the portrait outline tests stayed green in each.
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, the real compact Maps tab): both Back orders and the re-entry case, portrait; the accent marker as the data
+  handed to the map, with the switch reached by real touches through Tools > Map Layers; the outline's pixels in landscape navigation at
+  both rotations by day and at ROTATION_90 at night.
+- Inferred, not run: the Back orders in landscape (the handlers do not read orientation); the outline at night at ROTATION_270; the
+  accent pin hidden on a real MapLibre map (the map is a stub, as in part 3); fullscreen leaving by the tab handler (fullscreen cannot be
+  left by a tab change, CLAUDE.md, UX defaults).
+- The test reads the side bar's side as the nearer screen edge, matching `routeCardOnLeft` (the rail's side while on the navigation card);
+  it printed the measured runs, it did not read the rail's own bounds.
+
+## Could not determine
+
+- Whether the 3 px stroke the old build drew on the side bar's edge was visible on the phone against the rail (the owner's question was
+  about where it should be, so this was not measured).
+- How the card's top corner on the side bar's side reads with that side open: the shape keeps both top corners round, and the open side's
+  stroke is cut by the clip, so the round corner there now has a stroke only along its top. Not asked; for the owner to judge on the phone.
+
+## Premises that were wrong
+
+- The amendment file names are `prompts/preserved/2026-11-06-05-amendment-N.md`, not `...-route-card-amendment-N.md` (as in part 3).
+- None about the code: Navigate does not turn fullscreen on (confirmed: the card's `onNavigate` only records and navigates).
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- **A second recorded Back rule is replaced for this case, not only -1852.** The screen's navigation-chrome rule
+  (`AvailabilityScreenBackHandlers.kt`: "a back press while navigating in fullscreen exits fullscreen and does not touch the navigation"),
+  and -502's waypoint step, which backs out of fullscreen first, are overridden for a navigation started from the route card in fullscreen:
+  Back 1 ends it with fullscreen still on. That is exactly the owner's second order, and Q-D quoted that rule when it asked, so I read it as
+  ruled; the brief named only -1852. Every other navigation (the return, a bubble's or Records' Navigate) is unchanged.
+- Fullscreen → card → Navigate, then the navigation ended by the HUD's ✕ (not Back): the next Back closes the card first, as before
+  (-1852), because only Back sets "leave fullscreen next". Amendment 3 names only Back; this keeps today's behaviour where it is silent.
+- A **trip** as the selected stop keeps its accent flag when the Planned Trips layer is off: the owner's words were about the Waypoints
+  layer. Q-E below.
+- Leaving fullscreen by its control while the card's navigation runs counts as leaving it; entering it again makes fullscreen the later.
+
+## Questions for the owner
+
+**Q-E. A trip stop's accent with its layer off.** A route stop can be a planned trip; its accent is a flag. With **Planned Trips** switched
+off in Map Layers, should that flag hide too, as the waypoint pin's now does with Waypoints? As built: it stays.
+
+## S22 steps (nothing was run on a phone)
+
+1. Open a saved route. Navigate. Tap Fullscreen. Back: fullscreen ends, still navigating. Back: navigation ends, the card stays. Back: the
+   card closes.
+2. Tap Fullscreen first. Open a saved route (tap its pin). Navigate. Back: navigation ends, still fullscreen, the card stays. Back:
+   fullscreen ends. Back: the card closes.
+3. As 2, but after Navigate tap Exit fullscreen, then Fullscreen again. Back: fullscreen ends first, still navigating.
+4. Open a saved route: the first stop's pin is in the accent. Tools > Map Layers > Waypoints off: the accent pin goes with the pins. On
+   again: it is back.
+5. Turn the phone to landscape, start navigating (a recording's return), open a route. The card sits on the navigation card: its top and
+   the side toward the map have the thin outline; the side against the side bar and the bottom do not. By day and in Night Mode, turned
+   both ways.
