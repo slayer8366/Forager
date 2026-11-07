@@ -14,6 +14,7 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.route.RouteStop
+import com.zynergylabs.forager.app.domain.route.RouteStopLink
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
@@ -64,7 +65,7 @@ class TripWhilePlottingTest {
         onSaved = {},
         errorLog = { _, _, _ -> },
     )
-    private val saddleStop = RouteStop("Saddle loop", trip.location)
+    private val saddleStop = RouteStop("Saddle loop", trip.location, RouteStopLink.Trip(trip.id)) // Amendment 2: the stop keeps its soft link
 
     private fun setScreen() {
         val viewModel = mapLayersViewModel(plannedTrips = listOf(trip))

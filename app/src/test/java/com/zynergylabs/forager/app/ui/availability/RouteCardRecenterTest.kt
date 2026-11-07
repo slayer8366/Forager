@@ -207,14 +207,19 @@ class RouteCardRecenterTabletTest : RouteCardRecenterTests() {
     fun `on a tablet in portrait, Re-center stays put for a card beside it`() = assertStaysPut("tablet", listOf(3))
 }
 
-/** The S22's portrait window: they share the column, so Re-center keeps clear of the card, and comes back when it closes. */
+/**
+ * The S22's portrait window: they share the column. Dispatch 2026-11-06-05, Amendment 1, plan step 1 (RECORD -2187), the owner: "(b)
+ * Card leaves room", replacing -1861 ("Pill sits above the card") and -1943's rise, which this class pinned until then ("Re-center's
+ * bottom is above the card's top"): Re-center sits under the card, where it is with no card, and the card leaves room for it, so
+ * neither moves for the other; the whole claim is `RouteCardReCenterUnderCardTest`'s.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
 class RouteCardRecenterSharedColumnTest : RouteCardRecenterTests() {
 
     @Test
-    fun `sharing the card's column, Re-center stays clear of it, peek and expanded, and goes back when it closes`() {
+    fun `sharing the card's column, Re-center sits under it where it is with no card, peek and expanded, and stays when it closes`() {
         rig.setScreen(navigating = true)
         rig.leaveNavigationView()
         val before = recenter()
@@ -225,7 +230,8 @@ class RouteCardRecenterSharedColumnTest : RouteCardRecenterTests() {
             val pill = recenter()
             println("A17 shared, expanded $expanded: Re-center ${pill.left.value}..${pill.right.value} x ${pill.top.value}..${pill.bottom.value}, card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}")
             assertTrue("precondition: they share a column: ${pill.left}..${pill.right} and ${card.left}..${card.right}", pill.left < card.right && card.left < pill.right)
-            assertTrue("expanded $expanded: Re-center's bottom ${pill.bottom} is above the card's top ${card.top}", pill.bottom <= card.top + 0.5.dp)
+            assertTrue("expanded $expanded: Re-center's top ${pill.top} is under the card's bottom ${card.bottom}", pill.top >= card.bottom - 0.5.dp)
+            rig.assertSame("expanded $expanded: Re-center where it is with no card", before, pill)
         }
         rig.setExpanded(false)
         rig.closeCard()

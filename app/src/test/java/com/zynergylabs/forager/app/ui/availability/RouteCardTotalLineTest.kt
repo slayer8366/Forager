@@ -40,6 +40,7 @@ import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
 import com.zynergylabs.forager.app.ui.route.routeCardLegTag
+import com.zynergylabs.forager.app.ui.route.routeCardStopTag
 import kotlinx.coroutines.yield
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -252,7 +253,7 @@ class RouteCardTotalLineTest {
     fun `a saved route keeps its name on top, the total line stays put, and the rows slide up between the two`() {
         setScreen()
         touchCentreOf(glyphTag(LONG_TRIP.id))
-        assertEquals("the peek's texts: no elevation on a saved route until step 3b", listOf("Long way", "3 Waypoints routed", "0.8 mi", "Directions"), cardTexts())
+        assertEquals("the peek's texts: no elevation on a saved route until step 3b", listOf("Long way", "3 Waypoints routed", "0.8 mi", "Navigate", "Directions"), cardTexts()) // Navigate: dispatch 2026-11-06-05, Amendment 2
         val line = topPx(ROUTE_CARD_ROUTED_TAG)
         val name = bounds(ROUTE_CARD_NAME_TAG).top
         assertTrue("the total line is under the name", bounds(ROUTE_CARD_ROUTED_TAG).top >= bounds(ROUTE_CARD_NAME_TAG).bottom)
@@ -264,8 +265,9 @@ class RouteCardTotalLineTest {
         assertTrue("expanded", plotting.uiState.value.expanded)
         assertEquals("expanded, in pixels", line, topPx(ROUTE_CARD_ROUTED_TAG), 0f)
         assertTrue("the name rose with the card", bounds(ROUTE_CARD_NAME_TAG).top < name)
-        assertTrue("the rows are under the name", bounds(routeCardLegTag(0)).top >= bounds(ROUTE_CARD_NAME_TAG).bottom)
-        assertTrue("and above the total line", bounds(routeCardLegTag(1)).bottom <= bounds(ROUTE_CARD_ROUTED_TAG).top + 0.5.dp)
+        // Since dispatch 2026-11-06-05, Amendment 2, a saved route's rows are its three waypoints ("Waypoints with leg distances").
+        assertTrue("the rows are under the name", bounds(routeCardStopTag(0)).top >= bounds(ROUTE_CARD_NAME_TAG).bottom)
+        assertTrue("and above the total line", bounds(routeCardStopTag(2)).bottom <= bounds(ROUTE_CARD_ROUTED_TAG).top + 0.5.dp)
         assertEquals("the total appears once: ${cardTexts()}", 1, cardTexts().count { it == "0.8 mi" })
     }
 

@@ -121,10 +121,10 @@ internal class Phone(
     private fun Cursor.columnName(i: Int): String = getColumnName(i)
 
     companion object {
-        const val SCHEMA = 23
+        const val SCHEMA = 24
         // rawRelativePath (MIGRATION_21_22) is not a link, but like one it is null unless a test names it: a made-up DNG path
         // would be a photo file the backup then looks for.
-        val LINK_COLUMNS = setOf("trackId", "originWaypointId", "offlineRegionId", "draftOfEntryId", "rawRelativePath")
+        val LINK_COLUMNS = setOf("trackId", "originWaypointId", "offlineRegionId", "draftOfEntryId", "rawRelativePath", "linkedWaypointId", "linkedTripId")
 
         fun allTables(): List<String> = SchemaAssets.entities(SCHEMA).map { it.first }
     }

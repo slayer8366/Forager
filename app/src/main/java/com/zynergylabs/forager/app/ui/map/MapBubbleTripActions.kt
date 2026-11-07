@@ -2,7 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 import android.util.Log
 import com.zynergylabs.forager.app.domain.NavigationTargetKind
-import com.zynergylabs.forager.app.domain.route.RouteStop
+import com.zynergylabs.forager.app.domain.route.asRouteStop
 
 /*
  * A planned trip's actions in its bubble and its card (dispatch 2026-11-05-05; RECORD -2140, -2148), built here for
@@ -32,7 +32,7 @@ internal fun tripBubblePlotRoute(sources: MapRecordSources, onDismiss: () -> Uni
             val trip = sources.plannedTrips.firstOrNull { it.id == id }
             onDismiss()
             if (trip != null) {
-                plotting.actions.onStartPlotting(RouteStop(trip.name, trip.location))
+                plotting.actions.onStartPlotting(trip.asRouteStop())
             } else {
                 Log.w(TRIP_ACTIONS_LOG_TAG, "Trip $id is gone; plotting did not start.")
             }
