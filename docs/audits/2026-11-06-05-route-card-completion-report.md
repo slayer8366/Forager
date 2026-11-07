@@ -190,7 +190,7 @@ colour. Q-B is at the end.
 
 ## Verified, and how
 
-- Tests: `RouteCardTuckCloseTest` (new, 11 cases), on the real compact Maps tab with the real `RoutePlottingViewModel`. Every touch is a
+- Tests: `RouteCardTuckCloseTest` (new, 10 cases), on the real compact Maps tab with the real `RoutePlottingViewModel`. Every touch is a
   real one at screen coordinates: five points across the ✕, Directions and the tab; real swipes across the card both ways; a real drag
   on the tab. Five long-presses around the tab and over the tucked card's old area reach the map: just above the tab, beside it toward
   the map, and at the card's old top, middle and far corner. The outline is read from drawn pixels in the ruled hex, by day and at night.
@@ -209,7 +209,7 @@ colour. Q-B is at the end.
     [#F5F1E6, ...]" and the night case with `#1F1F1F`.
   Each failure belongs to its own edit, and nothing from another step failed. After the checks, the forward change is still at HEAD
   (`git diff 72e7e6b4f HEAD` is empty; each of the three lines is present).
-- Full CI by name against pre-main's latest run: see the PR's run, recorded in the hand-back.
+- Full CI, run 42351328873 at `c0aab69c5`: every job green, 6856 test cases, 0 failed. Compared by name with pre-main's latest run (42337576510 at `1f6901a11`, 6846): no test missing, and the 10 new ones are all `RouteCardTuckCloseTest`'s. PR #507, draft.
 
 ## Not built, and what waits
 
