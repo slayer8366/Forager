@@ -121,12 +121,17 @@ sealed interface RouteCardContent {
         override val legElevations: List<RouteElevation?> = emptyList(),
     ) : RouteCardContent
 
-    /** A saved route, under its [name]. */
+    /**
+     * A saved route, under its [name]. [selectedStop] is the stop Navigate goes to, and [canNavigate] whether it can (dispatch
+     * 2026-11-06-05, Amendment 2; `RouteCardStops.kt`).
+     */
     data class Saved(
         val name: String,
         override val stops: List<RouteStop>,
         override val legs: List<RouteLeg>,
         override val legElevations: List<RouteElevation?> = emptyList(),
+        val selectedStop: Int = 0,
+        val canNavigate: Boolean = false,
     ) : RouteCardContent
 }
 
@@ -139,6 +144,10 @@ class RouteCardCallbacks(
     val onDirections: () -> Unit = {},
     /** The ✕ on a saved route's card (dispatch 2026-11-06-05, Amendment 1, step 3; `RouteCardEdges.kt`). */
     val onClose: () -> Unit = {},
+    /** Navigate, left of Directions, to the selected stop (Amendment 2, item 3). */
+    val onNavigate: () -> Unit = {},
+    /** A stop's row in the open saved card tapped (Amendment 2, item 4). */
+    val onSelectStop: (Int) -> Unit = {},
 )
 
 @Composable
@@ -211,7 +220,12 @@ fun RouteCard(
             }
             if ((expanded || reveal.showsRows) && (content.legs.isNotEmpty() || content.legInFlight)) {
                 DisposableEffect(Unit) { onDispose { rowsPx = 0; firstRowNatural = 0 } }
-                RouteLegRows(content, distanceUnit, reveal, expandedMaxHeight, onHeightPx = { rowsPx = it }, onFirstRowNaturalPx = { firstRowNatural = it })
+                // Amendment 2, item 4: a saved route lists its waypoints, each with the leg leading to it (RouteCardStops.kt).
+                if (content is RouteCardContent.Saved) {
+                    RouteCardStopRows(content, distanceUnit, reveal, expandedMaxHeight, callbacks.onSelectStop, onHeightPx = { rowsPx = it }, onFirstRowNaturalPx = { firstRowNatural = it })
+                } else {
+                    RouteLegRows(content, distanceUnit, reveal, expandedMaxHeight, onHeightPx = { rowsPx = it }, onFirstRowNaturalPx = { firstRowNatural = it })
+                }
             }
             Box(Modifier.naturalHeight { totalNatural = it }) {
                 if (content.legs.isNotEmpty()) RouteTotalLine(content, distanceUnit, showElevation = !hideElevation, onElevationHeightPx = { elevationPx = it }) else RouteNoLegsLine(content)
@@ -341,7 +355,7 @@ private fun ColumnScope.RouteLegRows(content: RouteCardContent, distanceUnit: Di
     }
 }
 
-/** Undo, Cancel and Save while plotting (Save at the end); Directions to the first stop on a saved route (Amendment 1, Q7). */
+/** Undo, Cancel and Save while plotting (Save at the end); on a saved route, Navigate and Directions (`RouteCardStops.kt`). */
 @Composable
 private fun RouteCardButtons(content: RouteCardContent, callbacks: RouteCardCallbacks) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -352,10 +366,7 @@ private fun RouteCardButtons(content: RouteCardContent, callbacks: RouteCardCall
                 Spacer(Modifier.weight(1f))
                 TextButton(onClick = callbacks.onSave, enabled = content.canSave, modifier = Modifier.testTag(ROUTE_CARD_SAVE_TAG)) { Text("Save") }
             }
-            is RouteCardContent.Saved -> {
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = callbacks.onDirections, modifier = Modifier.testTag(ROUTE_CARD_DIRECTIONS_TAG)) { Text("Directions") }
-            }
+            is RouteCardContent.Saved -> RouteCardSavedButtons(content, callbacks)
         }
     }
 }
@@ -364,7 +375,7 @@ private fun RouteCardButtons(content: RouteCardContent, callbacks: RouteCardCall
 data class RouteCardNaturalHeights(val linesPx: Int, val elevationPx: Int, val firstRowPx: Int)
 
 /** Reports its content's intrinsic height at the width it is given, then lays it out as it would anyway. */
-private fun Modifier.naturalHeight(onPx: (Int) -> Unit): Modifier = layout { measurable, constraints ->
+internal fun Modifier.naturalHeight(onPx: (Int) -> Unit): Modifier = layout { measurable, constraints ->
     onPx(measurable.maxIntrinsicHeight(constraints.maxWidth))
     val placeable = measurable.measure(constraints)
     layout(placeable.width, placeable.height) { placeable.place(0, 0) }

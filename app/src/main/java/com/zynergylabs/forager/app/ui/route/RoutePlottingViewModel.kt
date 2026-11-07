@@ -53,6 +53,16 @@ data class RoutePlottingUiState(
      * is kept across a tab change (CLAUDE.md, UX defaults); a route closed, cancelled, saved or opened starts untucked.
      */
     val tucked: Boolean = false,
+    /**
+     * Dispatch 2026-11-06-05, Amendment 2, item 4 (RECORD -2187): the saved route's selected stop, by index, picked by its marker or its
+     * row in the open card; the first until one is picked (the owner: "Go to the first waypoint"). Navigate goes to it.
+     */
+    val selectedStop: Int = 0,
+    /**
+     * Item 3: Navigate was tapped on this open card, so one Back ends that navigation with the card still open (Amendment 1, step 5),
+     * and the card's own Back tier stands aside while it runs. A route closed or opened starts without it.
+     */
+    val navigatedFromCard: Boolean = false,
 )
 
 /** What the route card, the bubble and the Trip Planner ask of the plotting; [RoutePlottingViewModel] does each. */
@@ -70,6 +80,8 @@ interface RoutePlottingActions {
     fun onKeepPlotting()
     fun onCloseSavedRoute()
     fun onSetTucked(tucked: Boolean)
+    fun onSelectStop(index: Int)
+    fun onNavigatedFromCard()
 }
 
 /**
@@ -206,6 +218,19 @@ class RoutePlottingViewModel(
     override fun onSetTucked(tucked: Boolean) {
         if (_uiState.value.mode == RoutePlotMode.Off) return
         _uiState.update { it.copy(tucked = tucked) }
+    }
+
+    /** A saved route's stop picked, by its marker or its row (item 4); an index outside the route changes nothing. */
+    override fun onSelectStop(index: Int) {
+        val stops = (_uiState.value.mode as? RoutePlotMode.Showing)?.trip?.route?.stops ?: return
+        if (index !in stops.indices) return
+        _uiState.update { it.copy(selectedStop = index) }
+    }
+
+    /** The card's Navigate was tapped (item 3): its Back tier stands aside while that navigation runs. */
+    override fun onNavigatedFromCard() {
+        if (_uiState.value.mode !is RoutePlotMode.Showing) return
+        _uiState.update { it.copy(navigatedFromCard = true) }
     }
 
     /** Opens [trip]'s route with the card peeking (the dispatch: "peeks the card"). */

@@ -45,6 +45,15 @@ sealed interface WaypointNavigationOrigin {
      * the entry, as Back after a Records row returns to Records.
      */
     data class JournalEntryMap(override val waypointId: String) : WaypointNavigationOrigin
+
+    /**
+     * A saved route's card on the Maps tab (dispatch 2026-11-06-05, Amendment 2, item 3): its selected stop's waypoint, or with [kind]
+     * TRIP its trip. One Back ends the navigation with the card still open (Amendment 1, step 5), so Back reopens nothing.
+     */
+    data class RouteCard(
+        override val waypointId: String,
+        override val kind: NavigationTargetKind = NavigationTargetKind.WAYPOINT,
+    ) : WaypointNavigationOrigin
 }
 
 /**
@@ -53,7 +62,7 @@ sealed interface WaypointNavigationOrigin {
  * `records-row:<id>`, `records-details:<id>`, `journal-entry:<id>`, or empty for none. A string that is none of these fails
  * loudly on restore, as [com.zynergylabs.forager.app.ui.log.RecordDetailsTargetSaver] does. A trip's bubble and card
  * (dispatch 2026-11-05-05) are `trip-bubble:<x>:<y>:<bearing>:<id>` and `trip-map-details:<id>`; a waypoint's keep the
- * strings they had.
+ * strings they had. A route card's (dispatch 2026-11-06-05) are `route-card:<id>` and `trip-route-card:<id>`.
  */
 internal val WaypointNavigationOriginSaver: Saver<WaypointNavigationOrigin?, String> = Saver(
     save = { origin ->
@@ -65,6 +74,7 @@ internal val WaypointNavigationOriginSaver: Saver<WaypointNavigationOrigin?, Str
             is WaypointNavigationOrigin.RecordsRow -> "$RECORDS_ROW_KEY${origin.waypointId}"
             is WaypointNavigationOrigin.RecordsDetails -> "$RECORDS_DETAILS_KEY${origin.waypointId}"
             is WaypointNavigationOrigin.JournalEntryMap -> "$JOURNAL_ENTRY_KEY${origin.waypointId}"
+            is WaypointNavigationOrigin.RouteCard -> "${if (origin.kind == NavigationTargetKind.TRIP) TRIP_ROUTE_CARD_KEY else ROUTE_CARD_KEY}${origin.waypointId}"
         }
     },
     restore = { saved ->
@@ -77,6 +87,8 @@ internal val WaypointNavigationOriginSaver: Saver<WaypointNavigationOrigin?, Str
             saved.startsWith(RECORDS_ROW_KEY) -> WaypointNavigationOrigin.RecordsRow(saved.removePrefix(RECORDS_ROW_KEY))
             saved.startsWith(RECORDS_DETAILS_KEY) -> WaypointNavigationOrigin.RecordsDetails(saved.removePrefix(RECORDS_DETAILS_KEY))
             saved.startsWith(JOURNAL_ENTRY_KEY) -> WaypointNavigationOrigin.JournalEntryMap(saved.removePrefix(JOURNAL_ENTRY_KEY))
+            saved.startsWith(ROUTE_CARD_KEY) -> WaypointNavigationOrigin.RouteCard(saved.removePrefix(ROUTE_CARD_KEY))
+            saved.startsWith(TRIP_ROUTE_CARD_KEY) -> WaypointNavigationOrigin.RouteCard(saved.removePrefix(TRIP_ROUTE_CARD_KEY), NavigationTargetKind.TRIP)
             else -> error("Not a saved waypoint navigation origin: '$saved'")
         }
     },
@@ -95,3 +107,5 @@ private const val TRIP_MAP_DETAILS_KEY = "trip-map-details:"
 private const val RECORDS_ROW_KEY = "records-row:"
 private const val RECORDS_DETAILS_KEY = "records-details:"
 private const val JOURNAL_ENTRY_KEY = "journal-entry:"
+private const val ROUTE_CARD_KEY = "route-card:"
+private const val TRIP_ROUTE_CARD_KEY = "trip-route-card:"
