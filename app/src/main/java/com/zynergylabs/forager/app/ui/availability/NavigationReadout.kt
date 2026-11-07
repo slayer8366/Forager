@@ -79,14 +79,14 @@ internal fun navigationReadout(
 
     if (liveFix == null) {
         return NavigationHudReadout(
-            headingText, northArrowDegrees, "Target", null, "—", false, NO_FIX_MESSAGE, null, null, headingIsReading = headingIsReading,
+            headingText, northArrowDegrees, TURN_LINE_LOST_WORD, null, "—", false, NO_FIX_MESSAGE, null, null, headingIsReading = headingIsReading,
             statusFallbacks = listOf(NO_FIX_SHORT_TEXT), statusFallbacksFor = NO_FIX_MESSAGE, statusIsPositionStatus = true,
             compassNoticeText = compassNotice,
         )
     }
     if (target == null) {
         return NavigationHudReadout(
-            headingText, northArrowDegrees, "No target", null, "—", false, NO_ORIGIN_TEXT, elevationText, coordinatesText, headingIsReading = headingIsReading,
+            headingText, northArrowDegrees, TURN_LINE_NO_TARGET_WORD, null, "—", false, NO_ORIGIN_TEXT, elevationText, coordinatesText, headingIsReading = headingIsReading,
             statusFallbacks = listOf(NO_ORIGIN_SHORT_TEXT), statusFallbacksFor = NO_ORIGIN_TEXT, compassNoticeText = compassNotice,
         )
     }
@@ -154,7 +154,7 @@ internal fun navigationReadout(
     // It is not a failure of the compass or the fix, so it ranks below all four.
     val targetArrowDegrees = if (headingDegrees != null && freshness != FixFreshness.LOST && !compassUnreliable && !withinFixError && bearing != null) relativeBearingDegrees(bearing, headingDegrees) else null
     val targetText = when {
-        freshness == FixFreshness.LOST -> "Target"
+        freshness == FixFreshness.LOST -> TURN_LINE_LOST_WORD
         // Same rendering as the approach case below, and for the same reason the owner recorded
         // there: an absolute bearing you cannot orient to is a number without a use. Unreliable
         // leaves the user in that position.
