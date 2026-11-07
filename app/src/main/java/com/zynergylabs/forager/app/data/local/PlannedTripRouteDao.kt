@@ -15,9 +15,19 @@ import androidx.room.Transaction
 @Dao
 abstract class PlannedTripRouteDao {
 
-    /** Every trip with every route row, read in one transaction so a route is never read half-saved. */
+    /**
+     * Every trip with every route row, read in one transaction so a route is never read half-saved. First, every stop's link to
+     * a waypoint or trip that is no longer on the phone is cleared (dispatch 2026-11-06-05, Amendment 2: "If the waypoint is
+     * deleted, the link is cleared and the stop stays"), so a route never reads back a link to nothing. Done here rather than in
+     * the waypoint's delete because that delete's repository is built where this dispatch may not edit (AppContainer.kt, shared
+     * with the next-turn branch); the stop's name and spot are never touched.
+     */
     @Transaction
-    open suspend fun loadAll(): PlannedTripRows = PlannedTripRows(trips(), stops(), legs())
+    open suspend fun loadAll(): PlannedTripRows {
+        clearMissingWaypointLinks()
+        clearMissingTripLinks()
+        return PlannedTripRows(trips(), stops(), legs())
+    }
 
     /** Saves [trip], replacing any trip with its id, and replaces its route rows with [stops] and [legs] (none for no route). */
     @Transaction
@@ -35,7 +45,18 @@ abstract class PlannedTripRouteDao {
         deleteTrip(id)
         deleteStops(id)
         deleteLegs(id)
+        clearTripLinks(id)
     }
+
+    /** Clears every stop's link to the trip [tripId] (schema 24): the stops stay, under their names and at their spots. */
+    @Query("UPDATE planned_trip_route_stops SET linkedTripId = NULL WHERE linkedTripId = :tripId")
+    abstract suspend fun clearTripLinks(tripId: String)
+
+    @Query("UPDATE planned_trip_route_stops SET linkedWaypointId = NULL WHERE linkedWaypointId IS NOT NULL AND linkedWaypointId NOT IN (SELECT id FROM waypoints)")
+    abstract suspend fun clearMissingWaypointLinks()
+
+    @Query("UPDATE planned_trip_route_stops SET linkedTripId = NULL WHERE linkedTripId IS NOT NULL AND linkedTripId NOT IN (SELECT id FROM planned_trips)")
+    abstract suspend fun clearMissingTripLinks()
 
     @Query("SELECT * FROM planned_trips")
     abstract suspend fun trips(): List<PlannedTripEntity>

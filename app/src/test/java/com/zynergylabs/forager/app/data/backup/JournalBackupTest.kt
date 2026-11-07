@@ -795,7 +795,7 @@ class JournalBackupTest {
 
         b.restore(old.archive, RestoreMode.REPLACE).getOrThrow()
 
-        assertEquals("the live database stayed at the app's own version throughout", 23, liveVersionDuringRestore)
+        assertEquals("the live database stayed at the app's own version throughout", 24, liveVersionDuringRestore)
     }
 
     // ---- recent searches are left out (F5, dispatch 2026-09-28-216; owner, "2 A") ------------------

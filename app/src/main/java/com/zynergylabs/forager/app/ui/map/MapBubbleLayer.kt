@@ -23,7 +23,7 @@ import com.zynergylabs.forager.app.domain.ForecastCell
 import com.zynergylabs.forager.app.domain.GroundHeight
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.route.RouteStop
+import com.zynergylabs.forager.app.domain.route.asRouteStop
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.ui.availability.ObservationBubble
@@ -172,7 +172,7 @@ internal fun MapBubbleLayer(
                                     val waypoint = sources.waypoints.firstOrNull { it.id == id }
                                     onDismiss()
                                     if (waypoint != null) {
-                                        plotting.actions.onStartPlotting(RouteStop(waypoint.name, LatLng(waypoint.lat, waypoint.lng)))
+                                        plotting.actions.onStartPlotting(waypoint.asRouteStop())
                                     } else {
                                         Log.w(MAP_BUBBLE_LOG_TAG, "Waypoint $id is gone; plotting did not start.")
                                     }

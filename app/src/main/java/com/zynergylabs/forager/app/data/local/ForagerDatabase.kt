@@ -171,6 +171,11 @@ import com.zynergylabs.forager.app.BuildConfig
  * `RoomPlannedTripRepository` through [PlannedTripRouteDao] and by backup and restore. Version 23 was checked unclaimed on
  * every remote ref on 2026-10-30. `23.json` is Room's own export from a CI build of this change, not written by hand.
  *
+ * [version] 24 adds `linkedWaypointId` and `linkedTripId` (each indexed, nullable) to `planned_trip_route_stops` via a real
+ * [MIGRATION_23_24] (in `MigrationRouteTrips.kt`) — dispatch 2026-11-06-05, Amendment 2: a route's stop keeps a soft link to the
+ * waypoint or trip it came from, read by `RoomPlannedTripRepository` for the route card's Navigate. Checked unclaimed on every
+ * remote ref on 2026-11-07. `24.json` is Room's own export from a CI build of this change.
+ *
  * ## Destructive fallback, debug-only (corrected 2026-08-27, ahead of beta)
  *
  * [create] used to chain `fallbackToDestructiveMigration(true)` unconditionally, "harmless" only
@@ -211,7 +216,7 @@ import com.zynergylabs.forager.app.BuildConfig
         PlannedTripRouteStopEntity::class,
         PlannedTripRouteLegEntity::class,
     ],
-    version = 23,
+    version = 24,
     exportSchema = true,
 )
 abstract class ForagerDatabase : RoomDatabase() {
@@ -275,10 +280,10 @@ abstract class ForagerDatabase : RoomDatabase() {
             MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8, MIGRATION_8_9,
             MIGRATION_9_10, MIGRATION_10_11, MIGRATION_11_12, MIGRATION_12_13, MIGRATION_13_14, MIGRATION_14_15,
             MIGRATION_15_16, MIGRATION_16_17, MIGRATION_17_18, MIGRATION_18_19, MIGRATION_19_20, MIGRATION_20_21,
-            MIGRATION_21_22, MIGRATION_22_23,
+            MIGRATION_21_22, MIGRATION_22_23, MIGRATION_23_24,
         )
 
         /** The schema version this build writes and can restore up to; the source of truth is the `@Database` annotation's `version`. */
-        const val SCHEMA_VERSION = 23
+        const val SCHEMA_VERSION = 24
     }
 }

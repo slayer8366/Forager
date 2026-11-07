@@ -12,6 +12,7 @@ import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.route.PlottedRoute
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RouteStop
+import com.zynergylabs.forager.app.domain.route.RouteStopLink
 import com.zynergylabs.forager.app.domain.route.StraightReason
 import java.time.LocalDate
 
@@ -54,7 +55,7 @@ class RoomPlannedTripRepository(
         return try {
             require(stops.map { it.stopIndex } == stops.indices.toList()) { "stop indexes are ${stops.map { it.stopIndex }}" }
             require(legs.map { it.legIndex } == legs.indices.toList()) { "leg indexes are ${legs.map { it.legIndex }}" }
-            PlottedRoute(stops.map { RouteStop(it.name, LatLng(it.lat, it.lng)) }, legs.map { it.toDomain() }).also { route ->
+            PlottedRoute(stops.map { it.toDomain(trip.id) }, legs.map { it.toDomain() }).also { route ->
                 // PlannedTrip's own rule (a route trip's pin is its first stop), checked here so a row breaking it refuses
                 // the route rather than the whole list.
                 require(route.stops.first().position == LatLng(trip.lat, trip.lng)) { "the trip's location is not its route's first stop" }
@@ -63,6 +64,25 @@ class RoomPlannedTripRepository(
             errorLog.w(TAG, "Planned trip's stored route refused; the trip loads without it.", StoredRouteRefused(e.message ?: "invalid", e))
             null
         }
+    }
+
+    /**
+     * A stop row as a [RouteStop]. A row with both links set cannot be written by this app; it keeps its stop, name and spot, and
+     * loses the links, logged (a link only aims Navigate; deleting or damaging one must never break a route, Amendment 2).
+     */
+    private fun PlannedTripRouteStopEntity.toDomain(tripId: String): RouteStop {
+        val waypointId = linkedWaypointId
+        val linkedTrip = linkedTripId
+        val link = when {
+            waypointId != null && linkedTrip != null -> {
+                errorLog.w(TAG, "A stored route stop links both a waypoint and a trip; it keeps its name and spot without a link.", StoredRouteRefused("trip $tripId stop $stopIndex has two links", IllegalStateException("two links")))
+                null
+            }
+            waypointId != null -> RouteStopLink.Waypoint(waypointId)
+            linkedTrip != null -> RouteStopLink.Trip(linkedTrip)
+            else -> null
+        }
+        return RouteStop(name, LatLng(lat, lng), link)
     }
 
     /** What [errorLog] is handed for a refused route: [ErrorLog] takes a throwable, and this names the reason. */
@@ -89,8 +109,11 @@ private fun PlannedTrip.toEntity() = PlannedTripEntity(
     date = date?.toString(),
 )
 
-private fun RouteStop.toEntity(tripId: String, index: Int) =
-    PlannedTripRouteStopEntity(tripId = tripId, stopIndex = index, name = name, lat = position.lat, lng = position.lng)
+private fun RouteStop.toEntity(tripId: String, index: Int) = PlannedTripRouteStopEntity(
+    tripId = tripId, stopIndex = index, name = name, lat = position.lat, lng = position.lng,
+    linkedWaypointId = (link as? RouteStopLink.Waypoint)?.id,
+    linkedTripId = (link as? RouteStopLink.Trip)?.id,
+)
 
 private fun RouteLeg.toEntity(tripId: String, index: Int) = when (this) {
     is RouteLeg.Trail -> PlannedTripRouteLegEntity(tripId, index, TrackPathCodec.encode(line), meters, trailFrom, trailTo, straightReason = null)

@@ -32,8 +32,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
-import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.route.RouteStop
+import com.zynergylabs.forager.app.domain.route.asRouteStop
 import com.zynergylabs.forager.app.domain.route.defaultRouteName
 import com.zynergylabs.forager.app.domain.route.legElevation
 import com.zynergylabs.forager.app.domain.route.routeFrame
@@ -84,7 +83,7 @@ internal fun routePlottingTakesTap(tap: MapFeatureTap, sources: MapRecordSources
             if (waypoint == null) {
                 Log.w(ROUTE_PLOTTING_LOG_TAG, "Waypoint ${tap.featureId} is not in Records; it was not added to the route.")
             } else {
-                plotting.actions.onWaypointTapped(RouteStop(waypoint.name, LatLng(waypoint.lat, waypoint.lng)))
+                plotting.actions.onWaypointTapped(waypoint.asRouteStop())
             }
             true
         }
@@ -92,7 +91,7 @@ internal fun routePlottingTakesTap(tap: MapFeatureTap, sources: MapRecordSources
             val trip = sources.plannedTrips.firstOrNull { it.id == tap.featureId } ?: return false
             when {
                 trip.route != null -> plotting.actions.onOpenSavedRoute(trip, fromTripPlanner = false)
-                plotting.state.mode is RoutePlotMode.Plotting -> plotting.actions.onWaypointTapped(RouteStop(trip.name, trip.location))
+                plotting.state.mode is RoutePlotMode.Plotting -> plotting.actions.onWaypointTapped(trip.asRouteStop())
                 else -> return false
             }
             true

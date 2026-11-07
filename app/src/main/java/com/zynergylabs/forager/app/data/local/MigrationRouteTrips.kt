@@ -65,3 +65,16 @@ val MIGRATION_22_23: Migration = object : Migration(22, 23) {
         )
     }
 }
+
+/**
+ * Version 23 to 24: a route's stop keeps a soft link to the waypoint or trip it came from (dispatch 2026-11-06-05, Amendment 2;
+ * RECORD -2187). The owner: "The link has to be a soft pointer. If the waypoint is deleted, the link is cleared and the stop stays
+ * ... It needs a proper migration with a test from the current version." Two nullable columns are added to
+ * `planned_trip_route_stops`, each with its index ([PlannedTripRouteStopEntity]). Every existing stop keeps every value and reads
+ * back with no link. Version 24 was checked unclaimed on every remote ref on 2026-11-07 (`git log --remotes -S "Migration(23, 24)"`
+ * finds only the dispatch's records commit; no ForagerDatabase on any origin branch is above 23).
+ */
+val MIGRATION_23_24: Migration = object : Migration(23, 24) {
+    override fun migrate(db: SupportSQLiteDatabase) {
+    }
+}
