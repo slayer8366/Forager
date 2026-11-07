@@ -15,7 +15,11 @@ package com.zynergylabs.forager.app.domain.nextturn
  * - a sharp turn: "make a sharp left";
  * - a slight turn: "slight left";
  * - a fork: "keep left" (C2's side to keep to);
- * - the straight-ahead arrow: "keep straight".
+ * - the straight-ahead arrow: "keep straight", followed by "for 0.4 miles", not "in" (G5, below).
+ *
+ * **G5** (2026-11-07, RECORD -2183), the owner, to the straight-ahead words: ""keep straight for 0.4 miles"" (the option: "Reads
+ * as how long to carry on, rather than when something happens"). So the straight-ahead arrow says "keep straight for
+ * <distance>", and every turn and fork keeps "in <distance>". Was "keep straight in 0.4 miles" (2b-2 step 1's question).
  *
  * **The count is for plain turns only** (the planner's reading in G3, as the dispatch for 2b-2 restates it): a sharp or
  * slight turn says its band's words whatever paths come first.
@@ -24,7 +28,7 @@ fun nextTurnWords(space: NextTurn, spokenDistance: String): String? {
     val words = when (space) {
         is NextTurn.Turn -> turnWords(space)
         is NextTurn.Fork -> "keep ${sideWord(space.keep)}"
-        NextTurn.NoTurnLeft -> "keep straight"
+        NextTurn.NoTurnLeft -> return "keep straight for $spokenDistance"
         is NextTurn.Blank -> return null
     }
     return "$words in $spokenDistance"

@@ -64,7 +64,7 @@ class NextTurnSpaceTest {
 
     private val shortTurn = NextTurnSpaceShown(NextTurnArrow.SLIGHT_LEFT, "8 ft", "slight left in 8 feet")
     private val longTurn = NextTurnSpaceShown(NextTurnArrow.SHARP_RIGHT, "88.8 mi", "make a sharp right in 88.8 miles")
-    private val straightOn = NextTurnSpaceShown(NextTurnArrow.STRAIGHT, "0.4 mi", "keep straight in 0.4 miles")
+    private val straightOn = NextTurnSpaceShown(NextTurnArrow.STRAIGHT, "0.4 mi", "keep straight for 0.4 miles")
 
     private fun space() = composeRule.onNodeWithTag(NEXT_TURN_SPACE_TAG, useUnmergedTree = true)
 

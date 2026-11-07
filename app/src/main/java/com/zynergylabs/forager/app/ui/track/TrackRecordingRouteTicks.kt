@@ -7,6 +7,10 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.nextRouteLine
+import com.zynergylabs.forager.app.domain.nextturn.NextTurn
+import com.zynergylabs.forager.app.domain.nextturn.NextTurnBlank
+import com.zynergylabs.forager.app.domain.nextturn.nextTurn
+import com.zynergylabs.forager.app.domain.nextturn.nextTurnWayOf
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeProgress
 import com.zynergylabs.forager.app.domain.wayhome.placeOnWayHome
 import com.zynergylabs.forager.app.domain.wayhome.wayHomeAhead
@@ -66,7 +70,7 @@ internal class TrackRecordingRouteTicks(
     fun end() {
         routeJob?.cancel()
         routeJob = null
-        updateState { it.copy(routeHome = null, routeLine = null) }
+        updateState { it.copy(routeHome = null, routeLine = null, nextTurn = NextTurn.Blank(NextTurnBlank.NOT_YET_KNOWN)) }
     }
 
     /**
@@ -112,8 +116,11 @@ internal class TrackRecordingRouteTicks(
         } else {
             findRouteHome(track, here, state.originWaypoint, previousHopBand)
         }
+        // Dispatch 2026-11-06-01, Amendment 1, J2: the next turn from the same line and the same place as the figure and the
+        // needle, so the three never disagree; blank off the line (E1), on the track fallback (E2) and before the line comes.
+        val turn = nextTurn(nextTurnWayOf(shown), progress, here)
         // Dispatch -497: the line the map draws moves with the route (nextRouteLine).
-        updateState { it.copy(routeHome = next, routeLine = nextRouteLine(it.routeLine, next)) }
+        updateState { it.copy(routeHome = next, routeLine = nextRouteLine(it.routeLine, next), nextTurn = turn) }
     }
 
     /**
