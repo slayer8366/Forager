@@ -36187,6 +36187,8 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - Amendment 1 gains H14 and E15. The screenshot stays off GitHub.
 - **E15 built (2026-11-07):** H14 at f9cfc9ec0 (pre-main b6f0b464d merged at 9a9a80b71), report 6cc38fdda; the distance end-aligned in its window, the kind 4 dp after it. CI run 42313208350 green, 6,966 tests, none changed against pre-main; the revert failed only the distance's own claims.
   - **Changed (2026-11-07T00:10Z), the owner,** to "With a short distance there's room on both sides of \"98 ft by trail\". Where should the pair sit?": **"Centre them together"**. The option read: "The widest distance plus \"by trail\" are centred as one block, so \"by trail\" sits up to about 15 dp further left, slightly differently for \"by trail\" and \"straight\"". The other: "Keep it as built". Amendment 1 gains H15 and E16.
+  - **Corrected here:** the option's "up to about 15 dp further left" was wrong. The planner took it from E15's report unchecked; the E16 Hazel stopped (3bbf5ab98) because under H14 all the spare room is right of the kind, so centring moves it 5 to 26 dp right.
+  - **Asked again (2026-11-07T01:35Z)** with the measured figures, to "With the correct figures, where should \"98 ft by trail\" sit?": **"Centre them together"**. The option read: "The widest distance plus \"by trail\" centred as one block: \"by trail\" moves about 20 dp right (5 to 26 dp depending on screen and font), the distance starts further in from the left". H15 stands.
 **Notes:** Written by the planner by hand. Next free ID -2182.
 
 ---
