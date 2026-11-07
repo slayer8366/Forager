@@ -594,3 +594,64 @@ The E13 and E14 steps stand. Base step 7 now reads:
 
 - Throwaway ref `nav-card-e15-revert` and its worktree deleted after its run. Scratch `/mnt/work/scratch/hazel-e15/` deleted at the end.
 - No index row added to `docs/audits/README.md`. No coordinate beyond the made-up P.
+
+## E16: H15, stopped before building (a fresh session, 2026-11-06)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E16. Marks as above. **Nothing of H15 is built**: the branch carries only
+pre-main merged in. This section records a stop, a wrong premise, for the owner.
+
+### Base
+
+- Checked against the remote at the start [observed]: `origin/nav-card-kind-line` 6cc38fdda (code f9cfc9ec0; b6f0b464d merged at
+  9a9a80b71), worktree clean; `origin/pre-main` 26a5c5955 (PR #504). pre-main's 5 files since b6f0b464d share none with this branch's;
+  `next-turn` shares none either. pre-main merged in at ae6bda12b (a clean merge, with a message and the Co-Authored-By line).
+
+### The stop: H15 moves "by trail" right, where the option the owner chose said left
+
+- H15's option read: "The widest distance plus "by trail" are centred as one block, so "by trail" sits up to about 15 dp further left,
+  slightly differently for "by trail" and "straight"". That figure came from E15's own section ("would move the kind left by up to
+  about 15 dp at 384 dp"), and it is wrong in direction and size.
+- Why [inferred from observed widths]: under H14 the distance's window starts at the left part's left edge in every case (run
+  42313208350, `PLACEMENT` lines: "window <left edge>.."), so all the free room is on the kind's right. Centring the block (the window
+  sized to the widest distance, 4 dp, the kind) can only move it right. Where the kind starts, from the left part's left edge, dp:
+
+| Window, font | Left part | Kind | Widest distance (window) | H14 (today) | H15, block centred | Move |
+|---|---|---|---|---|---|---|
+| 384 portrait, 1.0, by trail | 207.7 | 43.7 | 84.7 | 105.7 | 126.3 | 20.7 right |
+| 384 portrait, 1.0, straight | 207.7 | 49.3 | 101.0 | 105.7 | 131.7 | 26.0 right |
+| 823 x 384, 1.0, by trail | 176.3 | 43.7 | 84.7 | 90.0 | 110.7 | 20.7 right |
+| 823 x 384, 1.0, straight | 176.3 | 49.3 | 101.0 | 105.0 | 116.0 | 11.0 right |
+| 360 portrait, 2.0, by trail | 291.0 | 86.3 | 127.0 | 147.3 | 167.8 | 20.5 right |
+| 360 portrait, 2.0, straight | 291.0 | 97.3 | 151.7 | 155.7 | 174.7 | 19.0 right |
+| 823 x 384, 2.0, by trail | 263.0 | 86.3 | 127.0 | 133.3 | 153.8 | 20.5 right |
+| 823 x 384, 2.0, straight | 263.0 | 97.3 | 151.7 | 155.7 | 160.7 | 5.0 right |
+
+- Widths [observed]: run 42313208350 at f9cfc9ec0, `NavigationCardDistanceBesideKindTest`'s `RULES` lines (kind, longest, left part)
+  and `PLACEMENT` lines (H14's kind start). The H15 column is worked out from them, not drawn: (left part - (widest + 4 + kind)) / 2 +
+  widest + 4.
+- E15's table is corrected here on one point: at 823 x 384, font 1.0, by trail, the 86.0 dp window is the half (176.3 / 2 - 2), not
+  the longest; the widest by-trail distance is 84.7 dp.
+- So with "98 ft by trail" at 384 dp, font 1.0, H15 puts the kind 126.3..170.0 (the left part's middle is 103.8), about 22 dp into the
+  right half, and the distance's left edge at 69.0. The owner chose an option that promised the opposite move.
+
+### Question for the owner
+
+"Centring the widest distance and "by trail" together moves "by trail" about 20 dp to the right (5 to 26 dp, depending on the window
+and the kind), not 15 dp to the left as the option said. Should the pair be centred together anyway, or stay as it is now (by trail
+starting just right of the middle)?"
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: the base, the merge, and every width above from run 42313208350's XML.
+- **Inferred**: the H15 places (worked out from those widths, to the pixel rounding the card uses, not drawn).
+- **Could not determine**: how the S22 would draw them (no phone this session, and none was to be touched).
+- **Premises that were wrong**: H15's option text, "about 15 dp further left"; it is 5 to 26 dp further right.
+
+### Decided beyond the dispatch
+
+- Stopped before the tests-first commit rather than building H15 and asking after, since the owner's choice may rest on the direction
+  the option named. Nothing else changed.
+
+### Clean-up
+
+- Scratch `/mnt/work/scratch/hazel-e16/` deleted at the end. No throwaway refs made. No index row added.
