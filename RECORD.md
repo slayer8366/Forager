@@ -36628,3 +36628,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The step:** after a plan or answer is settled (restated as a step path first), one multi-select question with each action its own box: "Record it", "Build it", "Hold", plus any other action in play (merge, close, message a coder). The planner does only what is ticked.
 - To "Where else should this checkbox step be written down?": **"Record it"**, **"Planner profile"**. Written into docs/process/planner-profile.md, "Asking the owner", on pre-main at 82d4a091a, and the planner's memory.
 **Notes:** Written by the planner by hand. Next free ID -2189.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2189
+**Timestamp:** 2026-11-07T16:20:51Z
+**Title:** The locate icon glides and zooms like Re-center, everywhere: dispatch 2026-11-07-01
+**Decision:**
+- **The owner, verbatim, with a landscape navigation screenshot:** **"The GPS icon does take us back to the center, but it snaps instantly and zooms out. Meanwhile the Re-Center button animates back to place, and stays at the same zoom level. Can you fix this?"**
+- To "When should the locate icon glide back and keep your zoom, like Re-center?": **"Always"**. To the far-out case: first **"Zoom in if far out"**, then, the step path's zoom step being "Not quite", to "For step 3, what should the zoom do?": **"Re-center's zoom"** ("It uses whatever zoom Re-center uses during navigation, so both behave identically").
+- **The step path:** tap the locate icon, anywhere, any time → the map glides to your position → the zoom follows exactly the rule Re-center uses during navigation → the map then follows you. The owner, after a "Not quite" and a "Hold": **"Yes the path is correct. Record and build it"**.
+- Dispatch 2026-11-07-01 is at prompts/preserved/2026-11-07-01-locate-like-recenter.md. The screenshot stays off GitHub.
+**Notes:** Written by the planner by hand. Next free ID -2190.
