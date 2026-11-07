@@ -237,13 +237,21 @@ class LocateRingReCenterLandscapeTest : LocateRingReCenterTests() {
         assertFalse("landscape navigation, moved away: Re-center does not show, the ring replaces it", pillShown())
     }
 
+    /**
+     * Amendment 3 (RECORD -2186, the owner: "(b) Pill where it fits"). In fullscreen the rail leaves and the navigation card moves
+     * with it to the screen's edge (from 396.3 dp to 476.3 dp here), so Re-center's word at bottom centre (355.7..467.3 dp) covers no
+     * card and the pill shows, with no ring; measured on run 42409624489. Out of fullscreen it covers the card, so the ring (above).
+     * Until Amendment 3 this read the ring here too.
+     */
     @Test
-    fun `in fullscreen landscape navigation moved away, the locate row is ringed and Re-center does not show`() {
+    fun `in fullscreen landscape navigation moved away, the word fits at bottom centre, so Re-center shows and the locate row has no ring`() {
         setMapsTab(day)
         enterFullscreen()
         moveAway()
-        assertRing("fullscreen landscape navigation, moved away", day)
-        assertFalse("fullscreen landscape navigation, moved away: Re-center does not show", pillShown())
+        assertTrue("fullscreen landscape navigation, moved away: Re-center shows, its word fitting at bottom centre", pillShown())
+        val pill = pillBounds()
+        assertTrue("fullscreen landscape navigation: Re-center is not beside the L (${lBounds().right}); its left is ${pill.left}", pill.left > lBounds().right + 16.dp)
+        assertNoRing("fullscreen landscape navigation, moved away", day)
     }
 
     @Test
