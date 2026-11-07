@@ -74,6 +74,16 @@ class NavigationCardEveningLineTest : NavigationCardKindLineScreen() {
     fun `H5, 480 dp, font 1,0 - before sunset the line is one line where it fits whole beside the reserved next turn`() =
         assertPieces("480/1.0", listOf("Sunset: 8:28 PM ▪︎ Dark: 9:00 PM"))
 
+    /**
+     * Amendment 1, E18 (RECORD -2181), the owner's answer to its stop: "(a) Count the wider space" ("The sunset line splits at ▪ into
+     * two lines there (as on smaller phones), and the turn arrow will have its room"). The next turn's room is measured beside the
+     * degrees' space sized for "No target", so at 412 dp, normal text, the line no longer fits whole and breaks at the square. Before
+     * E18 it was one line here, by 0.7 dp (the E18 stop's ROOM line, run 42383172696).
+     */
+    @Test @Config(qualifiers = "w412dp-h915dp-xxhdpi")
+    fun `E18 (a), 412 dp, font 1,0 - before sunset the line is broken at the square, the next turn's room counted beside the wider space`() =
+        assertPieces("412/1.0", broken)
+
     @Test @Config(qualifiers = "w384dp-h823dp-xxhdpi")
     fun `H5 and Q3, 384 dp, font 1,0 - nothing moves when the evening line comes`() = assertNothingMovesWhenItComes("384/1.0")
 

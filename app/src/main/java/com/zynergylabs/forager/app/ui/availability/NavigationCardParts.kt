@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
@@ -29,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
@@ -116,7 +114,8 @@ private fun LeftPart(readout: NavigationHudReadout, fit: NavigationInfoFit, modi
  * - G3, "The turn line": "The degrees, the needle, the north arrow and the heading each sit in a fixed space, so the compass never
  *   jumps": the degrees are centred in a space as wide as the widest degrees ([NavigationInfoFit.turnSpacePx]), held empty where there
  *   are none (the approach, no compass, no aim), so the needle stays where it is. A word in their place ("Target" with no fix, "No
- *   target"; the planner's reading of Q5: not turn words, so they stay) is centred on the same space, as wide as it is;
+ *   target"; the planner's reading of Q5: not turn words, so they stay) is centred on the same space; since E18 ("Never moves") the
+ *   space is sized for those words too ([widestTurnSpacePx]), so they fit it and the needle keeps its place in every state;
  * - H1, the owner: "Keep the compass strip the exact same when in navigation mode as out; so keep the north compass out of the
  *   navigation panel": the north arrow and the heading are the strip's. Was (RECORD -950): the turn words, the needle, then the north
  *   arrow and the heading, "The arrows being side by side is a compass visual"; and the crossed-out compass for a compass status
@@ -144,8 +143,7 @@ private fun CardTurnLine(readout: NavigationHudReadout, fit: NavigationInfoFit) 
         Spacer(Modifier.width(Spacing.xs))
         // The needle stays whatever the degrees beside it do (T11 fixes), dimmed when there is nothing to point at. Its tag is on the
         // unrotated square it is laid out in, so its bounds are where it sits, not its rotated drawing's box.
-        // E17: drawn clear of a word wider than the degrees' space ([needleShiftPx]); an offset, so the row and the word keep their places.
-        Box(modifier = Modifier.offset { IntOffset(fit.needleShiftPx, 0) }.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NEEDLE_TAG)) {
+        Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NEEDLE_TAG)) {
             Icon(
                 imageVector = Icons.Filled.Navigation,
                 contentDescription = null,

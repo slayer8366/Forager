@@ -766,3 +766,529 @@ The E13 and E14 steps stand. Base step 7 now reads:
 
 - Throwaway ref `nav-card-e16-revert` (local and remote) and its worktree deleted after its run. Scratch `/mnt/work/scratch/hazel-e16/`
   deleted at the end. No index row added. No coordinate beyond the made-up P.
+
+## E17: the greyed needle clear of "Target" (two sessions, 2026-11-07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E17. The tests (03625fcdf) and the fix (ea4b6e7e8) were pushed by one
+Hazel, stopped before its revert check and report; this section, the reading of both runs, a fresh revert and the comparison by name are
+a second, fresh session's ("Fresh coder finishes it", the owner, relayed by the planner). Marks as above: [observed] is a CI run's XML or
+log read this session (each log checked for compile errors first, each run's head SHA checked against the commit), [read] is code read
+at the commit named, [inferred] is worked out and not measured.
+
+### The ruling (verbatim)
+
+- E17, from the S22 check on build 4825: "at font 2.0, portrait, after 5 minutes without a fix (the card's "—" and "Target"), the greyed
+  needle overlaps "Target" by about 8 dp". The owner: **"Fix it in #498 first"** ("A coder moves the needle clear of "Target" in that
+  case (nothing else changes), tests and CI, then #498 is ready for your merge word"). Build: "the needle and "Target" never overlap, in
+  every orientation and font the card supports; everything else unchanged; if clearing it needs a visible choice (shrinking, moving
+  "Target", wrapping), that's a stop with measured widths."
+
+### Base and commits
+
+- Checked against the remote at this session's start [observed]: `origin/nav-card-kind-line` ea4b6e7e8, the branch worktree clean at
+  ea4b6e7e8; `origin/pre-main` 1f6901a11 (PR #505), merged in by the first session at c76416976.
+
+| Commit | What |
+|---|---|
+| c76416976 | pre-main (1f6901a11) merged in. |
+| 03625fcdf | Tests first: `NavigationCardNeedleClearOfWordTest` new (21 cases); the rig gains `LOST` (the last fix 6 minutes old) and `NO_TARGET` (the way home with no start). |
+| ea4b6e7e8 | E17 (`RoundedMapCardFit.kt`, `needleShiftPx`; `NavigationInfo.kt`, the turn's width measured; `NavigationCardParts.kt`, the needle drawn at that offset). |
+
+### What was built [read, at ea4b6e7e8]
+
+- Why it overlapped: G3 gives the turn line a fixed space sized for the widest degrees ("0°" to "180°"), centres whatever is in it, and
+  puts the needle a gap after the space. "Target" and "No target" are wider than that space (at font 2.0: 78.3 and 119.0 dp against
+  54.7), so the centred word ran half its overhang past the space's end, through the 4 dp gap and into the needle.
+- The fix: `needleShiftPx(turnTextPx, turnSpacePx) = max(0, (turnTextPx - turnSpacePx + 1) / 2)`, the half the word overhangs, and the
+  needle is drawn that far right with `Modifier.offset`. An offset moves the drawing, not the layout, so the row, the word (still centred
+  where the degrees are) and everything beside the turn line keep their places. With degrees the shift is 0 (the space is the widest
+  degrees), so the needle keeps G3's fixed place. The word is not shrunk, moved or wrapped.
+
+### Measured placements [observed, run 42341392562, `NEEDLE` lines], dp from the window's left edge
+
+| Window, font | Left part | Degrees' space | "Target" | Needle (was) | "No target" | Needle (was) | Gap |
+|---|---|---|---|---|---|---|---|
+| 320, 1.0 | 4.0..147.7 | 28.0 | 43.3..83.0 | 87.0..109.0 (81.0) | 33.3..93.0 | 97.0..119.0 (81.0) | 4.0 |
+| 320, 1.3 | 4.0..120.0 | 35.0 | 24.0..74.3 | 78.3..100.3 (70.7) | 11.3..87.3 | 91.3..113.3 (70.7) | 4.0 |
+| 320, 2.0 | 4.0..255.0 | 54.7 | 77.7..156.0 | 160.0..182.0 (148.0) | 57.3..176.3 | 180.3..202.3 (148.0) | 4.0 |
+| 360, 1.0 | 4.0..187.7 | 28.0 | 63.3..103.0 | 107.0..129.0 (101.0) | 53.3..113.0 | 117.0..139.0 (101.0) | 4.0 |
+| 360, 1.3 | 4.0..160.0 | 35.0 | 44.0..94.3 | 98.3..120.3 (90.7) | 31.3..107.3 | 111.3..133.3 (90.7) | 4.0 |
+| 360, 2.0 | 4.0..295.0 | 54.7 | 97.7..176.0 | 180.0..202.0 (168.0) | 77.3..196.3 | 200.3..222.3 (168.0) | 4.0 |
+| 384, 1.0 | 4.0..211.7 | 28.0 | 75.3..115.0 | 119.0..141.0 (113.0) | 65.3..125.0 | 129.0..151.0 (113.0) | 4.0 |
+| 384, 1.3 | 4.0..184.0 | 35.0 | 56.0..106.3 | 110.3..132.3 (102.7) | 43.3..119.3 | 123.3..145.3 (102.7) | 4.0 |
+| 384, 2.0 | 4.0..155.7 | 54.7 | 28.0..106.3 | 110.3..132.3 (98.3) | 7.7..126.7 | 130.7..152.7 (98.3) | 4.0 |
+| 412, 1.0 | 4.0..134.0 | 28.0 | 36.3..76.0 | 80.0..102.0 (74.0) | 26.3..86.0 | 90.0..112.0 (74.0) | 4.0 |
+| 412, 1.3 | 4.0..212.0 | 35.0 | 70.0..120.3 | 124.3..146.3 (116.7) | 57.3..133.3 | 137.3..159.3 (116.7) | 4.0 |
+| 412, 2.0 | 4.0..155.7 | 54.7 | 28.0..106.3 | 110.3..132.3 (98.3) | 7.7..126.7 | 130.7..152.7 (98.3) | 4.0 |
+| 480, 1.0 | 4.0..202.0 | 28.0 | 70.3..110.0 | 114.0..136.0 (108.0) | 60.3..120.0 | 124.0..146.0 (108.0) | 4.0 |
+| 480, 1.3 | 4.0..280.0 | 35.0 | 104.0..154.3 | 158.3..180.3 (150.7) | 91.3..167.3 | 171.3..193.3 (150.7) | 4.0 |
+| 480, 2.0 | 4.0..203.3 | 54.7 | 51.7..130.0 | 134.0..156.0 (122.0) | 31.3..150.3 | 154.3..176.3 (122.0) | 4.0 |
+| 780 x 360, 1.0 | 351.3..527.7 | 28.0 | 407.0..446.7 | 450.7..472.7 (444.7) | 397.0..456.7 | 460.7..482.7 (444.7) | 4.0 |
+| 780 x 360, 1.3 | 363.0..500.0 | 35.0 | 393.3..443.7 | 447.7..469.7 (440.0) | 380.7..456.7 | 460.7..482.7 (440.0) | 4.0 |
+| 780 x 360, 2.0 | 342.7..605.7 | 54.7 | 422.3..500.7 | 504.7..526.7 (492.7) | 402.0..521.0 | 525.0..547.0 (492.7) | 4.0 |
+| 823 x 384, 1.0 | 394.3..570.7 | 28.0 | 450.0..489.7 | 493.7..515.7 (487.7) | 440.0..499.7 | 503.7..525.7 (487.7) | 4.0 |
+| 823 x 384, 1.3 | 363.0..543.0 | 35.0 | 415.0..465.3 | 469.3..491.3 (461.7) | 402.3..478.3 | 482.3..504.3 (461.7) | 4.0 |
+| 823 x 384, 2.0 | 385.7..648.7 | 54.7 | 465.3..543.7 | 547.7..569.7 (535.7) | 445.0..564.0 | 568.0..590.0 (535.7) | 4.0 |
+
+- "(was)" is the needle's left edge in the red run (42339957138, the same tests before the fix), from its failure messages; the word's
+  place is the same in both runs, to the 0.1 dp shown.
+- The gap between the word's laid-out right edge and the needle's square is 4.0 dp (the line's own gap, Spacing.xs) in all 42 cases.
+- The tightest room on the right: 384 and 412 dp at font 2.0, "No target", the needle ending at 152.7 with the left part ending at
+  155.7, 3.0 dp spare; then 320 dp at font 1.3, "No target", 6.7 dp. Everywhere else at least 17 dp.
+
+### Evidence
+
+- **Red, tests first**: run 42339957138 at 03625fcdf (pull_request; head SHA checked; failed-job logs 0 compile errors) [observed]: 6995
+  test cases in the XML, 21 failed, 24 skipped. All 21 are `NavigationCardNeedleClearOfWordTest`'s, every one of its cases, and every
+  failing line is the overlap claim; no positive control and no centring control failed, no other class failed. The message at the
+  reported case, 384 dp, font 2.0: "384/2.0 LOST: the needle 98.333336.dp..120.333336.dp overlaps <Target> 28.0.dp..106.333336.dp by
+  8.0.dp" (and "384/2.0 NO_TARGET: the needle ... overlaps <No target> 7.6666665.dp..126.666664.dp by 28.333328.dp"). The overlap at
+  font 2.0 is 8.0 dp in every window, the S22's "about 8 dp"; 3.7 at 1.3 and 2.0 at 1.0. The second job that runs the tests (the Street
+  map deleted) failed on the same 21 names and nothing else.
+- **Green**: run 42341392562 at ea4b6e7e8 (pull_request, the merge of ea4b6e7e8 into 1f6901a11; head SHA checked; logs 0 compile
+  errors; every job green) [observed]: **6995 test cases, 6971 passed, 24 skipped, 0 failed**. Red to green by name: the same 6995 names,
+  and the only outcomes that differ are the 21 above.
+- **By name against pre-main**: pre-main's latest CI run, 42337576510 at 1f6901a11 (the base merged in; every job green): 6846 test
+  cases, 0 failed, 24 skipped. 36 names only on pre-main and 185 only here (E16's 164 and the 21 new), **0 names whose outcome differs**.
+- **Revert**: one line in a throwaway worktree over ea4b6e7e8 (ref `nav-card-e17b-revert`, 7286e8ceb; its diff checked to be that
+  line): in `navigationInfoFit`, `needleShiftPx = needleShiftPx(w.turnTextPx, w.turnSpacePx),` to `needleShiftPx = 0,` (the needle at
+  G3's fixed place again, the measuring and the offset left in). The file was saved before the edit and copied back from that copy,
+  never from git; the forward line confirmed present in the branch worktree afterwards (grep, 1 match; branch worktree clean at
+  ea4b6e7e8). Run 42379914039 (workflow_dispatch, the NavigationCard, RouteCard, CompassStrip, AvailabilityScreenNavigationView,
+  AvailabilityScreenMapIconStack, NavigationInfoLayout and RoundedMapCardFit classes) [observed]: head SHA 7286e8ceb, logs 0 compile
+  errors, 425 tests; **21 failed, the same 21 names as the red run with the same messages, character for character** (e.g. "384/2.0
+  LOST: the needle 98.333336.dp..120.333336.dp overlaps <Target> 28.0.dp..106.333336.dp by 8.0.dp"), and only the overlap claim; the
+  Street-map job, which runs every test, failed the same 21 and no other (6941 tests). Matching the red run exactly is what this revert
+  should do, since the shift is the whole fix; the run is its own (its SHA, 425 tests). The first session had made the same one-line
+  revert (ref `nav-card-e17-revert`, 562764a02, run 42341410140, 418 tests, the same 21 failures); it agrees, and is not the evidence
+  cited here, since its saving and restoring were not this session's to check.
+
+### Tests whose claims changed (none silenced, no tolerance widened, no assertion dropped)
+
+- None changed. New, `NavigationCardNeedleClearOfWordTest`, 21 cases: portrait 320, 360, 384, 412 and 480 dp and landscape 780 x 360 and
+  823 x 384, each at fonts 1.0, 1.3 and 2.0, with "Target" (the way home 6 minutes after the last fix) and "No target" (the way home with
+  no start). Claims: the word's laid-out right edge at or left of the needle's square's left edge (stricter than ink, both being boxes);
+  controls, which held before E17 too and so are not evidence: the word centred where "169°" is, within 0.5 dp, and the needle inside the
+  left part. A positive control reads the turn line's words first ("169°", "Target", "No target").
+- The rig (`NavigationCardKindLineScreen`): `LOST` (the fix's time 6 minutes back, past the 5 minute `LOST_AFTER_MILLIS`) and
+  `NO_TARGET` (no navigation target). No new point; P only.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: the base; red for E17's reason only (the overlap, 8.0 dp at font 2.0, in all 21 cases, nothing else red);
+  green full CI, 0 outcomes differing by name from pre-main's run at the base; the revert failing only the overlap claim, with a clean
+  compile log; the placements above, with 4.0 dp between word and needle in every case.
+- **Inferred**: "everything else unchanged" rests on two things, not on a test written for it: the offset cannot move layout (read at
+  ea4b6e7e8), and every other card, strip and navigation test passed unchanged by name. That the S22 draws within about 1% of these,
+  as earlier sections found.
+- **Could not determine**: the S22's own placements (no phone this session, and none was to be touched); which density the 34-p20-stale
+  screenshot was taken at (its pixel figures fit about 3.5 px per dp, the rig's 384 and 412 dp rows at font 2.0 are identical, so the
+  prediction below is the same either way); "No target" on the phone (the check named "Target" only); kilometres and other locales'
+  words (the rig is English, miles).
+- **Premises that were wrong**: none found. The dispatch's state (ea4b6e7e8) matched the remote.
+
+### Decided beyond the dispatch
+
+- The first session's choice, kept: the needle moves, the word does not. The ruling says "moves the needle clear of "Target"", and it
+  lists shrinking, moving "Target" and wrapping as the visible choices that would be a stop; moving the needle is the one the owner
+  named, so it was built without a stop. **What a user sees:** when "Target" or "No target" replaces the degrees, the greyed needle sits
+  about 6 to 32 dp further right than it does beside degrees (half the word's overhang: about 6 dp at font 1.0 with "Target", 12 at 2.0,
+  32 with "No target" at 2.0), and comes back when degrees return. That is a jump G2/G3 otherwise avoid ("Fixed spaces, so nothing
+  jumps"); it happens only at the change between degrees and a word, both of which already change what is shown there. For the owner if
+  it reads oddly: the other way to clear it is a turn space sized for "No target" in every state, which moves the needle right for good
+  and narrows the left part; not built.
+- "No target" was covered as well as "Target": it is the other word drawn in the degrees' space, and wider.
+- The ink overlap on the phone (needle 361-430 px, "Target" 102-391 px) is measured on drawn pixels; the tests measure laid-out boxes,
+  which are wider than ink, so a pass here is at least as strict.
+
+### Device check (S22, for the planner), cheapest first
+
+The E13 to E16 steps stand. Add:
+8. **The needle clear of "Target" (E17)**: font 2.0, portrait. Navigate the way home, then go 5 minutes without a fix (airplane mode
+   with location off, or indoors) until the card shows "—" with "Target" and the needle greys. Expected: the needle's left edge is
+   clear of "Target"'s right edge, by about 4 dp of laid-out box (more in ink); the needle about 12 dp right of where it sat beside
+   degrees, and inside the card's left part, short of the divider. Then get a fix back: the degrees return and the needle goes back to
+   its fixed place. Repeat at font 1.0, and in landscape at font 2.0. Evidence: a screenshot of each, the needle's and "Target"'s x
+   sampled. If convenient, "No target" (navigating the way home with no start) at font 2.0, the widest case, about 3 dp short of the
+   divider in the rig. Needs a build from ea4b6e7e8 or later.
+
+### Clean-up
+
+- This session's throwaway ref `nav-card-e17b-revert` (local and remote) and its worktree deleted after its run; scratch
+  `/mnt/work/scratch/hazel-e17b/` deleted at the end. No index row added. No coordinate beyond the made-up P.
+- Left by the first session, not deleted here (not this session's to delete), for the planner: the ref `nav-card-e17-revert`
+  (562764a02, local and on the remote), its worktree at `/mnt/work/scratch/hazel-e17/revert` (its one changed file restored to the
+  forward line, uncommitted), and that scratch folder (a saved copy of the file, the red run's log and XML, and notes).
+
+## E18: the needle never moves, stopped before building (a fresh session, 2026-11-07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E18. Marks as above: [observed] is a CI run's XML or log read this
+session (its head SHA checked, its log checked for compile errors first), [read] is code read at the commit named, [inferred] is worked
+out and not measured.
+
+### The ruling (verbatim)
+
+- E18: "E17's fix moves the needle 6 to 32 dp right when "Target" or "No target" replaces the degrees. The owner, to "Keep that, or
+  size the space for "No target" all the time so the needle never moves?": **"Never moves"** ("The degrees' space is always as wide as
+  "No target", so the needle stays put; the card's left part is a little tighter in every case"). **Build:** the degrees' space is sized
+  for the widest of its contents ("No target" included) in every state, so the needle never moves; the word stays clear of the needle
+  (E17's claim stands). Report the left part's measured room in every case; if any case no longer fits, that's a stop with widths."
+
+### Base and commits
+
+- At the start [observed]: `origin/nav-card-kind-line` 746bb8df2 (code ea4b6e7e8), the worktree clean; `origin/pre-main` 1f6901a11,
+  already merged in (c76416976), so no merge.
+
+| Commit | What |
+|---|---|
+| f1a0a3bbd | Tests first: `NavigationCardNeedleNeverMovesTest` new (21 cases); `NavigationCardTopLineRules`' turn-line model takes E18's space (claim changed). |
+| df72cf128 | On the separate ref `nav-card-e18-wip`, not this branch, not run: the fix, held for the question below. |
+
+### Red, tests first [observed, run 42383172696 at f1a0a3bbd]
+
+- Failed-job log: 0 compile errors. 7016 test cases, 45 failed, 24 skipped. Every failing line is the needle's place, E18's reason:
+  - `NavigationCardNeedleNeverMovesTest`, 21 of 21: "the needle's left edge ... is not where it is beside the degrees ... (moved ...)"
+    for "Target" and "No target" (42 lines), and "... is not where a degrees' space sized for "No target" puts it" (63 lines: all four
+    states, the needle being at G3's degrees-only place);
+  - `NavigationCardLoneWordTest` 14, `NavigationCardKindLinePortraitTest` 6, `NavigationCardKindLineLandscapeTest` 4: the rules' positive
+    control "the needle ... is not where the centred turn line puts it" in Arrived and dash cases (the changed model).
+  - No other message, no other class.
+
+### The left part's room with E18's space [observed widths from the run's `ROOM` lines; the E18 needle place inferred from them]
+
+dp. "Needle" is its left edge, G3's place now and E18's; "spare" is from the needle's right edge to the left part's right edge with E18.
+
+| Window, font | Left part | Space (now -> E18) | Turn line (now -> E18) | Widest figure | Needle (now -> E18) | Spare |
+|---|---|---|---|---|---|---|
+| 320, 1.0 | 143.7 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 80.8 -> 96.7 | 29.0 |
+| 320, 1.3 | 116.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 70.5 -> 91.0 | 7.0 |
+| 320, 2.0 | 251.0 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 147.8 -> 180.0 | 53.0 |
+| 360, 1.0 | 183.7 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 100.8 -> 116.7 | 49.0 |
+| 360, 1.3 | 156.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 90.5 -> 111.0 | 27.0 |
+| 360, 2.0 | 291.0 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 167.8 -> 200.0 | 73.0 |
+| 384, 1.0 | 207.7 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 112.8 -> 128.7 | 61.0 |
+| 384, 1.3 | 180.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 102.5 -> 123.0 | 39.0 |
+| 384, 2.0 | 151.7 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 98.2 -> 130.3 | 3.3 |
+| 412, 1.0 | 130.0 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 74.0 -> 89.8 | 22.2 |
+| 412, 1.3 | 208.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 116.5 -> 137.0 | 53.0 |
+| 412, 2.0 | 151.7 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 98.2 -> 130.3 | 3.3 |
+| 480, 1.0 | 198.0 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 108.0 -> 123.8 | 56.2 |
+| 480, 1.3 | 276.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 150.5 -> 171.0 | 87.0 |
+| 480, 2.0 | 199.3 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 122.0 -> 154.2 | 27.2 |
+| 780 x 360, 1.0 | 176.3 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 444.5 -> 460.3 | about 45 |
+| 780 x 360, 1.3 | 137.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 440.0 -> 460.5 | 17.5 |
+| 780 x 360, 2.0 | 263.0 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 492.5 -> 524.7 | 59.0 |
+| 823 x 384, 1.0 | 176.3 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 487.5 -> 503.3 | about 45 |
+| 823 x 384, 1.3 | 180.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 461.5 -> 482.0 | 39.0 |
+| 823 x 384, 2.0 | 263.0 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 535.5 -> 567.7 | 59.0 |
+
+- Every case fits: the E18 turn line (85.7, 102.0, 145.0 dp by font) stays narrower than the widest figure (101.0, 111.0, 151.7), so
+  the left part's need, and with it the left part's width and the distance/kind block (H14, H15), are unchanged in all 21. The
+  needle sits 15.8 (font 1.0), 20.5 (1.3) or 32.2 dp (2.0) right of today's degrees place, for good. Tightest: 384 and 412 dp at
+  font 2.0, 3.3 dp spare (E17 already had 3.0 there, with "No target").
+- The "now" needle places match E17's measured column within 0.5 dp (e.g. 320/1.0: 80.8 against 81.0), which checks the arithmetic.
+
+### Why this stops: one decision E18 changes beyond the needle
+
+- [read, ea4b6e7e8] The before-sunset evening line ("Sunset: 4:52 PM ▪ Dark: 5:23 PM", H5, H6) stays one line only where it fits
+  beside the left part's widest need **with the next turn's space reserved** beside the needle (`rememberCardEvening`,
+  `nextTurnReservePx`: a gap, the arrow, a gap and "88.8 mi"). That need counts the turn line, so it grows with E18's space.
+- [observed, `ROOM` 412/1.0] At **412 dp, font 1.0** the room beside the one-line evening line is 356.0 - 13.0 - 213.0 = **130.0 dp**.
+  The need with the reserve is **129.3 dp** today (fits, by 0.7 dp) and **161.0 dp** with E18's space (does not). In the other 20
+  cases the decision is the same either way (ROOM lines: "evening breaks" equal; "status below" (H8) equal in all 21).
+- So, counted honestly, E18 makes that one window split the before-sunset line at the ▪ (as 320, 360 and 384 dp at font 1.0 already
+  do). The right part then keeps the broken width (107.3 dp) instead of 213.0, so the left part grows from 130.0 to about 235.7 dp in
+  that window, by day and evening alike [inferred], and the distance/kind block re-centres in it. That is a visible change E18 did not
+  rule on, so it is a question for the owner, not a coder's choice.
+
+### Question for the owner (options; nothing built on this branch)
+
+At 412 dp and normal text, the "Sunset ▪ Dark" line only fits on one line today because the room kept for the coming next-turn
+arrow is measured with the narrow degrees' space. With the needle never moving (the wider space), which should it be?
+
+- **(a) Count the wider space (the honest room).** On 412 dp phones at normal text, the before-sunset line splits into two at the ▪,
+  as it already does on 320 to 384 dp phones, and the left part gets wider there (the distance and "by trail" move to its new centre).
+  When the next-turn arrow arrives it has its room. Nothing else changes. (This is what the WIP commit df72cf128 does.)
+- **(b) Keep today's room.** Nothing changes on screen beyond the needle. But at 412 dp, normal text, the next-turn arrow (when built)
+  would be about 31.7 dp short beside a one-line evening line, so that decision comes back with the next-turn work. One line differs
+  from (a): `rememberCardEvening`'s turn line stays on the degrees alone.
+
+The S22 (384 dp) is not in this case either way.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: the base; the red run, every failure the needle's place (E18's reason), 0 compile errors; the room
+  widths above; the evening decision flipping at 412/1.0 only, of the 21 cases.
+- **Inferred**: E18's needle places and spare (from the measured widths; not yet drawn); the 412/1.0 left part of about 235.7 dp
+  under (a).
+- **Could not determine**: widths between the tested ones (a phone between 384 and 412 dp, or near 412, may sit on either side);
+  kilometres ("88.8 km" is narrower than "88.8 mi" in most fonts, unmeasured); the phone's own figures.
+- **Premises that were wrong**: "the card's left part is a little tighter in every case" (the owner's option text): the left part's
+  width does not change in any of the 21 cases (the widest figure is wider than the new turn line); what gets tighter is the room
+  inside it right of the needle, and, through the reserve, the one evening decision above.
+
+### Decided beyond the dispatch
+
+- None built. The fix drops E17's needle offset (`needleShiftPx`; with the space holding every word it is always 0) and names the two
+  words once (`TURN_LINE_LOST_WORD`, `TURN_LINE_NO_TARGET_WORD`, used by the readout and the space), so the space cannot drift from
+  them; both are on the WIP ref only.
+
+### State left
+
+- PR #498 at f1a0a3bbd is red on purpose (the tests first); it is not ready to merge until E18 is built.
+- Ref `nav-card-e18-wip` (df72cf128, on the remote): the fix as option (a); to be merged in or deleted by whoever finishes E18.
+- Scratch `/mnt/work/scratch/hazel-e18/` kept for the next session: the red run's XML, `ROOM` lines and the fix as a patch.
+- Not touched: `nav-card-e17-revert` and `/mnt/work/scratch/hazel-e17/` (not this session's).
+
+## E18: built as option (a), green (a fresh session, 2026-11-07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E18 and the owner's answer to its stop. Marks as above.
+
+### The ruling (verbatim)
+
+- The owner, to the stop above: **"(a) Count the wider space"** ("The sunset line splits at ▪ into two lines there (as on smaller
+  phones), and the turn arrow will have its room"). Amendment 1: "Build: finish E18 from ref nav-card-e18-wip (df72cf128, written as
+  (a)), green, one revert, full CI; then E19."
+
+### Base and commits
+
+- At the start [observed]: `origin/nav-card-kind-line` 03fa6e82e, ref `nav-card-e18-wip` df72cf128 (parent f1a0a3bbd), worktree
+  clean; `origin/pre-main` 1f6901a11, already merged in, so no merge.
+
+| Commit | What |
+|---|---|
+| 59a9acfee | The ref **merged** (not re-applied), so df72cf128 stays in the branch's history as written. Four app files, no conflict. |
+| 88453efe2 | A test for (a): `NavigationCardEveningLineTest`, "E18 (a), 412 dp, font 1,0 - before sunset the line is broken at the square ...". No test pinned that decision before (the stop's ROOM lines were printed, not asserted). |
+
+- [read, 59a9acfee] It is option (a): `NavigationInfo.kt`'s `rememberCardEvening` measures the turn line for the next-turn reserve
+  with `widestTurnSpacePx` (the widest of "0°" to "180°", "Target" and "No target"), the same space the needle's line is laid in
+  (`measuredNavigationInfoFit`). E17's needle offset (`needleShiftPx`) is gone; the two words are named once
+  (`TURN_LINE_LOST_WORD`, `TURN_LINE_NO_TARGET_WORD`) and read by both the readout and the space.
+
+### Green [observed, run 42386534571 at 88453efe2]
+
+- Every job green. 7017 test cases, 0 failed, 24 skipped (the 412 dp test above passes: before sunset the card reads "Sunset: 8:28 PM"
+  and "Dark: 9:00 PM" as two pieces). Run 42386063693 at 59a9acfee was cancelled by the push of 88453efe2 and is not cited.
+- By name against E17's green run (42341392562 at ea4b6e7e8, 6995): 0 names gone, 22 new (`NavigationCardNeedleNeverMovesTest` 21,
+  the test above 1), **0 names whose outcome changed**.
+- By name against pre-main's latest run (42337576510 at 1f6901a11, 6846 tests, 0 failed): 36 names only on pre-main (renamed or
+  replaced in earlier phases; the same count the earlier sections report against pre-main, names not re-matched here), 207 only here, all passing, **0 names whose outcome
+  differs**.
+
+### The revert [observed, run 42386577696 at b636747be, throwaway ref `hazel-e18-revert`, deleted]
+
+- One line: `rememberCardEvening`'s `widestTurnSpacePx` back to `widestTurnDegreesPx` (option (b)'s line). The file was copied
+  before the edit; the revert lived in its own worktree, the forward branch untouched.
+- Failed-job log read first: 0 compile errors ("e: " lines none). Then: 6993 tests completed, **1 failed**, in both the build job and
+  the no-Street-map job: the test above, "412/1.0: before sunset the card reads [Sunset: 8:28 PM ▪︎ Dark: 9:00 PM], not [Sunset: 8:28
+  PM, Dark: 9:00 PM]". That is the one decision (a) changes; no other class failed.
+- Restored from the saved copy; the forward line confirmed afterwards on the branch (`widestTurnSpacePx` 3 times in
+  `NavigationInfo.kt`, the file byte-identical to the copy).
+- The needle's own claim (never moves) was shown red before the fix by the tests-first run 42383172696 (above) and is green here; it
+  was not reverted a second time (one revert per the dispatch).
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: (a) is what was built (code read, and the 412 dp test red with (b)'s line, green with (a)'s); full CI
+  green; 0 outcome changes by name against E17's green run and against pre-main.
+- **Inferred**: the room table in the stop section stands for (a) except 412/1.0, whose left part grows to about 235.7 dp (not
+  measured on its own line here; the card's left part at 412/1.0 is not asserted by a test).
+- **Could not determine**: widths between the tested ones; the phone's own figures (no phone in this dispatch).
+- **Premises that were wrong**: none found.
+
+### Decided beyond the dispatch
+
+- The 412 dp evening test, added so (a) is held by a test rather than by a printed line. Nothing a user sees beyond E18.
+
+### S22 step (E18)
+
+- Portrait, font 1.0, navigating: watch the needle while the line reads degrees, then turn the compass off (or wait 5 minutes with no
+  fix): the needle stays exactly where it was while the degrees give way to "Target", and with no target to "No target"; the word never
+  touches the needle.
+- At 412 dp (not the S22's 384 dp; a 412 dp phone or display size), font 1.0, before sunset: the sunset line reads on two lines,
+  "Sunset: ..." over "Dark: ...", split at the ▪.
+
+## E19: read only, nothing built (same session, 2026-11-07)
+
+Handed back before building, at the session's size limit, with what was found looking for "why it stops at that corner".
+
+- [read, 96584cca1] The card's sides come from `landscapeColumnOutlineSides` (`RoundedMapCard.kt`), called from
+  `CompactMapLandscapeNavigationCard.kt` with `innerSideDrawn = true, top = true, bottom = false`. While the rail is shown the rail's
+  side is left open with `rightShared`/`leftShared`, so the card's rounded top corner on that side is drawn out to the rail's line,
+  half a stroke past the card's own edge (`mapChromeOutlinePath`), and the card is clipped to its bounds (`clipToBounds`).
+- [observed] In every capture read, that corner **is** outlined: CI captures `landscape-823-navigating-day/-night` (run 42341392562)
+  and two S22 landscape navigation screenshots from the 2026-11-06 check (private folder, not committed). The only visible flaw is
+  that, near the rail, the arc thins where its outer half is clipped. Night on the stand-in grey map: the card's top line reads 133
+  against the map's 128 (0 to 255), so it is faint there against that grey.
+- [inferred, not tested] The owner's words ("the end edge before the side bar", restated as the edge **facing the map** before the
+  side bar) fit a placement where the card's end does **not** touch the rail: then that side is still treated as shared (no line),
+  and the corner's arc is pushed past the clip. Reading the code, no placement found does that (`narrowBy` keeps the rail-side edge;
+  fullscreen draws that side where a system bar inset lies beyond it). So the placement in the owner's crop is not identified.
+- Next step proposed: the pixel test first, as the dispatch says, run over every placement (landscape at both rotations, rail shown
+  and fullscreen, the route card resting on the card, portrait; day and night) and checking that wherever bare map lies just outside a
+  card edge or corner, the line is there. If it finds the gap, that's the red run; if every placement passes, the crop's phone and
+  state are needed.
+
+## E19: the owner's case tested in every placement, not reproduced, stopped before any change (a fresh session, 2026-11-07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E19, after RECORD -2181's identification of the crop (the owner's S26 on
+build 4844, landscape navigation with a saved route's card open on the navigation card, day, not fullscreen). Marks as above.
+
+### Base and commits
+
+- At the start [observed]: `origin/nav-card-kind-line` 5e2c0a6c8, worktree clean, `origin/pre-main` 1f6901a11 (merged in). By the end
+  pre-main was at 82d4a091a; merged in here (234b96f7b), no conflict.
+- Build 4844 [inferred from commit counts, not read from the phone]: `origin/tools/s22-combined` b7baa2bc7 is the one ref with 4844
+  commits. Its `RoundedMapCard.kt`, `CompactMapLandscapeNavigationCard.kt`, `RouteCardPlacement.kt` and `AvailabilityCompactMapUi.kt`
+  are byte-identical to this branch's (`git diff` empty), so the outline and the cards' placement on the owner's build are this code.
+- The test, `NavigationCardOutlineEveryEdgeTest.kt` (36 tests), is **not on this branch**: it is on the throwaway ref `hazel-e19-red`
+  (1ecf80e02, 390c069d4, 5fc0e9195), kept rather than deleted because it is the only copy. Whether it joins #498 is the owner's call.
+
+### The test
+
+- The real `AvailabilityScreen` over a flat grey stand-in map, navigating, with a saved route's card opened through
+  `RoutePlottingViewModel.onOpenSavedRoute`; landscape at both rotations with phone-like insets (cutout 25 dp and navigation bar 48 dp,
+  mirrored at 270), side bar shown and fullscreen, the route card resting on the navigation card and not; portrait with and without the
+  route card; day and night; at 891 x 411 dp (the S26's size, inferred) and 640 x 360 dp at font 2.0; portrait 411 x 891 dp.
+- Claim: wherever bare map lies 3 dp outside an edge or a rounded corner of the navigation card, the outline is on that edge or corner
+  (pixels as `MapChromeOutlinePixelsTests.isLine`; outside a corner's shape, the line over the map on the line's side of it).
+
+### Runs [observed, filtered runs on `hazel-e19-red`]
+
+| Run | Head | Result | What the failures were |
+|---|---|---|---|
+| 42390107028 | 1ecf80e02 | 16 of 36 failed | The test's own: the bare map taken as the screen's commonest colour, which at 640 dp, font 2.0 was the cards' fill; the fill read on the divider at the top edge; the fix 1,562,266 minutes stale. None on the end edge by the side bar. |
+| 42396282589 | 390c069d4 | 8 of 36 failed | One place, in every capture with the side bar shown and no route card: the side bar's top corner at 30 to 36 degrees, where RECORD -990 draws the arc out to the side bar's line, just outside the card's shape. The line is there (day 0.451, night 0.694, the map 0.502); the test read only inside the shape. |
+| 42398440570 | 5fc0e9195 | **36 of 36 passed** | The corner read out to that line. |
+
+- In the owner's case (rotation 90 and 270, side bar shown, route card on the navigation card), at both sizes, day and night, the
+  end edge by the side bar has **no** bare map beyond it: map-facing samples are the inner side and inner top corner only (for example
+  `{left=14, top-left corner=6}` at 891 dp by day). The top end corner's gap shows the route card, and its arc is drawn there (crop read
+  from the 891 dp day capture).
+- Where the end edge does face the map (fullscreen), it is read (14 to 28 samples a capture) and outlined.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: in every placement tested, every navigation-card edge and corner with bare map just outside carries the
+  outline; in the owner's case the end edge meets the side bar. [read] The side bar is on the window's right at both rotations
+  (`mainWindowRailEdgeFor`, RECORD -956), and the navigation card is aligned to that side (`CompactMapLandscapeNavigationCard.kt`,
+  `Alignment.BottomEnd`), so its end edge is placed against it.
+- **Inferred**: build 4844 is `tools/s22-combined` (commit count). The S26's landscape size and insets (891 x 411 dp, side insets) are
+  stand-ins; a gesture-navigation phone has its navigation bar at the bottom, not tested.
+- **Could not determine**: what the owner's crop shows (not seen by this session). D32's narrowing (`leaveRoom` above 0) was **not
+  reached** in any capture: at 640 dp, font 2.0 the L's gap stayed wide, the cutout inset not moving the L as on the S22, so the narrowed
+  placement is covered by reading, not by pixels here.
+- **Premises that were wrong**: the planner's reading, that with the route card open both cards narrow and leave map between the
+  navigation card's end and the side bar. [read] D32's narrowing takes width from the L's side and keeps the side-bar edge
+  (`RouteCardPlacement.kt` `leaveRoom` doc; `RouteCardRecenterLeaveRoomTest` asserts both cards keep the strip's right edge), and with
+  the side bar always on the right there is no placement where it opens a gap there. Also the earlier test names "side bar left": there
+  is no left side bar since -956.
+
+### Decided beyond the dispatch
+
+- Nothing in the app changed. The test was kept off #498 (see above).
+
+### Question for the owner
+
+- The owner's case could not be reproduced: in their state the card's end meets the side bar and its corner is outlined in every
+  capture. Could the owner mark on their crop where the line is missing (or share the S26 screenshot again with the place circled)?
+  The dispatch's rule for this case is to stop and report, so nothing was built.
+
+## E20: the card's end outlined where the side bar's bottom corner curves away (a fresh session, 2026-11-07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E20 (RECORD -2181: the owner's marked screenshot, and **"Outline the
+card's end there"** ("Where the side bar's corner curves away, the card's own end edge carries the outline, so the line is
+continuous"); go **"Build it"**). Marks as above.
+
+### Base and commits
+
+- At the start [observed]: `origin/nav-card-kind-line` 097ca1add, `origin/hazel-e19-red` 5fc0e9195, `origin/pre-main` 82d4a091a
+  (already merged at 234b96f7b, so no merge). Worktree clean on `e19-report` = 097ca1add, nothing unpushed. 390c069d4, reported
+  earlier as an unpushed local commit, sits inside `hazel-e19-red`'s pushed history (1ecf80e02, 390c069d4, 5fc0e9195), reachable
+  from the local branch `nav-card-kind-line` too; it was not on this worktree's HEAD, so I went ahead.
+- Other coders' files [observed, `git diff origin/pre-main...`]: next-turn, next-turn-j2-wip, route-card and locate-jump share no
+  file with this change (they touch `RoundedMapCardFit.kt`, which this change does not).
+
+| Commit | What |
+|---|---|
+| d02cb386d | The 36-case check moved onto #498 byte for byte from 5fc0e9195 (`git diff 5fc0e9195 HEAD` empty for the file). |
+| ff1542d3b | E20 reading added; the test's fix and start moved to the made-up point P. |
+| 1521649bb | The fix. |
+
+### Why E19's check passed
+
+- [read, the check at 5fc0e9195] The straight edges were read from 17 dp below the card's top to 17 dp above its bottom
+  (`alongY = card.top + r + 1 dp .. card.bottom - r - 1 dp`), so on the end edge the reading stopped where the side bar's line is
+  still straight. The side bar is clipped to rounded inner corners of 16 dp (`ForagerNavigationRail`, `innerCornerRadius =
+  MAP_CARD_CORNER_RADIUS`, RECORD -952), so its edge curves away only within the bottom 16 dp: exactly the band the check never read.
+
+### The reading added
+
+- The card's end edge (right, by the side bar, at both rotations, RECORD -956) over its bottom 16 dp, every 1 dp, probed 2 dp
+  outside; where that pixel is bare map, one of the four pixels where a 1 dp line lies inside the edge must be the outline.
+- With the side bar shown, the spot must be found (bare map read there at least once), or the test fails: it cannot pass without
+  reaching the spot.
+- Measured [observed, S26 size, rotation 90, route card on]: card 410.3 to 763.0 dp across, 350.3 to 411.0 dp down; side bar from
+  763.0 dp, 0 to 411.0 dp. The card's end meets the side bar and both reach the screen's bottom.
+
+### Red, tests first [observed, run 42401666610 at ff1542d3b, throwaway ref `hazel-e20-red`, deleted]
+
+- Failed-job log read first: 0 compile errors. Filtered run: 36 tests, **16 failed**, exactly the 16 landscape cases with the side
+  bar shown (both rotations, 891 x 411 and 640 x 360 at font 2.0, route card on and off, day and night). The no-Street-map job ran all
+  6999 tests and failed the same 16, nothing else.
+- Each failure's misses equal that capture's samples at the new spot (7 by day, 9 at night); all 128 miss lines are at "end edge
+  beside the side bar's bottom corner", none elsewhere. A miss reads, for example: bare map (0.502) 2 dp outside, the four pixels
+  inside the card's end all the card's fill (0.851), no line. Fullscreen and portrait passed (their end edges were already drawn).
+
+### The fix [read, 1521649bb]
+
+- New file `NavigationCardEndBesideRailCorner.kt`: `Modifier.navigationCardEndBesideRailCorner` draws the card's end edge, a stroke
+  wide in the outline's colour, over the band where the side bar's corner curves away (from the side bar's bottom minus its corner
+  radius, down to the card's bottom), only while the side bar is shown. One line in `CompactMapLandscapeNavigationCard.kt` applies it
+  to the card. Nothing else changed: the side bar, the card's other edges and its top corners are as they were.
+- The line lies inside the card's edge, not out on the side bar's line half a stroke beyond it, because the card is clipped to its
+  bounds (`clipToBounds`), so a line out there would not show. Below the corner's start the line therefore runs one stroke (1 dp)
+  nearer the map than the side bar's line above, touching it.
+
+### Green [observed, run 42403631323 at 1521649bb]
+
+- Every job green. 7053 test cases, 0 failed, 24 skipped. All 36 outline cases pass, the new spot reached in each side-bar case.
+- By name against pre-main's latest run (42337576510 at 1f6901a11, 6846 tests, 0 failed; pre-main's head 82d4a091a is a
+  `[skip ci]` commit): 36 names only on pre-main (the same count earlier sections report), 243 only here (E18's 207 plus these 36),
+  all passing, **0 names whose outcome differs**.
+
+### The revert [observed, run 42403671130 at 6f23eb9af, throwaway ref `hazel-e20-revert`, deleted]
+
+- One line: the `.navigationCardEndBesideRailCorner(...)` call removed from `CompactMapLandscapeNavigationCard.kt`. The file was
+  copied before the edit, the revert made in its own worktree, the forward branch untouched.
+- Failed-job log read first: 0 compile errors. Filtered on `*Outline*`: 107 tests, **16 failed**, the same 16 as the red run, every
+  miss at the new spot; no other outline test failed. The no-Street-map job ran the full 6999 and failed only those 16.
+- The revert worktree was restored from the saved copy and removed; on the branch the forward file is byte-identical to that copy.
+- A slip, caught: my first read of the red run's failed-job log ran `gh` outside a repository and saved an error message, which I
+  first counted as "0 compile errors". Re-read with the repository named: 4095 lines, 0 compile errors. Both runs' figures above come
+  from the re-read logs.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: the spot reproduced red at both rotations, side bar shown, route card on and off, day and night, at both
+  sizes; the fix makes it green; the revert of the one line brings back exactly those 16 failures; full CI green, 0 outcome changes by
+  name against pre-main.
+- **Inferred**: that the owner's circle is this band (the dispatch's description matches the pixels; the screenshot was not seen by
+  this session). The S26's size and insets are stand-ins (891 x 411 dp, side insets). With a bottom inset (gesture navigation) the
+  band is computed from the controls' bottom padding, but that case was not tested.
+- **Could not determine**: how the 1 dp step between the side bar's line and the card's line looks on the phone.
+- **Premises that were wrong**: none in E20. A stale one from the dispatch: 390c069d4 was described as unpushed; it is pushed, inside
+  `hazel-e19-red`'s history.
+
+### Decided beyond the dispatch
+
+- The line's place: inside the card's edge (1 dp nearer the map than the side bar's line), because the card's clip hides anything
+  beyond its bounds. Drawing it out on the side bar's line would mean removing the card's clip, which changes more than E20 asks.
+- The test's fix and start moved to the made-up point P (the dispatch's rules), as the check was joining #498.
+- The test asserts the spot is reached, so it cannot pass vacuously.
+
+### S22 step (E20)
+
+- Landscape, side bar shown, navigating (with and without a saved route's card open), by day and at night: at the bottom of the
+  screen, where the navigation card's end meets the side bar's rounded bottom corner, the card's end edge carries the outline down to
+  the screen's bottom, so no map shows there unlined. Check that the side bar's own line above and its corner arc are unchanged.

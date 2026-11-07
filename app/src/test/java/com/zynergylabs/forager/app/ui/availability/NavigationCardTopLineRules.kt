@@ -83,17 +83,22 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         val windowEnd: Dp? = null,
     )
 
+    /**
+     * The degrees' fixed space (G3), in pixels in [like]'s type: since Amendment 1, E18 (the owner: "Never moves"), the widest of its
+     * contents, "0°" to "180°", "Target" and "No target", in every state. Was the widest degrees alone.
+     */
+    private fun turnSpacePx(like: Laid): Int = maxOf((0..180).maxOf { widthPx(like, "$it°") }, widthPx(like, "Target"), widthPx(like, "No target"))
+
     /** The turn line's width: the degrees' fixed space, 4 dp and the 22 dp needle (G3 with H1), in pixels; `null` unmeasurable. */
     protected fun turnLineWidthPx(c: Card): Int? {
         val like = c.turn?.takeIf { it.layout != null } ?: return null
-        return (0..180).maxOf { widthPx(like, "$it°") } + (26 * densityPx).roundToInt()
+        return turnSpacePx(like) + (26 * densityPx).roundToInt()
     }
 
     /** Where the centred turn line puts the needle's left edge in a left part whose middle is [middle] (G3 with H1); `null` unmeasurable. */
     protected fun turnLineNeedleLeft(c: Card, middle: Dp): Dp? {
         val like = c.turn?.takeIf { it.layout != null } ?: return null
-        val spacePx = (0..180).maxOf { widthPx(like, "$it°") }
-        return middle + (spacePx / densityPx).dp / 2 - 9.dp
+        return middle + (turnSpacePx(like) / densityPx).dp / 2 - 9.dp
     }
 
     private fun stepFor(widthPx: Int, gapPx: Int, longestPx: Int, kindPx: Int, stackPx: Int?): Step {

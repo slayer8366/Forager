@@ -202,6 +202,8 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             outlineSides = cardOutlineSides,
             modifier = Modifier
                 .fillMaxWidth()
+                // E20 (RECORD -2181, the owner: "Outline the card's end there"): its end edge beside the side bar's rounded bottom corner.
+                .navigationCardEndBesideRailCorner(com.zynergylabs.forager.app.ui.map.mapChromeOutline(), railPortEdge, railShown = !isFullscreen, bottomGap = controlsPadding.calculateBottomPadding())
                 // Its own keep-out, beside the strip's (MapKeepOut's registry holds one rectangle per id).
                 .then(if (isNavigating) Modifier.mapKeepOut(MapKeepOutIds.NAVIGATION_CARD) else Modifier)
                 // RECORD -955: its columns, for cardTopLimitInRootPx (whether the L shares them).
