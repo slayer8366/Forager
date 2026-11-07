@@ -61,7 +61,7 @@ internal fun BoxScope.CompactMapIconCluster(
             onLocateMe = {
                 // Ruling D: while navigating, locate brings the navigation view back, as
                 // "Return to Route" does; plain tracking would drop the compass follow.
-                if (isNavigating) onReturnToRoute() else onResumeTracking()
+                onResumeTracking()
                 onLocateMe()
             },
             onResetOrientation = onResetOrientation,
