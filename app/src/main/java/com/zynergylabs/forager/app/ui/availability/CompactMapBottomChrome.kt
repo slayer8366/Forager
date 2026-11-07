@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -107,7 +108,6 @@ internal fun BoxScope.CompactMapBottomChrome(
     // while it does not. "Return to Route" (Amendment 3) rises by the same, only for a card whose span it overlaps (below).
     val routeCardLift = if (routeCardHeight > 0.dp) routeCardHeight + Spacing.sm else 0.dp
     val routeCardLiftPx = with(LocalDensity.current) { routeCardLift.toPx() }
-    val returnToRouteShown = isNavigating && !navigationFollowing
     // Amendment 17, part 2 ruled: the pill's own span, which the lift does not move, so reading it here has no loop.
     var returnToRouteSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
     // D27 (RECORD -1976, the owner: "Icon only where room is short (Recommended)"), replacing D20's rise where room is short: beside
@@ -140,7 +140,14 @@ internal fun BoxScope.CompactMapBottomChrome(
     // that narrowed, so the icon fits).
     val besideCardLeftPx = (listOfNotNull(routeCardSpanPx?.start) + cardsInRoot.map { it.left }).filter { it >= besideLeftPx }.minOrNull()
     val besideRoomPx = reCenterRoomBesideTheL(besideLeftPx, besideCardLeftPx, with(LocalDensity.current) { Spacing.sm.toPx() })
-    val besideTheL = reCenterBesideTheL || reCenterWordCoversCard(reCenterWord, cardsInRoot)
+    // Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186), the owner: "Ring replaces the pill": not in landscape navigation, where the
+    // ringed locate row is Re-center (ReCenterOnLocate.kt). Portrait as before. Amendment 3, the owner: "(b) Pill where it fits": only
+    // where Re-center's word at bottom centre would cover a card; where it fits, the pill shows there and the locate row has no ring.
+    // The icon cluster reads the same answer from the cluster's state, written once composition has applied.
+    val reCenterWordFits = reCenterWordFitsAtBottomCentre(reCenterWord, cardsInRoot)
+    SideEffect { cluster.reCenterWordFitsAtBottomCentre = reCenterWordFits }
+    val returnToRouteShown = reCenterPillShown(landscapeCluster, isNavigating, navigationFollowing, reCenterWordFits)
+    val besideTheL = reCenterGoesBesideTheL(reCenterBesideTheL, reCenterWordCoversCard(reCenterWord, cardsInRoot), reCenterWordFits)
     val returnToRouteLift = if (!besideTheL && reCenterRisesForRouteCard(returnToRouteSpanPx, routeCardSpanPx)) routeCardLift else 0.dp
     // D17 (RECORD -1958, the owner: "Into the open map, at the bottom (Recommended)"): while the card rests on the navigation card,
     // Re-center leaves the card's column for the open map beside the L (fixed on the screen's left while navigating, RECORD -955), at
