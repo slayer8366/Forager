@@ -293,7 +293,9 @@ class RouteCardReCenterUnderCardTest : RouteCardReCenterUnderCardTests() {
         val pillMiddle = (pill.top + pill.bottom) / 2
         longPressAt("in the gap between the card and Re-center", (pill.left + pill.right) / 2, (card.bottom + pill.top) / 2)
         longPressAt("beside Re-center, toward the card's start", (card.left + pill.left) / 2, pillMiddle)
-        longPressAt("beside Re-center, toward the card's end", (pill.right + card.right) / 2, pillMiddle)
+        // Just past Re-center's end side. On the S22 the card (0..198 dp) ends inside Re-center's span (167..217 dp), so the midpoint of
+        // the two ends would be on Re-center itself, which takes the press; 12 dp past whichever reaches further is beside both.
+        longPressAt("beside Re-center, on its end side", maxOf(pill.right, card.right) + 12.dp, pillMiddle)
         longPressAt("just above the card", (card.left + card.right) / 2, card.top - 12.dp)
         follow()
         longPressAt("in the band under the card, where Re-center was", (pill.left + pill.right) / 2, pillMiddle)
