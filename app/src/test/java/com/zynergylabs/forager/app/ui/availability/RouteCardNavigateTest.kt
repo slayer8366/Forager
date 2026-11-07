@@ -176,7 +176,7 @@ class RouteCardNavigateTest {
         setScreen()
         open(ROUTE_TRIP)
         touch(ROUTE_CARD_NAVIGATE_TAG, 0.5f, 0.5f)
-        assertEquals(CREEK.id, navigation()?.id)
+        assertEquals(CREEK.id, navigation()?.waypointId)
 
         pressBack()
 
@@ -243,7 +243,7 @@ class RouteCardNavigateTest {
             assertEquals(where, 1, plotting.uiState.value.selectedStop)
 
             touch(ROUTE_CARD_NAVIGATE_TAG, 0.5f, 0.5f)
-            assertEquals("$where: Navigate", RIDGE.id, navigation()?.id)
+            assertEquals("$where: Navigate", RIDGE.id, navigation()?.waypointId)
         }
     }
 
