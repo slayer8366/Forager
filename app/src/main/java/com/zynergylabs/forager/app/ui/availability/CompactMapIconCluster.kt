@@ -80,7 +80,9 @@ internal fun BoxScope.CompactMapIconCluster(
             fullSquareHits = barFullSquareHits,
             // Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186), the owner: "Ring replaces the pill": in landscape navigation
             // off the follow the ringed row is Re-center; its tap is already Re-center's onReturnToRoute (Ruling D above).
-            locateRinged = locateRowStandsInForReCenter(cluster.landscape, isNavigating, navigation.navigationFollowing),
+            // Amendment 3, the owner: "(b) Pill where it fits": not where Re-center's word fits at bottom centre (the bottom chrome's
+            // measurement, through the cluster's state); the pill shows there instead.
+            locateRinged = locateRowStandsInForReCenter(cluster.landscape, isNavigating, navigation.navigationFollowing, cluster.reCenterWordFitsAtBottomCentre),
             modifier = barModifier,
         )
     }
