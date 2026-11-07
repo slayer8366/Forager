@@ -237,7 +237,12 @@ class LocateKeepsCameraTest {
         val recording = made.second
         assertEquals("the app-open locate fetched one fix", 1, fetches)
 
-        composeRule.runOnUiThread { made.first.cameraPosition = panned }
+        // The pan, as a drag leaves it: the camera moved and following dismissed (the map opens following; MapLibre's move
+        // gesture ends it, a mode set on the SDK's controller here).
+        composeRule.runOnUiThread {
+            made.first.cameraPosition = panned
+            recording.setModeDirectly(CameraMode.NONE)
+        }
         composeRule.waitForIdle()
         val jumpsAfterPan = recording.jumps
         assertEquals("not following after the pan", CameraMode.NONE, recording.cameraMode)
