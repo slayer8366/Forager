@@ -151,7 +151,7 @@ internal fun BoxScope.RouteCardTab(cardOnLeft: Boolean, controlsPadding: Padding
                         .size(width = 4.dp, height = 24.dp)
                         .background(LocalContentColor.current.copy(alpha = 0.4f), RoundedCornerShape(2.dp)),
                 )
-                RouteCardOutline(shape, if (cardOnLeft) RouteCardEdge.LEFT else RouteCardEdge.RIGHT)
+                RouteCardOutline(shape, setOf(if (cardOnLeft) RouteCardEdge.LEFT else RouteCardEdge.RIGHT))
             }
         }
     }

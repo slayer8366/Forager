@@ -10,6 +10,9 @@ import com.zynergylabs.forager.app.ui.map.MapRecordSources
 import com.zynergylabs.forager.app.ui.map.SelectedStopMarker
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 
@@ -41,10 +44,11 @@ internal fun routeCardCanNavigate(controls: RoutePlottingControls?, sources: Map
  * The card's Navigate (item 3): the card is told first, so its Back tier stands aside, then the existing navigation starts, through the
  * same `startWaypointNavigation` a bubble's Navigate reaches, from the card. Nothing happens where it cannot go; the button is greyed then.
  */
-internal fun startRouteCardNavigation(controls: RoutePlottingControls?, sources: MapRecordSources?) {
+internal fun startRouteCardNavigation(controls: RoutePlottingControls?, sources: MapRecordSources?, inFullscreen: Boolean = false) {
     val target = selectedStopTarget(controls, sources) ?: return
     val navigate = navigateFor(target, sources) ?: return
-    controls?.actions?.onNavigatedFromCard()
+    // Amendment 3: whether fullscreen was already on, so Back undoes whichever of the two came last (RouteCardBackOrder.kt).
+    controls?.actions?.onNavigatedFromCard(inFullscreen)
     val kind = if (target is RouteStopLink.Trip) NavigationTargetKind.TRIP else NavigationTargetKind.WAYPOINT
     navigate(WaypointNavigationOrigin.RouteCard(target.id, kind))
 }
@@ -68,9 +72,14 @@ internal fun selectRouteStopOnTap(tap: MapFeatureTap, sources: MapRecordSources)
  * The marker drawn over the selected stop's waypoint (or trip) in the accent colour, where it stands now, which is where Navigate goes;
  * `null` with no saved route, or where the stop leads nowhere (its waypoint moved or deleted: there is no marker of it to colour).
  */
-internal fun selectedStopMarker(controls: RoutePlottingControls?, sources: MapRecordSources?): SelectedStopMarker? =
+internal fun selectedStopMarker(controls: RoutePlottingControls?, sources: MapRecordSources?, waypointsDrawn: Boolean = true): SelectedStopMarker? =
     when (val target = selectedStopTarget(controls, sources)) {
-        is RouteStopLink.Waypoint -> sources?.waypoints?.firstOrNull { it.id == target.id }?.let { SelectedStopMarker(LatLng(it.lat, it.lng), trip = false) }
+        // Amendment 3, the owner: "Hide with the layer". With the Waypoints switch off there is no pin to colour, so no accent either.
+        is RouteStopLink.Waypoint -> if (!waypointsDrawn) null else sources?.waypoints?.firstOrNull { it.id == target.id }?.let { SelectedStopMarker(LatLng(it.lat, it.lng), trip = false) }
         is RouteStopLink.Trip -> sources?.plannedTrips?.firstOrNull { it.id == target.id }?.let { SelectedStopMarker(it.location, trip = true) }
         null -> null
     }
+
+/** Amendment 3: whether the map draws the waypoints layer under [layers] (the Map Layers sheet's Waypoints switch), as names read it. */
+internal fun waypointsLayerDrawn(layers: MapLayersState): Boolean =
+    MAP_LAYER_REGISTRY.firstOrNull { it.id == MapLayerIds.WAYPOINTS }?.let { layerPaintFor(it, layers).visible } ?: false

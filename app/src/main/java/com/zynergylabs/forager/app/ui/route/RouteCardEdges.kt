@@ -29,6 +29,21 @@ import androidx.compose.ui.zIndex
 /** The screen edge a card or its tab sits flush against, which its outline leaves open (step 6). [NONE]: outlined all round. */
 enum class RouteCardEdge { NONE, LEFT, RIGHT, BOTTOM }
 
+/**
+ * The edges the card's outline leaves open: those that do not face the map. In portrait, the side flush to the screen edge (step 6). In
+ * landscape, the bottom; and while it rests on the navigation card ([onNavigationCard]), also the side against the side bar, which is
+ * the card's own side ([cardOnLeft]). Amendment 3, the owner: "Every edge facing the map" ("Top and left here (right meets the side
+ * bar, bottom meets the navigation card)").
+ */
+internal fun routeCardOpenEdges(portrait: Boolean, cardOnLeft: Boolean, onNavigationCard: Boolean): Set<RouteCardEdge> {
+    val side = if (cardOnLeft) RouteCardEdge.LEFT else RouteCardEdge.RIGHT
+    return when {
+        portrait -> setOf(side)
+        onNavigationCard -> setOf(RouteCardEdge.BOTTOM, side)
+        else -> setOf(RouteCardEdge.BOTTOM)
+    }
+}
+
 /** The outline's width: Re-center's (#505, `ReturnToRoutePill.kt`), 1 dp. */
 internal val ROUTE_CARD_OUTLINE_WIDTH: Dp = 1.dp
 
@@ -38,20 +53,21 @@ private val OUTLINE_PAST_EDGE = 2.dp
 /**
  * Step 6, the owner: the card gets "the same 1 dp `onSurface` outline as the Re-center pill (#505), on the three sides facing the map,
  * not the side flush to the screen edge". Drawn over the card's content, inside its bounds, in [shape]; the box it is drawn on reaches
- * [OUTLINE_PAST_EDGE] past [openEdge], where the card's clip (its Surface's shape) cuts it, so that side carries no stroke. It takes no
+ * [OUTLINE_PAST_EDGE] past each of [openEdges], where the card's clip (its Surface's shape) cuts it, so that side carries no stroke. It takes no
  * touch and changes no size.
  */
 @Composable
-internal fun BoxScope.RouteCardOutline(shape: Shape, openEdge: RouteCardEdge) {
+internal fun BoxScope.RouteCardOutline(shape: Shape, openEdges: Set<RouteCardEdge>) {
     Box(
         Modifier
             .matchParentSize()
             .layout { measurable, constraints ->
                 val past = OUTLINE_PAST_EDGE.roundToPx()
-                val w = constraints.maxWidth + if (openEdge == RouteCardEdge.LEFT || openEdge == RouteCardEdge.RIGHT) past else 0
-                val h = constraints.maxHeight + if (openEdge == RouteCardEdge.BOTTOM) past else 0
+                val left = if (RouteCardEdge.LEFT in openEdges) past else 0
+                val w = constraints.maxWidth + left + if (RouteCardEdge.RIGHT in openEdges) past else 0
+                val h = constraints.maxHeight + if (RouteCardEdge.BOTTOM in openEdges) past else 0
                 val placeable = measurable.measure(androidx.compose.ui.unit.Constraints.fixed(w, h))
-                layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(if (openEdge == RouteCardEdge.LEFT) -past else 0, 0) }
+                layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(-left, 0) }
             }
             .border(BorderStroke(ROUTE_CARD_OUTLINE_WIDTH, MaterialTheme.colorScheme.onSurface), shape)
             .testTag(ROUTE_CARD_OUTLINE_TAG),

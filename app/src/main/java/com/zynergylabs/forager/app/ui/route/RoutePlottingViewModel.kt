@@ -5,6 +5,7 @@ import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.route.PlottedRoute
+import com.zynergylabs.forager.app.domain.route.RouteCardBackOrder
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RoutePlotDraft
 import com.zynergylabs.forager.app.domain.route.RouteStop
@@ -63,6 +64,11 @@ data class RoutePlottingUiState(
      * and the card's own Back tier stands aside while it runs. A route closed or opened starts without it.
      */
     val navigatedFromCard: Boolean = false,
+    /**
+     * Amendment 3: the order the card's Navigate and fullscreen were entered in, so Back undoes whichever came last (the owner: "Yes,
+     * that's it"; `RouteCardBackOrder.kt`). A route closed or opened starts without it.
+     */
+    val backOrder: RouteCardBackOrder = RouteCardBackOrder(),
 )
 
 /** What the route card, the bubble and the Trip Planner ask of the plotting; [RoutePlottingViewModel] does each. */
@@ -81,7 +87,11 @@ interface RoutePlottingActions {
     fun onCloseSavedRoute()
     fun onSetTucked(tucked: Boolean)
     fun onSelectStop(index: Int)
-    fun onNavigatedFromCard()
+    fun onNavigatedFromCard(inFullscreen: Boolean)
+    /** Amendment 3: fullscreen was left, by any route. */
+    fun onFullscreenLeft()
+    /** Amendment 3: Back ended the card's navigation while [inFullscreen]. */
+    fun onCardNavigationEndedByBack(inFullscreen: Boolean)
 }
 
 /**
@@ -93,6 +103,8 @@ data class RoutePlottingControls(
     val state: RoutePlottingUiState,
     val actions: RoutePlottingActions,
     val onReturnToTripPlanner: () -> Unit = {},
+    /** Amendment 3: ends the waypoint navigation the card's Navigate started, as the screen's Back does; nothing where there is none. */
+    val onEndNavigation: () -> Unit = {},
 )
 
 /**
@@ -227,10 +239,19 @@ class RoutePlottingViewModel(
         _uiState.update { it.copy(selectedStop = index) }
     }
 
-    /** The card's Navigate was tapped (item 3): its Back tier stands aside while that navigation runs. */
-    override fun onNavigatedFromCard() {
+    /** The card's Navigate was tapped (item 3): its Back tier stands aside while that navigation runs, in the order of Amendment 3. */
+    override fun onNavigatedFromCard(inFullscreen: Boolean) {
         if (_uiState.value.mode !is RoutePlotMode.Showing) return
-        _uiState.update { it.copy(navigatedFromCard = true) }
+        _uiState.update { it.copy(navigatedFromCard = true, backOrder = it.backOrder.navigated(inFullscreen)) }
+    }
+
+    override fun onFullscreenLeft() {
+        if (_uiState.value.backOrder == RouteCardBackOrder()) return
+        _uiState.update { it.copy(backOrder = it.backOrder.fullscreenLeft()) }
+    }
+
+    override fun onCardNavigationEndedByBack(inFullscreen: Boolean) {
+        _uiState.update { it.copy(backOrder = it.backOrder.navigationEndedByBack(inFullscreen)) }
     }
 
     /** Opens [trip]'s route with the card peeking (the dispatch: "peeks the card"). */

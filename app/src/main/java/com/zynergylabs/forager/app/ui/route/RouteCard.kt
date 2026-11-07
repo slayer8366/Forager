@@ -181,8 +181,8 @@ fun RouteCard(
      * depend on the room the card is given.
      */
     onNaturalHeightsPx: (RouteCardNaturalHeights) -> Unit = {},
-    /** The screen edge the card is flush against, which its outline leaves open (dispatch 2026-11-06-05, step 6; `RouteCardEdges.kt`). */
-    openEdge: RouteCardEdge = RouteCardEdge.NONE,
+    /** The screen edge the card is flush against, which its outline leaves open (dispatch 2026-11-06-05, step 6, and Amendment 3; `RouteCardEdges.kt`). */
+    openEdges: Set<RouteCardEdge> = emptySet(),
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -235,7 +235,7 @@ fun RouteCard(
             Box(Modifier.naturalHeight { buttonsNatural = it }) { RouteCardButtons(content, callbacks) }
         }
         if (content is RouteCardContent.Saved) RouteCardCloseButton(callbacks.onClose)
-        RouteCardOutline(shape, openEdge)
+        RouteCardOutline(shape, openEdges)
         }
     }
 }

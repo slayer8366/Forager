@@ -32,6 +32,7 @@ import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.route.RouteCardBackStep
 import com.zynergylabs.forager.app.domain.route.asRouteStop
 import com.zynergylabs.forager.app.domain.route.defaultRouteName
 import com.zynergylabs.forager.app.domain.route.legElevation
@@ -49,7 +50,7 @@ import com.zynergylabs.forager.app.ui.route.DiscardRouteDialog
 import com.zynergylabs.forager.app.ui.route.RouteCard
 import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
 import com.zynergylabs.forager.app.ui.route.RouteCardContent
-import com.zynergylabs.forager.app.ui.route.RouteCardEdge
+import com.zynergylabs.forager.app.ui.route.routeCardOpenEdges
 import com.zynergylabs.forager.app.ui.route.legInFlight
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.route.rememberRouteCardWidth
@@ -105,10 +106,10 @@ internal fun routePlottingTakesTap(tap: MapFeatureTap, sources: MapRecordSources
  * The line the map draws: the route being plotted, or a saved one with a dot at each stop (Amendment 1, Q8), and on a saved route its
  * selected stop's marker in the accent colour (dispatch 2026-11-06-05, Amendment 2, item 4; [selectedStopMarker]); `null` for none.
  */
-internal fun plottedRouteOnMap(controls: RoutePlottingControls?, sources: MapRecordSources? = null): PlottedRouteOnMap? = when (val mode = controls?.state?.mode) {
+internal fun plottedRouteOnMap(controls: RoutePlottingControls?, sources: MapRecordSources? = null, waypointsDrawn: Boolean = true): PlottedRouteOnMap? = when (val mode = controls?.state?.mode) {
     // Dispatch 2026-11-02-04 (A2): the stops' names, from RouteStop.name, while plotting and on a saved route.
     is RoutePlotMode.Plotting -> PlottedRouteOnMap(mode.draft.legs, stopNames = mode.draft.stops)
-    is RoutePlotMode.Showing -> mode.trip.route?.let { route -> PlottedRouteOnMap(route.legs, route.stops.map { it.position }, route.stops, selectedStopMarker(controls, sources)) }
+    is RoutePlotMode.Showing -> mode.trip.route?.let { route -> PlottedRouteOnMap(route.legs, route.stops.map { it.position }, route.stops, selectedStopMarker(controls, sources, waypointsDrawn)) }
     RoutePlotMode.Off, null -> null
 }
 
@@ -178,6 +179,8 @@ internal fun BoxScope.CompactMapRouteCard(
     today: () -> LocalDate = LocalDate::now,
     /** Dispatch 2026-11-06-05, Amendment 2: the records and the navigation Navigate and the selection read; `null` offers no Navigate. */
     sources: MapRecordSources? = null,
+    /** Amendment 3: whether the map is fullscreen when Navigate is tapped, for the Back order (`RouteCardBackOrder.kt`). */
+    isFullscreen: Boolean = false,
 ) {
     val context = LocalContext.current
     val density = LocalDensity.current
@@ -302,10 +305,10 @@ internal fun BoxScope.CompactMapRouteCard(
                             // Step 3: the ✕ is Back's close of a saved route, without Back's reopening of the Tools drawer (the plan).
                             onClose = shownActions::onCloseSavedRoute,
                             // Amendment 2, items 3 and 4: Navigate to the selected stop, and a stop's row selecting it.
-                            onNavigate = { startRouteCardNavigation(controls, sources) },
+                            onNavigate = { startRouteCardNavigation(controls, sources, isFullscreen) },
                             onSelectStop = shownActions::onSelectStop,
                         ),
-                        openEdge = if (!portrait) RouteCardEdge.BOTTOM else if (cardOnLeft) RouteCardEdge.LEFT else RouteCardEdge.RIGHT,
+                        openEdges = routeCardOpenEdges(portrait, cardOnLeft, onNavigationCard != null),
                         expandedMaxHeight = expandedMaxHeight,
                         shape = shape,
                         contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
@@ -372,16 +375,41 @@ internal fun BoxScope.CompactMapRouteCard(
  * 1, step 5, the plan the owner approved: "One Back ends navigation, with the route card still open"), so that Back is the screen's
  * waypoint-navigation step, which ends it and reopens nothing; the next Back closes the card, as before. The way in was the card, then
  * Navigate, so Back undoes Navigate first.
+ *
+ * Amendment 3 (the owner: "Only leave full screen if they entered full screen after tapping navigate. If they entered navigation mode
+ * after full screen mode, then leave navigate."): in fullscreen, Back undoes whichever came last. Fullscreen entered after Navigate is
+ * the screen's fullscreen step, so this tier stands aside; Navigate tapped in fullscreen is ended here, and then fullscreen is left
+ * before the card closes. With neither pending, the card's Back still goes before fullscreen (-1852, "Yes, cancel first").
  */
 @Composable
-internal fun RoutePlottingBackHandler(controls: RoutePlottingControls?, enabled: Boolean, onReopenDrawer: () -> Unit, navigatingToWaypoint: Boolean = false) {
+internal fun RoutePlottingBackHandler(
+    controls: RoutePlottingControls?,
+    enabled: Boolean,
+    onReopenDrawer: () -> Unit,
+    navigatingToWaypoint: Boolean = false,
+    isFullscreen: Boolean = false,
+) {
     val mode = controls?.state?.mode
     val navigationFromCard = navigatingToWaypoint && controls?.state?.navigatedFromCard == true
-    BackHandler(enabled = enabled && mode != null && mode != RoutePlotMode.Off && !navigationFromCard) {
-        when (mode) {
-            is RoutePlotMode.Plotting -> controls.actions.onCancel()
-            is RoutePlotMode.Showing -> {
-                controls.actions.onCloseSavedRoute()
+    // Amendment 3: Back undoes whichever came last of Navigate and fullscreen (RouteCardBackOrder.kt). Leaving fullscreen, by any
+    // route, clears the order; the screen's fullscreen step and its waypoint-navigation step take the presses this tier stands aside for.
+    LaunchedEffect(isFullscreen) { if (!isFullscreen) controls?.actions?.onFullscreenLeft() }
+    val step = controls?.state?.backOrder?.step(isFullscreen, navigationFromCard)
+    val takes = when (step) {
+        RouteCardBackStep.CLOSE_CARD -> true
+        // Outside fullscreen the screen's waypoint-navigation step ends it; in fullscreen that step is off, so this tier does.
+        RouteCardBackStep.END_NAVIGATION -> isFullscreen
+        RouteCardBackStep.LEAVE_FULLSCREEN, null -> false
+    }
+    BackHandler(enabled = enabled && mode != null && mode != RoutePlotMode.Off && takes) {
+        when {
+            step == RouteCardBackStep.END_NAVIGATION -> {
+                controls?.actions?.onCardNavigationEndedByBack(isFullscreen)
+                controls?.onEndNavigation?.invoke()
+            }
+            mode is RoutePlotMode.Plotting -> controls?.actions?.onCancel()
+            mode is RoutePlotMode.Showing -> {
+                controls?.actions?.onCloseSavedRoute()
                 if (mode.fromTripPlanner) onReopenDrawer()
             }
             else -> Unit
