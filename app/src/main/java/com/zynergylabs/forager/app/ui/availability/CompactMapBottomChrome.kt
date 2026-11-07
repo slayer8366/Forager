@@ -109,7 +109,7 @@ internal fun BoxScope.CompactMapBottomChrome(
     val routeCardLiftPx = with(LocalDensity.current) { routeCardLift.toPx() }
     // Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186), the owner: "Ring replaces the pill": not in landscape navigation, where the
     // ringed locate row is Re-center (ReCenterOnLocate.kt). Portrait as before.
-    val returnToRouteShown = reCenterPillShown(landscapeCluster, isNavigating, navigationFollowing)
+    val returnToRouteShown = isNavigating && !navigationFollowing
     // Amendment 17, part 2 ruled: the pill's own span, which the lift does not move, so reading it here has no loop.
     var returnToRouteSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
     // D27 (RECORD -1976, the owner: "Icon only where room is short (Recommended)"), replacing D20's rise where room is short: beside
