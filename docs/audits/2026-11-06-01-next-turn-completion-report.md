@@ -949,3 +949,103 @@ Tag `SightingsMap`, after switching maps at least once with the position dot on,
 ### Clean-up
 
 The throwaway branch `next-turn-i10-rev-stylefile` is deleted from origin and its worktree removed. Its run stays readable by number. Scratch: `/mnt/work/scratch/hazel-i10` (mode 700).
+
+## 2b-2 step 2: stopped at the fit, nothing wired (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J, step 2, plus G5. The owner's words, verbatim: "Go ahead and begin part 2 of 500", then "Start the arrows as soon as it reports" and "Arrows after the needle". G4, the owner: "The arrows should fit since that line is being reduced from the whole string with two arrows and four words of text, to just those few things. But if it is too big bring it up then". **The space does not fit beside the needle in most cases, so this is a stop with measured widths (G4). Nothing is wired: the card, G5 and the touch test are not built.** Marks: [observed] is a CI run's XML or log read this session (its head SHA checked, its log checked for compile errors first), [read] is code read at the commit named, [inferred] is worked out and not measured.
+
+### Base and commits
+
+- At the start [observed]: `origin/next-turn` 5d39c9f01, `origin/nav-card-kind-line` 5e2c0a6c8, `origin/pre-main` 1f6901a11 (already in both), `origin/records-after-173` 9bd15f23f; worktree clean. All as the dispatch said.
+- `835c311fd`: origin/nav-card-kind-line merged in (merge, with a message and the Co-Authored-By line). A clean merge. pre-main had not moved, so there was nothing more to merge.
+- **The merge's CI** [observed]: PR run **42389602820** at 835c311fd, every job green, log 0 compile errors: **7183 tests, 0 failed, 24 skipped**. By name against pre-main's latest run 42337576510 at 1f6901a11 (6846 tests, 0 failed, 24 skipped): 36 names only on pre-main, which is the count #498's own sections report (renamed in #498), 373 only here, **0 names whose outcome differs**.
+
+### How the fit was measured
+
+- **A probe, not a build.** One throwaway test class, `NextTurnFitProbe`, on the throwaway ref `hazel-arrows-fit-probe` (c22f30c69, over 835c311fd, deleted after its run). It drives #498's own rig (`NavigationCardKindLineScreen`: the real `AvailabilityScreen`, the way home by trail, facing the turn) through 21 cases (portrait 320, 360, 384, 412 and 480 dp, landscape 780 x 360 and 823 x 384, each at fonts 1.0, 1.3 and 2.0) and five evening states each (none; before sunset; after sunset; "Dark since 5:23 PM"; "Dark since 10:23 PM", the widest). It prints a FIT line per reading and asserts nothing.
+- **Run 42389607585** (workflow_dispatch, filter `*NextTurnFitProbe`) [observed]: head SHA c22f30c69; the build job green, its log 0 compile errors; the XML holds 21 tests, 0 failed, and **105 FIT lines, 21 x 5**, so every case and state was read. The run was then cancelled while its second job (the Street map deleted, which reads nothing here) was still going.
+- **What each line measures**, in dp, in the turn line's own type (`labelMedium`, as `NextTurnSpace` uses):
+  - the left part, from the card's top line to the divider less its 6 dp gap;
+  - the turn line as #498 lays it out: E18's degrees' space (the widest of "0°" to "180°", "Target" and "No target"), 4 dp, the 22 dp needle: **85.7 at font 1.0, 102.0 at 1.3, 145.0 at 2.0**;
+  - the next turn's own space as step 1 built it: the 22 dp arrow, 4 dp and the widest of "88.8 mi" and "8888 ft": **71.3 at 1.0, 83.3 at 1.3, 115.3 at 2.0** (in kilometres 74.7, 88.0 and 122.3);
+  - so the turn line with the space beside the needle (A1), 4 dp between, needs **161.0 at 1.0, 189.3 at 1.3, 264.3 at 2.0**.
+
+### The fit [observed, run 42389607585]
+
+Each cell is the left part's width and, in brackets, how far the turn line with the next turn is **short** of it (+, does not fit) or has to spare (−). Miles.
+
+| Window, font | No evening line | Before sunset | After sunset | "Dark since 5:23 PM" | "Dark since 10:23 PM" |
+|---|---|---|---|---|---|
+| 320, 1.0 | 143.7 (+17.3) | 143.7 (+17.3) | 143.7 (+17.3) | 133.0 (+28.0) | 125.7 (+35.3) |
+| 320, 1.3 | 116.0 (+73.3) | 116.0 (+73.3) | 116.0 (+73.3) | 111.0 (+78.3) | 111.0 (+78.3) |
+| 320, 2.0 | 251.0 (+13.3) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+| 360, 1.0 | 183.7 (−22.7) | 183.7 (−22.7) | 183.7 (−22.7) | 173.0 (−12.0) | 165.7 (−4.7) |
+| 360, 1.3 | 156.0 (+33.3) | 156.0 (+33.3) | 156.0 (+33.3) | 141.7 (+47.7) | 132.3 (+57.0) |
+| 360, 2.0 | 291.0 (−26.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+| **384 (the S22), 1.0** | 207.7 (−46.7) | 207.7 (−46.7) | 207.7 (−46.7) | 197.0 (−36.0) | 189.7 (−28.7) |
+| **384 (the S22), 1.3** | 180.0 (+9.3) | 180.0 (+9.3) | 180.0 (+9.3) | 165.7 (+23.7) | 156.3 (+33.0) |
+| **384 (the S22), 2.0** | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+| 412, 1.0 | 235.7 (−74.7) | 235.7 (−74.7) | 235.7 (−74.7) | 225.0 (−64.0) | 217.7 (−56.7) |
+| 412, 1.3 | 208.0 (−18.7) | 208.0 (−18.7) | 208.0 (−18.7) | 193.7 (−4.3) | 184.3 (+5.0) |
+| 412, 2.0 | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+| 480, 1.0 | 198.0 (−37.0) | 198.0 (−37.0) | 198.0 (−37.0) | 198.0 (−37.0) | 198.0 (−37.0) |
+| 480, 1.3 | 276.0 (−86.7) | 276.0 (−86.7) | 276.0 (−86.7) | 261.7 (−72.3) | 252.3 (−63.0) |
+| 480, 2.0 | 199.3 (+65.0) | 199.3 (+65.0) | 199.3 (+65.0) | 177.3 (+87.0) | 162.7 (+101.7) |
+| 780 x 360, 1.0 | 176.3 (−15.3) | 176.3 (−15.3) | 176.3 (−15.3) | 165.7 (−4.7) | 158.3 (+2.7) |
+| 780 x 360, 1.3 | 137.0 (+52.3) | 137.0 (+52.3) | 137.0 (+52.3) | 122.7 (+66.7) | 113.3 (+76.0) |
+| 780 x 360, 2.0 | 263.0 (+1.3) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+| 823 x 384, 1.0 | 176.3 (−15.3) | 176.3 (−15.3) | 176.3 (−15.3) | 165.7 (−4.7) | 158.3 (+2.7) |
+| 823 x 384, 1.3 | 180.0 (+9.3) | 180.0 (+9.3) | 180.0 (+9.3) | 165.7 (+23.7) | 156.3 (+33.0) |
+| 823 x 384, 2.0 | 263.0 (+1.3) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+
+- **In miles it fits in 38 of the 105 readings and not in 67.** In kilometres 37 (412 dp, font 1.3, "Dark since 5:23 PM" fits in miles by 4.3 dp and not in kilometres).
+- **At font 1.0** it fits everywhere but the 320 dp phone (17 to 35 dp short) and landscape with "Dark since 10:23 PM" (2.7 dp short). On the S22 it fits, with 29 to 47 dp to spare.
+- **At font 1.3** it fits only at 412 dp (but not with the widest evening line) and 480 dp. On the S22 it is 9 to 33 dp short.
+- **At font 2.0** it fits only at 360 dp with no evening line. Wherever the left part is its widest figure (151.7 dp: every evening line, and the S22 and 412 dp all day), it is 112.7 dp short: the next turn's space alone (115.3) is wider than the room right of the needle there.
+- **Placed in the room right of the needle instead,** leaving the degrees and the needle where #498 put them, it fits in **0** of the 105 (the spare there is at most about 61 dp at 1.0, short of 75.3).
+
+### Why "it should fit" does not hold [inferred from the widths above and #498's own]
+
+- The old turn line ("sharp right 169° ▲ ▲ 134° SE") is gone, as the owner said. But E18 ("Never moves") sized the degrees' space for "No target" in every state: 59.7 dp at font 1.0 where G3 had 28.0, 119.0 at 2.0 where G3 had 54.7. That ate much of what dropping the words saved.
+- The left part is as wide as the card leaves it, and at font 2.0 with an evening line that is the widest figure (151.7 dp), not the turn line's need.
+- The "next-turn reserve" in #498 (`nextTurnReservePx`, `NavigationInfo.kt`, `rememberCardEvening`) only decides whether the before-sunset line breaks at the ▪︎ (H5, H6, E18 (a)). It never held width in the left part. So it did not keep this room, and E18's wider measure changed only that one evening decision (412 dp, font 1.0).
+
+### Question for the owner (stop; options, nothing built)
+
+"The next-turn arrow and its distance ("↰ 88.8 mi") don't fit beside the needle on most screens: on the S22 they fit at normal text, but at the next text size up they're 9 to 33 dp short, and at the largest text 113 dp short; on a 320 dp phone they're short even at normal text. Where they don't fit, what should the card do?"
+
+- **(a) Their own line under the turn line, only where it doesn't fit.** Decided per screen and text size (not per value, so it never flips while walking), as the status words already do (H8: "Own line when too narrow (Recommended)"). The card is one line taller there. Beside the needle everywhere it fits (the S22 at normal text). *Recommended: it keeps A1 wherever there is room, keeps the text size ("Keep the text size the same size"), and has a precedent on this card.*
+- **(b) Always their own line under the turn line,** on every screen. One layout everywhere; the card is one line taller everywhere.
+- **(c) Beside the needle anyway, the card's left part widening and the evening and status column squeezing to make room** (RECORD -941's overflow rule). At the largest text the evening column would be left about 0 to 30 dp on 320 to 412 dp phones, so "Dark since 5:23 PM" would wrap a character or two a line. Not recommended.
+- **(d) In place of the degrees** (the dispatch's Q1 option "In place of the degrees", not chosen then). The degrees' space is 59.7 / 76.0 / 119.0 dp; the next turn needs 71.3 / 83.3 / 115.3: it fits at the largest text, and is 11.6 and 7.3 dp short at the other two unless that space widens. The degrees would no longer show.
+
+A smaller arrow (Phase 1's option (c), about 6 dp) closes none of the gaps above but the 2.7 dp one, so it is not offered on its own.
+
+### Confirmed and inferred
+
+- **[observed]:** the base; the merge and its green CI, 0 outcomes differing by name from pre-main; the probe's 105 readings, its compile log clean and its SHA checked; every width in the table.
+- **[read]:** that `nextTurnReservePx` feeds only `eveningBreaks` (835c311fd, `NavigationInfo.kt` and `NavigationCardEvening.kt`); that the left part's width is what the right part leaves (`leftPartWidthPx`, `NavigationCardParts.kt`'s `InfoParts`).
+- **[inferred]:** the "why" above; option (c)'s evening column (the parts' width less 264.3, not drawn); that the S22 draws within about 1% of these, as #498's sections found.
+
+### Could not determine
+
+- The phone's own widths (no phone in this dispatch). Screens between the tested widths. The way to a waypoint by trail was not read separately: its card is the same composable with the same top-line figure widths, so I expect the same table, but it was not measured.
+
+### Premises that were wrong
+
+- **G4's "The arrows should fit".** They fit in 38 of 105 readings; see the table. The owner's own words make that a stop.
+- **The dispatch's "the next-turn reserve is measured with E18's wider degrees space"** is true, but that reserve governs only the evening line's break, not room beside the needle (above). Read as a guarantee of room, it was wrong.
+- **"What step 2 needs" (step 1's own list, above) put the `nextTurn(...)` call in `CardTurnLine`.** The card holds no line or progress: they live in the way-home tick (`TrackRecordingRouteTicks`) and in `AvailabilityWaypointRoute`. Had it been built, the call would sit there and the result travel to the card on the route the card already gets. Not built; noted for whoever builds it.
+
+### Decided beyond scope
+
+- **Measured before wiring.** The dispatch's order was wire, then measure. I measured first, on a throwaway ref, because the fit decides whether there is anything to wire, and wiring an overflowing space would have changed what #498's tests hold (the needle's place) on a build that may not stand. Nothing on next-turn changed but the merge and this section.
+- **The "fit" counted** is the whole turn line (degrees' space, needle, next turn) centred in the left part as it is today, without widening the left part. Widening it is option (c).
+
+### S22 steps
+
+None yet: nothing a phone could show was built. After the owner's answer, the build's steps will be written with it.
+
+### Clean-up
+
+The throwaway ref `hazel-arrows-fit-probe` is deleted from origin and locally; its run stays readable by number. Scratch `/mnt/work/scratch/hazel-arrows` (mode 700) keeps the probe's source and its FIT lines for whoever builds the answer. PR #500 stays a draft.
