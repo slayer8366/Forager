@@ -371,3 +371,143 @@ about 4b gets updated.
 
 Install a build at schema 23 (pre-main) with two saved routes, then install this build over it. Both routes open with every stop and
 distance as before.
+
+---
+
+# Build, part 3 (Amendment 2, finished): verified the soft link and schema 24; Navigate, Back, selection, the list, the accent marker
+
+Hazel Cairnwright (Opus), 2026-11-07 UTC, on the owner's "Begin building". Branch `route-card`, from `137546e7b`; ends at `c8ac2519d`.
+`origin/pre-main` was `1f6901a11` throughout (checked at the start and at the end), so nothing was merged in. No remote branch other
+than this one has ForagerDatabase above 23 (all 1,335 remote refs read). Version 24 is this PR's by the owner's "Route card takes 24".
+
+## Verified, and how
+
+- **Run 42372888049** (the hand-back's PR run, `e9da49fc5`, head SHA confirmed): compiled, 6835 tests, **3 failed**, all from schema 24
+  and the link: `JournalBackupTest` pinned schema 23 twice (lines 79 and 99), and `AvailabilityScreenWaypointNamesTest` expected a stop
+  without its link. I updated the three for the ruled change (`6eaf53ff7`), keeping each check's strength (the link is now asserted too).
+- **Restore from 22 (new, `OlderBackupRestoreTo24Test`)**: a real v22 database from `22.json`, one row in every journal table, archived
+  as a v22 app does, restored (Replace) through `openForRestore`. Every table's row survives, every v22 column has its value
+  (column by column), nothing is logged, the phone is at 24. The same for a v23 backup with a route: the stop survives with both links
+  NULL. The values a Replace rewrites by design (a region's fresh id and the two references that follow it, the track point's auto
+  key) are compared by what they point at.
+- **Full CI, run 42377387878 at `c8ac2519d`: green**, every job. By name against pre-main's latest run (42337576510 at `1f6901a11`):
+  6881 vs 6846 test cases, **no outcome changed**. One name is gone: `SchemaMigrationTest` "4 to 23 - the full chain", which the
+  previous part renamed to "4 to 24". 36 new, all passing: `OlderBackupRestoreTo24Test` 2, `RouteStopLinkMigrationTest` 2,
+  `SchemaMigrationTest` 2, `RouteStopNavigateTargetTest` 7, `RouteCardNavigateTest` 9, `PlottedRouteSelectedStopTest` 4, and part 1's
+  `RouteCardTuckCloseTest` 10 (new against pre-main).
+- **Eleven one-line reverts.** Each was made on a throwaway branch in a separate scratch worktree, so the forward tree was never
+  edited and needed no restore. Each was based on `c8ac2519d`. Every log was read for compile errors first: **0 in each**. Each run's
+  failure messages come from that run's own JUnit XML. After all eleven, `git diff c8ac2519d HEAD` in the forward tree is empty and
+  every reverted line is present.
+
+  | Revert (one line) | Run | Failed | The failure, from its message |
+  |---|---|---|---|
+  | link write: `linkedWaypointId = null` in the repository | 42377405695 | 1 of 69 | "the links read back as saved" |
+  | read-time clearing: `clearMissingWaypointLinks()` dropped from `loadAll` | 42377410516 | 1 of 69 | "the stops stay, names and spots unchanged, with the links cleared" |
+  | migration: the `linkedWaypointId` ADD COLUMN dropped | 42377417230 | 9 of 69 | "no such column: linkedWaypointId ... CREATE INDEX": both `RouteStopLinkMigrationTest` cases, `SchemaMigrationTest` 23→24 and 4→24, both restore tests, and the three older-backup restores in `JournalBackupTest` (they migrate through 24) |
+  | Navigate through the link: the link case returns nothing | 42377423523 | 1 of 35 | "a linked stop goes to its waypoint ... even after it has moved": expected `Waypoint(id=wp-creek)` but was null |
+  | Navigate by spot and name: the waypoint match dropped | 42377429871 | 4 of 35 | the old route's Navigate, and the three domain cases that match by spot and name |
+  | greyed: `enabled = true` | 42377435353 | 1 of 35 | "is not enabled" on the moved-waypoint case |
+  | Back: the stand-aside dropped | 42377440773 | 1 of 35 | "one Back ends the navigation expected null, but was WaypointNavigation(wp-creek)" |
+  | marker selection: the call dropped | 42377446506 | 1 of 35 | "a touch at (0.1, 0.1) on Ridge's marker expected 1 but was 0" |
+  | row selection: `onSelectStop = {}` | 42377452044 | 2 of 35 | the row case (expected 1 but was 0), and the accent marker not moving to the picked stop |
+  | the accent marker: `null` | 42377456983 | 1 of 35 | "the first stop by default expected SelectedStopMarker(...) but was null" |
+  | first by default: `selectedStop = 1` | 42377463323 | 5 of 35 | every case that expects the first stop got Ridge, and the greyed case (stop 1 is not the moved one) |
+
+  Each failure belongs to its own edit. Nothing from another item failed.
+- The new tests did not have a separate all-red run before the code. Their evidence of biting is the revert table above: the feature
+  taken out by one line, with the tests in place, each failing for that reason. The first runs of steps 1 and 2 (42374438824 to
+  42374444655, 42375180889) **did not compile** (my test code). They are cited for nothing. The compile check is what caught it.
+
+## What was built
+
+- **Navigate's target** (`domain/route/RouteStopNavigateTarget.kt`, pure Kotlin): the stop's link while its waypoint or trip is on the
+  phone; else a waypoint, then a trip, at exactly the stop's spot with exactly its name; else none. The card's Navigate goes there
+  through the existing `startWaypointNavigation` (the Maps tab's `onNavigateToWaypoint`/`onNavigateToTrip`), with a new origin
+  `WaypointNavigationOrigin.RouteCard` (saved as `route-card:<id>` / `trip-route-card:<id>`). Where it leads nowhere, Navigate is greyed,
+  and "This stop's waypoint was moved or deleted" stands at the start of the button row.
+- **Back** (`RoutePlottingBackHandler`): while navigation started from this card's Navigate is running, the card's Back tier stands
+  aside. So Back is the screen's waypoint-navigation step, which ends it, and Back for the `RouteCard` origin reopens nothing. The next
+  Back closes the card, as before. This changes today's order (Back closed the card first) only for a navigation the card started. The
+  way in was the card, then Navigate, so this is "Back retraces the way in". Recorded rulings checked: -1852 "Yes, cancel first"
+  (fullscreen Back while plotting) and the navigation-chrome rule in `AvailabilityScreenBackHandlers.kt` (fullscreen backs out before
+  navigation). Outside fullscreen neither conflicts. One edge case does: see Q-D.
+- **Selection** (`RoutePlottingUiState.selectedStop`, 0 by default, reset when a route opens or closes): a tap on a stop's waypoint or
+  trip marker selects the first stop leading to it, and the bubble opens as before (`CompactMapRouteStops.kt`). The open saved card
+  lists the waypoints as rows (`ui/route/RouteCardStops.kt`): the name, then under it the leg leading to it (distance, the "No trail
+  data" note on a straight leg). The first row has nothing under it. Each row has a 48 dp minimum height. Tapping a row selects it.
+- **The accent marker**: the selected stop's waypoint pin (or trip flag) is drawn again over the waypoints layer in cream `#EDE3D0` by
+  day and rust `#A2612C` at night. It sits where the record stands now, which is where Navigate goes, and nothing is drawn when the
+  stop leads nowhere. There are two new `MarkerIcon` entries (registered with every other marker, so `OverlayLayerSetup.kt`, next-turn's,
+  is untouched), and a source and symbol layer in `PlottedRouteLayers.kt`. Kept for the owner to judge on the phone.
+- Files: three new (40, 76 and 114 lines). `RouteCard.kt` 397 → 410, `CompactMapRoutePlotting.kt` 375 → 392,
+  `AvailabilityCompactMapUi.kt` 766 → 769, `RoutePlottingViewModel.kt` 282 → 307, plus small edits to `WaypointNavigationOrigin.kt`,
+  `AvailabilityScreenWaypointNavigation.kt`, `MarkerGlyphs.kt` and `PlottedRouteLayers.kt`. None of them is in next-turn's,
+  nav-card-kind-line's or journal-locate-outline's diff, checked before each edit. `MigrationRouteTrips.kt`'s comment and
+  `CompactMapBottomChrome.kt` are not touched.
+- Existing tests changed because of the ruled change, disclosed for the reviewer:
+  - three for schema 24 and the link (above);
+  - four saved-card tests that read "Directions" as the last word or leg rows in the open saved card (`RouteCardLayoutTest` ×2,
+    `RouteCardTotalLineTest`, `RouteCardTotalLineContentTest`). Run 42376061270 showed them failing; they now expect "Navigate" and the
+    waypoint rows;
+  - `MarkerGlyphsTest` gains the two accent icons, with their colours as hex.
+
+## Not built, and what waits
+
+- Plan step 1 (Re-center under the card) still waits for #506. It needs `CompactMapBottomChrome.kt`.
+- PR #507 stays a draft.
+
+## Confirmed vs inferred
+
+- Confirmed by CI: everything in the revert table, on the portrait compact Maps tab under Robolectric (a stub map: the accent marker
+  is checked as the data handed to the map, plus the pixels of the two new images, not as drawn on a MapLibre map).
+- Inferred, not run: the marker drawn above the waypoint's own pin on a real map (layer order read from code); landscape;
+  fullscreen (Q-D); a trip as the selected stop on screen (the domain test covers it).
+
+## Could not determine
+
+- How cream reads on the phone by day (the owner's to judge, as ruled).
+- Whether the restore's "every record survives" also holds for a real user's v22 backup with real photos. The test's rows are synthetic,
+  one per table.
+
+## Premises that were wrong
+
+- The dispatch file names: they are `prompts/preserved/2026-11-06-05-amendment-1.md` and `-amendment-2.md`, not
+  `...-route-card-amendment-N.md`. Same content; no effect.
+- "PR run 42372888049 ... read it first": it was **red** (3 failures, above), not just unread.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- While plotting, the open card keeps its leg rows. The waypoint rows are on a saved route only, where there is something to select and
+  navigate to. Q-C asked "for selecting a waypoint". If the owner meant the plotting card too, it is a small follow-up.
+- Where the reason sits: at the start of the button row, in the space that was empty. No new line.
+- Where the host navigates nowhere (tests only), Navigate is greyed with no reason, since the reason would not be true.
+- The spot-and-name fallback also matches a trip, after waypoints (a stop can be a trip, A11). Two records with the same name at the
+  same spot: the first is taken.
+- A route through one waypoint twice (A, B, A): a tap on A's marker selects the first visit.
+- Rows tell a screen reader which one is selected. The rows do not look different, by the owner's "Only the marker".
+- The accent marker shows even when the waypoints layer is switched off in Layers.
+
+## Questions for the owner
+
+**Q-D. Back in fullscreen, after Navigate on the route card.** Outside fullscreen, one Back ends the navigation and the card stays, as
+planned. In fullscreen, the screen's long-standing navigation rule applies first: "a back press while navigating in fullscreen exits
+fullscreen and does not touch the navigation". So it takes Back (exit fullscreen), then Back (end navigation), then Back (close the
+card). Before this change, the card's Back went before fullscreen (-1852, "Yes, cancel first"). As built: fullscreen first. Keep that,
+or should the card's navigation end before fullscreen exits?
+
+## S22 steps (for when the phone is in; nothing was run on a phone)
+
+1. **Upgrade with saved routes.** Install a **release** build at schema 22 (main, the Play version) and save two routes... routes need
+   23, so: install a release build of pre-main (schema 23), save two routes (one through a trip), and make a backup. Install this
+   build's release APK over it. Both routes open with every stop and distance as before. A release build, because a debug build wipes
+   on a schema problem instead of failing. Then, on a schema-22 release build with waypoints, trips and finds, upgrade straight to this
+   build: every record is there. Restore the 23 backup: the routes come back.
+2. Open a route saved before this build. Navigate goes to the first stop's waypoint. Back: navigation ends, the card stays. Back
+   again: the card closes.
+3. Open a route, open the card with its handle. Each waypoint is a row with the leg's distance under it. Tap the second row. Its pin
+   turns cream (day) or rust (Night Mode). Navigate goes there.
+4. Tap another stop's pin on the map. Its bubble opens and its pin turns to the accent. Judge the cream by day.
+5. Move the first stop's waypoint (edit its position) on an old route, or delete it. Reopen the route. Navigate is greyed, with "This
+   stop's waypoint was moved or deleted".
+6. In fullscreen, after Navigate: note the Back order (Q-D).
