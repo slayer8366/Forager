@@ -115,6 +115,6 @@ internal fun navigationInfoFit(w: NavigationInfoWidths, turnText: String): Navig
         leftPx = leftPx(figureShort),
         rightPx = rightPx,
         turnSpacePx = w.turnSpacePx,
-        needleShiftPx = needleShiftPx(w.turnTextPx, w.turnSpacePx),
+        needleShiftPx = 0,
     )
 }
