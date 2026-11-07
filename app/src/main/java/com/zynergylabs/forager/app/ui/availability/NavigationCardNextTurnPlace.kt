@@ -20,7 +20,30 @@ internal enum class NextTurnPlace {
 
     /** On its own line under the turn line, centred in the left part (J2, "Own line where needed"). */
     OWN_LINE,
+
+    /** In the card's right part, where the evening line goes, landscape at font 2.0 with no evening line (J3 step 2). */
+    RIGHT_PART,
 }
+
+/**
+ * Dispatch 2026-11-06-01, Amendment 1, J3 (RECORD -2183), the owner: "Arrow in the right part", "Own line, card moves up", "Centre
+ * the line"; the step path confirmed, "Yes, that's it":
+ * 1. portrait at every font, and landscape at fonts 1.0 and 1.3: J2's [decided] place, beside the needle or its own line;
+ * 2. landscape at font 2.0 with no evening line: the card's right part ([NextTurnPlace.RIGHT_PART]);
+ * 3. landscape at font 2.0 with an evening line: its own line (the card moving up to clear the walker's dot is not built here);
+ * 4. decided once per screen, font and clock; only steps 2 and 3 follow the evening line, as the owner's own steps do.
+ *
+ * Why: in landscape the card sits on the screen's bottom edge (RECORD -953), and at font 2.0 one more line takes its top over the
+ * walker's dot (RECORD -766, -953) and pushes the evening line off the card (RECORD -955), measured in the "2b-2 step 2, built" run.
+ * [eveningLine] is whether the card has an evening line to show (its pieces), never whether it is drawn, so the decision cannot feed
+ * back through RECORD -955's room check.
+ */
+@Suppress("UNUSED_PARAMETER") // tests-first stub: J2's decision everywhere
+internal fun nextTurnPlaceNow(decided: NextTurnPlace, landscapeLargeText: Boolean, eveningLine: Boolean): NextTurnPlace = decided
+
+/** J3: the case steps 2 and 3 name, landscape at font 2.0 (the largest Android offers; anything larger counts with it). */
+@Suppress("UNUSED_PARAMETER") // tests-first stub
+internal fun isLandscapeLargeText(landscape: Boolean, fontScale: Float): Boolean = false
 
 /**
  * J2: where the next turn goes for this window and font. The left part at its narrowest is what the parts ([partsPx], less the divider)

@@ -98,7 +98,9 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
     /** Where the centred turn line puts the needle's left edge in a left part whose middle is [middle] (G3 with H1); `null` unmeasurable. */
     protected fun turnLineNeedleLeft(c: Card, middle: Dp): Dp? {
         val like = c.turn?.takeIf { it.layout != null } ?: return null
-        return middle + (turnSpacePx(like) / densityPx).dp / 2 - 9.dp
+        // Dispatch 2026-11-06-01, J3 step 1: with the next turn beside the needle the centred line includes it, so the needle sits
+        // half of what it adds further left ([besideNextTurnDp]); otherwise as #498 laid it.
+        return middle + (turnSpacePx(like) / densityPx).dp / 2 - 9.dp - besideNextTurnDp(c, like) / 2
     }
 
     private fun stepFor(widthPx: Int, gapPx: Int, longestPx: Int, kindPx: Int, stackPx: Int?): Step {

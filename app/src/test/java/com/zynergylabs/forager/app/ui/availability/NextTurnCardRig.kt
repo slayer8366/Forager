@@ -184,9 +184,18 @@ abstract class NextTurnCardRig {
         val leftPartRight: Dp get() = dividerLeft - CARD_DIVIDER_GAP
         val leftPartMiddle: Dp get() = (topLine.left + leftPartRight) / 2
 
-        /** Beside the needle: the space's middle is within the needle's row. Own line: it starts below the needle. */
+        /**
+         * The right part (J3 step 2): the space starts right of the divider. Beside the needle: the space's middle is within the
+         * needle's row. Own line: it starts below the needle.
+         */
         val place: NextTurnPlace?
-            get() = space?.let { if ((it.top + it.bottom) / 2 < needle.bottom) NextTurnPlace.BESIDE_NEEDLE else NextTurnPlace.OWN_LINE }
+            get() = space?.let {
+                when {
+                    it.left >= dividerLeft -> NextTurnPlace.RIGHT_PART
+                    (it.top + it.bottom) / 2 < needle.bottom -> NextTurnPlace.BESIDE_NEEDLE
+                    else -> NextTurnPlace.OWN_LINE
+                }
+            }
     }
 
     private fun nodes(tag: String): List<SemanticsNode> =

@@ -22,7 +22,7 @@ import org.robolectric.annotation.GraphicsMode
 /**
  * CLAUDE.md, "Surfaces intercept touches": real long-presses at screen coordinates on the map around the navigation card reach the
  * map, with the next turn beside the needle (384 dp, normal text) and on its own line (384 dp, font 1.3, the card one line taller), in
- * portrait and in landscape (823 x 384). Two rows under the card, across its width; a point inside any clickable control is skipped,
+ * portrait and in landscape (823 x 384, where the card is on the bottom edge and the rows are above it). Three rows beside the card, across its width; a point inside any clickable control is skipped,
  * and the number sampled is asserted, so an empty sample cannot pass (dispatch 2026-11-06-01, J2, build item 4).
  */
 @RunWith(RobolectricTestRunner::class)
@@ -39,9 +39,12 @@ class NextTurnCardLongPressTest : NextTurnCardRig() {
         val controls = composeRule.onAllNodes(hasClickAction(), useUnmergedTree = true).fetchSemanticsNodes().map {
             with(composeRule.density) { DpRect(it.boundsInRoot.left.toDp(), it.boundsInRoot.top.toDp(), it.boundsInRoot.right.toDp(), it.boundsInRoot.bottom.toDp()) }
         }
+        // In landscape the card sits on the screen's bottom edge (RECORD -953), so the map is above it there, not under it.
+        val rootBottom = with(composeRule.density) { composeRule.onRoot().fetchSemanticsNode().boundsInRoot.bottom.toDp() }
+        val onBottomEdge = c.hud.bottom >= rootBottom - 1.dp
         var sampled = 0
         for (row in listOf(4.dp, 12.dp, 24.dp)) {
-            val y: Dp = c.hud.bottom + row
+            val y: Dp = if (onBottomEdge) c.hud.top - row else c.hud.bottom + row
             for (i in 0 until SAMPLES) {
                 val x = c.hud.left + 8.dp + (c.hud.right - c.hud.left - 16.dp) * (i.toFloat() / (SAMPLES - 1))
                 if (controls.any { x >= it.left && x <= it.right && y >= it.top && y <= it.bottom }) continue
@@ -49,7 +52,7 @@ class NextTurnCardLongPressTest : NextTurnCardRig() {
                 val p = with(composeRule.density) { Offset(x.toPx(), y.toPx()) }
                 composeRule.onRoot().performTouchInput { longClick(p) }
                 composeRule.waitForIdle()
-                assertEquals("$where: a long-press at ($x, $y), $row under the card, reached the map; ${c.describe()}", before + 1, mapLongPresses)
+                assertEquals("$where: a long-press at ($x, $y), $row ${if (onBottomEdge) "above" else "under"} the card, reached the map; ${c.describe()}", before + 1, mapLongPresses)
                 sampled++
             }
         }
@@ -70,6 +73,11 @@ class NextTurnCardLongPressTest : NextTurnCardRig() {
     @Config(qualifiers = "w823dp-h384dp-land-xxhdpi")
     fun `landscape 823 x 384, normal text - long-presses under the card reach the map`() =
         longPressesAroundTheCardReachTheMap("823x384/1.0", LANDSCAPE_823_AT_1_0)
+
+    @Test
+    @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
+    fun `landscape 823 x 384, font 2,0 - J3 - the next turn in the right part - long-presses above the card reach the map`() =
+        longPressesAroundTheCardReachTheMap("823x384/2.0", NextTurnPlace.RIGHT_PART)
 
     private companion object {
         const val SAMPLES = 9

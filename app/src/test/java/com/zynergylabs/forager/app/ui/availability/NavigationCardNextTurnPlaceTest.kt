@@ -53,4 +53,37 @@ class NavigationCardNextTurnPlaceTest {
         }
         assertTrue("one line where it does not break", "Sunset: 10:58 PM ▪︎ Dark: 10:58 PM" in cardEveningPiecesAtWidest(clock, breaks = false))
     }
+    // J3 (RECORD -2183), the owner: "Arrow in the right part", "Own line, card moves up"; the step path, "Yes, that's it": steps 1 to 3.
+
+    @Test
+    fun `J3 step 1 - portrait at every font and landscape at 1,0 and 1,3 keep J2's decision, evening line or none`() {
+        for (decided in listOf(NextTurnPlace.BESIDE_NEEDLE, NextTurnPlace.OWN_LINE)) {
+            for (evening in listOf(false, true)) {
+                assertEquals("$decided, evening $evening", decided, nextTurnPlaceNow(decided, landscapeLargeText = false, eveningLine = evening))
+            }
+        }
+    }
+
+    @Test
+    fun `J3 step 2 - landscape at font 2,0 with no evening line puts the next turn in the right part`() {
+        for (decided in listOf(NextTurnPlace.BESIDE_NEEDLE, NextTurnPlace.OWN_LINE)) {
+            assertEquals(decided.name, NextTurnPlace.RIGHT_PART, nextTurnPlaceNow(decided, landscapeLargeText = true, eveningLine = false))
+        }
+    }
+
+    @Test
+    fun `J3 step 3 - landscape at font 2,0 with an evening line gives the next turn its own line`() {
+        for (decided in listOf(NextTurnPlace.BESIDE_NEEDLE, NextTurnPlace.OWN_LINE)) {
+            assertEquals(decided.name, NextTurnPlace.OWN_LINE, nextTurnPlaceNow(decided, landscapeLargeText = true, eveningLine = true))
+        }
+    }
+
+    @Test
+    fun `J3 - landscape at font 2,0 is the case steps 2 and 3 name, and nothing else is`() {
+        assertTrue(isLandscapeLargeText(landscape = true, fontScale = 2.0f))
+        assertTrue("the largest Android offers is 2.0; nothing larger falls back to J2", isLandscapeLargeText(landscape = true, fontScale = 2.2f))
+        assertEquals("landscape 1.3 is step 1's", false, isLandscapeLargeText(landscape = true, fontScale = 1.3f))
+        assertEquals("landscape 1.0 is step 1's", false, isLandscapeLargeText(landscape = true, fontScale = 1.0f))
+        assertEquals("portrait 2.0 is step 1's", false, isLandscapeLargeText(landscape = false, fontScale = 2.0f))
+    }
 }
