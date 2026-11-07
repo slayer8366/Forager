@@ -525,7 +525,7 @@ the start and at the end, so nothing was merged in.
 
 - **Back after Navigate in fullscreen** (the owner: "Only leave full screen if they entered full screen after tapping navigate. If they
   entered navigation mode after full screen mode, then leave navigate."; restated, "Yes, that's it"). New `domain/route/RouteCardBackOrder.kt`
-  (pure Kotlin, 45 lines): Navigate records whether fullscreen was already on; leaving fullscreen by any route clears that; Back ending the
+  (pure Kotlin, 43 lines): Navigate records whether fullscreen was already on; leaving fullscreen by any route clears that; Back ending the
   card's navigation in fullscreen, where Navigate came after fullscreen, makes the next Back leave fullscreen. The order is held in
   `RoutePlottingUiState.backOrder`, so it survives recomposition and resets when a route opens or closes. `RoutePlottingBackHandler` reads it:
   - card → Navigate → fullscreen: the card's tier stands aside, so Back 1 is the screen's fullscreen step; Back 2 is the screen's
@@ -541,8 +541,8 @@ the start and at the end, so nothing was merged in.
   (`RouteCardEdges.kt`, `routeCardOpenEdges`). Resting on the navigation card in landscape, the bottom and the card's own side (the side
   bar's, `routeCardOnLeft`) are open; the top and the side toward the map carry the 1 dp `onSurface` outline. Portrait, landscape off
   navigation and the tucked tab are as before.
-- Files: one new main file (45 lines), two new test files (`RouteCardFullscreenBackTest`, 228 lines; `RouteCardOutlineOnNavigationCardTest`,
-  91 lines). `CompactMapRoutePlotting.kt` 392 → 421, `RoutePlottingViewModel.kt` 307 → 328, small edits to `CompactMapRouteStops.kt`,
+- Files: one new main file (43 lines), two new test files (`RouteCardFullscreenBackTest`, 223 lines; `RouteCardOutlineOnNavigationCardTest`,
+  90 lines). `CompactMapRoutePlotting.kt` 392 → 421, `RoutePlottingViewModel.kt` 307 → 328, small edits to `CompactMapRouteStops.kt`,
   `RouteCardEdges.kt`, `RouteCard.kt`, `RouteCardTuck.kt`, `AvailabilityCompactMapUi.kt` (769 → 772), `AvailabilityScreen.kt` (754 → 755);
   the test rig `RouteCardBarRig.kt` gained an optional theme (`dark`), default unchanged. None of these is in next-turn's,
   nav-card-kind-line's (at `746bb8df2`, then `f1a0a3bbd`) or journal-locate-outline's diff, checked before the edits and again before
@@ -592,7 +592,7 @@ the start and at the end, so nothing was merged in.
 - Whether the 3 px stroke the old build drew on the side bar's edge was visible on the phone against the rail (the owner's question was
   about where it should be, so this was not measured).
 - How the card's top corner on the side bar's side reads with that side open: the shape keeps both top corners round, and the open side's
-  stroke is cut by the clip, so the round corner there now has a stroke only along its top. Not asked; for the owner to judge on the phone.
+  stroke is cut by the clip, so (read from the code, not from pixels) the round corner there likely keeps only part of its stroke. Not asked; for the owner to judge on the phone.
 
 ## Premises that were wrong
 
