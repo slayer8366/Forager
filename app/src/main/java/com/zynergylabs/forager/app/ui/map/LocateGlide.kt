@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
+import org.maplibre.android.camera.CameraPosition
 import org.maplibre.android.camera.CameraUpdateFactory
 import org.maplibre.android.geometry.LatLng as MapLibreLatLng
 import org.maplibre.android.maps.MapLibreMap
@@ -24,5 +25,8 @@ internal fun isLocatePanOnly(target: Pair<Region, LatLng?>, lastAppliedCameraTar
  * tilt the camera has. It ends no following and starts none.
  */
 internal fun glideToLocate(map: MapLibreMap, to: LatLng) {
-    map.easeCamera(CameraUpdateFactory.newLatLng(MapLibreLatLng(to.lat, to.lng)), NAVIGATION_VIEW_TRANSITION_MILLIS.toInt())
+    // The whole end camera, as the navigation view's eases give it (newCameraPosition), not newLatLng, whose update leaves
+    // zoom, bearing and tilt at -1 for the native side to read as "unchanged" (CI run 42399685358 read the -1 zoom).
+    val end = CameraPosition.Builder(map.cameraPosition).target(MapLibreLatLng(to.lat, to.lng)).build()
+    map.easeCamera(CameraUpdateFactory.newCameraPosition(end), NAVIGATION_VIEW_TRANSITION_MILLIS.toInt())
 }
