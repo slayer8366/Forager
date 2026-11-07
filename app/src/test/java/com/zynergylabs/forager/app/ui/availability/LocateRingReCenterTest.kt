@@ -152,27 +152,32 @@ abstract class LocateRingReCenterTests {
 
     /**
      * CLAUDE.md: a semantic click proves wiring, not routing, and a finger is not a point. Real touches at five points across
-     * the ringed locate row (centre, and 8% in from each side, inside and outside the ring), each bringing the navigation view
-     * back as Re-center does (its `restoreRequestId`, which only "Re-center" and locate move), after which the camera follows
-     * and the ring goes. The pill is absent throughout. Each touch is followed by a fresh move away, so the ring is back.
+     * the ringed locate row ([locateRowTouchFractions]: the centre, 8% in from the top, the bottom and the inboard side, inside
+     * and outside the ring, and on the outer side just inboard of the minimise handle's box, which owns the row's outer sliver
+     * in the L), each bringing the navigation view back as Re-center does (its `restoreRequestId`, which only "Re-center" and
+     * locate move), after which the camera follows and the ring goes. The pill is absent throughout. Each touch is followed by
+     * a fresh move away, so the ring is back.
      */
-    protected fun assertTouchesReCentre(where: String) {
-        ACROSS.forEach { (fx, fy) ->
-            assertRing("$where, before a touch at ($fx, $fy)", day)
-            val before = view().restoreRequestId
-            composeRule.onNodeWithContentDescription(LOCATE).performTouchInput { click(Offset(width * fx, height * fy)) }
-            settle()
-            assertEquals("$where: a real touch at ($fx, $fy) on the ringed locate row brings the navigation view back", before + 1, view().restoreRequestId)
-            assertTrue("$where: after a touch at ($fx, $fy) the camera follows the navigation again", view().following)
-            assertNoRing("$where, following again after a touch at ($fx, $fy)", day)
-            assertFalse("$where: after a touch at ($fx, $fy) Re-center does not show", pillShown())
-            moveAway()
-        }
+    protected fun assertTouchesReCentre(where: String, look: Look = day) {
+        composeRule.assertLocateRowReCentres(
+            where = where,
+            restoreId = { view().restoreRequestId },
+            settle = ::settle,
+            before = { at ->
+                assertRing("$at, before it", look)
+                assertFalse("$at: before it Re-center does not show", pillShown())
+            },
+            after = { at ->
+                assertTrue("$at: after it the camera follows the navigation again", view().following)
+                assertNoRing("$at: following again after it", look)
+                assertFalse("$at: after it Re-center does not show", pillShown())
+                moveAway()
+            },
+        )
     }
 
     protected companion object {
-        const val LOCATE = "Center on my location"
-        val ACROSS = listOf(0.5f to 0.5f, 0.08f to 0.5f, 0.92f to 0.5f, 0.5f to 0.08f, 0.5f to 0.92f)
+        const val LOCATE = LOCATE_ROW
     }
 }
 
