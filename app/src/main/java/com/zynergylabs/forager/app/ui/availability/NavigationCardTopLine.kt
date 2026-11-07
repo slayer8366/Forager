@@ -48,6 +48,20 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * for the longest figure, and each centred in its space; stacked, the stack is centred in the kind's space, "trail" still on the
  * distance's baseline. With the kind on its own line, each line is its space: the distance centred on the top line, the kind on its
  * own (the planner's reading of Q4).
+ *
+ * Amendment 1, H14, the owner: "There's a space between the 1.5 mi and the by trail. It used to not be there before 498 to 500.
+ * Please put it back to where they're next to each other", and "(a) Fixed, distance pushed right" (the option read: "The distance
+ * hugs the right edge of its own window and "by trail" sits right after it. They're always side by side, and "by trail" never
+ * moves; a short distance leaves room on the left instead"); for "straight", "Yes, same". Replaces G3's centring beside: the
+ * distance's window keeps its width for the widest distance and the distance ends at its end; the kind, or the stack, starts the
+ * word gap (Spacing.xs) after it. The stack's two words stay centred in it. The kind on its own line, and a word or mark with no
+ * kind, are unchanged.
+ *
+ * Amendment 1, H15, the owner, to "With the correct figures, where should "98 ft by trail" sit?": "Centre them together" (the option
+ * read: "The widest distance plus "by trail" centred as one block: "by trail" moves about 20 dp right (5 to 26 dp depending on screen
+ * and font), the distance starts further in from the left"). The window is the widest distance exactly, and the window, the gap and
+ * the kind are centred together in the left part ([topLineWindowEndPx]), for "by trail" and "straight" each. Stacked, the stack is
+ * the kind in that block (the coder's reading, disclosed). The step is still decided by [TopLineMeeting], unchanged.
  */
 @Composable
 internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, color: Color, modifier: Modifier = Modifier) {
@@ -80,12 +94,17 @@ internal fun CardTopLine(readout: NavigationHudReadout, fit: NavigationInfoFit, 
         val figure = figureParts.single().measure(loose)
         val kindPlaceable = kindParts.singleOrNull()?.measure(loose)
         val meeting = TopLineMeeting(width, gapPx, longestFigurePx)
-        // G3: centred in the distance's own space, from the left part's left edge to the meeting point; a word or mark with no kind
+        // H15: beside or stacked, the distance's window (the widest distance exactly), the gap and the kind (or the stack) are one
+        // block centred in the left part ([topLineWindowEndPx]). Was (H14) the meeting point, the window running from the left edge.
+        val windowEndPx = if (longestFigurePx != null && kindPlaceable != null) topLineWindowEndPx(width, gapPx, longestFigurePx, kindPlaceable.width) else meeting.figureEndPx
+        // H14: the distance ends at its window's end ("The distance hugs the right edge of its own window"); the window is sized for
+        // the widest distance (G3), so it ends at one place for the walk. Was (G3) centred in the window. A word or mark with no kind
         // (B3, B4), or a distance whose kind is on its own line (the planner's reading of Q4), has the whole line and is centred on it.
         // Never left of the left part's left edge.
-        val figureX = if (kind == null || place == KindPlace.OWN_LINE) maxOf(0, (width - figure.width) / 2) else maxOf(0, (meeting.figureEndPx - figure.width) / 2)
-        // G3: the kind centred in its own space, from where it starts to the left part's right edge; on its own line, the whole line.
-        val kindX = kindPlaceable?.let { k -> if (place == KindPlace.OWN_LINE) maxOf(0, (width - k.width) / 2) else meeting.kindStartPx + maxOf(0, (width - meeting.kindStartPx - k.width) / 2) } ?: 0
+        val figureX = if (kind == null || place == KindPlace.OWN_LINE) maxOf(0, (width - figure.width) / 2) else maxOf(0, windowEndPx - figure.width)
+        // H14: the kind (or the stack) starts the word gap after the window's end, ""by trail" sits right after it" and "never moves".
+        // Was (G3) centred in its own space, from there to the left part's right edge. On its own line, centred on the whole line.
+        val kindX = kindPlaceable?.let { k -> if (place == KindPlace.OWN_LINE) maxOf(0, (width - k.width) / 2) else windowEndPx + gapPx } ?: 0
         if (kindPlaceable == null || place == KindPlace.NONE) {
             layout(width, figure.height) { figure.place(figureX, 0) }
         } else if (place == KindPlace.OWN_LINE) {
@@ -129,7 +148,7 @@ private fun KindWords(kind: String, place: KindPlace, color: Color) {
     if (place == KindPlace.STACKED && stack != null) {
         Column(
             modifier = Modifier.semantics { text = AnnotatedString(kind) }.testTag(NAVIGATION_HUD_DISTANCE_KIND_TAG),
-            // G3: each word centred in the stack, the stack centred in the kind's space. Was Alignment.Start (A6: "both words start at
+            // G3: each word centred in the stack; since H14 the stack starts where the kind's space starts. Was Alignment.Start (A6: "both words start at
             // the meeting point").
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {

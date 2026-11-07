@@ -165,7 +165,9 @@ class NavigationInfoLayoutTest {
      * middle") "… and the distance and its kind meet at the turn line's centre on one baseline", asserting `abs(figure.right -
      * (lineCentre - 2.dp)) <= 1` and `abs(kind.left - (lineCentre + 2.dp)) <= 1`. Amendment 1, G3, replaced the meeting: each is centred
      * in its own space, either side of the left part's middle (exactly where, from the longest figure, NavigationCardTopLineRules
-     * checks through the real screen). The left part's middle is the top line's, the left part's width.
+     * checks through the real screen). The left part's middle is the top line's, the left part's width. Then H14 and H15: side by
+     * side, the pair centred as one block with the widest distance, so the figure ends right of the middle (the name is kept so the
+     * by-name comparison holds; its "either side" now reads the kind's start only).
      */
     @Test
     fun `the distance is twice the other text, and the distance and its kind share one baseline either side of the left part's middle`() {
@@ -178,7 +180,13 @@ class NavigationInfoLayoutTest {
         val topLine = one(NAVIGATION_HUD_TOP_LINE_TAG)
         val middle = centreX(topLine)
         println("MEASURED top line: figure $figure, kind $kind, the left part's middle $middle")
-        assertTrue("the figure $figure is left of the left part's middle $middle", figure.right <= middle - 2.dp + 0.5.dp)
+        // Amendment 1, H14 and H15 ("Centre them together": the widest distance and the kind centred as one block, the distance at
+        // the block's right end and the kind the word gap after it; exactly where, NavigationCardTopLineRules checks). Since the
+        // widest distance is wider than the kind, the block's centre lies inside the window, so the kind still starts right of the
+        // middle and the distance now ends right of it. Was `figure.right <= middle - 2.dp + 0.5.dp` ("the figure ... is left of
+        // the left part's middle", G3's halves).
+        assertEquals("the kind $kind starts the word gap (4 dp) after the figure $figure", 4f, (kind.left - figure.right).value, 0.5f)
+        assertTrue("the figure $figure ends right of the left part's middle $middle (the block centred, H15)", figure.right > middle + 0.5.dp)
         assertTrue("the kind $kind is right of the left part's middle $middle", kind.left >= middle + 2.dp - 0.5.dp)
         assertEquals("the kind is on the figure's baseline", baseline(NAVIGATION_HUD_DISTANCE_TAG).value, baseline(NAVIGATION_HUD_DISTANCE_KIND_TAG).value, 0.5f)
     }
