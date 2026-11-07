@@ -16,6 +16,8 @@ import com.zynergylabs.forager.app.domain.fixFreshness
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.nextturn.HeldRouteTurns
+import com.zynergylabs.forager.app.domain.nextturn.NextTurnWay
+import com.zynergylabs.forager.app.domain.nextturn.nextTurn
 import com.zynergylabs.forager.app.domain.nextturn.RouteTurns
 import com.zynergylabs.forager.app.domain.nextturn.RouteTurnsReader
 import com.zynergylabs.forager.app.domain.toTrackPoint
@@ -165,6 +167,8 @@ internal class AvailabilityWaypointRoute(
         /** [line]'s junctions once read (H4, 2b-1), `null` until then and with no line; [heldTurns] reads them. */
         private var turns: RouteTurns? = null
         private val heldTurns = readTurns?.let(::HeldRouteTurns)
+        /** The walker's last place on [line] ([show]'s), so the next turn is worked out again when [turns] arrive (J2). */
+        private var lastProgress: WayHomeProgress? = null
 
         fun onFix(fix: LocationFix.Update?) {
             lastFix = fix
@@ -210,6 +214,7 @@ internal class AvailabilityWaypointRoute(
         /** The walker's place on [shown] from [here], as the way home's (L-395-4: the far band's hysteresis held across off the line). */
         private fun show(shown: WayHomeLine, here: LatLng) {
             val progress = placeOnWayHome(shown, here, lastPlace, band)
+            lastProgress = progress
             val ahead = (progress as? WayHomeProgress.Placed)?.let { wayHomeAhead(shown, it, here, generation) as? RouteHome.Ahead }
             if (progress is WayHomeProgress.Placed) {
                 lastPlace = progress.place
@@ -222,7 +227,8 @@ internal class AvailabilityWaypointRoute(
                 // Only the trail part dims (RECORD -1676, "A: trail dims only"), so only a line ahead with one is marked.
                 val dim = state == OffTrailState.OFF && it.aheadParts.any { part -> part.kind == RouteLinePartKind.TRAIL }
                 WaypointRouteShown(
-                    hud = ReturnRoute.Ahead(it.lookahead, it.routeMeters, offTrail = state, toWaypoint = true),
+                    // J2: the next turn from the same line and place as the figure and the needle.
+                    hud = ReturnRoute.Ahead(it.lookahead, it.routeMeters, offTrail = state, toWaypoint = true, nextTurn = nextTurn(NextTurnWay.AlongTrails(shown, turns), progress, here)),
                     line = RouteLine(atReturn = emptyList(), ahead = it.routeAhead, aheadIsCurrent = true, aheadParts = it.aheadParts, atReturnGeneration = generation, trailDimmed = dim),
                     turns = turns,
                 )
@@ -237,10 +243,14 @@ internal class AvailabilityWaypointRoute(
             held.read(scope, found.wayHome, found, routeData) { read ->
                 if (line !== found) return@read
                 turns = read
-                placed = placed?.copy(turns = read)
+                placed = placed?.let { p -> p.copy(turns = read, hud = p.hud.withNextTurnOn(found, read)) }
                 publish()
             }
         }
+
+        /** J2: a route ahead given the next turn on [found] with its junctions [read], from the walker's last place on it. */
+        private fun ReturnRoute?.withNextTurnOn(found: WayHomeLine, read: RouteTurns): ReturnRoute? =
+            if (this is ReturnRoute.Ahead) copy(nextTurn = nextTurn(NextTurnWay.AlongTrails(found, read), lastProgress, lastHere)) else this
 
         /** Writes [placed] with its line's freshness as of now: faded on a stale fix, grey once there is none or it is lost. */
         fun publish() {
