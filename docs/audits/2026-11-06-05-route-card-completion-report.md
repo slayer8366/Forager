@@ -124,3 +124,156 @@ Back after Navigate: Back retraces the way in, so one Back ends the navigation a
 
 **Q6. The outline on the edge side.** In portrait the card is flush against the screen edge on one side, square there. Outline the three
 sides facing the map only (Recommended, as the centre-pin confirm row does), or all four?
+
+---
+
+# Build, part 1 (Amendment 1): the ✕, the tuck and tab, the outline; two stops for the owner
+
+Hazel Cairnwright (Opus), 2026-11-07 UTC, after the owner's go ("Go ahead and begin building", typed in the planner's window). Branch
+`route-card`, base `origin/pre-main` `1f6901a11`. I checked it against the remote at the start and again before this write-up: it had not
+moved, so nothing needed merging in. The pre-build part above still holds as a trace. Where its recommendations differ from Amendment 1,
+Amendment 1 replaces them.
+
+## Step 4's selection path to `startWaypointNavigation`, traced first
+
+- A route stop is `RouteStop(name, position)` (`domain/route/PlottedRoute.kt:37`). It is copied when the waypoint or trip is tapped:
+  `RouteStop(waypoint.name, LatLng(waypoint.lat, waypoint.lng))` at `CompactMapRoutePlotting.kt:86` and `MapBubbleLayer.kt:175`, and
+  `RouteStop(trip.name, trip.location)` at `CompactMapRoutePlotting.kt:94` and `MapBubbleTripActions.kt:35`. The id is known at the tap
+  and dropped there. The database keeps only the name, lat and lng of each stop (`RoomPlannedTripRepository.kt:57`). The class doc gives
+  the reason: "The route keeps its own copy of its stops, so deleting a waypoint later changes nothing".
+- Navigation starts in one place, `startWaypointNavigation(origin)` (`AvailabilityScreenWaypointNavigation.kt:37`). It calls
+  `onNavigateToWaypoint(id)`, or `onNavigateToTrip(id)` for kind TRIP. Both need an id. Nothing navigates to a bare position.
+- On the map, a saved route draws its own stop dots, which can't be tapped (`PlottedRouteLayers.kt:142`). If the waypoint hasn't moved,
+  its own pin sits on the same spot. Tapping that pin is a `MapLayerIds.WAYPOINTS` tap whose feature id is the waypoint's id. So a marker
+  tap carries an id, but a row in the card's list would not.
+- **So a route stop cannot be tied to a saved waypoint by identity.** The only way is to match it at Navigate time, by position and
+  name, against the waypoints and trips on the phone. That fails if the waypoint was moved or deleted after the route was saved, and it
+  is ambiguous if two waypoints share a spot. This is the dispatch's first stop. Step 4 (selection) and step 5 (Navigate, which step 4
+  feeds) are **not built**. Q-A is at the end.
+
+## The selected marker's colour, measured (not chosen)
+
+The plan's accent is cream `#EDE3D0` by day and rust `#A2612C` at night. I measured it in the same arithmetic `MapPaletteTest` uses
+(WCAG contrast, Oklab ΔE), against the waypoint pin (`MapPalette.waypoint`), its casing, the route's own stop dot, and the measured
+ground clusters (`MapPaletteTest.dayGround` / `nightGround`):
+
+| | vs the normal waypoint pin | vs its casing | nearest ground (board (a), threshold 0.15) | vs the route's stop dot |
+|---|---|---|---|---|
+| day, cream `#EDE3D0` | 12.30:1, ΔE 0.663 | 1.27:1 against white (board (c) threshold 3:1) | ΔE 0.023, against `#E5E9E1` | 2.46:1, ΔE 0.399 |
+| night, rust `#A2612C` | 1.71:1, ΔE 0.282 | 4.28:1 against black | ΔE 0.078, against `#7F752A` | 1.74:1, ΔE 0.353 |
+
+By day, cream is easy to tell from the normal pin, so the stop as literally worded does not fire. But on the light day ground cream
+nearly disappears (ΔE 0.023), and it barely shows against its white casing (1.27:1). The selected pin may read as a gap rather than a
+highlight. The night rust also falls short on ground distance (0.078). These are colour arithmetic, not a phone check. I picked no
+colour. Q-B is at the end.
+
+## What was built (steps 2, 3, 6)
+
+- **Step 3, the ✕** (`ui/route/RouteCardEdges.kt`, new). It shows on a saved route's card only, at the top end corner over the handle's
+  row. The target is a 48 dp square, drawn as a 20 dp ✕, with the accessibility label "Close route". It calls
+  `RoutePlottingActions.onCloseSavedRoute()`, the same close Back uses (reused, not copied), and never reopens the Tools drawer. The
+  saved route's name keeps clear of it. While plotting there is no ✕; Cancel does that job, as today.
+- **Step 2, the tuck and tab** (`ui/availability/RouteCardTuck.kt`, new). A sideways swipe of 48 dp or more, either way, tucks the card
+  (`RoutePlottingUiState.tucked`, held in the Activity-scoped ViewModel, so it survives a tab change). The card slides off to the edge it
+  already sits against: in portrait the edge away from the icon bar, in landscape its corner's side, away from the L. A grip-bar tab is
+  left at the card's bottom corner: 24 × 56 dp drawn, a 48 × 56 dp touch target, 80% fill, the card's outline on its three map-facing
+  sides. Tapping the tab, or dragging it away from the edge by 48 dp or more, brings the card back. Tucking works while plotting too.
+  While tucked, the card reports no height, span or bounds, the same as a card that is leaving. So Re-center goes back to where it sits
+  today, and the landscape navigation card's evening line gets its room back (`stepsAside` is false). A route that closes, saves or
+  opens starts untucked.
+- **Step 6, the outline** (`RouteCardEdges.kt`). It is Re-center's `BorderStroke(1.dp, onSurface)`, in the card's shape, on the three
+  sides facing the map. The flush side (portrait: the screen edge; landscape: the bottom) gets none: the outline's box reaches 2 dp past
+  that edge and the card's own clip cuts it off. It takes no touches and changes no sizes.
+- Files: `RouteCard.kt` 389 → 397 lines, `CompactMapRoutePlotting.kt` 355 → 375, `RoutePlottingViewModel.kt` +11, and two new files
+  under 160 lines. None of these is in `git diff --name-only origin/pre-main...` for journal-locate-outline (#506), nav-card-kind-line or
+  next-turn (136 files checked).
+
+## Verified, and how
+
+- Tests: `RouteCardTuckCloseTest` (new, 11 cases), on the real compact Maps tab with the real `RoutePlottingViewModel`. Every touch is a
+  real one at screen coordinates: five points across the ✕, Directions and the tab; real swipes across the card both ways; a real drag
+  on the tab. Five long-presses around the tab and over the tucked card's old area reach the map: just above the tab, beside it toward
+  the map, and at the card's old top, middle and far corner. The outline is read from drawn pixels in the ruled hex, by day and at night.
+- First run, 42348184916: 8 failures, all fixed. (1) A touch at (0.1, 0.1) of the ✕ missed, because `IconButton` clips its click to a
+  circle. Replaced with a square target. (2) My test looked up the tab's drawn part in the merged tree. (3) The six
+  `RouteCardOneWidth*Test` corner cases failed: the square-corner pixel they read at y = 1 px now falls on the new top outline. That
+  check now reads ceil(1 dp) + 1 px in, still inside the 16 dp round corner's cut, so it still tells square from round. This changes an
+  existing test's sample point because of a ruled change. It is disclosed here; the reviewer should confirm it is not a weakening.
+- Forward, 42349525171 at `72e7e6b4f`: 206 of 206 pass (filter `*RouteCardTuckCloseTest;*RouteCard*;*RoutePlotting*;*ReCenter*`).
+- Revert checks. Each is a one-line edit on a throwaway branch made in a separate scratch worktree, so the forward tree was never
+  touched. Each run's log shows 0 compile errors, and each was filtered to `*RouteCardTuckCloseTest;*RouteCardOneWidth*` (28 tests):
+  - step 2 (`onSetTucked` sets nothing), run 42349561038: 5 failures, every one a tuck case, e.g. "a swipe toward the edge tucks the
+    card", and no `route-card-tab` node in the tab, drag and long-press cases;
+  - step 3 (`onClose = {}`), run 42349563007: 1 failure, "a touch at (0.1, 0.1) on the X expected:<Off> but was:<Showing(...)>";
+  - step 6 (the outline call removed), run 42349564653: 2 failures, "day, the card's top: a #3B2E24 outline is drawn; the edge reads
+    [#F5F1E6, ...]" and the night case with `#1F1F1F`.
+  Each failure belongs to its own edit, and nothing from another step failed. After the checks, the forward change is still at HEAD
+  (`git diff 72e7e6b4f HEAD` is empty; each of the three lines is present).
+- Full CI by name against pre-main's latest run: see the PR's run, recorded in the hand-back.
+
+## Not built, and what waits
+
+- **Step 1** (Re-center under the card) waits for #506's coder to hand back. Then `origin/journal-locate-outline` gets merged in (merge,
+  never rebase). It needs `CompactMapBottomChrome.kt`, a #506 file.
+- **Steps 4 and 5** (selection, list, marker highlight, Navigate) wait on Q-A and Q-B.
+- Not covered by tests: the tuck in landscape (the code path is the same, with the side from `routeCardOnLeft`), and the evening line
+  coming back when tucked on the landscape navigation card (it follows from `stepsAside` being false; not run).
+
+## Confirmed vs inferred
+
+- Confirmed from code, with file and line: everything in the trace above. Confirmed by CI: the portrait behaviours listed under
+  "Verified".
+- Inferred: landscape tuck placement and the evening line's return (not run). Re-center returning to today's place when tucked follows
+  from the card reporting height 0 and span null, which is what `CompactMapBottomChrome` reads (`AvailabilityCompactMapUi.kt:712-716`).
+  No test of that before step 1.
+
+## Could not determine
+
+- Real sizes and colours on the S22 (no phone in this dispatch). The contrast table above is arithmetic on the board's ground clusters.
+
+## Premises that were wrong
+
+- Amendment 1, step 4, "the selected waypoint ... Navigate to the selected waypoint": a stop holds no waypoint id, so "the selected
+  waypoint" is a copy that may no longer match any waypoint on the phone (see the trace).
+- Amendment 1, step 4, "expand the card ... the route's waypoints are listed": the expanded card already lists the route's *legs*
+  ("Creek to Ridge 1.4 mi", `RouteCard.kt` `RouteLegRows`), not its waypoints. Whether waypoint rows replace those or are added beside
+  them is not settled (Q-C).
+
+## Decided beyond scope
+
+- The ✕'s place (top end corner, over the handle's row) and its accessibility label "Close route". The plan names the ✕ but not where it
+  goes.
+- A swipe either way tucks the card, not only a swipe toward the edge (reason in `RouteCardTuck.kt`: a direction that silently does
+  nothing is the kind of thing "Don't make me think" rules out). The swipe and tab-drag thresholds are 48 dp.
+- The tab's accessibility click label, "Show route".
+- The tab's grip bar: 4 × 24 dp, in the card handle's look (40% content colour).
+
+## S22 steps (for when the phone is in)
+
+1. Portrait, open a saved route from its pin. The card shows a ✕ at its top right (bar on the right: top left of the card's right
+   corner side). Tap the ✕: the card and the line leave. Back: nothing more closes.
+2. Open it again and swipe the card sideways (either way). It slides to the edge away from the icon bar, and a 24 dp grip tab stays at
+   the card's bottom corner. Long-press the map just beside the tab and where the card was: a pin is offered as usual.
+3. Tap the tab: the card comes back. Tuck again, then drag the tab toward the map: it comes back.
+4. Check the outline by day and with Night Mode: a thin dark (day) or pale (night) line on the card's top, bottom and map side, none on
+   the screen-edge side.
+5. Landscape, navigating, with the route card on the navigation card: tuck it. The tab sits in the card's corner away from the L, and the
+   navigation card's evening line (if it was stepped aside) comes back.
+
+## Questions for the owner
+
+**Q-A. Navigate's target: a route's stops don't remember which waypoint they came from.**
+- (a) Remember it from now on: each new route stores the waypoint (or trip) each stop came from, and Navigate uses it. Routes already
+  saved, and stops whose waypoint was later deleted, fall back to (b). This needs a database change.
+- (b) Match at Navigate time by the stop's spot and name. Nothing stored. If the waypoint was moved or deleted, Navigate cannot start;
+  the button would be greyed with a short reason.
+- (c) Navigate to the stop's spot itself, under the stop's name, whether or not a waypoint is still there. Always works, but it is a new
+  kind of navigation target and touches the navigation code another coder is changing now.
+
+**Q-B. The selected marker's colour by day.** Cream is easy to tell from the normal (deep purple) pin, but on the light day map it nearly
+vanishes (ΔE 0.023 against the palest ground, 1.27:1 against its white outline). Keep cream and judge it on the phone, or ask for
+another choice? (The night rust also sits close to the darker ground, ΔE 0.078.) No colour was picked.
+
+**Q-C. The expanded card's list.** Expanding the card today lists the legs ("Creek to Ridge 0.4 mi"). For selecting a waypoint, should
+the open card list the waypoints instead of the legs, or both (waypoints as tappable rows, with each leg's distance under the waypoint
+it leads to)?
