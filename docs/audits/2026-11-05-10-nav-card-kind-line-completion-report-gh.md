@@ -919,3 +919,123 @@ The E13 to E16 steps stand. Add:
 - Left by the first session, not deleted here (not this session's to delete), for the planner: the ref `nav-card-e17-revert`
   (562764a02, local and on the remote), its worktree at `/mnt/work/scratch/hazel-e17/revert` (its one changed file restored to the
   forward line, uncommitted), and that scratch folder (a saved copy of the file, the red run's log and XML, and notes).
+
+## E18: the needle never moves, stopped before building (a fresh session, 2026-11-07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E18. Marks as above: [observed] is a CI run's XML or log read this
+session (its head SHA checked, its log checked for compile errors first), [read] is code read at the commit named, [inferred] is worked
+out and not measured.
+
+### The ruling (verbatim)
+
+- E18: "E17's fix moves the needle 6 to 32 dp right when "Target" or "No target" replaces the degrees. The owner, to "Keep that, or
+  size the space for "No target" all the time so the needle never moves?": **"Never moves"** ("The degrees' space is always as wide as
+  "No target", so the needle stays put; the card's left part is a little tighter in every case"). **Build:** the degrees' space is sized
+  for the widest of its contents ("No target" included) in every state, so the needle never moves; the word stays clear of the needle
+  (E17's claim stands). Report the left part's measured room in every case; if any case no longer fits, that's a stop with widths."
+
+### Base and commits
+
+- At the start [observed]: `origin/nav-card-kind-line` 746bb8df2 (code ea4b6e7e8), the worktree clean; `origin/pre-main` 1f6901a11,
+  already merged in (c76416976), so no merge.
+
+| Commit | What |
+|---|---|
+| f1a0a3bbd | Tests first: `NavigationCardNeedleNeverMovesTest` new (21 cases); `NavigationCardTopLineRules`' turn-line model takes E18's space (claim changed). |
+| df72cf128 | On the separate ref `nav-card-e18-wip`, not this branch, not run: the fix, held for the question below. |
+
+### Red, tests first [observed, run 42383172696 at f1a0a3bbd]
+
+- Failed-job log: 0 compile errors. 7016 test cases, 45 failed, 24 skipped. Every failing line is the needle's place, E18's reason:
+  - `NavigationCardNeedleNeverMovesTest`, 21 of 21: "the needle's left edge ... is not where it is beside the degrees ... (moved ...)"
+    for "Target" and "No target" (42 lines), and "... is not where a degrees' space sized for "No target" puts it" (63 lines: all four
+    states, the needle being at G3's degrees-only place);
+  - `NavigationCardLoneWordTest` 14, `NavigationCardKindLinePortraitTest` 6, `NavigationCardKindLineLandscapeTest` 4: the rules' positive
+    control "the needle ... is not where the centred turn line puts it" in Arrived and dash cases (the changed model).
+  - No other message, no other class.
+
+### The left part's room with E18's space [observed widths from the run's `ROOM` lines; the E18 needle place inferred from them]
+
+dp. "Needle" is its left edge, G3's place now and E18's; "spare" is from the needle's right edge to the left part's right edge with E18.
+
+| Window, font | Left part | Space (now -> E18) | Turn line (now -> E18) | Widest figure | Needle (now -> E18) | Spare |
+|---|---|---|---|---|---|---|
+| 320, 1.0 | 143.7 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 80.8 -> 96.7 | 29.0 |
+| 320, 1.3 | 116.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 70.5 -> 91.0 | 7.0 |
+| 320, 2.0 | 251.0 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 147.8 -> 180.0 | 53.0 |
+| 360, 1.0 | 183.7 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 100.8 -> 116.7 | 49.0 |
+| 360, 1.3 | 156.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 90.5 -> 111.0 | 27.0 |
+| 360, 2.0 | 291.0 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 167.8 -> 200.0 | 73.0 |
+| 384, 1.0 | 207.7 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 112.8 -> 128.7 | 61.0 |
+| 384, 1.3 | 180.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 102.5 -> 123.0 | 39.0 |
+| 384, 2.0 | 151.7 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 98.2 -> 130.3 | 3.3 |
+| 412, 1.0 | 130.0 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 74.0 -> 89.8 | 22.2 |
+| 412, 1.3 | 208.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 116.5 -> 137.0 | 53.0 |
+| 412, 2.0 | 151.7 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 98.2 -> 130.3 | 3.3 |
+| 480, 1.0 | 198.0 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 108.0 -> 123.8 | 56.2 |
+| 480, 1.3 | 276.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 150.5 -> 171.0 | 87.0 |
+| 480, 2.0 | 199.3 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 122.0 -> 154.2 | 27.2 |
+| 780 x 360, 1.0 | 176.3 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 444.5 -> 460.3 | 45.3 |
+| 780 x 360, 1.3 | 137.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 440.0 -> 460.5 | 17.5 |
+| 780 x 360, 2.0 | 263.0 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 492.5 -> 524.7 | 59.0 |
+| 823 x 384, 1.0 | 176.3 | 28.0 -> 59.7 | 54.0 -> 85.7 | 101.0 | 487.5 -> 503.3 | 45.3 |
+| 823 x 384, 1.3 | 180.0 | 35.0 -> 76.0 | 61.0 -> 102.0 | 111.0 | 461.5 -> 482.0 | 39.0 |
+| 823 x 384, 2.0 | 263.0 | 54.7 -> 119.0 | 80.7 -> 145.0 | 151.7 | 535.5 -> 567.7 | 59.0 |
+
+- Every case fits: the E18 turn line (85.7, 102.0, 145.0 dp by font) stays narrower than the widest figure (101.0, 111.0, 151.7), so
+  the left part's need, and with it the left part's width and the distance/kind block (H14, H15), are unchanged in all 21. The
+  needle sits 15.8 (font 1.0), 20.5 (1.3) or 32.2 dp (2.0) right of today's degrees place, for good. Tightest: 384 and 412 dp at
+  font 2.0, 3.3 dp spare (E17 already had 3.0 there, with "No target").
+- The "now" needle places match E17's measured column within 0.5 dp (e.g. 320/1.0: 80.8 against 81.0), which checks the arithmetic.
+
+### Why this stops: one decision E18 changes beyond the needle
+
+- [read, ea4b6e7e8] The before-sunset evening line ("Sunset: 4:52 PM ▪ Dark: 5:23 PM", H5, H6) stays one line only where it fits
+  beside the left part's widest need **with the next turn's space reserved** beside the needle (`rememberCardEvening`,
+  `nextTurnReservePx`: a gap, the arrow, a gap and "88.8 mi"). That need counts the turn line, so it grows with E18's space.
+- [observed, `ROOM` 412/1.0] At **412 dp, font 1.0** the room beside the one-line evening line is 356.0 - 13.0 - 213.0 = **130.0 dp**.
+  The need with the reserve is **129.3 dp** today (fits, by 0.7 dp) and **161.0 dp** with E18's space (does not). In the other 20
+  cases the decision is the same either way (ROOM lines: "evening breaks" equal; "status below" (H8) equal in all 21).
+- So, counted honestly, E18 makes that one window split the before-sunset line at the ▪ (as 320, 360 and 384 dp at font 1.0 already
+  do). The right part then keeps the broken width (107.3 dp) instead of 213.0, so the left part grows from 130.0 to about 235.7 dp in
+  that window, by day and evening alike [inferred], and the distance/kind block re-centres in it. That is a visible change E18 did not
+  rule on, so it is a question for the owner, not a coder's choice.
+
+### Question for the owner (options; nothing built on this branch)
+
+At 412 dp and normal text, the "Sunset ▪ Dark" line only fits on one line today because the room kept for the coming next-turn
+arrow is measured with the narrow degrees' space. With the needle never moving (the wider space), which should it be?
+
+- **(a) Count the wider space (the honest room).** On 412 dp phones at normal text, the before-sunset line splits into two at the ▪,
+  as it already does on 320 to 384 dp phones, and the left part gets wider there (the distance and "by trail" move to its new centre).
+  When the next-turn arrow arrives it has its room. Nothing else changes. (This is what the WIP commit df72cf128 does.)
+- **(b) Keep today's room.** Nothing changes on screen beyond the needle. But at 412 dp, normal text, the next-turn arrow (when built)
+  would be about 31.7 dp short beside a one-line evening line, so that decision comes back with the next-turn work. One line differs
+  from (a): `rememberCardEvening`'s turn line stays on the degrees alone.
+
+The S22 (384 dp) is not in this case either way.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: the base; the red run, every failure the needle's place (E18's reason), 0 compile errors; the room
+  widths above; the evening decision flipping at 412/1.0 only, of the 21 cases.
+- **Inferred**: E18's needle places and spare (from the measured widths; not yet drawn); the 412/1.0 left part of about 235.7 dp
+  under (a).
+- **Could not determine**: widths between the tested ones (a phone between 384 and 412 dp, or near 412, may sit on either side);
+  kilometres ("88.8 km" is narrower than "88.8 mi" in most fonts, unmeasured); the phone's own figures.
+- **Premises that were wrong**: "the card's left part is a little tighter in every case" (the owner's option text): the left part's
+  width does not change in any of the 21 cases (the widest figure is wider than the new turn line); what gets tighter is the room
+  inside it right of the needle, and, through the reserve, the one evening decision above.
+
+### Decided beyond the dispatch
+
+- None built. The fix drops E17's needle offset (`needleShiftPx`; with the space holding every word it is always 0) and names the two
+  words once (`TURN_LINE_LOST_WORD`, `TURN_LINE_NO_TARGET_WORD`, used by the readout and the space), so the space cannot drift from
+  them; both are on the WIP ref only.
+
+### State left
+
+- PR #498 at f1a0a3bbd is red on purpose (the tests first); it is not ready to merge until E18 is built.
+- Ref `nav-card-e18-wip` (df72cf128, on the remote): the fix as option (a); to be merged in or deleted by whoever finishes E18.
+- Scratch `/mnt/work/scratch/hazel-e18/` kept for the next session: the red run's XML, `ROOM` lines and the fix as a patch.
+- Not touched: `nav-card-e17-revert` and `/mnt/work/scratch/hazel-e17/` (not this session's).
