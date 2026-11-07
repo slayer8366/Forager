@@ -578,3 +578,301 @@ Question: should the trail-number move update Trail Map v4 in place, as the firs
 ### Clean-up
 
 The throwaway branches `next-turn-catI-red` and the three `next-turn-catI-rev-*` are deleted from origin at the end, and their worktrees removed. Their runs stay readable by number. Scratch: `/mnt/work/scratch/hazel-catI` (mode 700).
+
+## I8, built: the Forest Service trail number over the app's lines, Trail Map v4 updated in place (Hazel, 2026-11-06)
+
+Built against Amendment 1's I8 (`records-after-173` at `8e68f34d7`). The owner, verbatim: "Update v4 in place". On why v4 may change in place (RECORD -2183, relayed by the planner): "Nobody is using Trail maps so updating in place is permitted. Only when we release it do we need to do it properly. It's coming out this release so this might be the last time we get to do that". The starting state matched the remote: `next-turn` at `f3c4a07b7`, pre-main `b516d520a` merged in, the worktree clean. Neither sibling branch (`nav-card-kind-line`, `home-values-out-2`) touches a file changed here.
+
+### What was built
+
+- **`map-style/overrides/forager-reference.mjs`: a new function, `withTrailNumberUnderLabels`.** It moves `reference_fs_number` to the bottom of the style's top run of labels: directly above the last layer that is not a label, and so directly under the first label. It throws, rather than putting the number somewhere else, if the layer or the run is missing. It went in this file, not a new one, because a new file would have to be named in v4's `forager:generated-from`, and that text would then change too.
+- **`map-style/generate-trail.mjs`: one line.** v4's layers are now `withTrailNumberUnderLabels(applyReferenceZooms(applyFillIn(v3Layers())))`. v3 is built as before. The header comment says why.
+- **Regenerated.** In all six v4 files (`forager-street-v4.json`, `forager-trail-v4.json`, their preview copies, and the Worker's `street-style-v4.json` and `trail-style-v4.json`) only one thing changes: the number moves from layer 84 to layer 116 of 182, between `roads_bridges_highway` and `address_label`. A JSON comparison of each file against its pre-I8 version confirmed this. Every layer object is equal, the order of every other layer is equal, and everything outside `layers` is equal. v1, v2, v3 and `offline-style.json` stay byte for byte, in every copy (`git diff --quiet`, and the sums below).
+- **The three locks, each with a comment citing I8.** Each comment says the in-place change is allowed only because Trail Map has not been released yet, and that after release a style change ships as a new version.
+  1. `tools/check-trail-night.mjs`: street-v4's three pinned sha256 are the I8 files'.
+  2. Its check 10: `reference_fs_number` is the one layer added to the exception, and for v4 only. The check now also holds the number's new place: first in the top run of labels, directly under `address_label`.
+  3. `server/pmtiles-worker/test/worker.test.mjs`: the street-v4 sha256 test.
+
+  No other check was changed. The Worker's test that trail-v4 equals street-v4 apart from the name stands, and passes, because both files changed together.
+- **`AppLinesUnderNamesTest` extended**, since the anchor claim changes. On v4, at both addresses, the top run now starts with the trail number, so the app's lines go just under `reference_fs_number` and no longer under `address_label`. v1 to v3 keep `address_label`.
+  - A new test: on v4 the number is directly under `address_label`, draws over every app line, and the roads and bridges stay under the lines.
+  - The forecast-colours test is now held under the number.
+  - The log-line test now expects "below reference_fs_number (layer 116 of 182)".
+- **`AppLinesUnderNames.kt`: its doc comment only.** It said v4 draws the number at index 84 and that the anchor would stay at `address_label`. Both are now wrong for v4. No code line changed, so the app's placement rule is the same, and on v4 it now finds the number as its anchor.
+
+### Evidence
+
+Every Kotlin run was read by the category I session's `results.py`, copied unchanged to `/mnt/work/scratch/hazel-i8`. It refuses a run that is incomplete, on another commit, or whose log is empty, short, or has a compile error. The filter is category I's, 71 tests with the new one. The style checks ran locally on Node 24.21.0, against dependencies installed from the lockfile and assets fetched and checked by `fetch-assets.sh`. CI runs them on Node 24.22.1. No Gradle ran on the laptop.
+
+- **Locally, before the change:** `generate:trail` reproduced every committed file exactly, and `check:trail` and `check:trail:v4` passed.
+- **Red, locally and on CI 42303182875** on `ee6386581` (tests only, old style):
+  - Check 10 failed with exactly one problem: "reference_fs_number is layer 84 of 182, between roads_path_hard_faint and roads_link; I8 rules it first in the top run of labels (layer 117), directly under address_label". The regeneration step passed, and the Worker's job was green.
+  - Kotlin: no compile errors; 71 tests, 4 failed, all in `AppLinesUnderNamesTest`, as predicted:
+    - the anchor `expected:<[reference_fs_number]> but was:<[address_label]>`;
+    - the trail number "directly under address_label expected:<142> but was:<84>";
+    - `forecast-chicken-of-the-woods-layer must draw under the names`;
+    - the log line still reading "below address_label (layer 117 of 182)".
+- **After the change, locally:** with only the style moved, the one problem was the three street-v4 sums. With the locks updated, both check suites passed, and regeneration left nothing changed.
+- **Full CI, green: PR run 42304139052** on `19fa03166` (I8 with pre-main `5c623a8ba`, PR #502, merged in). Every job passed: 6,953 tests, 0 failed, 24 skipped. No compile errors.
+- **Compared by name:**
+  - With the last green run, 42298652902 on `f3c4a07b7` (6,952 tests): none missing, none changed status, the same 24 skips, and 1 new test (the trail-number test).
+  - With pre-main's latest, push run 42303916388 on `944eb8de1` (6,838 tests): none missing, none changed status, the same 24 skips, and 115 new tests (next-turn's earlier 114 and this one).
+- **sha256, before and after:**
+
+| File | Before | After |
+|---|---|---|
+| street-v1, its Worker copy | `b2ec485d…` | unchanged |
+| street-v1 preview | `4fc2e14f…` | unchanged |
+| street-v2, its Worker copy | `7547507b…` | unchanged |
+| street-v3, its Worker copy | `e2a25982…` | unchanged |
+| street-v3 preview | `beb40e3a…` | unchanged |
+| offline-style.json | `357e2603…` | unchanged |
+| street-v4, its Worker copy | `d27d42d1…` | `8032de2c…` |
+| street-v4 preview | `bf389ab3…` | `35572d32…` |
+| trail-v4, its Worker copy (pinned nowhere; held equal to street-v4) | `d34fb590…` | `e8a8b705…` |
+| trail-v4 preview | `4df087d0…` | `424f590e…` |
+
+### The revert
+
+- **The edit.** One line of `generate-trail.mjs` on `5dca17f05`, in its own scratch worktree: v4's layers without `withTrailNumberUnderLabels`. The styles were then regenerated, which the change itself requires. The regenerated v4 files came back to exactly the pre-I8 sums (`d27d42d1…`, `bf389ab3…`).
+- **Prediction, written before reading:**
+  - the map-style job red on the three street-v4 sums and on check 10's I8 message;
+  - the Worker job red on the street-v4 sum test only;
+  - the same 4 Kotlin failures.
+- **CI 42303229923** on `0b85cd99a`:
+  - Kotlin: no compile errors; 71 tests, 4 failed, the same four messages as the red run.
+  - The Worker: 80 tests, 1 failed, "street-v4 is held to I8's v4 …", `actual 'd27d42d1…'`, `expected '8032de2c…'`.
+  - The map-style job: regeneration passed, then v2's checks failed on the three street-v4 sums. CI stopped at that step, so v4's checks did not run there. Check 10's I8 message on the reverted files was read locally, from the same files: "reference_fs_number is layer 84 of 182 … directly under address_label".
+- **Restored.** The file was restored from the copy saved before the edit, and compared equal with `5dca17f05`'s. Afterwards `next-turn` was clean, with the forward line present and street-v4 at `8032de2c…`.
+- **What it means.** The Kotlin failures are identical in the red run and the revert because the reverted output is byte for byte the old style. Each message names the trail number's place or the anchor it decides, which nothing but this change moves.
+
+### Confirmed and inferred
+
+- **[observed]**
+  - The runs, counts, messages and sums above.
+  - The layer order of all six v4 files before and after, and that only `reference_fs_number`'s index changed.
+  - v1 to v3 and offline byte for byte.
+- **[read]**
+  - The number's layer is a symbol layer from zoom 14 (`forager-reference.mjs`, `labelLayers`).
+  - The app finds its anchor from the style's layers alone (`AppLinesUnderNames.kt`, `namesAnchorOf`), so it now goes under the number on v4 with no code change.
+  - The app's night pass recolours by layer id (`TrailNightTables.kt`), so the move does not change night colours.
+- **[inferred, not verified]** The number keeps its collision priority among the labels. It stays the lowest symbol layer in the style, as before, and MapLibre places symbols in layer order. This is not checked on a phone.
+- **[not verified]** Anything on a phone.
+
+### Could not determine
+
+- **How the S22 step can be checked before promotion.**
+  - The app loads `TRAIL_STYLE_URL`, the Worker's `/style/trail-v4.json`. The Worker deploys from main, so a phone sees the new v4 only after promotion.
+  - I found no way on pre-main for an app build to load a style file instead. `TrailNightTables.kt` names the repository's file names for "a test build loading a file", which suggests such a build exists, but I did not find or check it, on dev or anywhere.
+  - What can be seen before promotion is the map-style preview (`map-style/./start.sh`, `forager-trail-v4.preview.json`), in the web engine. It shows the number drawn over roads and bridges from zoom 14, but it draws none of the app's lines. So it is no check of the claim itself.
+- **Whether a downloaded Trail Map area picks up the new v4.** The area keeps its address, and whether MapLibre refreshes a stored style for that address is a device question. This was the same for the first zooms.
+
+### Premises that were wrong
+
+None found. The three locks were as the stop described (`check-trail-night.mjs:56-58`, check 10 at `:431`, `worker.test.mjs:530`). trail-v4's own sum is pinned nowhere: it is held only by the equality test, which needed no change.
+
+### Decided beyond scope
+
+- **Where in the labels the number goes: the bottom of the top run, directly under `address_label`.** I8 says "up among the labels" and names no place. The bottom keeps it below every other label, as it was before, so its collision priority does not change. Any higher place would let it win space from names it lost to before.
+- **What a user sees beyond the lines: the trail number now also draws over roads, rail, bridges and boundaries**, where before it drew under them. This follows from I5 and cannot be separated from it: the lines draw over the roads (I5, "roads stay under the lines"), and the number draws over the lines. Recorded so the owner sees it named.
+- **The function went into `forager-reference.mjs`, not a new file**, so v4's `forager:generated-from` text stays the same.
+- **How this differs from the first-zooms change (821fa67d6):**
+  - One layer moved, against 78 clones added.
+  - No new override file, and no metadata change.
+  - The first zooms rewrote rulings in `check-trail-night.mjs` and `check-trail-footpaths.mjs`. I8 adds one exception to check 10, together with a check of the new place, and leaves the footpath checks alone.
+  - Both updated street-v4's sums in the same two places.
+- **`AppLinesUnderNames.kt`'s doc comment was corrected.** It named v4's old index and said the anchor would stay at `address_label`. Only the comment changed.
+
+### S22 steps (for the owner at the phone, after the next promotion; the coder does not run it)
+
+1. **Trail Map, day.** On a Forest Service trail with a number, set a waypoint further along it, start the way to it, and zoom to 14 to 16.
+   - The violet trail number draws over the blue line.
+   - Road and trail names also draw over the line.
+   - The roads themselves stay under the line.
+   - Markers, waypoint names and the position dot stay on top.
+2. **The same at night.**
+3. **logcat, tag `SightingsMap`, on Trail Map:** "App lines under the map's names: … below reference_fs_number (layer 116 of 182)". Before the promotion, it reads "below address_label (layer 117 of 182)", and step 1 shows the number under the line. That is the old v4, not a failure.
+4. **Topographical, and Street day and night:** unchanged.
+
+### Clean-up
+
+The throwaway branches `next-turn-i8-red` and `next-turn-i8-rev` are deleted from origin at the end, and the revert worktree is removed. Their runs stay readable by number. Scratch: `/mnt/work/scratch/hazel-i8` (mode 700). The worktree's `map-style/node_modules` and `map-style/assets` are links into scratch, ignored by git, and are removed at the end.
+
+## 2b-2 step 1: the next turn's arrow, words and own space, in new files (Hazel, 2026-11-06)
+
+The scope is Amendment 1, J, step 1. The owner's word, verbatim: "Go ahead and begin part 2 of 500". The planner's call: the arrow (C1 to C3), the TalkBack words (G3, with the count for plain turns only), the space's own composable and its state from `nextTurnCardState`, tests first, with no file nav-card-kind-line changes. The space is **not on the card yet**. That is step 2, after #498's E15 Hazel hands the card files back.
+
+### What landed
+
+| Commit | What it does |
+|---|---|
+| `37a988424` | pre-main `b6f0b464d` merged in (merge, not rebase). Its four files (RECORD.md, one test, two audits) are none of this branch's. |
+| `78ccee9ce` | Tests first: four test classes, 37 tests, against stubs in the four new files. |
+| `2c572cee7` | The implementation. |
+| `5e9801df7` | The state function's arrow is its one blank gate (below), so the E1 to E3 revert bites at the state level too. The step's own code ends here. |
+| `d8f744907` | pre-main `26a5c5955` merged in (see "Premises that were wrong"). |
+
+The four new files, each under 120 lines:
+- **`domain/nextturn/NextTurnArrow.kt`.** `NextTurnArrow`, one value per icon, and `nextTurnArrow(NextTurn)`:
+  - a turn's band and side (C1);
+  - a fork's side to keep to (C2);
+  - `NoTurnLeft` gives `STRAIGHT` (C3);
+  - a blank gives `null`.
+  It has no UI framework in it.
+- **`domain/nextturn/NextTurnWords.kt`.** `nextTurnWords(NextTurn, spokenDistance)` gives G3's words. `spokenFigure(figure)` spells out the unit of the card's figure: "400 ft" becomes "400 feet". For a figure in any other form it returns `null` and does not guess.
+- **`ui/availability/NextTurnSpaceShown.kt`.** `nextTurnSpaceShown(readout, hasFix, ahead, unit)` gives the arrow, the figure and the spoken words:
+  - it goes through `nextTurnCardState`, then `nextTurnSpace` (E1);
+  - a turn's or a fork's figure is `formatDistanceMeters(metersAway, unit)`, the top line's own formatter for a trail route (D1);
+  - the straight-ahead figure is the top line's own `distanceText` (A3).
+  A figure whose unit cannot be spelled out is spoken as written, and a warning is logged.
+- **`ui/availability/NextTurnSpace.kt`.** The composable, with the arrow first and then the figure:
+  - **Its width:** the arrow, `Spacing.xs`, and the widest of "88.8 mi" and "8888 ft" (or "88.8 km" and "8888 m"), measured in its own style. This is CLAUDE.md, "Changing info gets its own window". It holds that width blank, so nothing beside it moves.
+  - **TalkBack:** `clearAndSetSemantics`, so TalkBack reads the words alone and never the drawn figure.
+  - **The icons:** `nextTurnIcon` uses the Material Filled icons TurnSlightLeft/Right, TurnLeft/Right, TurnSharpLeft/Right, ForkLeft/Right and Straight, from `material-icons-extended` 1.7.8, already a dependency. None is AutoMirrored.
+  - **Its defaults:** style `labelMedium` (the turn line's own type on #498) and arrow size `COMPASS_ICON_SIZE`. Both are parameters, so step 2 can pass the card's own.
+
+**The one-coder-per-file check** [observed]. Before each commit I ran `git diff --name-only origin/pre-main...origin/nav-card-kind-line` (head `b9fad7604`) and compared it with my files: there was no overlap, and every file of mine is new. The only existing file I edited is this report, which is not in that list.
+
+### Evidence
+
+Each run was read by `results.py`, carried over from 2b-1. It refuses a run that is incomplete, on another SHA, has a short or empty log, or has a Kotlin compile error or a failed compile task. Counts come from the JUnit XML. The filter is `*NextTurnArrowTest;*NextTurnWordsTest;*NextTurnSpaceShownTest;*NextTurnSpaceTest`.
+
+- **Red: run 42312833368** on `78ccee9ce` (the stubs), with 0 compile errors. 37 tests, **28 failed**, each for its stub's reason: `expected:<SLIGHT_LEFT> but was:<null>`, `expected:<turn left in 400 feet> but was:<null>`, `expected:<Filled.[TurnSlightLeft]> but was:<Filled.[Navigation]>`, and the space's tag not found. The 9 that passed on the stubs are controls whose claim is "blank" or "not guessed":
+  - the arrow's and the words' blanks;
+  - the figures in other forms;
+  - E1's four states, E2 and E3 in the state test.
+  Each of those is made red by a revert below (blank, e1).
+- **Green, filtered: run 42312908709** on `2c572cee7`. 37 of 37 passed.
+- **Green, full: PR run 42315093612** on `5e9801df7`. Every job passed: 6,990 tests, 0 failed, 24 skipped.
+- **Compared by name with pre-main's push run 42308597327** on `b6f0b464d` (the base merged in). That run had 6,838 tests.
+  - None of pre-main's tests is missing here, and none changed status.
+  - The 24 skips are the same tests.
+  - There are 152 new tests. 115 are this branch's earlier work (2a, 2b-1 and category I), and 37 are step 1's: `NextTurnSpaceShownTest` 14, `NextTurnWordsTest` 13, `NextTurnArrowTest` 6, `NextTurnSpaceTest` 4.
+
+### The thirteen reverts
+
+Each was a one-line edit of `5e9801df7` in a scratch worktree, pushed to a throwaway branch and run with the filter. I wrote each prediction down before the run (`reverts.tsv` in scratch). Each compile log was checked before its results were read, and none had a compile error. The file was restored from a copy saved before the edit, and the restored file was then compared with `5e9801df7`'s: identical every time. Afterwards `next-turn`'s own worktree was clean at `5e9801df7`, and all 13 forward lines were present (`grep -cF`, 1 each). **Every revert failed in exactly the predicted count and tests**, each with a message only its own edit could produce.
+
+| Ruling | One-line revert | Run | Failed of 37 | Message |
+|---|---|---|---|---|
+| C1 bands | slight left becomes the plain arrow | 42315143740 | 1 (1) | `expected:<SLIGHT_LEFT> but was:<LEFT>` |
+| C2 fork | `keep == LEFT` becomes `RIGHT` | 42315153958 | 2 (2) | `expected:<FORK_LEFT> but was:<FORK_RIGHT>`; the fork's state |
+| C3 straight | `NoTurnLeft` becomes `null` | 42315163253 | 4 (4) | `expected:<STRAIGHT> but was:<null>`, A3 twice, the fallback |
+| E1 to E3, blank | a blank becomes `STRAIGHT` | 42315173022 | 7 (7) | `ARRIVED expected null, but was:<STRAIGHT>`; E1 four times, E2, E3: `but was:<…(arrow=STRAIGHT…` |
+| C1 to C3, Material's icons | LEFT becomes `Icons.Filled.TurnRight` | 42315183095 | 1 (1) | `LEFT expected:<Filled.Turn[Lef]t> but was:<Filled.Turn[Righ]t>` |
+| Its own window | `.width(spaceWidth)` becomes `.then(Modifier)` | 42315190347 | 1 (1) | `KILOMETERS: a space with width, [0.0.dp, 31.0.dp, 34.0.dp, 33.0.dp, 0.0.dp]` |
+| G3 counting | `sameSidePathsBefore > 0` becomes `false` | 42315198997 | 2 (2) | `expected:<t[ake the second] left …> but was:<t[urn] left …>` |
+| G3, plain only | sharp also counts | 42315206852 | 2 (2) | `expected:<[make a sharp] left …> but was:<[take the third] left …>` |
+| G3, "in 400 feet" | "ft" spoken as "ft" | 42315256878 | 5 (5) | `expected:<400 f[ee]t> but was:<400 f[]t>`, `1 f[oo]t`, and three states |
+| E1 | the card state is skipped | 42315278385 | 4 (4) | `expected:<…(arrow=null…)> but was:<…(arrow=LEFT, figure=394 ft…` |
+| D1 units | the turn's figure always in miles | 42315285567 | 2 (2) | `expected:<…figure=120 m…>`; the walk: `expected:<[96 m]> but was:<[315 ft]>` |
+| A3, the top line's string | the straight-ahead figure becomes "0 ft" | 42315290990 | 3 (3) | `expected:<0[.4 mi]> but was:<0[ ft]>`, `[64]0 m`, `[≈ 130]0 ft` |
+| A logged fallback | the warning becomes `Unit` | 42315295786 | 1 (1) | `a warning logged` |
+
+### Confirmed and inferred
+
+- **[observed]:**
+  - every run, count and message above;
+  - the by-name match with pre-main;
+  - the 13 forward lines present after the reverts;
+  - the scanner at 0 before each push (`git diff origin/pre-main HEAD`);
+  - no file shared with nav-card-kind-line.
+- **[read]:**
+  - The Material icons exist under these names in `material-icons-extended-release.aar` 1.7.8 (`androidx/compose/material/icons/filled/TurnSlightLeftKt.class` and the rest).
+  - `formatDistanceMeters` is the top line's formatter for a trail route (`NavigationReadout.kt`, the `route is ReturnRoute.Ahead` branch).
+  - `labelMedium` and `COMPASS_ICON_SIZE` are the turn line's type and icon size on nav-card-kind-line `b9fad7604` (`NavigationCardParts.kt`, `CardTurnLine`).
+- **[inferred]** That the arrow draws the right way round on screen. The tests check which icon is chosen and that it is not mirrored, not the drawing itself.
+- **[not verified]** Anything on a phone. The space is on no screen yet.
+
+### Could not determine
+
+- **Whether the space fits beside the needle (G2, G4).** That is step 2's measurement, on #498's merged layout. The window revert shows the space's figures at 31 to 34 dp in Robolectric's default font. The space's full width with `labelMedium` was not read out, and neither portrait, landscape nor font 2.0 was measured.
+- **How TalkBack voices the words on a device:** "in 0.4 miles", and figures past ten such as "11th".
+
+### Premises that were wrong
+
+- **The base moved again.** The dispatch gave pre-main as `b6f0b464d` or later, and that held [observed]: it was merged in. During the session pre-main moved on to `26a5c5955` (PR #504 and its index row). Those commits change two tests (`EstimateOfflineTileCountTest`, `MapCameraMovesTest`), docs and the audit index, none of them this branch's.
+  - **What showed it.** With it fetched, the pre-push scan `git diff origin/pre-main HEAD` read 1 (`lon`). That 1 was in `EstimateOfflineTileCountTest.kt`, the old fixture this branch still held from `b6f0b464d`, which PR #504 replaced. My own changes (`git diff b6f0b464d HEAD`) read 0.
+  - **What I did.** I merged pre-main `26a5c5955` in at `d8f744907`, a clean merge of those five files only, by merge, not rebase. After it the scan reads 0.
+  - **Its CI.** Full PR run **42319742136** on `d8f744907`: every job passed, 6,990 tests, 0 failed, 24 skipped. Compared by name with pre-main's push run **42315368330** on `3542a0c30` (the last code commit before `26a5c5955`, which is docs only), with 6,838 tests: none missing, none changed status, the same 24 skips, and 152 new, 37 of them step 1's.
+- **The laptop's disk filled during the revert runs.** `/mnt/work` went to 100%, from things outside my scratch. My eight revert worktrees (about 137 MB each) were the last straw: the ninth `git worktree add` failed with "No space left on device". I removed my worktrees and reran the last five in one reused worktree. All 13 reverts ran and are read above. The disk stood at 99% (1.1 GB free) when I finished. **Other sessions on the laptop may hit this.**
+
+### Decided beyond scope (each open to the owner)
+
+- **The spelled-out units.** G3 gave "in 400 feet". I spell the others the same way, "miles", "meters" and "kilometers", in US spelling to match the app's own "Kilometers". A figure of exactly 1 is singular ("1 foot", "1 meter"). These are new words in that pattern, not ones the owner wrote.
+- **"keep straight in 0.4 miles".** G3 says each set of words "is followed by the distance ("in 400 feet")", so the straight-ahead arrow reads "keep straight in 0.4 miles", where the figure is the distance to the target. **A question for the owner:** is "in" right here, or should it read "keep straight for 0.4 miles"?
+- **Counting past ten.** "second" to "tenth" are spelled out. From 11 on it is the figure with its suffix ("11th", "21st").
+- **The fallback.** A figure with no unit to spell out (one in a non-English number format, or the straight line's "≈" form, which the domain never pairs with an arrow) is spoken as written, with a warning logged. It is never left silent or guessed.
+- **A figure of 100 mi or more** draws past the space's end. The space keeps its width, so nothing beside it moves. "88.8 mi" is the widest figure the window is sized for (Phase 1's sample).
+- **My merge commit `37a988424` has git's default message and no `Co-Authored-By` line.** I did not pass `-m`. It was pushed before I noticed, and it is not amended (CLAUDE.md, push before you tidy).
+
+### What step 2 needs
+
+1. Merge origin/pre-main (if it has moved past `26a5c5955`) and origin/nav-card-kind-line into next-turn, by merge, not rebase, after #498's E15 Hazel hands back.
+2. In `CardTurnLine`, put `NextTurnSpace(nextTurnSpaceShown(readout, hasFix = liveFix != null, ahead = nextTurn(...), unit), unit)` beside the needle (A1). The `NextTurnWay` comes from `WayHomeShown.turns` or `WaypointRouteShown.turns`, with the line and the progress the holders already keep.
+3. Measure the fit on that layout, in portrait, in landscape and at font 2.0 (G2). If it is too big, stop with the measured widths (G4).
+4. A coordinate-touch test that the space intercepts nothing over the map, full CI, the S22 steps, and the PR out of draft.
+
+### Clean-up
+
+The throwaway branches `next-turn-2b2-red`, `next-turn-2b2-green` and the 13 `next-turn-2b2-rev-*` are deleted from origin. Their runs stay readable by number. Every scratch worktree is removed. Scratch: `/mnt/work/scratch/hazel-2b2` (mode 700), holding the scripts, the saved copies and the predictions, with the downloaded test reports removed.
+
+## I9, built: the names anchor counts only the basemap's own layers (Hazel, 2026-11-07)
+
+Built against Amendment 1's I9 (`records-after-173` at `be77bde91`), from the S22 check on `tools/s22-combined` `505c55dda`. The starting state matched the dispatch: `next-turn` at `2902c3187`, pre-main `26a5c5955` merged in, the worktree clean. No file changed here is in `git diff --name-only origin/pre-main...origin/nav-card-kind-line`.
+
+### What MapLibre 13.5.0 does (javap -c on the pinned AAR)
+
+- **The ids.** `LocationComponentConstants`: `mapbox-location-shadow-layer`, `-foreground-layer`, `-background-layer`, `-accuracy-layer`, `-bearing-layer`, `-pulsing-circle-layer`, and the source `mapbox-location-source`.
+- **The types and order.** `SymbolLocationLayerRenderer.addLayers` adds the shadow, background, foreground and bearing layers as `SymbolLayer`s (`LayerSourceProvider.generateLayer`), each below the one before. It then adds the accuracy `CircleLayer` below the background and the pulsing `CircleLayer` below the accuracy. With `bearingOnTop`, bottom to top: shadow, pulsing, accuracy, background, foreground, bearing; without it, shadow, bearing, pulsing, accuracy, background, foreground. Either way the top run of symbol layers starts at `mapbox-location-background-layer`, the layer the phone named.
+- **When they are in `style.layers`.** `MapLibreMap.notifyStyleLoaded` calls `Style.onDidFinishLoadingStyle`, then `LocationComponent.onFinishLoadingStyle`, which re-adds the layers whenever the component was initialised on an earlier style, and only then the app's `setStyle` callback. So on every style load after the dot was first turned on, `readNamesAnchor` finds them on top. On a MapView's first style they are not there yet. This is the same chain `LiveLocationPuckSwapTest` records.
+
+### What was built
+
+- **`ui/map/AppLinesUnderNames.kt`.** `namesAnchorOf` and the log line now count only the basemap's own layers (`basemapOwnLayers`, `isBasemapOwnLayer`). A layer is left out when its id starts with `mapbox-location-` or is one the app adds (`APP_OVERLAY_LAYER_IDS`: the registry's own layers, not the style's band layers, plus the way home, the plotted route, the waypoint names and the fan-out). The log line names every left-out layer. `readNamesAnchor` still hands all of `style.layers` on.
+- **Unchanged:** `OverlayLayerSetup.kt`, the placement rule, Trail Map's anchor (v4 `reference_fs_number` since I8, v1 to v3 `address_label`).
+- **Tests (new):** `AppLinesUnderNamesForeignLayersTest` (7 tests) and `LocationLayersProbe.java`, in MapLibre's package, which hands the tests the SDK's own id constants in both orders.
+
+### Evidence
+
+Every run was read by `/mnt/work/scratch/hazel-i9/scripts/results.py` (the 2b-2 session's script, unchanged). It refuses a run that is incomplete, on another commit, or whose log is short or has a compile error. Filter: `AppLinesUnderNamesForeignLayersTest`, `AppLinesUnderNamesTest`, `LiveLocationPuckSwapTest`, `BasemapStyleTest`, 32 tests.
+
+- **Red, run 42325539190** on `134678dde` (tests only). No compile errors. 5 of 32 failed, all new, each for I9's reason, as predicted before reading. For example: Topographical by day with the dot `expected null, but was:<mapbox-location-background-layer>`; `trail-style-v4.json with the position dot expected:<reference_fs_number> but was:<mapbox-location-background-layer>`; the log line `below mapbox-location-background-layer (layer 4 of 7)`. The two controls passed.
+- **Full CI, green: PR run 42326986879** on `38e9d6524`. Every job passed, the Street-deleted job included. 6,997 tests, 0 failed, 24 skipped.
+- **Compared by name with pre-main's push run 42315368330** on `3542a0c30`, the last code commit under `26a5c5955`, which is docs only (6,838 tests). None missing, none changed status, the same 24 skips, 159 new. Against next-turn's previous run, 42319742136 (6,990 tests), the 7 new are exactly this section's.
+
+### The revert
+
+One line, `basemapOwnLayers` returning `layers` unfiltered, on its own scratch worktree, pushed to the throwaway branch `next-turn-i9-rev-ownlayers` (`695779dde`) after the scan read 0. **Run 42327000547:** no compile errors. 5 of 32 failed, predicted 5: the same five as the red run, with the same messages, now with "Left out as not the map's own" in the log lines, since only the anchor's filter was reverted. The file was restored from a copy saved before the edit and compared equal with `38e9d6524`'s. Afterwards `next-turn`'s worktree was clean and the forward line was present (`grep`, 1 match).
+
+### Confirmed and inferred
+
+- **[observed]** The runs, counts and messages above.
+- **[read, javap]** The ids, types, order and timing above.
+- **[modelled, not run]** The position dot's order and types in the tests come from that javap reading, not from a running MapLibre. Its ids are the SDK's constants. `readNamesAnchor` needs a native `Style`, so it is not run, and the logcat step is what covers it.
+
+### Could not determine
+
+- **The phone's counts are one layer higher than the model on every style.** Topographical by day: phone 8 layers with the background layer at 5, model 7 at 4. Trail Map: phone "layer 117 of 183", the committed v4 has 182 layers with `address_label` at 117. Topographical at night: phone 190 at 187, model 189 at 186 for that Trail Map. No app code adds a layer before the anchor is read (the only `addLayer` callers are the overlay files, all after it). The extra layer is not one of the six location layers, and I could not find its source. It does not change any anchor. The new log line names left-out layers but not every basemap layer, so the next logcat will say whether it is the map's own.
+- Which of the two orders the phone uses. Only the bearing-on-top order reconciles with the phone's numbers once the extra layer is counted. Both orders are tested.
+
+### Premises that were wrong
+
+- None in I9 itself. One finding beyond it: the same fault reached Trail Map too. After a reload (a night toggle, or coming back from another map), its anchor would also have been the dot's background layer, putting the app's lines over every Trail Map name. The phone's Trail Map line came from a first load, before the dot's layers existed. I9's fix covers this by the same rule.
+
+### Decided beyond scope
+
+- **"Any layer the app added"** is read as the overlay layers the app adds on a style load. The Topographical picture laid over Trail Map at night is also added by the app, through `Style.Builder`, but it is the map the user sees, and counting it is what keeps that map at today's placement. So it is counted. Open to the owner.
+- **The log line names the layers it left out.** This is logcat only and changes nothing a user sees.
+
+### S22 logcat step (repeat on the next combined build; the coder does not run it)
+
+Tag `SightingsMap`, after switching maps at least once with the position dot on, so the style reloads:
+- **Topographical by day, Street day and night, the offline style:** "App layers over the whole map (N layers), today's placement: its top layer basemap is not a name or icon layer." (the offline style names its own top layer), followed by "Left out as not the map's own: mapbox-location-…" listing the dot's layers.
+- **Topographical at night:** the same, its top layer `basemap`.
+- **Trail Map, after a reload:** "… below reference_fs_number …" once I8's style is live, `address_label` before that, also followed by the left-out list. Never `mapbox-location-…` as the anchor.
+- Note N against the counts above, for the one-layer difference.
+
+### Clean-up
+
+The throwaway branch `next-turn-i9-rev-ownlayers` is deleted from origin and its worktree removed. Its run stays readable by number. Scratch: `/mnt/work/scratch/hazel-i9` (mode 700).
