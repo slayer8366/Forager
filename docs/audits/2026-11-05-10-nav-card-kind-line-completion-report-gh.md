@@ -1039,3 +1039,71 @@ The S22 (384 dp) is not in this case either way.
 - Ref `nav-card-e18-wip` (df72cf128, on the remote): the fix as option (a); to be merged in or deleted by whoever finishes E18.
 - Scratch `/mnt/work/scratch/hazel-e18/` kept for the next session: the red run's XML, `ROOM` lines and the fix as a patch.
 - Not touched: `nav-card-e17-revert` and `/mnt/work/scratch/hazel-e17/` (not this session's).
+
+## E18: built as option (a), green (a fresh session, 2026-11-07)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E18 and the owner's answer to its stop. Marks as above.
+
+### The ruling (verbatim)
+
+- The owner, to the stop above: **"(a) Count the wider space"** ("The sunset line splits at ▪ into two lines there (as on smaller
+  phones), and the turn arrow will have its room"). Amendment 1: "Build: finish E18 from ref nav-card-e18-wip (df72cf128, written as
+  (a)), green, one revert, full CI; then E19."
+
+### Base and commits
+
+- At the start [observed]: `origin/nav-card-kind-line` 03fa6e82e, ref `nav-card-e18-wip` df72cf128 (parent f1a0a3bbd), worktree
+  clean; `origin/pre-main` 1f6901a11, already merged in, so no merge.
+
+| Commit | What |
+|---|---|
+| 59a9acfee | The ref **merged** (not re-applied), so df72cf128 stays in the branch's history as written. Four app files, no conflict. |
+| 88453efe2 | A test for (a): `NavigationCardEveningLineTest`, "E18 (a), 412 dp, font 1,0 - before sunset the line is broken at the square ...". No test pinned that decision before (the stop's ROOM lines were printed, not asserted). |
+
+- [read, 59a9acfee] It is option (a): `NavigationInfo.kt`'s `rememberCardEvening` measures the turn line for the next-turn reserve
+  with `widestTurnSpacePx` (the widest of "0°" to "180°", "Target" and "No target"), the same space the needle's line is laid in
+  (`measuredNavigationInfoFit`). E17's needle offset (`needleShiftPx`) is gone; the two words are named once
+  (`TURN_LINE_LOST_WORD`, `TURN_LINE_NO_TARGET_WORD`) and read by both the readout and the space.
+
+### Green [observed, run 42386534571 at 88453efe2]
+
+- Every job green. 7017 test cases, 0 failed, 24 skipped (the 412 dp test above passes: before sunset the card reads "Sunset: 8:28 PM"
+  and "Dark: 9:00 PM" as two pieces). Run 42386063693 at 59a9acfee was cancelled by the push of 88453efe2 and is not cited.
+- By name against E17's green run (42341392562 at ea4b6e7e8, 6995): 0 names gone, 22 new (`NavigationCardNeedleNeverMovesTest` 21,
+  the test above 1), **0 names whose outcome changed**.
+- By name against pre-main's latest run (42337576510 at 1f6901a11, 6846 tests, 0 failed): 36 names only on pre-main (the same 36
+  renamed or replaced in earlier phases, listed in the E13 and E15 sections), 207 only here, all passing, **0 names whose outcome
+  differs**.
+
+### The revert [observed, run 42386577696 at b636747be, throwaway ref `hazel-e18-revert`, deleted]
+
+- One line: `rememberCardEvening`'s `widestTurnSpacePx` back to `widestTurnDegreesPx` (option (b)'s line). The file was copied
+  before the edit; the revert lived in its own worktree, the forward branch untouched.
+- Failed-job log read first: 0 compile errors ("e: " lines none). Then: 6993 tests completed, **1 failed**, in both the build job and
+  the no-Street-map job: the test above, "412/1.0: before sunset the card reads [Sunset: 8:28 PM ▪︎ Dark: 9:00 PM], not [Sunset: 8:28
+  PM, Dark: 9:00 PM]". That is the one decision (a) changes; no other class failed.
+- Restored from the saved copy; the forward line confirmed afterwards on the branch (`widestTurnSpacePx` 3 times in
+  `NavigationInfo.kt`, the file byte-identical to the copy).
+- The needle's own claim (never moves) was shown red before the fix by the tests-first run 42383172696 (above) and is green here; it
+  was not reverted a second time (one revert per the dispatch).
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: (a) is what was built (code read, and the 412 dp test red with (b)'s line, green with (a)'s); full CI
+  green; 0 outcome changes by name against E17's green run and against pre-main.
+- **Inferred**: the room table in the stop section stands for (a) except 412/1.0, whose left part grows to about 235.7 dp (not
+  measured on its own line here; the card's left part at 412/1.0 is not asserted by a test).
+- **Could not determine**: widths between the tested ones; the phone's own figures (no phone in this dispatch).
+- **Premises that were wrong**: none found.
+
+### Decided beyond the dispatch
+
+- The 412 dp evening test, added so (a) is held by a test rather than by a printed line. Nothing a user sees beyond E18.
+
+### S22 step (E18)
+
+- Portrait, font 1.0, navigating: watch the needle while the line reads degrees, then turn the compass off (or wait 5 minutes with no
+  fix): the needle stays exactly where it was while the degrees give way to "Target", and with no target to "No target"; the word never
+  touches the needle.
+- At 412 dp (not the S22's 384 dp; a 412 dp phone or display size), font 1.0, before sunset: the sunset line reads on two lines,
+  "Sunset: ..." over "Dark: ...", split at the ▪.
