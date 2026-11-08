@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.ui.availability
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
@@ -204,12 +205,12 @@ internal fun BoxScope.CompactMapRouteCard(
     val shownContent = rememberLastShown(content)
     val shownActions = rememberLastShown(actions)
     val leaving = content == null
-    // Dispatch 2026-11-06-05, Amendment 1, step 2 (RECORD -2187): tucked, the card is off at its edge with its tab left, and reports
-    // nothing, as a card leaving does, so Re-center and the navigation card's evening line have their room back (RouteCardTuck.kt).
+    // Dispatch 2026-11-06-05, Amendment 1, step 2 (RECORD -2187): tucked, the card is slid to its edge with a strip of it left showing.
+    // Since Amendment 6, A2, it keeps reporting its height, span and bounds as when it shows ("Stays aside", "Stays under"), so nothing
+    // else moves; only a card leaving reports nothing (RouteCardTuck.kt).
     val tucked = !leaving && state?.tucked == true
-    val hidden = leaving || tucked
-    LaunchedEffect(hidden) {
-        if (hidden) {
+    LaunchedEffect(leaving) {
+        if (leaving) {
             onCardHeightDp(0)
             onCardSpanPx(null)
             onCardBoundsInRoot(null)
@@ -219,16 +220,8 @@ internal fun BoxScope.CompactMapRouteCard(
     val barOnLeft = cluster.isOnLeftSide
     val portrait = !cluster.landscape
     val cardOnLeft = routeCardOnLeft(barOnLeft, landscapeRoom)
-    // Tucking and coming back slide sideways, to and from the card's edge; opening and closing keep their own motion.
-    // Once tucked, the card keeps the sideways motion until it leaves, so coming back slides out from the edge too.
-    var tuckedOnce by remember { mutableStateOf(false) }
-    val tuckMotion = tucked || tuckedOnce
-    SideEffect { if (leaving) tuckedOnce = false else if (tucked) tuckedOnce = true }
-    val (enter, exit) = when {
-        tuckMotion && !leaving -> routeCardTuckTransitions(cardOnLeft)
-        portrait -> routeCardPortraitTransitions(barOnLeft)
-        else -> navigationChromeFromBottomTransitions()
-    }
+    // Opening and closing keep their own motion; tucking moves the card inside it (A2, RouteCardTuck.kt).
+    val (enter, exit) = if (portrait) routeCardPortraitTransitions(barOnLeft) else navigationChromeFromBottomTransitions()
     val barColumn = routeCardBarColumn(with(density) { cluster.clusterWidthPx.toDp() })
     val sides = routeCardSides(barOnLeft = barOnLeft, barColumn = barColumn)
     // C21 with C23 (RECORD -1955, -1956): on the navigation card, its width, edge to edge, whatever C19's reference is; lines wrap.
@@ -238,7 +231,7 @@ internal fun BoxScope.CompactMapRouteCard(
     val referenceWidth = rememberRouteCardWidth(distanceUnit)
     // Dispatch 2026-11-06-05, Amendment 1, step 1 (RECORD -2187, the owner: "(b) Card leaves room"): in portrait while navigating, the
     // card sits higher by Re-center's height and a gap wherever Re-center shares its column, so Re-center is under it and the card never
-    // moves as Re-center appears or goes (RouteCardReCenterRoom.kt). The tab tucks at the card's bottom corner, so it keeps the same.
+    // moves as Re-center appears or goes (RouteCardReCenterRoom.kt). Tucked, the card's strip keeps the card's place, so it keeps the same.
     var reCenterWordSize by remember { mutableStateOf(IntSize.Zero) }
     if (portrait) ReturnToRouteWordProbe { reCenterWordSize = it }
     val reCenterRoom = routeCardReCenterRoomFor(cluster, controlsPadding, isNavigating, portrait, cardOnLeft, barColumn, referenceWidth, reCenterWordSize)
@@ -257,7 +250,7 @@ internal fun BoxScope.CompactMapRouteCard(
     // the navigation card's sundown line out only where it would take the room. Its cap's top is fixed by the strip (or, raised, by the
     // controls), whatever the navigation card's height: the cap's bottom and height move together.
     var naturalHeights by remember { mutableStateOf<com.zynergylabs.forager.app.ui.route.RouteCardNaturalHeights?>(null) }
-    val onNavigationCardNow = landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp && !hidden
+    val onNavigationCardNow = landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp && !leaving
     val navigationTopLimit = naturalHeights?.takeIf { onNavigationCardNow }?.let { heights ->
         with(density) {
             val room = landscapeRoom!!
@@ -298,19 +291,22 @@ internal fun BoxScope.CompactMapRouteCard(
         routeCardPeekLeavesElevationOut(heights, with(density) { landscapeRoom.maxHeight.toPx() })
     } == true
     val hideElevation = hideElevationOpen || hideElevationPeek
-    NoTouchTargetExpansion(active = hidden) {
+    NoTouchTargetExpansion(active = leaving) {
         AnimatedVisibility(
-            visible = !hidden && (portrait || landscapeRoom != null),
+            visible = !leaving && (portrait || landscapeRoom != null),
             enter = enter,
             exit = exit,
             modifier = Modifier
                 .align(if (cardOnLeft) Alignment.BottomStart else Alignment.BottomEnd)
                 .padding(controlsPadding)
                 .padding(bottom = bottomPadding)
-                .leavingTakesNoTouches(leaving = hidden),
+                .leavingTakesNoTouches(leaving = leaving),
         ) {
             if (shownContent != null && shownActions != null) {
                 val card: @Composable (Dp) -> Unit = { width ->
+                    // A2: a card leaving while tucked stays where it was in its tuck as it goes.
+                    val tuck = rememberRouteCardTuckDraw(rememberLastShown(if (leaving) null else tucked) ?: false, cardOnLeft)
+                    Box {
                     RouteCard(
                         content = shownContent,
                         expanded = state?.expanded == true,
@@ -333,12 +329,13 @@ internal fun BoxScope.CompactMapRouteCard(
                         onLinesHeightPx = { linesPx = it },
                         hideElevation = hideElevation,
                         onNaturalHeightsPx = { naturalHeights = it },
+                        tuck = tuck,
                         modifier = Modifier
-                            .routeCardTuckSwipe { shownActions.onSetTucked(true) }
+                            .routeCardTuckSwipe(enabled = !tucked) { shownActions.onSetTucked(true) }
                             .width(width)
                             .then(if (cardMaxHeight != null) Modifier.heightIn(max = cardMaxHeight) else Modifier)
                             .onGloballyPositioned {
-                                if (!hidden) {
+                                if (!leaving) {
                                     // What rises above the card, and the map's fit, clear it wherever it sits, so a card resting on the
                                     // navigation card counts from the map's bottom edge (C21, as C11 did).
                                     // Step 1: in portrait, Re-center's room under it too, so the legend chip and the route's fit clear it.
@@ -349,13 +346,12 @@ internal fun BoxScope.CompactMapRouteCard(
                                 }
                             },
                     )
+                    if (tucked) RouteCardStripTouch(cardOnLeft = cardOnLeft, onBringBack = { shownActions.onSetTucked(false) })
+                    }
                 }
                 if (onNavigationCard != null) card(onNavigationCard) else RouteCardWithin(referenceWidth, sides, card)
             }
         }
-    }
-    if (tucked && actions != null && (portrait || landscapeRoom != null)) {
-        RouteCardTab(cardOnLeft = cardOnLeft, controlsPadding = controlsPadding, bottomPadding = bottomPadding, onBringBack = { actions.onSetTucked(false) })
     }
     if (content == null || state == null || actions == null) return
     val plotting = state.mode as? RoutePlotMode.Plotting

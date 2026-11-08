@@ -167,31 +167,38 @@ class RouteCardTuckCloseTest {
         }
     }
 
+    /**
+     * Amendment 6, A2 (RECORD -2187, the owner: "Have the drag bar be the same size as the card"): the card itself slides to its edge,
+     * leaving a 24 dp strip of it at its full height. Before A2 this claimed the card left the map and a 24 by 56 dp tab was left there.
+     */
     @Test
-    fun `a real sideways swipe on the card, either way, tucks it to its edge with the tab left there`() {
+    fun `a real sideways swipe on the card, either way, slides it to its edge with a strip of it left there at its full height`() {
         setScreen()
         listOf(true, false).forEach { towardEdge ->
             openSavedRoute()
             val onRight = cardOnRight()
+            val card = bounds(ROUTE_CARD_TAG)
             swipeCard(towardEdge)
 
             val where = if (towardEdge) "a swipe toward the edge" else "a swipe toward the map"
             assertTrue("$where tucks the card", plotting.uiState.value.tucked)
-            assertFalse("$where: the card is off the map", cardShows())
+            assertTrue("$where: the card stays, slid to its edge", cardShows())
             assertTrue("$where: the route stays on the map", map.content?.plottedRoute != null)
             composeRule.onNodeWithTag(ROUTE_CARD_TAB_TAG).assertIsDisplayed()
             val tab = bounds(ROUTE_CARD_TAB_DRAWN_TAG)
             val root = rootBounds()
-            assertEquals("$where: the tab is drawn 24 dp wide", 24f, (tab.right - tab.left).value, 0.5f)
-            assertEquals("$where: the tab is drawn 56 dp tall", 56f, (tab.bottom - tab.top).value, 0.5f)
+            assertEquals("$where: the strip is 24 dp wide", 24f, (tab.right - tab.left).value, 0.5f)
+            assertEquals("$where: the strip is the card's height", (card.bottom - card.top).value, (tab.bottom - tab.top).value, 0.5f)
+            assertEquals("$where: the strip's top is the card's", card.top.value, tab.top.value, 0.5f)
             if (onRight) {
-                assertEquals("$where: the tab sits against the right edge, where the card was", root.right.value, tab.right.value, 0.5f)
+                assertEquals("$where: the strip sits against the right edge, where the card was", root.right.value, tab.right.value, 0.5f)
             } else {
-                assertEquals("$where: the tab sits against the left edge, where the card was", root.left.value, tab.left.value, 0.5f)
+                assertEquals("$where: the strip sits against the left edge, where the card was", root.left.value, tab.left.value, 0.5f)
             }
             composeRule.runOnUiThread { plotting.onCloseSavedRoute() }
             settle()
-            assertFalse("closed, the tab goes with the route", tabShows())
+            assertFalse("closed, the strip goes with the route", tabShows())
+            assertFalse("closed, the card goes with the route", cardShows())
         }
     }
 

@@ -189,6 +189,8 @@ fun RouteCard(
      * depend on the room the card is given.
      */
     onNaturalHeightsPx: (RouteCardNaturalHeights) -> Unit = {},
+    /** Amendment 6, A2 (RECORD -2187): where the card is in its tuck, slid toward its edge with its content faded (`RouteCardFace.kt`). */
+    tuck: RouteCardTuckDraw = RouteCardTuckDraw.RESTING,
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -198,8 +200,8 @@ fun RouteCard(
             .testTag(ROUTE_CARD_TAG)
             .mapChromeContainerColor(fill)
             // Amendment 5's outline and A1's corners (RouteCardFace.kt): the fill and the line are drawn here, the Surface only clips.
-            .routeCardFace(shape, fill, mapChromeOutline(), cornerFill),
-        shape = shape,
+            .routeCardFace(shape, fill, mapChromeOutline(), cornerFill, tuck),
+        shape = if (tuck.slide == 0f) shape else RouteCardSlidShape(shape, tuck),
         color = Color.Transparent,
         contentColor = contentColour,
     ) {
@@ -223,6 +225,7 @@ fun RouteCard(
         val buttonsHidden = (content as? RouteCardContent.Saved)?.navigating == true
         LaunchedEffect(linesNatural, elevationPx, firstRowNatural) { if (totalNatural > 0 && (buttonsNatural > 0 || buttonsHidden)) currentOnNatural(RouteCardNaturalHeights(linesNatural, elevationPx, firstRowNatural)) }
         Box {
+        Box(Modifier.fillMaxWidth().routeCardTuckContent(tuck)) {
         Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING).onSizeChanged { columnPx = it.height }) {
             RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
             if (content is RouteCardContent.Saved) {
@@ -244,6 +247,8 @@ fun RouteCard(
             Box(Modifier.naturalHeight { buttonsNatural = it }) { RouteCardButtons(content, callbacks) }
         }
         if (content is RouteCardContent.Saved) RouteCardCloseButton(callbacks.onClose)
+        }
+        RouteCardStripGrip(tuck)
         }
     }
 }
