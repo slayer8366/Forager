@@ -1098,3 +1098,83 @@ briefed; `origin/pre-main` was `82d4a091a` and already in it. Mid-task, on the p
 13. **No buttons while navigating.** Open a saved route, tap Navigate: Navigate and Directions disappear (the card gets shorter). Press
     Back: they come back. Navigate again, then tap the navigation card's ✕: they come back. Walk to the waypoint: at "Arrived" they stay
     hidden (as built) until Back or ✕. With a deleted stop selected, the reason line hides the same way while navigating elsewhere.
+
+# Amendment 5, the tab, built: the tucked card's tab takes the card's outline
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC. The "Added (2026-11-08T05:05:18Z, -2187)" bullet of Amendment 5, read on `origin/records-after-173`
+(`prompts/preserved/2026-11-06-05-amendment-5.md`); the owner, of the tab: **"Same as the card"**; build go **"Build it"**. Branch
+`route-card` at `69afc0c26` as briefed; `origin/pre-main` at `82d4a091a`, already in it.
+
+## What was built
+
+- **The tab's outline** (`ui/route/RouteCardEdges.kt`, `96a7be8d5`). `RouteCardTabOutline` draws `mapChromeOutline()` (1 dp, Bark at 40%
+  by day, white at 40% at night) in the tab's shape, all the way round, as `RouteCardOutline` does for the card. Gone: step 6's solid
+  1 dp `onSurface` line, the box that reached 2 dp past the tab's screen edge so the tab's clip cut that side off, and the `RouteCardEdge`
+  enum that chose that side (it had no other user). `RouteCardTuck.kt` calls it without the side and its comment says so. Nothing else
+  about the tab changed: its size, place, fill, grip and touch area are the same code.
+- **Tests** (`5217280b0`, `7bf77ce75`): `RouteCardTabOutlineTests.kt`, one abstract class and two subclasses on the real Maps tab
+  (`RouteCardBarRig`), the card tucked by a real sideways swipe on it, the tab read from drawn pixels with Amendment 5's
+  `whyNotRuledLine` (the ruled colours written out, expected over the tab's own pixel 4 dp in). `RouteCardTabOutlineTest` (portrait):
+  a saved route's tab with the icon bar where it starts (the tab on the left edge) and moved across (the right edge), and the tab while
+  plotting, each by day and at night (6). `RouteCardTabOutlineLandscapeTest`: the tab while plotting, recording, by day and at night (2).
+  The sides are read along the tab's middle row, the top and bottom down the column 4 dp in from its edge side, where they are straight
+  (the 16 dp round corners take the part nearest the map).
+
+## Tests whose claims changed
+
+- None. No existing test read the tab's line: `RouteCardTuckCloseTest` reads the tab's size, place and touches only, and it passed in
+  the red, revert and full runs alike.
+
+## Verified, and how
+
+- **Red** (`hazel-rctab-red` at `7bf77ce75`, tests only, run **42450188876**, filtered to the two new classes and
+  `RouteCardTuckCloseTest`): the build job's log has **0 compile errors** (`compileDebugUnitTestKotlin` ran), "18 tests completed, 8
+  failed", matching the JUnit XML. All 8 new cases failed for the reason predicted: top, bottom and the side facing the map read the old
+  solid line, `#3B2E24` by day and `#EDE3D0` at night, where the ruled line over the tab is `#ABA398` over `#F5F1E6` and `#797979` over
+  `#1F1F1F`; the side on the screen edge read bare (`#F5F1E6` / `#1F1F1F` all through). Measured places: portrait 0..24 dp (left) and
+  360..384 dp (right), 655..711 dp down; landscape 719..743 dp, 328..384 dp down. (An earlier push of the same tests, run
+  **42449599501**, did not compile: "'protected' property exposes its 'internal' type 'RouteCardBarRig'"; its results were not read.)
+- **Revert** (`hazel-rctab-rev`, run **42451761388**): in `RouteCardEdges.kt`, the tab's `.border(mapChromeOutline(), shape)` changed
+  to a solid 1 dp `onSurface` `BorderStroke` (the card's line untouched). Build log: **0 compile errors**, "20 tests completed, 8
+  failed", matching the XML: the 8 tab cases, each on all four sides, the screen-edge side now reading the solid colour too (`#3B2E24` /
+  `#EDE3D0`), which this revert produces and the red run's bare edge did not, so these are this build's results.
+  `RouteCardOutlineLandscapeTest` (the card) and `RouteCardTuckCloseTest` passed. The revert was made in a separate worktree; the file
+  was restored there from the copy saved before the edit, `cmp`-matched `origin/route-card`'s, and the forward change is present on
+  `origin/route-card` (`96a7be8d5`).
+- **Full CI** at `96a7be8d5` (PR #507), run **42451729839**: **every job success**, including the suite with the Street map deleted.
+  Measured: the ruled line `#ABA298` by day over `#F5F1E6` on all four sides of the tab, the screen-edge side included.
+- **By name against pre-main's latest run** (**42337576510** at `1f6901a11`; `82d4a091a` is one `[skip ci]` commit past it), both runs'
+  JUnit XML: 6846 vs 6941 test cases (6822 passed and 24 skipped vs 6917 and 24); **no outcome changed** on any name in both; 18 gone
+  (the same 18 as Amendment 5's comparison) and 113 new, all passing (Amendment 5's 105 and these 8). Against Amendment 5's green
+  (**42447645450** at `eaa91e8ee`): 6933 vs 6941, **no outcome changed**, none gone, 8 new: the eight tab cases, all passing.
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, native graphics, the real Maps tab): the ruled line on all four sides of the tucked card's tab, by day
+  and at night, in portrait against either edge (a saved route) and while plotting, and in landscape while plotting.
+- Inferred, not run: the same on the phone. Colours are read over this test map's plain ground. The tab while navigating in landscape
+  (the card resting on the navigation card) was not read; it is the same composable with the same call, so it draws the same line.
+
+## Could not determine
+
+- **The tab's side against the side bar in landscape.** The landscape tab sits at 719..743 dp on an 823 dp screen, against the side
+  bar rather than the screen's own edge; its edge side now carries the 40% line, and the side bar draws its own line along its inner
+  edge, so two lines may sit side by side or overlap there, as the report above notes for the card. Not measured; for the S22 check.
+
+## Premises that were wrong
+
+- None found. `route-card` was at `69afc0c26` as briefed, and the tab's code was as the brief described (solid `onSurface`, open on
+  its screen edge).
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- `RouteCardEdge` (the enum naming the open side) removed with its only use, rather than left unused.
+- The landscape tab's "screen edge" side is its side against the side bar (where it sits); it takes the line there too, read as
+  "all the way round".
+
+## S22 step (nothing was run on a phone)
+
+14. **The tab's line.** Open a saved route in portrait and swipe the card sideways: the tab left at the edge has the same thin, soft
+    line as the card, all the way round, including along the screen edge; no darker line. Move the icon bar to the other side and do it
+    again (the tab on the other edge). Night Mode: a faint pale line. While plotting a route, tuck the card: the same. In landscape,
+    tuck the card: the same, and look at the tab's side against the side bar for a doubled line.
