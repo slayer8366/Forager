@@ -1592,3 +1592,42 @@ All held: `NavigationView.kt` `applyView` sends padding (side, top 25 %, side, 0
 ### Clean-up
 - Throwaway refs `hazel-j8-red`, `hazel-j8-green`, `hazel-j8-revert` deleted from origin after the full run; their runs stay readable by number. The revert worktree `/tmp/hz-j8/rev` removed.
 - PR #500 stays ready for review, not merged.
+
+## Sorrel's J8 review items, fixed (Hazel, 2026-11-08)
+
+Sorrel's review of #500 at 961ff2a16 (`prompts/preserved/2026-11-08-sorrel-review-500-j8.md` on records-after-173), items 1.1 and 1.2, sent back under RECORD -2190. Test-only: no file under `app/src/main` changed, so nothing a user sees changes. Marks as in the sections above.
+
+### Base and commits [observed]
+- `origin/next-turn` was 961ff2a16 at the start, as the dispatch said, and did not move during the work. New worktree `~/.cache/forager-wt/next-turn-j8r`.
+- `6aaedd6de`: both tests and the rig change. Then this report.
+- Not touched: any route-card file, any main source.
+
+### What changed [read, 6aaedd6de]
+- `NextTurnCardRig.kt`: records the render mode the screen last asked the map for (`mapRenderMode`), so a rig test can read the navigation view's padding. Nothing else in the rig changed; its other users ignore it.
+- New `NavigationDotRestingTopTest.kt` (item 1.1): through the real Maps tab at 640 x 360, font 2.0, the evening line is set and the clock stepped a frame at a time through the card's glide up. At every frame where the card is part-way (its drawn bottom more than 2 dp from both the edge and its settled bottom), the navigation view must ask for no bottom padding: the card's resting place (moved up, its bottom at the dot's top) clears the dot, while its drawn top is still over it. A request for bottom padding there is reported per frame with the frame's number, the top the dot is kept above, the card's final top and its drawn top. Positive controls: the card does move up (settled bottom more than 20 dp above the edge), settled it clears the dot and the view asks for nothing, and at least one mid-glide frame has the drawn card covering the dot.
+- `NavigationDotAboveCardInputTest.kt` gains a second class, `NavigationDotAboveCardLandscapeOnlyTest` (item 1.2): `navigationInsetsWithDotAboveCard(side, applies = false, cluster)`, with a cluster whose card covers the dot and a D29 side padding of (20, 30), returns that side unchanged. Positive control: the same call with `applies = true` adds a bottom. It runs under Robolectric in a composition because the function is a composable (it reads the density and logs from an effect); the six existing pure tests stay a plain JUnit class.
+
+### Evidence [observed; each run's test-job log read for Kotlin compile errors (` e: `) before its results: 0 in each, and both debug builds were BUILD SUCCESSFUL]
+- **Revert 1.1** (one line in `CompactMapLandscapeNavigationCard.kt`, `val restBottom = bottomEdgePx - liftPx` → `val restBottom = drawn.bottom`, so the resting rect is the drawn rect), run 42509433212 on throwaway ref `hazel-j8r-revert-1` (f54f4224f), filtered to the seven J8 classes: 24 tests, 1 failed, `NavigationDotRestingTopTest`, all 36 mid-glide frames (8 to 43) flagged, starting: "frame 8: the view asks for NavigationSideInsets(leftPx=0.0, rightPx=0.0, bottomPx=190.0), keeping the dot above a card top at 205.33333.dp; the card's final top is 59.666668.dp (bottom edge less the full move less its height), which clears the dot, and its drawn top at that frame is 204.0.dp". That failure is the one this edit causes: the dot kept above the drawn top, one frame behind it. The other 23 (the settled J8 tests among them) stayed green, which is Sorrel's point: none of them could see this.
+- **Revert 1.2** (one line in `NavigationDotAboveCard.kt`, `val above = if (applies) … else DotAboveCard.NONE` → `val above = navigationDotAboveCardBottomPx(cluster, side, clearancePx)`, applies ignored), run 42509435249 on `hazel-j8r-revert-2` (cdf582544), same filter: 24 tests, 1 failed, `NavigationDotAboveCardLandscapeOnlyTest`: "J8 (a) Landscape only: not applying, D29's side padding is returned unchanged, no bottom added expected:<NavigationSideInsets(leftPx=20.0, rightPx=30.0, bottomPx=0.0)> but was:<NavigationSideInsets(leftPx=20.0, rightPx=30.0, bottomPx=14.0)>". The bottom this edit adds; nothing else failed.
+- Each revert was made on its own throwaway branch from 6aaedd6de, the file copied aside before the edit and restored from that copy (not from git); afterwards the working branch was at 6aaedd6de, clean, with both forward lines present (checked by grep).
+- **Forward, full CI**, PR run 42509379786 at 6aaedd6de: every job green, the release packaging job included; unit tests **7330, 0 failed, 24 skipped**. Measured in the new test: edge 360 dp, the card settles at 59.7–213.0 dp with the dot home at 225 dp; 36 mid-glide frames, the drawn card covering the dot in all 36, the request NONE in all 36.
+- **By name against run 42506464973** (961ff2a16: 7328 tests, 0 failed, 24 skipped; 1070 XML files against 1072 here): no name gone, no outcome changed, the only new names are the two above (7328 + 2 = 7330).
+
+### Confirmed and inferred
+- [observed] The runs, messages and frame counts above; scan totals 0 before every push.
+- [inferred] That 640 x 360 at font 2.0 stands for the other windows where the card moves up: the mechanism does not depend on the window, and that window was chosen because NavigationCardGlidesTest already proves a glide there.
+
+### Could not determine
+- The phone: Robolectric only, as before; the map is a stub, so this proves the request, not that MapLibre's camera follows it.
+- The card's height changes over the first frames of the glide (about 121 dp tall at frame 1, 153 dp by frame 7, as the evening line comes in). The resting rect uses the laid-out height at each frame, so during those frames its top is not yet the final top. The test does not compare tops frame by frame. It checks the padding the request carries, which is NONE either way, because the resting bottom is at the dot's top. A future change that kept the bottom but got the height wrong would not be caught here.
+
+### Premises that were wrong
+- The dispatch asked to assert `cluster.navigationCardRestingBoundsInRoot`'s top directly. That state is created inside the screen (`rememberMapIconClusterState` in AvailabilityCompactMapUi.kt) and nothing outside the screen can reach it. Reading it directly would mean adding a hook in main code. That is not a test-only change, so it was not done. Instead the test reads what the resting bounds become: the bottom padding the map is asked for. It names the frame, the final top and the drawn top, and the revert to the drawn top makes it fail for exactly that reason. If the owner or planner wants the direct read, it needs a main-code hook, and that is their decision.
+
+### Decided beyond scope (open to the owner)
+- The 1.2 test lives in a second class in `NavigationDotAboveCardInputTest.kt` rather than turning the existing class into a Robolectric one, so the six pure tests keep running without an Android runtime.
+
+### Clean-up
+- Throwaway refs `hazel-j8r-revert-1` and `hazel-j8r-revert-2` deleted from origin after the runs; the runs stay readable by number.
+- PR #500 stays ready for review, not merged.
