@@ -30,7 +30,6 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.ClipOp
-import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -128,7 +127,7 @@ internal fun routeCardFillPath(outlined: Path, size: Size, cornerFillPx: Float):
 /**
  * Draws the card's [fill] under its content and its [stroke] over it (Amendment 5: the map chrome's outline all the way round, as the
  * bubbles draw it), in [base], and [cornerFill] past its bottom into the corners of the card it rests on (A1; 0 dp everywhere else),
- * slid as far as [tuck] says (A2), with no line of its own on [bareSide] where it meets the side bar (`RouteCardRailSide.kt`).
+ * slid as far as [tuck] says (A2), with no line of its own on the left side if [bareSideOnLeft], the right if false, where it meets the side bar (`RouteCardRailSide.kt`).
  * The line is the stroke at twice its width along [routeCardOutlinedPath], clipped to the fill, as `Modifier.border` draws a shape's:
  * so it lies inside the card's edge, and where the fill is cut by the card below, no line is drawn. Draw only: it measures nothing and
  * takes no touch.
@@ -139,13 +138,13 @@ internal fun Modifier.routeCardFace(
     stroke: BorderStroke,
     cornerFill: Dp = 0.dp,
     tuck: RouteCardTuckDraw = RouteCardTuckDraw.RESTING,
-    bareSide: ScreenEdge? = null,
+    bareSideOnLeft: Boolean? = null,
 ): Modifier = drawWithCache {
     val cornerFillPx = cornerFill.toPx()
     val outlined = routeCardOutlinedPath(base, size, layoutDirection, cornerFillPx, tuck.slidePx(size.width, ROUTE_CARD_STRIP.toPx()))
     val filled = routeCardFillPath(outlined, size, cornerFillPx)
     val strokePx = stroke.width.toPx()
-    val bare = bareSide?.let { routeCardBareBand(it, size, strokePx, cornerFillPx) }
+    val bare = bareSideOnLeft?.let { routeCardBareBand(it, size, strokePx, cornerFillPx) }
     onDrawWithContent {
         drawPath(filled, fill)
         drawContent()
@@ -162,16 +161,16 @@ internal fun Modifier.routeCardFace(
 }
 
 /**
- * Sorrel's review of PR #507, item 1.1 (RECORD -2187, the owner: "(c) All three (Recommended)"; -967): the band along [side] of the
+ * Sorrel's review of PR #507, item 1.1 (RECORD -2187, the owner: "(c) All three (Recommended)"; -967): the band along the left side ([onLeft]) or the right of the
  * card's bounds where its line is not drawn, because the side bar's line there is the shared one (`RouteCardRailSide.kt` decides
  * which side). As wide as the line, at the bounds' edge, so it takes the card's line on that side and nothing else: resting or
  * tucked alike, since the tucked strip's cut edge is the bounds' side. It starts below the top line, so the top runs on to the edge;
  * it stops above a bottom line ([cornerFillPx] 0: the plotting card on the screen's bottom edge), and runs on down into the corner
  * wedge where the card rests on the navigation card (that edge has no line; A1).
  */
-internal fun routeCardBareBand(side: ScreenEdge, size: Size, strokePx: Float, cornerFillPx: Float): Rect {
+internal fun routeCardBareBand(onLeft: Boolean, size: Size, strokePx: Float, cornerFillPx: Float): Rect {
     val bottom = if (cornerFillPx > 0f) size.height + cornerFillPx + strokePx else size.height - strokePx
-    return if (side == ScreenEdge.Left) {
+    return if (onLeft) {
         Rect(left = -strokePx, top = strokePx, right = strokePx, bottom = bottom)
     } else {
         Rect(left = size.width - strokePx, top = strokePx, right = size.width + strokePx, bottom = bottom)
