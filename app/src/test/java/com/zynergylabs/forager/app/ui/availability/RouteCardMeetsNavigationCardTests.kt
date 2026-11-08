@@ -34,8 +34,10 @@ import kotlin.math.floor
  * Read from the drawn screen on the real Maps tab, recording and navigating, by day and at night, at both rotations, in the S22's
  * landscape window and a short one. Every expected colour comes from the screen itself or the ruling, not from the code under test:
  * - **Nothing behind the navigation card.** Down the cards' middle, the navigation card's top rows read the same with the route card
- *   open as with no route card at all (the same rows below that card's top, read before the route is plotted). A route card running
- *   on behind the 80% navigation card shows through it, so those rows differ.
+ *   open as with no route card at all (the same rows below that card's top, read before the route is plotted), exactly. A route card
+ *   running on behind the 80% navigation card shows through it, so those rows differ; only by 1 to 3 levels a channel here, since the
+ *   test map's ground is close to the cards' fill, which is why no tolerance is allowed (the first red run, 42468111141, read them
+ *   with the outline reading's 4-level tolerance and could not see the overlap).
  * - **One line, the navigation card's.** Just above that top, up the middle, the route card reads bare (`whyNotBare`): no line of its
  *   own along the meeting edge. The navigation card's line is the one in the rows above.
  * - **Its sides run down into the corners.** On both sides, above the navigation card's top and for [INTO_CORNER] below it, inside
@@ -83,7 +85,7 @@ abstract class RouteCardMeetsNavigationCardTests {
         for (y in topRow until topRow + px(BEHIND)) {
             val was = alone[middle, y]
             val now = open[middle, y]
-            if (!now.near(was)) off += "middle, ${"%.1f".format((y - hudTopPx) / density)} dp below the navigation card's top: reads ${now.hex()} with the route card open, ${was.hex()} with the navigation card alone (something drawn behind it)"
+            if (now != was) off += "middle, ${"%.1f".format((y - hudTopPx) / density)} dp below the navigation card's top: reads ${now.hex()} with the route card open, ${was.hex()} with the navigation card alone (something drawn behind it)"
         }
 
         // One line, the navigation card's: the route card draws none of its own along the meeting edge.
