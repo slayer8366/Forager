@@ -1014,11 +1014,11 @@ briefed; `origin/pre-main` was `82d4a091a` and already in it. Mid-task, on the p
 - `RouteCardOneWidthTests.corners` (both subclasses' two cases): the corner is read `ceil(1 dp) + 1 px` in from the side as well as from
   top and bottom, since the screen-edge side now carries the line; the claim (square on the edge side, round facing the map) is unchanged.
   It passed before and after the fix, as a reading move should.
-- `RouteCardReCenterUnderCardTest` (`64b2af93d`), found by full CI 42444465598: "with Re-center under the card, real touches across
+- `RouteCardReCenterUnderCardTest` (`64b2af93d`, `eaa91e8ee`), found by full CI 42444465598: "with Re-center under the card, real touches across
   Navigate, Directions and the X each reach their own control" became "...Navigate and Directions are hidden and real touches across the X
   reach it" (Re-center shows only while navigating, so there are no buttons to reach then); "not navigating the card sits where it does
   today, and navigating it leaves Re-center's room under it" kept its name and its place claims, and its "only its place changes, not its
-  size" became "its size only by the hidden buttons' row" (it read 128 dp to 80 dp).
+  size" became "its size only by the hidden buttons' row", Material's 48 dp touch row (it reads 128 dp to 80 dp).
 
 ## Verified, and how
 
@@ -1041,9 +1041,16 @@ briefed; `origin/pre-main` was `82d4a091a` and already in it. Mid-task, on the p
   0 compile errors, "12 tests completed, 3 failed": the three `RouteCardNavigatingButtonsTest` cases, with the red run's three messages.
   Restored from the saved copy, `cmp`-matched; the line is present on `origin/route-card`.
 - **Full CI**: at `420e69742` (after the merge), run **42444465598** failed only the two `RouteCardReCenterUnderCardTest` cases above
-  (both jobs that run the suite, 2 failed each); at `64b2af93d`, run **RUN_FULL** (below).
+  (both jobs that run the suite, 2 failed each); at `64b2af93d`, run **42446027667** failed one case, the size claim I had changed: I took the hidden row as Navigate's tagged
+  bounds (40 dp), and the row is Material's 48 dp touch row (the card read 128 dp to 80 dp, as before). Fixed in `eaa91e8ee`; at
+  `eaa91e8ee`, run **42447645450**: **every job success**, including the suite with the Street map deleted.
 
-FULL_CI_SECTION
+- **By name against pre-main's latest run** (**42337576510** at `1f6901a11`; `82d4a091a` is one `[skip ci]` commit past it), both runs'
+  JUnit XML: 6846 vs 6933 test cases (6822 passed and 24 skipped vs 6909 and 24); **no outcome changed** on any name in both; 18 gone and
+  105 new, all passing. Against Amendment 4's green (**42440439690** at `28b6d3534`): 6928 vs 6933, **no outcome changed**, 14 gone and 19
+  new: the gone are the 6 renamed here (the outline cases in `RouteCardTuckCloseTest` and `RouteCardOutlineOnNavigationCardTest`, and the
+  `RouteCardReCenterUnderCardTest` touch case) and the 8 #506 renamed in `ReCenterOutline*Test` and `LocateRingReCenterLandscapeTest`; the
+  new are those renamed cases, `RouteCardOutlineLandscapeTest` (2) and `RouteCardNavigatingButtonsTest` (3).
 
 ## Confirmed vs inferred
 
