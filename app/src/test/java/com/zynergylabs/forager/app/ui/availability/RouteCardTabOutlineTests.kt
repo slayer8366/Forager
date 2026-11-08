@@ -64,9 +64,11 @@ abstract class RouteCardTabOutlineTests {
 
     /**
      * The tab's sides each carry the ruled line, [dark] or by day, in [where]; its side on its edge carries none of its own instead
-     * when [edgeSideBare], where that edge is the side bar's (RECORD -2187, "(c) All three"; -967).
+     * when [edgeSideBare], where that edge is the side bar's (RECORD -2187, "(c) All three"; -967). [bottomOnNavigationCard]: its bottom
+     * is where it meets the navigation card, which carries no line of its own (Amendment 6, A1: the navigation card's top line is the
+     * one there; `RouteCardFace.kt`), so it is read bare.
      */
-    protected fun assertTabOutline(where: String, dark: Boolean, edgeSideBare: Boolean = false) {
+    protected fun assertTabOutline(where: String, dark: Boolean, edgeSideBare: Boolean = false, bottomOnNavigationCard: Boolean = false) {
         val name = if (dark) "night" else "day"
         val tab = rig.bounds(ROUTE_CARD_TAB_DRAWN_TAG)
         val onRight = tab.left.value > rig.screen().right.value / 2
@@ -79,11 +81,10 @@ abstract class RouteCardTabOutlineTests {
         val column = (0 until pixels.height).map { pixels[columnX, it] }
         val mapSide = if (onRight) row.take(n) else row.takeLast(n).reversed()
         val edgeSide = if (onRight) row.takeLast(n).reversed() else row.take(n)
-        val sides = listOf(
-            "top" to column.take(n),
-            "bottom" to column.takeLast(n).reversed(),
-            "side facing the map" to mapSide,
-        ) + if (edgeSideBare) emptyList() else listOf("side on its screen edge" to edgeSide)
+        val bottom = column.takeLast(n).reversed()
+        val sides = listOf("top" to column.take(n), "side facing the map" to mapSide) +
+            (if (bottomOnNavigationCard) emptyList() else listOf("bottom" to bottom)) +
+            (if (edgeSideBare) emptyList() else listOf("side on its screen edge" to edgeSide))
         println("MEASURED $name, $where: the tab at ${tab.left.value}..${tab.right.value} x ${tab.top.value}..${tab.bottom.value}, on the ${if (onRight) "right" else "left"}")
         val off = sides.mapNotNull { (side, edge) ->
             println("MEASURED $name, $where, the tab's $side: ${edge.take(6).map { it.hex() }}")
@@ -93,8 +94,13 @@ abstract class RouteCardTabOutlineTests {
             listOfNotNull(whyNotBare(edgeSide, px)?.let { "side against the side bar, not bare (a second line beside the side bar's): $it" })
         } else {
             emptyList()
+        } + if (bottomOnNavigationCard) {
+            println("MEASURED $name, $where, the tab's bottom on the navigation card: ${bottom.take(6).map { it.hex() }}")
+            listOfNotNull(whyNotBare(bottom, px)?.let { "bottom on the navigation card, not bare: $it" })
+        } else {
+            emptyList()
         }
-        val expected = if (edgeSideBare) "the ruled line on its top, bottom and side facing the map, and none of its own against the side bar" else "the ruled line on every side, its screen edge's too"
+        val expected = if (edgeSideBare) "the ruled line on its top${if (bottomOnNavigationCard) "" else ", bottom"} and side facing the map, and none of its own against the side bar${if (bottomOnNavigationCard) " or the navigation card" else ""}" else "the ruled line on every side, its screen edge's too"
         assertTrue("$name, $where: the tucked card's tab carries $expected; off: $off", off.isEmpty())
     }
 }
@@ -168,7 +174,7 @@ class RouteCardTabOutlineLandscapeTest : RouteCardTabOutlineTests() {
         val screen = rig.screen()
         val gap = minOf((tab.left - screen.left).value, (screen.right - tab.right).value)
         assertTrue("precondition: the strip is against the side bar, not on the screen's edge (gap $gap dp)", gap > 1f)
-        assertTabOutline("in landscape${rotation?.let { ", rotation $it" } ?: ""}${if (navigating) ", navigating" else ", plotting"}", dark, edgeSideBare = true)
+        assertTabOutline("in landscape${rotation?.let { ", rotation $it" } ?: ""}${if (navigating) ", navigating" else ", plotting"}", dark, edgeSideBare = true, bottomOnNavigationCard = navigating)
     }
 
     @Test
