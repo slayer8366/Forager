@@ -1486,3 +1486,48 @@ The scope is Amendment 1, J7. The owner's go: "Record it", "Build it". **Built:*
 ### Clean-up
 - Throwaway refs deleted from origin: `hazel-arrows7-red`, `hazel-arrows7-rev-height`, `hazel-arrows7-rev-height2`, `hazel-arrows7-rev-height3` (their runs stay readable by number). Scratch `/mnt/work/scratch/hazel-arrows7` (700) holds the runner, the results and the revert worktrees.
 - PR #500 is ready for review, not merged. Final SHA: this commit.
+
+## Sorrel's review items, fixed (Hazel, 2026-11-08)
+
+Sorrel's review of PR #500 (`prompts/preserved/2026-11-08-sorrel-review-500-final.md` on records-after-173) passed with items. Under RECORD -2190 the three test-only ones came back to me: 1.1, 1.2 and 3.6. Nothing a user sees changes: the only production edit is two comment lines in `domain/NavigationReadout.kt`. Marks as in the sections above.
+
+### Base and commits [observed]
+- At the start: `origin/next-turn` ef6998ca1 (PR #500's head, not a draft), worked in `~/.cache/forager-wt/next-turn-review`. `origin/nav-card-kind-line` had nothing next-turn lacks. `origin/pre-main` moved during the work to 81cc37bda by two `[skip ci]` planner-profile commits (a1bbe809c, 81cc37bda); not merged, since nothing here needs them and the dispatch did not ask.
+- `41c54a9c6`: 1.2 and 3.6. `605c8ee21`: 1.1. Then this report.
+- Not touched: the route card's and the fan's files, and nav-card-kind-line. `RouteCardSundownStepsAsideTest.kt` and `AvailabilityScreenLandscapeB2Test.kt` also exist on nav-card-kind-line (#498): the B2 regex there is the same loose one, and #498 is left alone as asked.
+
+### What changed [read, 605c8ee21]
+- **1.1** `RouteCardSundownStepsAsideTest.kt`: a new class, `RouteCardSundownStepsAsideFont15Test` (823 x 384, font 1.5, evening), runs the steps-aside check with `lineExpected = true`: the line is on the card with no route card, gone at 3 and 6 stops, peek and expanded, and back on close. The three 640 x 360 font 2.0 classes are renamed to "J6, the line is already off before the card opens - the card is whole ...". So is the 823 x 384 font 2.0 class, which now asserts that precondition (`lineExpected = false`). The steps-aside message now says a 1 is the line still on the navigation card.
+- **1.2** `NextTurnCardStateTest.kt`: "E1 - wherever the needle is withheld the top line reads Arrived, at every accuracy". For 0, 5, 8, 20 and 50 m accuracy it checks every distance from 0 to twice the accuracy plus 10 m, in 5 cm steps, plus the boundary itself. Wherever `isApproaching` holds, `hasArrived` must hold, and the message cites E1. The readout's own card state must also be ARRIVED 0.5 m inside the circle. Comments at `APPROACHING_ACCURACY_MULTIPLIER` and in `hasArrived`'s doc point at the test.
+- **3.6** `AvailabilityScreenLandscapeB2Test.kt`: `B2_DUSK_LINE` is now `Sunset: \d{1,2}:\d{2} (AM|PM) ▪︎ Dark: \d{1,2}:\d{2} (AM|PM)`, as `AvailabilityScreenSundownLineTest` pins it.
+
+### Evidence [observed; every job log read for Kotlin compile errors before its results: 0 in each, except the first probe]
+- **Finding the window** (filtered probe runs on `hazel-rv500-probe`, nine classes with `lineExpected = true`):
+  - The first run, 42469535933, **did not compile**: 18 errors, "Name contains illegal characters: .", because the test names had dots in them ("font 1.0"). I did not read any results from it.
+  - The second run, 42470512923, compiled. At 823 x 384 the line shows with no card from font 1.15 to 1.75. At 1.15 and 1.3 the route card leaves the room, so the line stays ("expected:<0> but was:<1>"). At 1.5 the check passes whole. At 1.75 the expanded card's leg row is cut ("leg row 0 shows, height 0.0.dp"). At 640 x 360: font 1.0 shows no line before the card opens; 1.15 and 1.3 keep the line; 1.5 passes, but the navigation card is lifted to 87..213 dp; 1.75 cuts the leg row. Chose 823 x 384 font 1.5, the S22's normal window.
+- **D42 revert** (`eveningStepsAside = cluster.navigationEveningStepsAside,` → `eveningStepsAside = false,` at `CompactMapLandscapeNavigationCard.kt:262`). Run 42491765339 at ad6b8b0ae: 6 tests, 1 failed. `RouteCardSundownStepsAsideFont15Test`: "3 stops, peek: D42, the sundown line steps aside (1 is the line still on the navigation card) expected:<0> but was:<1>". This edit can produce that failure: the card is never told to step its line aside. **The other five classes stayed green with D42 unwired**, which is what Sorrel's item said.
+- **E1 revert** (`hasArrived`'s radius `APPROACHING_ACCURACY_MULTIPLIER * accuracy` → `1.5 * accuracy`). Run 42469626623 at f1a0a3bbd: 13 tests, 2 failed, both ones this edit can cause:
+  - the new test: "E1: at 15.05 m with 8.0 m accuracy the needle is withheld (isApproaching) but the top line does not read Arrived (hasArrived) ...". With 8 m accuracy, the radius becomes max(15, 12) = 15 m, against the needle's 16 m.
+  - the existing "within the fix's own circle" test: "expected:<ARRIVED> but was:<SHOWS_DISTANCE>". At 30 m with 20 m accuracy, the reduced radius is exactly 30 m and the computed distance lies just past it.
+- Each revert ran in its own worktree (`/tmp/hz500/rev-*`), never in the working one. Copies were saved before each edit. Afterwards the working tree's two files were checked byte-equal to those copies, with the forward changes present.
+- **Forward, filtered:** run 42469631287 at 41c54a9c6 (NextTurnCardStateTest and B2): 41 tests, 0 failed, including both B2 dusk tests under the tightened regex. Run 42491770603 at 605c8ee21 (the five steps-aside classes plus StaysNormal): 6 tests, 0 failed, and Font15 printed line 1 → 0 → 0 → 0 → 0.
+- **Full CI and the by-name comparison:** the PR run at this commit is in the hand-back, not here, because this file is written before that run exists.
+
+### Confirmed and inferred
+- [observed] The runs, counts, messages and probe bounds above. Scan totals 0 before every push. The exception is the first probe push: I ran the scan just after pushing it, and it was 0.
+- [inferred] That 823 x 384 font 1.5 stays a window where the line fits before the card opens. It holds at 605c8ee21. A later change to the card's height could move it, and the test's precondition ("the sundown line with no card expected:<1>") would say so rather than pass quietly.
+
+### Could not determine
+- The phone: Robolectric only, no device.
+
+### Premises that were wrong
+- The review's suggested windows: 823 x 384 at font 2.0 has the line off before the card opens since J6 (run 42447453302: "sundown line shown 0, navigation card 266.0..384.0"). 640 x 360 at font 1.3 keeps the line with the card open. Neither could be the positive control.
+- "The 823 x 384 class uses `lineExpected = null`, so it does not assert the line was there first": true, but the line was not there either. That class was a fourth trivially-true case, not a weak positive control.
+
+### Decided beyond scope (open to the owner)
+- I renamed the 823 x 384 font 2.0 class and set its `lineExpected = false`, beyond the three classes named, because its name made the same claim it could not show. Test-only.
+- The steps-aside assertion's message is reworded so a failure names the line still on the card (item (c) asked for that message).
+
+### Clean-up
+- Throwaway refs `hazel-rv500-probe`, `hazel-rv500-fwd`, `hazel-rv500-e1-revert` and `hazel-rv500-d42-revert` are deleted from origin after the full run. Their runs stay readable by number.
+- PR #500 stays ready for review, not merged.
