@@ -43,7 +43,8 @@ import com.zynergylabs.forager.app.ui.route.RouteCardTuckDraw
  * Tucked, the card keeps reporting its height, span and bounds, as when it shows (the owner: "Stays aside (Recommended)": the
  * navigation card's evening line stays stepped aside and the strip keeps its exact height and place, the line returning only on ✕;
  * "Stays under (Recommended)": in portrait Re-center stays under the strip). That replaced Amendment 1 step 2's "Tucking gives the
- * navigation card's evening line its room back".
+ * navigation card's evening line its room back". The map's credit "i" alone is handed only what is drawn, the strip once tucked, so it
+ * comes back where the card rested (the owner: "Come back"; RouteCardAttributionCover.kt).
  */
 
 /** How far a sideways swipe on the card must go to tuck it, or a drag on the strip away from the edge to bring it back. */

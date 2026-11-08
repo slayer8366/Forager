@@ -185,6 +185,8 @@ internal fun BoxScope.CompactMapRouteCard(
     onCardSpanPx: (ClosedFloatingPointRange<Float>?) -> Unit = {},
     /** D28 (RECORD -1979, -1980): the card's bounds in the root while it shows, `null` as soon as it starts to leave, for the "i". */
     onCardBoundsInRoot: (androidx.compose.ui.geometry.Rect?) -> Unit = {},
+    /** Amendment 6, the credit (RECORD -2187): the part of the card drawn, its strip once tucked, for the "i" (RouteCardAttributionCover.kt). */
+    onCardCoverInRoot: (androidx.compose.ui.geometry.Rect?) -> Unit = {},
     today: () -> LocalDate = LocalDate::now,
     /** Dispatch 2026-11-06-05, Amendment 2: the records and the navigation Navigate and the selection read; `null` offers no Navigate. */
     sources: MapRecordSources? = null,
@@ -214,6 +216,7 @@ internal fun BoxScope.CompactMapRouteCard(
             onCardHeightDp(0)
             onCardSpanPx(null)
             onCardBoundsInRoot(null)
+            onCardCoverInRoot(null)
         }
     }
     val showing = state?.mode as? RoutePlotMode.Showing
@@ -306,6 +309,8 @@ internal fun BoxScope.CompactMapRouteCard(
                 val card: @Composable (Dp) -> Unit = { width ->
                     // A2: a card leaving while tucked stays where it was in its tuck as it goes.
                     val tuck = rememberRouteCardTuckDraw(rememberLastShown(if (leaving) null else tucked) ?: false, cardOnLeft)
+                    var cardInRoot by remember { mutableStateOf<Rect?>(null) }
+                    ReportRouteCardAttributionCover(cardInRoot, tuck, leaving, onCardCoverInRoot)
                     Box {
                     RouteCard(
                         content = shownContent,
@@ -345,6 +350,7 @@ internal fun BoxScope.CompactMapRouteCard(
                                     val left = it.positionInRoot().x
                                     onCardSpanPx(left..left + it.size.width)
                                     onCardBoundsInRoot(it.boundsInRoot())
+                                    cardInRoot = it.boundsInRoot()
                                 }
                             },
                     )
