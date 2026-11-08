@@ -146,3 +146,121 @@ The phone will be driven by hand, by the owner or the planner. Nothing here move
 ## Questions for the owner
 
 - None about the ruling. For the planner: is the one-line growth of `SightingsMap.kt` past 800 acceptable, or should a split go first?
+
+# Amendment 6, the fan's opening and the dimmer cream, built (part 1 built; part 2 found and brought back; part 3 not finished)
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC, on the owner's "Build it" for the two last "Added" sections of Amendment 6 (RECORD -2187,
+-2190). Cut from `origin/route-card` at `eabf94117`, as expected. Worktree `~/.cache/forager-wt/route-card-fan2`.
+
+## Part 1, the centre copy (defect): built
+
+**Cause, from source.** The fan hides its originals only once the renderer reports the copies drawn (the -371 hide gate). That report is
+matched by each copy's `image:featureId` (`expectedCopies`, FanOutRenderSignal.kt). Amendment 6 B drew the selected stop's copy with
+the accent image (`fanCopyIcon`), but the expectation still named its layer's plain image. So with the selected stop in a stack, the
+report could never complete. The hide then waited for the last resort: the fan at rest plus three rendered frames (`onRest`, with a
+logged warning, "The renderer did not report the N copies drawn..."). That fits the S22 figure: all pins landed at 514 to 542 ms, and
+the highlighted original went at 571 ms. Every fanned original waited this way, not only the highlighted one. The accent drawn over
+them is the one that showed.
+
+**Fix.** `expectedCopies(members, accent)` names each copy by the image it is drawn with (`fanCopyIcon`). The per-frame check is now
+the pure `copiesReported`, which `awaitCopiesRendered` calls. It reads the selected stop on each frame, so a stop picked from the open
+fan still counts. MapFan passes `accent = { currentAccent }` to `hideWhenCopiesDrawn`. On the fold, the accent comes back with its pin,
+as before (the release shows both through the same filter call).
+
+**Test.** `FanOpeningCentreAccentTest` (new) steps frame by frame through an opening at 120 fps on the fan's own clock (250 ms,
+fast-out-slow-in). Each frame it pushes `fanFrameCollections` with the accent. The renderer reports the frame from three frames
+earlier. Each reported frame goes through `copiesReported`, and the real `FanOutHideGate` hides when that check passes. The test reads
+what was hidden by the first reported frame whose copies are off their spots, and the accent keys the accent layer then hides
+(`fanHiddenAccentKeys`). There are three cases: a selected waypoint, a selected trip flag, and no selection. The third is a control:
+it passes before and after the fix by design.
+
+| run | commit | result | failures |
+|---|---|---|---|
+| red 42510947472 | `d7f329152` (plumbing only; the expectation ignores the accent) | 2 of 51 failed | "the copies were reported drawn by frame 4, the first whose copies are off their spots"; "the copies were reported drawn before the flags leave" |
+| green 42512957457 | `131bfe2ca` | 51 of 51 passed | none |
+| revert 42512959443 | throwaway, the one fix line put back to `markerIconForLayer(layerId)` | 2 of 51 failed | the same two as red |
+
+All three ran on six classes: FanOpeningCentreAccentTest, FanOutRenderSignalTest, RouteStopAccentFanTest, FanCircleSymbolTest,
+FanOutLayersTest and FanIconStackingOrderTest. **Revert:** the compile log had no errors, and the unit tests ran fresh (they completed at
+19:08 UTC; the red run's completed at 18:43). The two failures are the same messages as red. That is the only result this revert can
+produce, because it restores red's exact expectation. The control case passed. The "Street map deleted" job ran the whole suite in
+that run: 6,906 tests, 2 failed, and those two are the same FanOpeningCentreAccentTest cases. The revert was made in a separate,
+detached worktree, so no file in the working tree was edited or restored. Its saved copy was not needed. The forward line is present
+at `131bfe2ca` (count 1). Throwaway refs are deleted.
+
+## Part 2, the pause: found, not changed (it needs the owner's choice)
+
+**What the ~0.28 s is spent on.** It is mostly the system's double-tap window, before the app hears of the tap at all.
+- The app opens a fan from MapLibre's map-click listener (`MapListeners.kt:150`, `map.addOnMapClickListener` → `MapTapHandler.onMapTap`
+  → `fan.open`).
+- In the pinned MapLibre 13.5.0, the map click is sent from `onSingleTapConfirmed` (javap of
+  `MapGestureDetector$StandardGestureListener`: `onSingleTapConfirmed` calls `notifyOnMapClickListeners`; `onSingleTapUp` only cancels
+  transitions).
+- MapLibre's gesture library (`maplibre-android-gestures` 0.0.4, `StandardGestureDetector`) wraps a plain `android.view.GestureDetector`
+  whose listener is also a double-tap listener. Android then confirms a single tap only once the double-tap timeout has passed since
+  the finger went down (`ViewConfiguration.getDoubleTapTimeout()`, 300 ms by default). Before then, a second tap would make it a
+  double-tap zoom. Double-tap zoom is on: the app never turns it off (no `DoubleTap` setting in `app/src/main`).
+- From finger-up, that is 300 ms less the time the finger was down, typically about 200 to 250 ms. The rest, about 30 to 80 ms, is
+  inferred to be the app's own path: the tap queries, Compose's next frame, and MapLibre re-tiling the copies' source. That split was
+  not measured.
+- **Not the hide gate (-371).** `fan.open` sets the members and `MarkerFanOutHost` starts the progress animation at once. The gate
+  delays only the hiding of the originals, never the fan's start (FanOutHideGate.kt's own record: "holding the fan's start" was
+  rejected).
+- **Not the route card series.** `git diff origin/pre-main...origin/route-card` touches none of the tap path (MapListeners.kt,
+  fanout/, MarkerFanOutState.kt, the build files and the MapLibre pin are unchanged). The planner's S22 run agrees: pre-main 278/279 ms
+  against #507 279/292 ms.
+
+**Why it was not shortened.** Starting the fan sooner means acting on the tap before Android knows it is not the first half of a double
+tap. Every way to do that is a behaviour choice:
+1. **Open the fan at finger-up when the tap lands on a stack; everything else as today.** This saves about 200 ms on a stack. A
+   double tap on a stack would then start the fan and fold it at once as the zoom begins: a flicker. It needs a touch detector of the
+   app's own in front of MapLibre's, for stacks only.
+2. **Turn off double-tap zoom on the map and take every tap at finger-up.** Every tap is about 200 ms faster (bubbles too). Double-tap
+   zoom goes; pinch and the buttons remain. It still needs the app's own tap detection, because MapLibre waits for the confirmed tap
+   either way.
+3. **Leave it.** It is the platform's double-tap wait, and pre-main has it too.
+
+## Part 3, the dimmer cream: not finished
+
+The red test is committed (`2180708cc`, pushed only to the ref `hazel-fan2-cream-red`, which I left for the next coder). It is not run
+and not on `route-card`. MarkerGlyphsTest and PlottedRouteSelectedStopTest now expect a day accent of #E3D3B5 (night #A2612C
+unchanged), and the day accent must differ from the plain pin and the plain flag. The one-line change still to make is
+`routeStopSelectedColour` in PlottedRouteLayers.kt.
+
+**The shade picked, and why.** Before: Cream #EDE3D0 (relative luminance 0.775, HSL lightness 0.87, saturation 0.45). Proposed:
+#E3D3B5, the same hue (39°) and saturation, with lightness 0.80. Its luminance is 0.663, and its contrast against the white casing is
+1.47:1, up from 1.27:1. The darker warm neutrals in the palette are all greyer, so none reads as cream: SurfaceContainerHighestLight
+#E2DCCC (saturation 0.27), OutlineVariantLight #D5CEBF (0.21) and NeutralGray200 #CFC9BE (0.15). Of those, #E2DCCC is the nearest
+fallback if the owner prefers a palette value. The owner judges the shade on the phone.
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, headless): with the accent, the copies the fan pushes now satisfy the render signal's own check, and the
+  gate hides every original, and the centre accent, by the first rendered frame whose copies are off their spots. Without the fix,
+  they never do.
+- Inferred: the three-frame render lag (the figure FanOutRenderSignal.kt records from the probe), and that MapLibre on the phone
+  behaves as the simulation does. The `MapView` frame listener and MapFan's hand-over of the accent cannot run under Robolectric.
+- Part 2's split, about 200 to 250 ms of system wait plus about 30 to 80 ms of app path, is inferred from source and bytecode, not
+  timed on a phone.
+
+## Could not determine
+
+- How long the S22 taps were held down, so the exact share of the double-tap wait in each tap.
+
+## Premises that were wrong
+
+- "The pause is likely introduced in the route card series" (the planner's first correction). Source and the later S22 run both say it
+  was not. The planner withdrew it.
+
+## Decided beyond scope
+
+- `awaitCopiesRendered` and `hideWhenCopiesDrawn` gained an `accent` parameter, and the per-frame check moved into the pure
+  `copiesReported` so a test can drive it.
+
+## S22 steps (part 1; nothing was run on a phone)
+
+1. With a saved route open and its selected stop in a stack of three, tap the stack at 120 fps capture. From the first frame a pin
+   moves, there is no cream (or beige) mark at the centre. The beige mark Rowan saw on #507 is gone.
+2. Fold (Back). The accent returns on its pin with no blink.
+3. The same at night (rust), and with a selected trip flag.
+4. In logcat (tag MarkerFanOut), there is no "did not report the N copies drawn" warning on these opens.
