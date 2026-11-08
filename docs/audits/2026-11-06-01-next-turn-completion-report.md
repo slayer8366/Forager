@@ -1360,3 +1360,57 @@ The scope is Amendment 1, J5. The owner's go: "Record it", "Build it", "Animate 
 ### Clean-up
 - Scratch `/mnt/work/scratch/hazel-arrows5` (700) holds the runner, the run results and both probes' worktrees. Throwaway refs deleted at the end (listed in the hand-back).
 - PR #500 stays a draft. Final SHA: this commit.
+
+## J6, built: 1 failure left, stopped at one question, #500 stays a draft (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J6. The owner's go: "Record it", "Build it". **Built:** "Lines leave (as built)" as 15 changed claims, and "Arrow own line here" as a one-line change. **Full CI is not green: 1 failure** (run 42428697341), `RouteCardSundownStepsAsideFont20Test`, no longer the loop: the route card shows no leg row (stop below). #500 is not taken out of draft. Marks as in the sections above.
+
+### Base and commits [observed]
+- At the start: `origin/next-turn` 4e8df0524, `origin/pre-main` 82d4a091a (already merged), `origin/records-after-173` e629259a9; worktree clean. All as the dispatch said. `origin/nav-card-kind-line` had moved by one doc-only commit (32251448d, the outline-clash diagnosis); merged in with -m.
+- `6ab0090de` tests first (the 15 claims and the J6 unit test); `8146fa254` the build.
+- Other coders' files: `git diff HEAD...origin/route-card` (67c93c119) and `...origin/nav-card-kind-line`: no file shared with mine. `NavigationCardOutlineEveryEdgeTest.kt`, which `hazel-clash-498-fix-hold` changes, was not touched.
+
+### What changed [read, 8146fa254]
+- `NavigationCardNextTurnPlace.kt`: `eveningLine && !eveningStepsAside -> OWN_LINE` became `eveningLine -> OWN_LINE`. The parameter stays (marked unused) so the J6 case is named where the place is decided and in its unit test.
+- Claims changed, none silenced, no tolerance widened:
+  - T11 measurement step 06 at font 2.0, both windows (8 cases): both evening lines off. Step 05 (one sundown line) still claims the line, and passes.
+  - T11Fixes item 2: the card on the bottom edge with the lines off in both windows. The `tallestMovesUp` switch is removed. The 823 claim "line on the card, dot clear" went with it; NavigationCardMovesUpTest holds the cases that fit.
+  - RouteCardOnNavigationCard Font20Evening, ShortFont20Evening, ShortFont20AfterSunset: `sundownLineShown = false`.
+  - RouteCardSundownStepsAside Short, ShortNoElevation, ShortAfterSunset: `lineExpected = false`.
+  - The J5 unit test became J6's: OWN_LINE while stepped aside.
+
+### Evidence [observed; every log read for compile errors first: 0 in each]
+- **Red**, tests first, run 42428687227 at 6ab0090de (filtered, 99 tests): 2 failed. The J6 unit test (`expected OWN_LINE`), and StepsAsideFont20 (AppNotIdle, the loop). The 14 other changed claims pass there, because J5 already makes the lines leave. Their bite is shown by the next revert.
+- **Forward, full CI**, PR run 42428697341 at 8146fa254: **7295 tests, 1 failed, 24 skipped.** Of J5's 17 failures, 16 pass: 15 by the changed claims, and T11Fixes 780 by 55d5f15e7's scoped claim (its first CI run). The loop is gone. Pre-main's latest run is 42337576510 at 1f6901a11 (82d4a091a is [skip ci]): 6846 tests, 0 failed. By name, the one failure is not a pre-main test failing there.
+- **Revert for (2)**, one line (`eveningLine ->` back to `eveningLine && !eveningStepsAside ->`), run 42428708546 at c101ec35d: the J6 unit test fails, and StepsAsideFont20 is **AppNotIdle** again. Both failures come from this edit.
+- **Revert of J5's height count**, to show the changed claims bite (`pieces.sumOf { maxOf(lineHeightPx, wrappedHeightPx(it)) }` → `pieces.size * lineHeightPx`), run 42428716738 at ce1ab5b7e: 18 failed. They are the 14 changed claims that are not unit tests (T11 06 ×8 "reads <Back by 6:40 PM>", T11Fixes 823, RouteCardOnNavigationCard ×3 "expected 0", StepsAsideShort ×3 "expected 0 but was 1"), plus J5's own tests (Lift unit, UnderStrip) and StepsAsideFont20's leg row.
+- Each revert ran on its own worktree. The file was restored from a copy saved before the edit and checked equal to 8146fa254's, and the main worktree was checked unchanged afterwards.
+
+### Question for the owner (stop)
+**The route card shows no leg row at 823 x 384, font 2.0, in the evening, with 6 stops, expanded.** "With the arrow on its own line (your 'Arrow own line here'), the saved route's card at the largest text in landscape, 6 stops, opened full, shows its title, Undo and Save, but no leg row at all. 3 stops shows its rows. Your option said the rows 'have less room'. Here they have none. On this screen the sunset line has already stepped off before the route card opens, because the card can't fit it even moved up. But the arrow still takes its own line, as if the line were there, so the navigation card is 140 dp tall. Which do you want: (a) accept no rows in this case (the test's claim changes); (b) where the evening line has already stepped off for room, the arrow goes to the card's right part as it does in the daytime (one line shorter, about 32 dp; it needs a check that this can't loop); or (c) something else gives way?" Measured (run 42428697341): the navigation card 244..384 dp; the route card expanded 8..260 dp; title 47..122, Save 191..244, leg row 0 height 0.
+
+### Confirmed and inferred
+- [observed]: the runs, counts and messages above, the D42 prints, and scan 0 before every push.
+- [inferred]: that (b) would give the rows their room. Not tried. The arrow's place feeds the card's height, so it needs the same no-feedback care as H12.
+
+### Could not determine
+- The phone's figures (no phone).
+
+### Premises that were wrong
+- "StepsAsideFont20 green" once the loop is gone: it no longer loops, but it fails at the leg row, as J5's item-1 revert (run 42423031141) had already shown.
+- "With a route card open after sunset (the evening line stepped aside)": in StepsAsideFont20 there is no line to step aside. It had already left for room before the card opened.
+
+### Decided beyond scope (open to the owner)
+- `eveningStepsAside` is kept as a named, unused parameter rather than removed, so the one-line revert compiles and the ruling is stated in code.
+
+### S22 steps (the arrows; for after the stop, nothing here is for the phone yet)
+1. Landscape, text size 2.0, daytime, navigating home by trail with a turn ahead: the arrow and its distance sit in the card's right part, with "by trail" under the distance.
+2. The same after sunset with the sunset line on the card (one line, the card moved up above the blue dot): the arrow has its own line under the turn line, centred.
+3. The same with Back by as well: the card stays on the bottom edge and both evening lines are gone. The arrow keeps its own line.
+4. Still after sunset, open a saved route's card: the arrow keeps its own line, and the cards do not jump up and down. Open the route card full with 6 stops and note whether any leg row shows (the stop above).
+5. Close the route card: the navigation card is as it was in step 2 or 3.
+6. Portrait at text size 1.0: the arrow beside the needle, the whole turn line centred. Turn the phone to landscape and back, and the arrow returns to its place.
+
+### Clean-up
+- Throwaway refs deleted from origin: `hazel-arrows6-red`, `hazel-arrows6-rev-place`, `hazel-arrows6-rev-wrap` (their runs stay readable by number). Scratch `/mnt/work/scratch/hazel-arrows6` (700) holds the runner, the results and the revert worktrees.
+- PR #500 stays a draft. Final SHA: this commit.
