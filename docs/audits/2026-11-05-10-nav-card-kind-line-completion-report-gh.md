@@ -1292,3 +1292,139 @@ continuous"); go **"Build it"**). Marks as above.
 - Landscape, side bar shown, navigating (with and without a saved route's card open), by day and at night: at the bottom of the
   screen, where the navigation card's end meets the side bar's rounded bottom corner, the card's end edge carries the outline down to
   the screen's bottom, so no map shows there unlined. Check that the side bar's own line above and its corner arc are unchanged.
+
+## E21, built: the card's end line in line with the side bar's, no 1 dp step (a fresh session, 2026-11-08)
+
+Written by Hazel (Opus), dispatch 2026-11-05-10, Amendment 1, E21 (RECORD -2181: on the S22, build 4914, E20's end line ran about
+1 dp nearer the map than the side bar's line above it. The owner: **"Option 1. It has never been any other way. This must be from
+context drift."**, the option: "Where the navigation card meets the side bar, one shared line, no 1 dp step"; go **"Build it"**).
+Marks as above.
+
+### Base and commits
+
+- At the start [observed]: `origin/nav-card-kind-line` 32251448d, `origin/next-turn` ff784b309 (which already contained 32251448d),
+  `origin/pre-main` 82d4a091a, as the dispatch expected. Own worktree `~/.cache/forager-wt/nav-card-e21`.
+- Shared files [observed before each push, `git diff --name-only origin/pre-main...origin/<branch>`]: this change shares no file with
+  `route-card` or `journal-locate-outline`.
+
+| Commit | What |
+|---|---|
+| 9fecfde6c | New test `NavigationCardEndLineInLineTest.kt` (16 cases). |
+| aaeaa8822 | The fix, and E20's reading in the outline check moved to where the line now lies. |
+| 3ed6f6d2b | Test correction 1: the line read against the card's fill (red run 42440723930 reported no line, not the step). |
+| b432ca195 | E20's reading: outside the edge only with the side bar shown (filtered run 42440853552: fullscreen cases). |
+| 7f76746f2 | Test correction 2: band rows read against the bare map (red run 42442571747: the side bar's arc read as outside). |
+
+### The cause [read, 1521649bb and `CompactMapLandscapeNavigationCard.kt`]
+
+- The side bar's line lies a stroke wide just inside the side bar, so just beyond the card's edge (RECORD -990's shared side). E20 drew
+  the card's end line a stroke wide just inside the card's edge, because the card's display is clipped to its bounds (`clipToBounds`
+  on its `AnimatedVisibility`), and E20's own doc and report said so: "one stroke (1 dp) nearer the map than the side bar's line". So
+  the step was built in, a stroke wide: 3 px at the test's density, the S22's 3 to 4 px.
+
+### The fix [read, `NavigationCardEndBesideRailCorner.kt`]
+
+- The end line is drawn centred half a stroke beyond the card's edge, in the side bar's line's columns, same brush and width, over the
+  same band as before (from where the side bar's corner starts to curve down to the card's bottom), only while the side bar is shown.
+- The card's clip becomes `clipToBoundsOpenBesideRailCorner`: the card's bounds as before, plus a column one stroke wide beyond the
+  side-bar edge over that band only. In fullscreen it is plain `clipToBounds`. Nothing else the card draws reaches that column (no
+  shadow since RECORD -2154; bottom corners square on the screen's edge), so only the line shows through. One line changed in
+  `CompactMapLandscapeNavigationCard.kt` (the clip); the band's arithmetic is shared by the line and the clip in one function.
+- Rejected: opening the clip a stroke down the card's whole side-bar edge. That would also show, under the side bar's 80% fill, the
+  card's top corner arc where it runs out to the side bar's line (RECORD -990), a change nobody asked for.
+
+### The test [`NavigationCardEndLineInLineTest.kt`]
+
+- The real `AvailabilityScreen` over a flat grey stand-in map, landscape, side bar shown, rotation 90 and 270 (the S22's insets,
+  mirrored), with and without a saved route's card resting on the card, by day and at night, at 891 x 411 dp and 640 x 360 dp at font
+  2.0 (E19/E20's two sizes): 16 cases.
+- It reads the side bar's line's columns on the six rows from 6 to 1 dp above where its corner starts to curve, and asserts it is one
+  stroke wide; then, on every row below where everything from just past that line to 2 dp out is exactly the bare map, it asserts the
+  card's end line is in exactly those columns and each of its pixels is the outline over the map (within 0.03 per channel). At least
+  one such row must be found; 23 were in every case.
+- E20's reading in `NavigationCardOutlineEveryEdgeTest.kt` read the line's pixels inside the card's edge. With the side bar shown it
+  now reads them just beyond it, over the map; in fullscreen (the card's own end edge drawn, inside) it reads inside as before. This is
+  a claim changed, not silenced: the line moved, and the new test claims where it moved to.
+
+### Red, tests first [observed, filtered on `*NavigationCardEndLineInLine*`, throwaway ref `hazel-e21-red` on E20's code]
+
+- Run 42440723930 (the first version of the check): 0 compile errors in the failed-job log; 16 of 16 failed, but each said "no line"
+  rather than the step. The pixels in the message showed E20's line where expected, 3 px inside the edge (by day 0.612 over the card's
+  0.867; at night 0.522 over 0.204), with the bare map in the side bar's columns. The check had required the line to be on the
+  outline's side of the map too, and E20's line over the card's fill is not (at night it is within 0.02 of the map's grey). A failure
+  that did not match the prediction, so the check was corrected first.
+- Run 42442571747 (corrected): 0 compile errors; 16 of 16 failed; by day "-3 px", at night the first row read the side bar's arc 2 dp
+  out (within 0.03 of the map) as the outside colour. Corrected again: band rows are read against the bare map, only on rows where
+  everything 2 dp out is exactly the map.
+- **Run 42444041104** (the check as it stands): 0 compile errors; 16 tests, **16 failed**, each "the card's end line steps off the side
+  bar's line (columns [2289, 2290, 2291]) on 23 of 23 rows; first: row 1210: the card's end line in columns [2286, 2287, 2288] (-3
+  px)" (S26 size, rotation 90; the other cases the same at their own columns, 640 dp: [1445..1447] against [1448..1450]). Day and
+  night alike. The no-Street-map job ran all 7015 and failed only those 16.
+
+### Green [observed]
+
+- Filtered on both classes at the fix (run 42444043012, ref `hazel-e21-fix`): 52 of 52 passed; each E21 case read 23 rows, 0 off the
+  side bar's line, 0 off the outline's colour. That run's no-Street-map job ran every test, green. An earlier filtered run (42440853552)
+  had failed the 16 fullscreen cases of the outline check, because my first move of E20's reading read outside the edge in fullscreen
+  too; corrected as above.
+- **#498, run 42445763155 at 7f76746f2**: every job green, 7069 tests, 0 failed.
+- By name against pre-main's latest run (42337576510 at 1f6901a11, 6846 tests, 0 failed; pre-main's head 82d4a091a is `[skip ci]`):
+  6810 names in both, 36 only on pre-main (the same 36 earlier sections report), 259 only here (E20's 243 plus these 16), all passing,
+  **0 names whose outcome differs**.
+
+### The revert [observed, run 42445796763 at 3a9697f70, throwaway ref `hazel-e21-revert`]
+
+- One line in `CompactMapLandscapeNavigationCard.kt`: `.clipToBoundsOpenBesideRailCorner(...)` back to `.clipToBounds()`. The file was
+  copied before the edit, the revert made in its own worktree, the forward branch untouched.
+- Failed-job log read first: 4198 lines, **0 compile errors**. Filtered on both classes: 52 tests, **32 failed**: the 16 E21 cases, each
+  "the card's end line in columns [] (none)" (the line, drawn beyond the edge, clipped away), and the 16 side-bar-shown cases of the
+  outline check, each missing at "end edge beside the side bar's bottom corner" (7 by day, 9 at night). Both are this revert's own: the
+  clip hides the line beyond the card's edge, so no line shows there. Fullscreen and portrait passed (their clip is unchanged). The
+  no-Street-map job ran all 7015 and failed the same 32, nothing else.
+- Restored from the saved copy; it is byte-identical to the forward file on the branch (`cmp`), which still carries the change.
+
+### Carried into #500 (`next-turn`) [observed]
+
+- Merged, never rebased: 2bee8b476 merges `nav-card-kind-line` 7f76746f2 into `next-turn` ff784b309. **No textual conflicts**: git
+  merged `CompactMapLandscapeNavigationCard.kt` and `NavigationCardOutlineEveryEdgeTest.kt` on its own (next-turn's edits there, J3
+  step 3's lift and J4's moved-up reading, sit on other lines).
+- **One semantic conflict, resolved in 399a68db8**: next-turn moves the card up (J3 step 3) and gives E20's end line a gap that includes
+  the move (`bottomGap = controls' bottom padding + drawnLiftPx`). The merged clip still took the bottom padding alone, so with the
+  card moved up it would have opened its column beyond the edge where no end line is drawn, letting the moved card's rounded bottom
+  corner (drawn out to the side bar's line, J4) show past its edge. The clip now takes the same gap as the line, so the opening
+  follows the line and closes once the card is moved up 16 dp or more. Both sides' intent kept: J3/J4's lift and outline unchanged,
+  E21's line and opening as on #498.
+- **#500, run 42447453302 at 399a68db8**: every job green, 7314 tests, 0 failed. By name against pre-main's latest run (42337576510):
+  6808 in both, 38 only on pre-main, 506 only here, all passing, **0 names whose outcome differs**. Against #500's previous run
+  (42435494495 at ff784b309, 7298 tests): all 7298 in both, 16 new (E21's), **0 outcome changes**. #500 is out of draft.
+
+### Confirmed, inferred, could not determine, premises that were wrong
+
+- **Confirmed** [observed]: in Robolectric, E20's end line lay exactly one stroke (3 px at xxhdpi) nearer the map than the side bar's
+  line in all 16 cases, day and night, both rotations, route card on and off, both sizes; after the fix it lies in the same three
+  columns, in the outline's colour over the map, on every row read (23 per case); the one-line revert brings back exactly this edit's
+  failures with a clean compile; #498 and #500 are green with no shared test changing outcome.
+- **Inferred**: that the S22's "about 1 dp, 3 to 4 px" is this same one-stroke step (the code draws a 1 dp stroke inside the edge on
+  every device; the test's density is 3.0). That the clip's opening shows only the line on a phone, as it does in Robolectric
+  (nothing else the card draws reaches that column, read from the code).
+- **Could not determine**: how the joined line looks on the S22, and whether the side bar's curving line and the card's straight line
+  read as one where they part at the corner's start (they touch there; they did before E21 too, one stroke apart). Not tested: a
+  bottom inset (gesture navigation), where the band is computed from the controls' bottom padding.
+- **Premises that were wrong**: none in E21. The dispatch's "context drift" reading is consistent with the record: E20's own doc and
+  report recorded the 1 dp offset as a choice forced by the clip.
+
+### Decided beyond the dispatch
+
+- The clip on the card's display changes shape (a stroke-wide opening over the band), rather than being removed, so nothing else the
+  card draws past its edge appears. In fullscreen it is the plain clip, as before.
+- The new test is its own file, so `NavigationCardOutlineEveryEdgeTest.kt`, which next-turn also edits, changed only in E20's reading
+  (5 lines) and its doc.
+- The merge follow-up (399a68db8) on next-turn, as above.
+
+### S22 step (E21)
+
+- Landscape, side bar shown, navigating, at both rotations, with and without a saved route's card open, by day and at night, at the
+  default display size and at the largest text: at the bottom of the screen, where the side bar's rounded bottom corner curves away,
+  the navigation card's end line continues straight down from the side bar's line, in the same place, colour and thickness: one line,
+  no 1 dp step. Zoom a screenshot to the pixel: the line's columns below the corner's start are the side bar's columns above it.
+  Check that the side bar's own line and its corner arc are unchanged, and that in fullscreen the card's end edge is as before.
