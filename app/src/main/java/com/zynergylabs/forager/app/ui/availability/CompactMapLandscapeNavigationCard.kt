@@ -128,21 +128,9 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     val isNavigating = navigation.isNavigating
     val density = LocalDensity.current
     val (bottomEnter, bottomExit) = navigationChromeFromBottomTransitions()
-    // Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outline: its top and rounded top corners and its side facing the
-    // map; its rail side once the rail has slid away, unless that side is then on the screen's edge; its bottom is the screen's.
-    val cardLayoutDirection = LocalLayoutDirection.current
-    val cardOutlineSides = landscapeColumnOutlineSides(
-        railPortEdge = railPortEdge,
-        railShown = !isFullscreen,
-        railSideInset = if (railPortEdge == ScreenEdge.Left) {
-            controlsPadding.calculateLeftPadding(cardLayoutDirection)
-        } else {
-            controlsPadding.calculateRightPadding(cardLayoutDirection)
-        },
-        innerSideDrawn = true,
-        top = true,
-        bottom = false,
-    )
+    // Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outline (RouteCardRailSide.kt, where the route card resting on this card
+    // reads the same rule for its side by the rail; Sorrel's review of PR #507, item 1.1).
+    val cardOutlineSides = landscapeNavigationCardOutlineSides(railPortEdge, isFullscreen, controlsPadding, LocalLayoutDirection.current)
     val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
     // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
     LaunchedEffect(Unit) {

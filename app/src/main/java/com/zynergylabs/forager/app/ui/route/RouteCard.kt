@@ -54,6 +54,7 @@ import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.map.mapChromeOutline
+import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 
@@ -191,6 +192,8 @@ fun RouteCard(
     onNaturalHeightsPx: (RouteCardNaturalHeights) -> Unit = {},
     /** Amendment 6, A2 (RECORD -2187): where the card is in its tuck, slid toward its edge with its content faded (`RouteCardFace.kt`). */
     tuck: RouteCardTuckDraw = RouteCardTuckDraw.RESTING,
+    /** Sorrel's review of PR #507, item 1.1 (RECORD -2187, -967): the side that meets the side bar and draws no line of its own. */
+    bareSide: ScreenEdge? = null,
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -200,7 +203,7 @@ fun RouteCard(
             .testTag(ROUTE_CARD_TAG)
             .mapChromeContainerColor(fill)
             // Amendment 5's outline and A1's corners (RouteCardFace.kt): the fill and the line are drawn here, the Surface only clips.
-            .routeCardFace(shape, fill, mapChromeOutline(), cornerFill, tuck),
+            .routeCardFace(shape, fill, mapChromeOutline(), cornerFill, tuck, bareSide),
         shape = if (tuck.slide == 0f) shape else RouteCardSlidShape(shape, tuck),
         color = Color.Transparent,
         contentColor = contentColour,

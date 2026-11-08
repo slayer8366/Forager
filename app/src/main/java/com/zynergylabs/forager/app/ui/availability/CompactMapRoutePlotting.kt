@@ -335,6 +335,8 @@ internal fun BoxScope.CompactMapRouteCard(
                         hideElevation = hideElevation,
                         onNaturalHeightsPx = { naturalHeights = it },
                         tuck = tuck,
+                        // Sorrel's review of PR #507, item 1.1 (RECORD -2187, "(c) All three"; -967): no line of its own against the side bar.
+                        bareSide = routeCardBareSide(landscapeRoom, cardOnLeft, isFullscreen, controlsPadding, layoutDirection),
                         modifier = Modifier
                             // Not there at all while tucked: a disabled draggable still counts as a touch target, so the card's
                             // whole bounds kept long-presses from the map (run 42493712752's grid; RouteCardTuckCloseTest).
