@@ -891,3 +891,84 @@ from `1a6a69f2d`; `origin/pre-main` was `82d4a091a` at the start and the end, so
    wedge of the route card shows between that rounded corner and the route card's square corner, with the navigation card's outline
    along the curve and no line on the wedge's map side. Judge whether that wedge reads as finished. Repeat in Night Mode, and with the
    phone turned the other way.
+
+# Amendment 4, built: the deleted-stop reason on its own line under the buttons
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC. The owner: **"Own line under buttons"** (Amendment 4, read on `origin/records-after-173`,
+`prompts/preserved/2026-11-06-05-amendment-4.md`), build go **"Build it"**. Branch `route-card`, from `666867aeb` as briefed;
+`origin/pre-main` was `82d4a091a` at the start and the end and is already in `route-card`, so nothing was merged in.
+
+## What was built
+
+- `cf77aec71` + `43990e276` (test): `RouteCardNavigateReasonLineTest` (new, 149 lines). On the real compact Maps tab at the S22's portrait
+  window (`w384dp-h823dp-xxhdpi`) with native graphics (real text measurement), a saved route whose first stop's waypoint is deleted (only
+  the second stop's waypoint is on the phone), opened by a real touch on its marker; Navigate greyed. Checked at font scale 1.0 and 2.0
+  (each case asserts the scale it ran at): the words are exactly the owner's and none is cut off; Navigate and Directions are in one row,
+  Navigate left of Directions; the reason's top is at or below both buttons' bottoms; the reason runs from the card's side padding to its
+  side padding (within 1 dp); every line but the last ends at a space, so no word is broken. `43990e276` only adds a missing import: the
+  first red run (42438495157) did not compile and was not read as a result.
+- `28b6d3534` (fix): `RouteCardSavedButtons` in `ui/route/RouteCardStops.kt` (now 120 lines) is a column: the row of Navigate and
+  Directions at its end, as before, then, only when the stop leads nowhere, the reason at full width under it. The words and the greying are
+  unchanged; nothing else in the card moved. With no deleted stop, the card is exactly as before (the row alone).
+
+## Verified, and how
+
+- **Red, test alone** (`hazel-rc4-red` at `43990e276`, run **42439101958**, filtered to `RouteCardNavigateReasonLineTest` and
+  `RouteCardNavigateTest`; **0 compile errors** in the build job's log, read first). 11 tests, **2 failed**, both the new test, from the JUnit
+  XML: at 1.0, "the reason under the buttons: its top 599.0.dp vs their bottoms 675.0.dp, 675.0.dp", the reason 45 dp wide in 7 lines
+  `[This , stop's , waypoi, nt was , moved , or , deleted]`; at 2.0, "nothing cut off", the reason 15 dp wide in 35 lines, one letter
+  each. So the S22's finding (a narrow column, words broken mid-word) reproduced on the real screen. `RouteCardNavigateTest` (9) passed.
+- **Green: full CI, run 42440439690 at `28b6d3534`** (PR #507), every job success, including the full suite with the Street map deleted.
+  The new test's own measurements: at 1.0 the reason runs 12 dp to 235.7 dp of a 247.7 dp card, 4 dp under the buttons, in 2 lines
+  `[This stop's waypoint was moved or , deleted]`; at 2.0, 12 dp to 308 dp of a 320 dp card, in 2 lines
+  `[This stop's waypoint was , moved or deleted]`.
+- **By name against pre-main's latest run** (**42337576510** at `1f6901a11`; `82d4a091a` is one `[skip ci]` commit past it), both runs'
+  JUnit XML: 6846 vs 6928 test cases (6822 passed and 24 skipped vs 6904 and 24), **no outcome changed** on any name in both; 12 gone and 94
+  new, all passing (the same 12 and 92 as part 7's comparison, plus this test's 2). Against part 7's green (42427958402 at `67c93c119`):
+  **nothing gone, no outcome changed, 2 new**, exactly this test's two.
+- **One one-line revert** in its own scratch worktree (`hazel-rc4-revert` at `123303216`, from `28b6d3534`): in `RouteCardStops.kt`,
+  `Column(Modifier.fillMaxWidth()) {` → `Row(Modifier.fillMaxWidth()) {`, which puts the reason back in the button row. Run
+  **42440456516**, filtered as the red; the build job's log has **0 compile errors**, `compileDebugUnitTestKotlin` ran, and the build failed
+  at `testDebugUnitTest` on exactly the 2 tests, XML timestamped inside this run. Both fail "nothing cut off": the reason measured 0 dp wide
+  beside Directions (235.7 dp..235.7 dp at 1.0, 308 dp..308 dp at 2.0), 41 lines of one character: the row squeezing it out, which is
+  what this edit does. `RouteCardNavigateTest` (9) passed. The file was then restored from the copy saved before the edit and
+  `cmp`-matched the forward file; the forward lines (`Column(Modifier.fillMaxWidth())`, the reason's `fillMaxWidth()`) are present on
+  `origin/route-card`.
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, the real Maps tab, real text measurement): with a stop's waypoint deleted, the reason sits on its own line
+  under Navigate and Directions, at the card's width inside its padding, words whole, at font scale 1.0 and 2.0 in the S22's portrait
+  window; the buttons stay in one row at the row's end; no shared test changed outcome.
+- Inferred, not run: the same on the phone (Robolectric's fonts and insets are not the S22's; CLAUDE.md). The "moved" case lays out the
+  same way, since it is the same flag (`stopLeadsNowhere`) and the same composable; `RouteCardNavigateTest`'s moved case still passes but
+  does not measure the layout. Landscape and the navigation-card placement were not measured.
+
+## Could not determine
+
+- **Whether two lines is what the owner pictured.** The sketch in Amendment 4 shows the sentence on one line. The card is not the screen's
+  width: it is sized to its own content (`rememberRouteCardWidth`), 247.7 dp at the default text size in this window, which leaves
+  223.7 dp for the reason, and the sentence needs a little more, so it wraps once, at a space: "This stop's waypoint was moved or" /
+  "deleted". The ruling says "the card's full width", which is what was built; widening the card for the reason would change its size
+  and is not in the ruling, so it was not done. A question for the owner, below.
+
+## Premises that were wrong
+
+- None found. `route-card` was at `666867aeb` and `pre-main` (`82d4a091a`) already in it, as briefed.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- No space added between the buttons and the reason beyond what the buttons' own touch area gives (4 dp in the measurement), and none
+  under it beyond the card's bottom padding.
+
+## Questions for the owner
+
+- At the default text size the reason takes two lines in the card ("...moved or" / "deleted"), because the card is narrower than the
+  sentence. Is that fine as it is, or should the card widen so the sentence fits on one line when it shows?
+
+## S22 step (nothing was run on a phone)
+
+10. **The reason on its own line.** Plot and save a route of two waypoints, then delete the first waypoint (Records). Open the route on the
+    map. Navigate is greyed; Navigate and Directions stay in one row at the card's right; under them, starting at the card's left padding,
+    "This stop's waypoint was moved or deleted" reads in whole words, wrapping (if at all) only between words. Repeat with the phone's
+    largest text size. Then restore the waypoint (or pick the second stop): the reason is gone and the card looks as before.
