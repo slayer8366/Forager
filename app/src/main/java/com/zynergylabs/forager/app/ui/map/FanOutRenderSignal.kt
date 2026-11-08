@@ -36,7 +36,10 @@ internal fun expectedCopies(members: List<FanMember>, accent: FanKey? = null): E
             val observationId = member.key.featureId.toLongOrNull()
             if (observationId != null) dots += observationId.toString() else unnumbered++
         } else {
-            val image = markerIconForLayer(layerId)?.imageId ?: continue
+            // Amendment 6, the fan's opening (-2190): the image the copy is drawn with, the accent's for the selected stop. Expecting its
+            // layer's own image left the selected stop's copy unmatched, so the hide waited for the fan to rest and the highlighted
+            // original stayed at the centre 216 ms after the pins left (S22).
+            val image = fanCopyIcon(layerId, member.key, accent)?.imageId ?: continue
             icons += "$image:${member.key.featureId}"
         }
     }
