@@ -222,7 +222,9 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             // J3 step 3: moved up where it must be ([navigationCardLift]); 0 on the bottom edge.
             .offset { IntOffset(0, -drawnLiftPx.roundToInt()) }
             .width(with(density) { (layout.landscapeStripWidthPx.toDp() - narrowBy).coerceAtLeast(0.dp) })
-            .clipToBounds()
+            // E21 (RECORD -2181, the owner: one shared line, no 1 dp step): clipped as before, but open a stroke beyond the side-bar edge
+            // over the side bar's rounded bottom corner, where the card's end line continues the side bar's ([navigationCardEndBesideRailCorner]).
+            .clipToBoundsOpenBesideRailCorner(com.zynergylabs.forager.app.ui.map.MAP_CHROME_OUTLINE_WIDTH, railPortEdge, railShown = !isFullscreen, bottomGap = controlsPadding.calculateBottomPadding())
             .leavingTakesNoTouches(leaving = !isNavigating),
     ) {
         NavigationHud(
