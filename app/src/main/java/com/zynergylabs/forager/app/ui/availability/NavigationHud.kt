@@ -205,6 +205,8 @@ internal fun NavigationHud(
     /** D42 (RECORD -2021): the evening lines step aside for the route card resting on this card; [onEveningShown] is told when they show. */
     eveningStepsAside: Boolean = false,
     onEveningShown: (Boolean) -> Unit = {},
+    /** J7 (dispatch 2026-11-06-01, Amendment 1): see [NavigationInfo]'s own. */
+    eveningOffForRoom: Boolean = false,
     /**
      * RECORD -844, -845: the return has ended on arrival and the display holds "Arrived" until it closes by
      * itself. The large slot reads "Arrived" whatever the fix says ([heldArrivalReadout]), so a drive-off
@@ -254,6 +256,7 @@ internal fun NavigationHud(
                 eveningLineTopLimitInRootPx = eveningLineTopLimitInRootPx,
                 eveningStepsAside = eveningStepsAside,
                 onEveningShown = onEveningShown,
+                eveningOffForRoom = eveningOffForRoom,
                 arrivalHeld = arrivalHeld,
                 heightMeters = heightMeters,
                 onHeightWithEvening = onHeightWithEvening,

@@ -153,8 +153,11 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     val boxTopPx = cluster.mapContentBoxTopInRootPx
     val stripBottomPx = with(density) { boxTopPx + controlsPadding.calculateTopPadding().toPx() } + layout.landscapeStripHeightPx
     val lInColumns = lInCardColumns(cluster)
-    val lift = navigationCardLift(
-        liftCase = landscapeLargeText && !cluster.navigationEveningStepsAside,
+    // J7 (RECORD -2183, the owner: "(b) Arrow to the right part"): whether the card with its evening line could fit even moved up is
+    // decided whether or not the line steps aside for the route card (D42), so the next turn's place can tell the line off for room
+    // from the line stepped aside only for the route card. Stepping aside, the card does not move ([lift]), as before.
+    val roomLift = navigationCardLift(
+        liftCase = landscapeLargeText,
         heightWithEveningPx = heightWithEveningPx,
         bottomEdgePx = with(density) { boxTopPx + cluster.mapContentBoxHeightPx - controlsPadding.calculateBottomPadding().toPx() },
         topLimitPx = topLimitPx,
@@ -163,6 +166,7 @@ internal fun BoxScope.CompactMapNavigationDisplay(
         lTopPx = lInColumns?.top,
         lBottomPx = lInColumns?.bottom,
     )
+    val lift = if (cluster.navigationEveningStepsAside) NavigationCardLift.OnBottomEdge else roomLift
     val noRoom = lift as? NavigationCardLift.NoRoom
     LaunchedEffect(noRoom) { if (noRoom != null) Log.i(LIFT_LOG_TAG, "J3 step 3: the card stays on the bottom edge and the evening line leaves it (RECORD -955): ${noRoom.reason}") }
     val liftPx = (lift as? NavigationCardLift.Up)?.px ?: 0f
@@ -253,6 +257,8 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             // would not otherwise fit (the route card decides, from this card's measured heights), and come back when it closes.
             eveningStepsAside = cluster.navigationEveningStepsAside,
             onEveningShown = { cluster.navigationEveningShown = it },
+            // J7: the evening line can't fit even moved up, so the next turn takes the right part, as in daytime.
+            eveningOffForRoom = roomLift is NavigationCardLift.NoRoom,
             onHeightWithEvening = { height, large -> heightWithEveningPx = height; landscapeLargeText = large },
             // RECORD -953: its top two corners round; its bottom is square on the screen edge. No tuck. J4 (RECORD -2183, the owner:
             // "Round and outline"): moved up off that edge, its bottom corners round too.

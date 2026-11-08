@@ -92,6 +92,19 @@ class NavigationCardNextTurnPlaceTest {
         }
     }
 
+    // J7 (RECORD -2183), the owner: "(b) Arrow to the right part": where the evening line has already stepped off for room (it can't
+    // fit even moved up), the next turn goes in the right part as in daytime, the card one line shorter; J6's own line stays where the
+    // line steps aside only for the route card.
+    @Test
+    fun `J7 - landscape at font 1,5 and up with the evening line off for room puts the next turn in the right part, stepping aside or not`() {
+        for (decided in listOf(NextTurnPlace.BESIDE_NEEDLE, NextTurnPlace.OWN_LINE)) {
+            assertEquals("$decided, off for room: J7, the right part", NextTurnPlace.RIGHT_PART, nextTurnPlaceNow(decided, landscapeLargeText = true, eveningLine = true, eveningOffForRoom = true))
+            assertEquals("$decided, off for room and stepping aside: J7, the right part", NextTurnPlace.RIGHT_PART, nextTurnPlaceNow(decided, landscapeLargeText = true, eveningLine = true, eveningStepsAside = true, eveningOffForRoom = true))
+            assertEquals("$decided, stepping aside only for the route card: J6's own line", NextTurnPlace.OWN_LINE, nextTurnPlaceNow(decided, landscapeLargeText = true, eveningLine = true, eveningStepsAside = true, eveningOffForRoom = false))
+            assertEquals("$decided, step 1 is not changed by J7", decided, nextTurnPlaceNow(decided, landscapeLargeText = false, eveningLine = true, eveningOffForRoom = true))
+        }
+    }
+
     // J4 (RECORD -2183), the owner: "Follow the largest rule": landscape at fonts 1.5 and 1.8 follow the font-2.0 rule. Was "J3 -
     // landscape at font 2,0 is the case steps 2 and 3 name, and nothing else is", with 1.5 and 1.8 not asked (they kept step 1).
     @Test

@@ -21,7 +21,10 @@ internal enum class NextTurnPlace {
     /** On its own line under the turn line, centred in the left part (J2, "Own line where needed"). */
     OWN_LINE,
 
-    /** In the card's right part, where the evening line goes, landscape at font 2.0 with no evening line (J3 step 2). */
+    /**
+     * In the card's right part, where the evening line goes, landscape at font 2.0 with no evening line (J3 step 2), or with one that
+     * can't fit even moved up (J7).
+     */
     RIGHT_PART,
 }
 
@@ -52,6 +55,15 @@ internal fun nextTurnPlaceNow(
      * back, and so on (J5's probe run 42425317006).
      */
     @Suppress("UNUSED_PARAMETER") eveningStepsAside: Boolean = false,
+    /**
+     * J7 (RECORD -2183, the owner: "(b) Arrow to the right part", the option reading "where the evening line has already stepped off
+     * for room, the arrow goes to the card's right part as it does in the daytime (one line shorter, about 32 dp; it needs a check that
+     * this can't loop)"): the evening line can't fit on the card even moved up ([NavigationCardLift.NoRoom], decided by the host from
+     * the card's height as with that line and its own line, so this place cannot feed back into it). Then the right part is free, as
+     * in daytime, and the card is a line shorter, so a full route card resting on it gets its rows. Where the line steps aside only for
+     * the route card ([eveningStepsAside] alone), J6's own line stays.
+     */
+    eveningOffForRoom: Boolean = false,
 ): NextTurnPlace = when {
     !landscapeLargeText -> decided
     eveningLine -> NextTurnPlace.OWN_LINE

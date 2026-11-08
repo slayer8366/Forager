@@ -94,6 +94,8 @@ internal fun NavigationInfo(
      */
     eveningStepsAside: Boolean = false,
     onEveningShown: (Boolean) -> Unit = {},
+    /** J7 ([nextTurnPlaceNow]): the evening line can't fit on the card even moved up, decided by the host ([NavigationCardLift.NoRoom]). */
+    eveningOffForRoom: Boolean = false,
     /** The strip's live height above sea level (dispatch 2026-10-28-13), so the card's cannot differ from it. */
     heightMeters: Double? = null,
     /**
@@ -133,6 +135,9 @@ internal fun NavigationInfo(
         // the decision to leave it out cannot feed back into what it is decided on.
         var partsTopInRootPx by remember { mutableFloatStateOf(Float.NaN) }
         var leftHeightPx by remember { mutableFloatStateOf(0f) }
+        // J7: where the next turn was when [leftHeightPx] was measured, so the left part's height with the evening line is reckoned
+        // from what was drawn, whichever place that was.
+        var leftMeasuredPlace by remember { mutableStateOf(NextTurnPlace.OWN_LINE) }
         var linesBelowHeightPx by remember { mutableFloatStateOf(0f) }
         // Amendment 1, H2 to H4: the status words are in the right part, under the evening lines; their measured height.
         var statusHeightPx by remember { mutableFloatStateOf(0f) }
@@ -152,12 +157,18 @@ internal fun NavigationInfo(
         val pieceMeasurer = rememberTextMeasurer()
         val stackPiecesPx = eveningStackHeightPx(pieces, pieceHeightPx) { pieceMeasurer.measure(it, eveningStyle, constraints = Constraints(maxWidth = stackRightPx)).size.height }
         val rightWithStackPx = stackPiecesPx + statusHeightPx
-        val heightWithStackPx = topPaddingPx + maxOf(leftHeightPx, rightWithStackPx) + linesBelowHeightPx + bottomPaddingPx
+        // J7 (RECORD -2183, "it needs a check that this can't loop"): in landscape at font 1.5 and up the card with its evening line has
+        // the next turn on its own line (J3 step 3), so its height with the line counts that line wherever the next turn is drawn now.
+        // Read as drawn, the right part (J7, the line off for room) took a line off this height, which could make room for the line,
+        // which put the next turn back on its own line, which took the room again.
+        val ownLinePx = maxOf(with(LocalDensity.current) { COMPASS_ICON_SIZE.toPx() }, rememberTextMeasurer().measure("8", MaterialTheme.typography.labelMedium, maxLines = 1).size.height.toFloat())
+        val leftWithEveningPx = leftHeightPx + if (evening.landscapeLargeText && leftMeasuredPlace != NextTurnPlace.OWN_LINE) ownLinePx else 0f
+        val heightWithStackPx = topPaddingPx + maxOf(leftWithEveningPx, rightWithStackPx) + linesBelowHeightPx + bottomPaddingPx
         // A margin once shown, so a top a pixel either side of the limit cannot flip the decision back and forth.
         val marginPx = if (lastEveningShown) with(LocalDensity.current) { EVENING_LIMIT_MARGIN.toPx() } else 0f
         val eveningShown = !eveningStepsAside && pieces.isNotEmpty() && eveningLineFits(
             partsTopInRootPx + linesBelowHeightPx,
-            maxOf(leftHeightPx, rightWithStackPx),
+            maxOf(leftWithEveningPx, rightWithStackPx),
             bottomPaddingPx,
             eveningLineBottomLimitInRootPx,
         ) && eveningStackFitsBelow(infoBottomInRootPx, heightWithStackPx, eveningLineTopLimitInRootPx?.let { it - marginPx })
@@ -189,7 +200,8 @@ internal fun NavigationInfo(
         // live), as the space draws and says it; blank in every state but a figure (E1) and on a way with no trail route (E2, E3).
         val nextTurnShown = nextTurnSpaceShown(readout, hasFix = liveFix != null, ahead = nextTurnOf(route), unit = distanceUnit)
         // J3: in landscape at font 2.0 the right part with no evening line, its own line with one; J2's decision everywhere else.
-        val nextTurnPlace = nextTurnPlaceNow(evening.nextTurnPlace, evening.landscapeLargeText, eveningLine = pieces.isNotEmpty(), eveningStepsAside = eveningStepsAside)
+        // J7: the right part too where the line can't fit even moved up.
+        val nextTurnPlace = nextTurnPlaceNow(evening.nextTurnPlace, evening.landscapeLargeText, eveningLine = pieces.isNotEmpty(), eveningStepsAside = eveningStepsAside, eveningOffForRoom = eveningOffForRoom)
         val heldFit = measuredNavigationInfoFit(readout, partsPx, metrics, holdSundown, holdBackBy, distanceUnit, evening)
         // Amendment 1, H12 (the owner: "(a) Leave out "Dark since"", the option reading "In that one case the evening line doesn't show;
         // "by trail" keeps its own line"; the planner's reading: "the decision must settle, never loop"): where the evening line would
@@ -220,7 +232,7 @@ internal fun NavigationInfo(
                     nextTurn = nextTurnShown,
                     nextTurnPlace = nextTurnPlace,
                     distanceUnit = distanceUnit,
-                    onLeftHeight = { leftHeightPx = it },
+                    onLeftHeight = { leftHeightPx = it; leftMeasuredPlace = nextTurnPlace },
                     onStatusHeight = { statusHeightPx = it },
                     modifier = Modifier
                         .fillMaxWidth()
