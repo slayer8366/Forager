@@ -43,7 +43,7 @@ import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
 import com.zynergylabs.forager.app.ui.route.RouteCardEdge
-import com.zynergylabs.forager.app.ui.route.RouteCardOutline
+import com.zynergylabs.forager.app.ui.route.RouteCardTabOutline
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 
 /*
@@ -151,7 +151,7 @@ internal fun BoxScope.RouteCardTab(cardOnLeft: Boolean, controlsPadding: Padding
                         .size(width = 4.dp, height = 24.dp)
                         .background(LocalContentColor.current.copy(alpha = 0.4f), RoundedCornerShape(2.dp)),
                 )
-                RouteCardOutline(shape, setOf(if (cardOnLeft) RouteCardEdge.LEFT else RouteCardEdge.RIGHT))
+                RouteCardTabOutline(shape, if (cardOnLeft) RouteCardEdge.LEFT else RouteCardEdge.RIGHT)
             }
         }
     }

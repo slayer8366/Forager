@@ -134,6 +134,8 @@ sealed interface RouteCardContent {
         val selectedStop: Int = 0,
         val canNavigate: Boolean = false,
         val stopLeadsNowhere: Boolean = false,
+        /** Navigating (Amendment 5): Navigate, Directions and the reason are hidden until navigation ends (`RouteCardStops.kt`). */
+        val navigating: Boolean = false,
     ) : RouteCardContent
 }
 
@@ -181,8 +183,6 @@ fun RouteCard(
      * depend on the room the card is given.
      */
     onNaturalHeightsPx: (RouteCardNaturalHeights) -> Unit = {},
-    /** The screen edge the card is flush against, which its outline leaves open (dispatch 2026-11-06-05, step 6, and Amendment 3; `RouteCardEdges.kt`). */
-    openEdges: Set<RouteCardEdge> = emptySet(),
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -212,7 +212,9 @@ fun RouteCard(
         val handlePx = with(density) { HANDLE_LAYOUT_HEIGHT.roundToPx() }
         val bottomPx = with(density) { contentBottomPadding.roundToPx() }
         val linesNatural = handlePx + nameNatural + totalNatural + elevationLeftOut + buttonsNatural + bottomPx
-        LaunchedEffect(linesNatural, elevationPx, firstRowNatural) { if (totalNatural > 0 && buttonsNatural > 0) currentOnNatural(RouteCardNaturalHeights(linesNatural, elevationPx, firstRowNatural)) }
+        // Amendment 5: while navigating a saved route's buttons are hidden, so their 0 height is a measurement, not one still to come.
+        val buttonsHidden = (content as? RouteCardContent.Saved)?.navigating == true
+        LaunchedEffect(linesNatural, elevationPx, firstRowNatural) { if (totalNatural > 0 && (buttonsNatural > 0 || buttonsHidden)) currentOnNatural(RouteCardNaturalHeights(linesNatural, elevationPx, firstRowNatural)) }
         Box {
         Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING, bottom = contentBottomPadding).onSizeChanged { columnPx = it.height + with(density) { contentBottomPadding.roundToPx() } }) {
             RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
@@ -235,8 +237,8 @@ fun RouteCard(
             Box(Modifier.naturalHeight { buttonsNatural = it }) { RouteCardButtons(content, callbacks) }
         }
         if (content is RouteCardContent.Saved) RouteCardCloseButton(callbacks.onClose)
-        // Amendment 3 (RECORD -2187, the owner: "Stop at the top"): the part tucked behind the navigation card carries none of it.
-        RouteCardOutline(shape, openEdges, coveredBottom = contentBottomPadding)
+        // Amendment 5 (RECORD -2187): the map chrome's outline all round; the part tucked behind the navigation card carries none of it.
+        RouteCardOutline(shape, coveredBottom = contentBottomPadding)
         }
     }
 }

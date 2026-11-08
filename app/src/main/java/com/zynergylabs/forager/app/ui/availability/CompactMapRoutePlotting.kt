@@ -50,7 +50,6 @@ import com.zynergylabs.forager.app.ui.route.DiscardRouteDialog
 import com.zynergylabs.forager.app.ui.route.RouteCard
 import com.zynergylabs.forager.app.ui.route.RouteCardCallbacks
 import com.zynergylabs.forager.app.ui.route.RouteCardContent
-import com.zynergylabs.forager.app.ui.route.routeCardOpenEdges
 import com.zynergylabs.forager.app.ui.route.legInFlight
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.route.rememberRouteCardWidth
@@ -140,8 +139,11 @@ internal fun savedRouteCameraRequest(controls: RoutePlottingControls?, cardHeigh
     )
 }
 
-/** What the card shows for [controls]' state, `null` for no card; on a saved route, its selected stop and whether Navigate can go. */
-private fun routeCardContent(controls: RoutePlottingControls?, sources: MapRecordSources?): RouteCardContent? = when (val mode = controls?.state?.mode) {
+/**
+ * What the card shows for [controls]' state, `null` for no card; on a saved route, its selected stop, whether Navigate can go, and
+ * whether a navigation is running ([navigating], the screen's one navigation predicate), which hides its buttons (Amendment 5).
+ */
+private fun routeCardContent(controls: RoutePlottingControls?, sources: MapRecordSources?, navigating: Boolean): RouteCardContent? = when (val mode = controls?.state?.mode) {
     // Amendment 8 (RECORD -1896): the elevation lines while plotting, from each leg's trail heights. A saved route has none
     // until step 3b stores them.
     is RoutePlotMode.Plotting -> RouteCardContent.Plotting(
@@ -151,7 +153,7 @@ private fun routeCardContent(controls: RoutePlottingControls?, sources: MapRecor
         legElevations = mode.draft.legs.map(::legElevation),
     )
     is RoutePlotMode.Showing -> mode.trip.route?.let {
-        RouteCardContent.Saved(mode.trip.name, it.stops, it.legs, selectedStop = controls.state.selectedStop, canNavigate = routeCardCanNavigate(controls, sources), stopLeadsNowhere = selectedStopTarget(controls, sources) == null)
+        RouteCardContent.Saved(mode.trip.name, it.stops, it.legs, selectedStop = controls.state.selectedStop, canNavigate = routeCardCanNavigate(controls, sources), stopLeadsNowhere = selectedStopTarget(controls, sources) == null, navigating = navigating)
     }
     RoutePlotMode.Off, null -> null
 }
@@ -186,7 +188,10 @@ internal fun BoxScope.CompactMapRouteCard(
     sources: MapRecordSources? = null,
     /** Amendment 3: whether the map is fullscreen when Navigate is tapped, for the Back order (`RouteCardBackOrder.kt`). */
     isFullscreen: Boolean = false,
-    /** Amendment 1, step 1: navigating, when Re-center can show, so the portrait card leaves its room (RouteCardReCenterRoom.kt). */
+    /**
+     * Amendment 1, step 1: navigating, when Re-center can show, so the portrait card leaves its room (RouteCardReCenterRoom.kt); and
+     * Amendment 5: while navigating, a saved route's card hides Navigate, Directions and the reason.
+     */
     isNavigating: Boolean = false,
 ) {
     val context = LocalContext.current
@@ -194,7 +199,7 @@ internal fun BoxScope.CompactMapRouteCard(
     val layoutDirection = LocalLayoutDirection.current
     val state = controls?.state
     val actions = controls?.actions
-    val content = routeCardContent(controls, sources)
+    val content = routeCardContent(controls, sources, isNavigating)
     val shownContent = rememberLastShown(content)
     val shownActions = rememberLastShown(actions)
     val leaving = content == null
@@ -322,7 +327,6 @@ internal fun BoxScope.CompactMapRouteCard(
                             onNavigate = { startRouteCardNavigation(controls, sources, isFullscreen) },
                             onSelectStop = shownActions::onSelectStop,
                         ),
-                        openEdges = routeCardOpenEdges(portrait, cardOnLeft, onNavigationCard != null),
                         expandedMaxHeight = expandedMaxHeight,
                         shape = shape,
                         contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,

@@ -41,7 +41,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  *
  * The buttons: Navigate, left of Directions (Amendment 1, step 5), to the selected stop. Where it cannot go, Navigate is greyed and the
  * owner's words stand on their own line under the buttons (Amendment 4: "Own line under buttons"), as written: "This stop's waypoint
- * was moved or deleted".
+ * was moved or deleted". While navigating, the buttons and the reason are hidden, and they come back when navigation ends (Amendment 5).
  */
 
 /** The owner's reason, verbatim (Amendment 2: "As I wrote it"). */
@@ -99,6 +99,9 @@ internal fun ColumnScope.RouteCardStopRows(
  */
 @Composable
 internal fun RouteCardSavedButtons(content: RouteCardContent.Saved, callbacks: RouteCardCallbacks) {
+    // Amendment 5 (RECORD -2187), the owner: "navigate and directions are still visible on the route card while navigating. Fix this by
+    // removing both buttons.", and of the reason, "They should hide." They come back when navigation ends, however it ends.
+    if (content.navigating) return
     Column(Modifier.fillMaxWidth()) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Spacer(Modifier.weight(1f))
