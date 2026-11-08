@@ -78,12 +78,15 @@ class NavigationCardNextTurnPlaceTest {
         }
     }
 
-    // J5 (RECORD -2183), the owner: "Into the freed right part": with a saved route's card open after sunset at fonts 1.5 and up in
-    // landscape, the evening line stepped aside (D42), the next turn sits in the right part, so the card is no taller.
+    // J6 (RECORD -2183), the owner: "Arrow own line here" ("With a route card open after sunset, the arrow keeps its own line (no loop;
+    // the route card's rows have less room)"), which replaces J5's "Into the freed right part". Was "J5 - landscape at font 1,5 and up
+    // with the evening line stepped aside for the route card puts the next turn in the freed right part", RIGHT_PART while stepped aside:
+    // the card got a line shorter, the route card's room (read from the card's height) brought the line back, and the two looped
+    // (J5's probe run 42425317006; RouteCardSundownStepsAsideFont20Test, AppNotIdle).
     @Test
-    fun `J5 - landscape at font 1,5 and up with the evening line stepped aside for the route card puts the next turn in the freed right part`() {
+    fun `J6 - landscape at font 1,5 and up with the evening line stepped aside for the route card keeps the next turn on its own line`() {
         for (decided in listOf(NextTurnPlace.BESIDE_NEEDLE, NextTurnPlace.OWN_LINE)) {
-            assertEquals(decided.name, NextTurnPlace.RIGHT_PART, nextTurnPlaceNow(decided, landscapeLargeText = true, eveningLine = true, eveningStepsAside = true))
+            assertEquals("$decided, stepping aside: J6, its own line", NextTurnPlace.OWN_LINE, nextTurnPlaceNow(decided, landscapeLargeText = true, eveningLine = true, eveningStepsAside = true))
             assertEquals("$decided, not stepping aside: J3 step 3's own line", NextTurnPlace.OWN_LINE, nextTurnPlaceNow(decided, landscapeLargeText = true, eveningLine = true, eveningStepsAside = false))
             assertEquals("$decided, step 1 is not changed by stepping aside", decided, nextTurnPlaceNow(decided, landscapeLargeText = false, eveningLine = true, eveningStepsAside = true))
         }

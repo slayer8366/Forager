@@ -70,6 +70,9 @@ abstract class RouteCardSundownStepsAsideTests(legHeights: Boolean = true, clock
      * rig's lost fix and missing compass take one line under the parts, not two, so the line fits by -955's rule and D42 steps it aside
      * when the card opens (CI run 42278603468). Was `lineExpected = false` there: "at 640 x 360 with the S22's insets -955's dot rule
      * already leaves it out, so only D44 is left to make the room".
+     * Dispatch 2026-11-06-01, Amendment 1, J6 (RECORD -2183, the owner: "Lines leave (as built)"): `false` again at 640 x 360, font 2.0,
+     * in the evening and just after sunset. With the card's height counted as drawn (J5's defect fix) the card with its sundown line
+     * can't fit even moved up, so it stays at the bottom and the line steps off (RECORD -955) before any card opens. Was `true`.
      */
     protected fun assertStepsAsideWhereShort(lineExpected: Boolean? = null) {
         start()
@@ -126,7 +129,7 @@ abstract class RouteCardSundownStepsAsideTests(legHeights: Boolean = true, clock
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardSundownStepsAsideShortTest : RouteCardSundownStepsAsideTests() {
     @Test
-    fun `evening, 640 x 360, font 2_0, the S22's insets - the card is whole at peek and its rows show when expanded`() = assertStepsAsideWhereShort(lineExpected = true)
+    fun `evening, 640 x 360, font 2_0, the S22's insets - the card is whole at peek and its rows show when expanded`() = assertStepsAsideWhereShort(lineExpected = false)
 }
 
 /** The same with legs that carry no trail heights, so no elevation line at all: the S22's case in session 10. */
@@ -135,7 +138,7 @@ class RouteCardSundownStepsAsideShortTest : RouteCardSundownStepsAsideTests() {
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardSundownStepsAsideShortNoElevationTest : RouteCardSundownStepsAsideTests(legHeights = false) {
     @Test
-    fun `evening, 640 x 360, font 2_0, the S22's insets, no elevation line - the card is whole at peek and its rows show when expanded`() = assertStepsAsideWhereShort(lineExpected = true)
+    fun `evening, 640 x 360, font 2_0, the S22's insets, no elevation line - the card is whole at peek and its rows show when expanded`() = assertStepsAsideWhereShort(lineExpected = false)
 }
 
 /** The S22's normal landscape window (823 x 384 dp) at font 1.0. */
@@ -169,5 +172,5 @@ class RouteCardSundownStepsAsideFont20Test : RouteCardSundownStepsAsideTests() {
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardSundownStepsAsideShortAfterSunsetTest : RouteCardSundownStepsAsideTests(clock = ROUTE_CARD_AFTER_SUNSET_CLOCK) {
     @Test
-    fun `just after sunset, 640 x 360, font 2_0, the S22's insets - the line steps aside, the card is whole and its rows show`() = assertStepsAsideWhereShort(lineExpected = true)
+    fun `just after sunset, 640 x 360, font 2_0, the S22's insets - the line steps aside, the card is whole and its rows show`() = assertStepsAsideWhereShort(lineExpected = false)
 }

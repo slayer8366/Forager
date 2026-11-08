@@ -91,14 +91,7 @@ import org.robolectric.shadows.ShadowDisplay
  * lower, so the fit of the L under the display at font 1.0 with an evening line is a device item (2 dp short there, by the
  * T11 report's arithmetic).
  */
-abstract class HudLandscapeT11Fixes(
-    /**
-     * J5 (RECORD -2183, the owner: "Yes, lines leave"): whether, at font 2.0 with Try again and both evening lines, moving the card up
-     * keeps it under the compass strip in this window. Where it would pass the strip (780 x 360) the card stays on the bottom edge and
-     * the lines leave it, as RECORD -955 has it.
-     */
-    private val tallestMovesUp: Boolean = true,
-) {
+abstract class HudLandscapeT11Fixes {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -432,17 +425,15 @@ abstract class HudLandscapeT11Fixes(
         val strip = tag(T11_STRIP_TAG)
         println("MEASURED J5 item 2: card $hud, strip bottom ${strip.bottom.value}, screen bottom ${window().bottom.value}, evening line ${nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).size}")
         assertTrue("J3 step 3, J5: the card's top ${hud.top} is under the compass strip's bottom ${strip.bottom}", hud.top >= strip.bottom - 0.5.dp)
-        if (tallestMovesUp) {
-            assertTrue("J3 step 3: the evening line stays on the card", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isNotEmpty())
-            assertTrue("J3 step 3: the card $hud covers none of the walker's dot (y $walkerY)", hud.bottom <= walkerY - WALKER_DOT_RADIUS + 0.5.dp || hud.top >= walkerY + WALKER_DOT_RADIUS - 0.5.dp)
-        } else {
-            // J5 (RECORD -2183, the owner: "Yes, lines leave"): moved up, the card would pass the compass strip, so it stays on the
-            // bottom edge and the evening lines leave it (RECORD -955). Was J3 step 3's "the evening line stays on the card" here too.
-            assertTrue("J5: the card stays on the bottom edge (its bottom ${hud.bottom}, the screen's ${window().bottom})", kotlin.math.abs((hud.bottom - window().bottom).value) <= 0.5f)
-            assertTrue("J5: the evening lines leave the card", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isEmpty())
-            // "As today" (RECORD -955 C, "Overlap left at font 2.0 is accepted"): what overlap of the dot Try again leaves on the bottom
-            // edge is measured (the line below), not asserted, as it was before J3 step 3.
-        }
+        // J5 (RECORD -2183, the owner: "Yes, lines leave"), then J6 ("Lines leave (as built)"): moved up, the card would pass the
+        // compass strip, so it stays on the bottom edge and the evening lines leave it (RECORD -955). With the card's height counted as
+        // drawn (J5's defect fix) that holds in both windows, 780 x 360 and 823 x 384. Was J3 step 3's "the evening line stays on the
+        // card" and "the card covers none of the walker's dot" at 823 x 384 (`tallestMovesUp`, true there): one sundown line still moves
+        // up with the card and stays on it, which NavigationCardMovesUpTest holds.
+        assertTrue("J5, J6: the card stays on the bottom edge (its bottom ${hud.bottom}, the screen's ${window().bottom})", kotlin.math.abs((hud.bottom - window().bottom).value) <= 0.5f)
+        assertTrue("J5, J6: the evening lines leave the card", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isEmpty())
+        // "As today" (RECORD -955 C, "Overlap left at font 2.0 is accepted"): what overlap of the dot Try again leaves on the bottom
+        // edge is measured (the line below), not asserted, as it was before J3 step 3.
         println("MEASURED -955 font 2.0 at its tallest: display $hud, dot at y ${walkerY.value} r ${WALKER_DOT_RADIUS.value}, overlap ${!(hud.bottom <= walkerY - WALKER_DOT_RADIUS || hud.top >= walkerY + WALKER_DOT_RADIUS)}")
         val needle = tag(NAVIGATION_HUD_NEEDLE_TAG)
         assertTrue("the needle $needle is inside the display $hud", needle.left >= hud.left && needle.right <= hud.right && needle.top >= hud.top && needle.bottom <= hud.bottom)
@@ -738,4 +729,4 @@ class HudLandscapeT11FixesAt823Test : HudLandscapeT11Fixes()
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w780dp-h360dp-land-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
-class HudLandscapeT11FixesAt780Test : HudLandscapeT11Fixes(tallestMovesUp = false)
+class HudLandscapeT11FixesAt780Test : HudLandscapeT11Fixes()
