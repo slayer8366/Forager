@@ -61,7 +61,8 @@ data class RoutePlottingUiState(
     val selectedStop: Int = 0,
     /**
      * Item 3: Navigate was tapped on this open card, so one Back ends that navigation with the card still open (Amendment 1, step 5),
-     * and the card's own Back tier stands aside while it runs. A route closed or opened starts without it.
+     * and the card's own Back tier stands aside while it runs. A route closed or opened starts without it, and it is cleared when that
+     * navigation ends (Sorrel's review of PR #507, note 3.2), so a later navigation not started from the card is not taken for the card's.
      */
     val navigatedFromCard: Boolean = false,
     /**
@@ -88,6 +89,8 @@ interface RoutePlottingActions {
     fun onSetTucked(tucked: Boolean)
     fun onSelectStop(index: Int)
     fun onNavigatedFromCard(inFullscreen: Boolean)
+    /** Note 3.2: the screen's waypoint navigation is not running (it ended, by any route, or none ran); clears [RoutePlottingUiState.navigatedFromCard]. */
+    fun onWaypointNavigationOver()
     /** Amendment 3: fullscreen was left, by any route. */
     fun onFullscreenLeft()
     /** Amendment 3: Back ended the card's navigation while [inFullscreen]. */
@@ -243,6 +246,11 @@ class RoutePlottingViewModel(
     override fun onNavigatedFromCard(inFullscreen: Boolean) {
         if (_uiState.value.mode !is RoutePlotMode.Showing) return
         _uiState.update { it.copy(navigatedFromCard = true, backOrder = it.backOrder.navigated(inFullscreen)) }
+    }
+
+    override fun onWaypointNavigationOver() {
+        if (!_uiState.value.navigatedFromCard) return
+        _uiState.update { it.copy(navigatedFromCard = false) }
     }
 
     override fun onFullscreenLeft() {

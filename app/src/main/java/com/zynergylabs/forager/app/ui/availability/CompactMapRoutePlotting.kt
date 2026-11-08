@@ -417,6 +417,9 @@ internal fun RoutePlottingBackHandler(
     // Amendment 3: Back undoes whichever came last of Navigate and fullscreen (RouteCardBackOrder.kt). Leaving fullscreen, by any
     // route, clears the order; the screen's fullscreen step and its waypoint-navigation step take the presses this tier stands aside for.
     LaunchedEffect(isFullscreen) { if (!isFullscreen) controls?.actions?.onFullscreenLeft() }
+    // Sorrel's review of PR #507, note 3.2: when the waypoint navigation is not running, none is the card's, so a later one started
+    // elsewhere (a bubble, the Records list) is not taken for it. Keyed on the navigation only: Navigate tells the card before it starts.
+    LaunchedEffect(navigatingToWaypoint) { if (!navigatingToWaypoint) controls?.actions?.onWaypointNavigationOver() }
     val step = controls?.state?.backOrder?.step(isFullscreen, navigationFromCard)
     val takes = when (step) {
         RouteCardBackStep.CLOSE_CARD -> true
