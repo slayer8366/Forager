@@ -1531,3 +1531,64 @@ Sorrel's review of PR #500 (`prompts/preserved/2026-11-08-sorrel-review-500-fina
 ### Clean-up
 - Throwaway refs `hazel-rv500-probe`, `hazel-rv500-fwd`, `hazel-rv500-e1-revert` and `hazel-rv500-d42-revert` are deleted from origin after the full run. Their runs stay readable by number.
 - PR #500 stays ready for review, not merged.
+
+## J8, built (Hazel, 2026-11-08)
+
+The scope is Amendment 1, J8, with its "J8 answers" (RECORD -2183). The owner: "No, fix it", "Map moves dot up (Recommended)", "(b) Above top card (Recommended)", "(a) Landscape only"; the build go was given. **Built:** in landscape while navigating and following, where the card on top (the navigation card, or what rests on it) would cover the walker's dot, the camera's bottom padding keeps the dot's centre the dot's clearance (12 dp) above that card's *resting* top, through D29's existing padding shift; 0 where the card clears the dot, so the dot comes back when the card shrinks. The card itself is unchanged. Marks as in the sections above.
+
+### Base and commits [observed]
+- At the start `origin/next-turn` was cafe5849e, as the dispatch said; the earlier Hazel's worktree `~/.cache/forager-wt/next-turn-j8` (branch `next-turn-j8-local`) was clean at it and was reused. next-turn did not move during the work.
+- `a03eff083`: tests first (the real Maps tab). `1cc818e14`: the build and the input test. Then this report.
+- Not touched: `RouteCard*.kt`, `CompactMapRoutePlotting.kt`. `MapIconClusterState.kt` gained two properties placed after `navigationLowestBarTopInRootPx`, away from route-card's added `reCenterWordFitsAtBottomCentre` (which sits after `navigationCardBoundsInRoot`; checked with `git diff origin/pre-main...origin/route-card -- '**/MapIconClusterState.kt'`).
+
+### The premises, checked from source at cafe5849e [read]
+All held: `NavigationView.kt` `applyView` sends padding (side, top 25 %, side, 0), so the dot is at 62.5 % of the map's height; D29's `NavigationSideInsets` reach the camera through `NavigationModeChange.shiftPadding` (MapNavigationView's second effect, keyed on the insets, 750 ms linear, at once under Reduce Motion) and through `applyView`'s own landing (Re-center, locate, style load); `NudgeElastic.kt` `nudgePadding` adds the give on top of the view's sides; `walkerDotCentreInRootPx` (NavigationCardLift.kt) is a fixed formula from the map's height, so the camera's padding cannot feed back into the card's decisions.
+
+### What changed [read, 1cc818e14]
+- `ui/map/NavigationSideInsets.kt`: `bottomPx` (default 0) on `NavigationSideInsets`; `navigationViewPaddingPx` sends it as the bottom. `NavigationView.kt` `applyView` sends it too; `NudgeElastic.kt` `nudgePadding` adds the give on top of it.
+- New `ui/availability/NavigationDotAboveCard.kt` (85 lines): the pure decision `navigationDotAboveCardBottomPx` (the dot placed across by D29's sides; overlap of the dot's square across and up and down, else 0; bottom = 2 × (dot centre − (top − clearance))); its cluster-reading overload; and `navigationInsetsWithDotAboveCard`, which adds the bottom to D29's sides where navigating in landscape.
+- `CompactMapLandscapeNavigationCard.kt`: the card writes `navigationCardRestingBoundsInRoot`: its columns, and its top and bottom at its place (the bottom edge less `liftPx`, where it is going, less its laid-out height), not where it is drawn mid-glide or mid-slide; null when navigation ends.
+- `MapIconClusterState.kt`: `navigationCardRestingBoundsInRoot`, and `navigationRestingOnCardTopInRootPx`, the input for whatever rests on the navigation card; null here (nothing writes it on #500), when the navigation card's own resting top is used.
+- `AvailabilityCompactMapUi.kt`: the map slot's `navigationSideInsets` is `navigationInsetsWithDotAboveCard(<D29's expression, unchanged>, applies = navigating && landscape, cluster)`.
+
+### Evidence [observed; each run's log read for Kotlin compile errors (` e: `) before its results: 0 in each]
+- **Red**, tests first, filtered run 42502181047 at a03eff083 (`*NavigationDotAboveCard*`): 6 tests, 2 failed, both for J8's reason:
+  - 780 x 360: "J8 Try again and the evening lines: the card DpRect(left=345.3, top=194.0, right=674.0, bottom=360.0) covers none of the walker's dot at y 225.0.dp, x 390.0.dp";
+  - 823 x 384: "... the card DpRect(left=374.7, top=218.0, right=717.0, bottom=384.0) covers none of the walker's dot at y 240.0.dp, x 411.5.dp".
+  - The four font 1.0 "unchanged" cases passed (card tops 242 and 266 dp, clear of the dot's bottom at 237 and 252).
+- **Forward**, filtered run 42502422124 at 1cc818e14 (J8's classes, NudgeElasticTest, NavigationDotBesideCardTest, HudLandscapeT11FixesAt780/823): 61 tests, 0 failed, 0 skipped. Measured (the same in the revert run below, which also ran both real-screen classes on forward code): 780 x 360, bottom 258 px, the dot at 182.0 dp under a card top of 194.0; 823 x 384, bottom 204 px, the dot at 206.0 under 218.0; card shrunk (Try again gone, no evening): bottom 0, the dot back at 225.0 / 240.0.
+- **Revert** (one line, `val top = topCardTopInMap ?: cardInMap.top` → `val top = cardInMap.top`, the input ignored), run 42502480738 at a throwaway commit on 1cc818e14: 12 tests, 2 failed, both from the input test, and both ones this edit can cause: "a card resting on it with its top at 150: the dot's centre its clearance above that top expected:<138.0> but was:<218.0>" (218 is the navigation card's own top less 12), and "held" (the top at 60 is ignored, so nothing needs holding). The revert ran in its own worktree (`/tmp/hz-j8/rev`), the file restored from a copy saved before the edit and checked byte-equal to the forward file; the working worktree was clean with the forward line present.
+- **Full CI**, PR run 42504332419 at 1cc818e14: unit tests **7328, 0 failed, 24 skipped**; the Street-map-deleted job, lint, styles, the cutter and the Worker green. **The release packaging job failed: `java.lang.OutOfMemoryError: Java heap space` in `packageReleaseBundle` and `packageRelease`** (compile succeeded; the same job was green at cafe5849e, run 42492588638). Read as a runner memory failure, not caused by this change (a few Kotlin lines, no resources or dependencies); not touched. The report commit's own PR run re-runs it; its result is in the hand-back.
+- **By name against run 42492588638** (cafe5849e: 7316 tests, 0 failed, 24 skipped): no test that passes there fails or skips here; no name is absent here; the only new names are J8's 12 (7316 + 12 = 7328).
+
+### Confirmed and inferred
+- [observed] The runs, messages and measured bounds above; scan totals 0 before every push.
+- [inferred] That `bottomEdgePx − liftPx − height` is where the card rests on the phone: under Robolectric (no insets) the resting top matched the drawn top after settling (the dot at exactly top − 12 dp). With real insets the card is placed by the same `controlsPadding` the edge is computed from, as `navigationCardLift` already assumes.
+
+### Could not determine
+- The phone: Robolectric only. Whether MapLibre moves the camera as asked is device-only (the map is a stub, as in D29's test).
+- Sorrel's figures were card 172–360 dp at 780 x 360 (run 42422989647, before J7); at cafe5849e the card measured 194–360 (J7's next turn in the right part, 22 dp shorter). Still covering the dot, so the case stands.
+- Nothing proves the *resting* (not drawn) top through the real screen: the tests read settled states, where the two agree.
+
+### Premises that were wrong
+- None found. The dispatch's "the route card lives on #507": the route card and D42's resting on the navigation card already exist on #500; as instructed, its top is not supplied here.
+
+### Decided beyond scope (open to the owner)
+- While D29's sideways move is active (the route card expanded), the overlap test uses the dot where D29 puts it across, and the bottom is added on top where the navigation card still covers it there. The ruling says D29's move stays "as today"; this keeps it and only adds the bottom where the dot would still be covered.
+- Where the card on top reaches above the view's top padding (its top within 12 dp of the map's top quarter), the dot is held at the top padding's edge plus its clearance and the hold is logged. Not reachable with the cards as they are (the compass strip bounds them); a guard, not a behaviour.
+- Overlap across uses the navigation card's columns even when another card rests on it (D32 narrows both together).
+
+### What #507 must do to supply the route card's top
+- Once #500 is in pre-main and pre-main is merged into route-card: wherever the route card rests on the landscape navigation card, write its **resting** top in root px (where it is going, not where it is drawn mid-tuck or mid-slide) to `cluster.navigationRestingOnCardTopInRootPx`, and write `null` whenever it does not rest there (expanded, tucked away, elsewhere, closed, or not navigating). Nothing else: `navigationInsetsWithDotAboveCard` already reads it, and its absence falls back to the navigation card's own top.
+- A real-screen test on #507 that the dot sits 12 dp above the route card's top while it rests on the navigation card, through the requested padding as `NavigationDotAboveCardTest` reads it.
+
+### S22 steps (nothing here was run on the phone)
+1. Landscape, text size 2.0, after sunset with Back by set, navigating home where the route can't be found ("Try again" on the card): the card sits on the bottom edge and the blue dot glides up to sit just above the card's top, not under it.
+2. Tap Try again until the route comes back (the card gets shorter): the dot glides back down to where it sits today.
+3. Text size 1.0, the same state: the dot does not move (the card already clears it).
+4. Portrait, text size 2.0, the same state: nothing changes from today ("(a) Landscape only").
+5. In step 1's state, drag the map away, then tap Re-center: the dot comes back above the card, not under it.
+
+### Clean-up
+- Throwaway refs `hazel-j8-red`, `hazel-j8-green`, `hazel-j8-revert` deleted from origin after the full run; their runs stay readable by number. The revert worktree `/tmp/hz-j8/rev` removed.
+- PR #500 stays ready for review, not merged.
