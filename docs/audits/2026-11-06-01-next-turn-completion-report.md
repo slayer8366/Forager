@@ -949,3 +949,540 @@ Tag `SightingsMap`, after switching maps at least once with the position dot on,
 ### Clean-up
 
 The throwaway branch `next-turn-i10-rev-stylefile` is deleted from origin and its worktree removed. Its run stays readable by number. Scratch: `/mnt/work/scratch/hazel-i10` (mode 700).
+
+## 2b-2 step 2: stopped at the fit, nothing wired (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J, step 2, plus G5. The owner's words, verbatim: "Go ahead and begin part 2 of 500", then "Start the arrows as soon as it reports" and "Arrows after the needle". G4, the owner: "The arrows should fit since that line is being reduced from the whole string with two arrows and four words of text, to just those few things. But if it is too big bring it up then". **The space does not fit beside the needle in most cases, so this is a stop with measured widths (G4). Nothing is wired: the card, G5 and the touch test are not built.** Marks: [observed] is a CI run's XML or log read this session (its head SHA checked, its log checked for compile errors first), [read] is code read at the commit named, [inferred] is worked out and not measured.
+
+### Base and commits
+
+- At the start [observed]: `origin/next-turn` 5d39c9f01, `origin/nav-card-kind-line` 5e2c0a6c8, `origin/pre-main` 1f6901a11 (already in both), `origin/records-after-173` 9bd15f23f; worktree clean. All as the dispatch said.
+- `835c311fd`: origin/nav-card-kind-line merged in (merge, with a message and the Co-Authored-By line). A clean merge. pre-main had not moved, so there was nothing more to merge.
+- **The merge's CI** [observed]: PR run **42389602820** at 835c311fd, every job green, log 0 compile errors: **7183 tests, 0 failed, 24 skipped**. By name against pre-main's latest run 42337576510 at 1f6901a11 (6846 tests, 0 failed, 24 skipped): 36 names only on pre-main, which is the count #498's own sections report (renamed in #498), 373 only here, **0 names whose outcome differs**.
+
+### How the fit was measured
+
+- **A probe, not a build.** One throwaway test class, `NextTurnFitProbe`, on the throwaway ref `hazel-arrows-fit-probe` (c22f30c69, over 835c311fd, deleted after its run). It drives #498's own rig (`NavigationCardKindLineScreen`: the real `AvailabilityScreen`, the way home by trail, facing the turn) through 21 cases (portrait 320, 360, 384, 412 and 480 dp, landscape 780 x 360 and 823 x 384, each at fonts 1.0, 1.3 and 2.0) and five evening states each (none; before sunset; after sunset; "Dark since 5:23 PM"; "Dark since 10:23 PM", the widest). It prints a FIT line per reading and asserts nothing.
+- **Run 42389607585** (workflow_dispatch, filter `*NextTurnFitProbe`) [observed]: head SHA c22f30c69; the build job green, its log 0 compile errors; the XML holds 21 tests, 0 failed, and **105 FIT lines, 21 x 5**, so every case and state was read. The run was then cancelled while its second job (the Street map deleted, which reads nothing here) was still going.
+- **What each line measures**, in dp, in the turn line's own type (`labelMedium`, as `NextTurnSpace` uses):
+  - the left part, from the card's top line to the divider less its 6 dp gap;
+  - the turn line as #498 lays it out: E18's degrees' space (the widest of "0°" to "180°", "Target" and "No target"), 4 dp, the 22 dp needle: **85.7 at font 1.0, 102.0 at 1.3, 145.0 at 2.0**;
+  - the next turn's own space as step 1 built it: the 22 dp arrow, 4 dp and the widest of "88.8 mi" and "8888 ft": **71.3 at 1.0, 83.3 at 1.3, 115.3 at 2.0** (in kilometres 74.7, 88.0 and 122.3);
+  - so the turn line with the space beside the needle (A1), 4 dp between, needs **161.0 at 1.0, 189.3 at 1.3, 264.3 at 2.0**.
+
+### The fit [observed, run 42389607585]
+
+Each cell is the left part's width and, in brackets, how far the turn line with the next turn is **short** of it (+, does not fit) or has to spare (−). Miles.
+
+| Window, font | No evening line | Before sunset | After sunset | "Dark since 5:23 PM" | "Dark since 10:23 PM" |
+|---|---|---|---|---|---|
+| 320, 1.0 | 143.7 (+17.3) | 143.7 (+17.3) | 143.7 (+17.3) | 133.0 (+28.0) | 125.7 (+35.3) |
+| 320, 1.3 | 116.0 (+73.3) | 116.0 (+73.3) | 116.0 (+73.3) | 111.0 (+78.3) | 111.0 (+78.3) |
+| 320, 2.0 | 251.0 (+13.3) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+| 360, 1.0 | 183.7 (−22.7) | 183.7 (−22.7) | 183.7 (−22.7) | 173.0 (−12.0) | 165.7 (−4.7) |
+| 360, 1.3 | 156.0 (+33.3) | 156.0 (+33.3) | 156.0 (+33.3) | 141.7 (+47.7) | 132.3 (+57.0) |
+| 360, 2.0 | 291.0 (−26.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+| **384 (the S22), 1.0** | 207.7 (−46.7) | 207.7 (−46.7) | 207.7 (−46.7) | 197.0 (−36.0) | 189.7 (−28.7) |
+| **384 (the S22), 1.3** | 180.0 (+9.3) | 180.0 (+9.3) | 180.0 (+9.3) | 165.7 (+23.7) | 156.3 (+33.0) |
+| **384 (the S22), 2.0** | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+| 412, 1.0 | 235.7 (−74.7) | 235.7 (−74.7) | 235.7 (−74.7) | 225.0 (−64.0) | 217.7 (−56.7) |
+| 412, 1.3 | 208.0 (−18.7) | 208.0 (−18.7) | 208.0 (−18.7) | 193.7 (−4.3) | 184.3 (+5.0) |
+| 412, 2.0 | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+| 480, 1.0 | 198.0 (−37.0) | 198.0 (−37.0) | 198.0 (−37.0) | 198.0 (−37.0) | 198.0 (−37.0) |
+| 480, 1.3 | 276.0 (−86.7) | 276.0 (−86.7) | 276.0 (−86.7) | 261.7 (−72.3) | 252.3 (−63.0) |
+| 480, 2.0 | 199.3 (+65.0) | 199.3 (+65.0) | 199.3 (+65.0) | 177.3 (+87.0) | 162.7 (+101.7) |
+| 780 x 360, 1.0 | 176.3 (−15.3) | 176.3 (−15.3) | 176.3 (−15.3) | 165.7 (−4.7) | 158.3 (+2.7) |
+| 780 x 360, 1.3 | 137.0 (+52.3) | 137.0 (+52.3) | 137.0 (+52.3) | 122.7 (+66.7) | 113.3 (+76.0) |
+| 780 x 360, 2.0 | 263.0 (+1.3) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+| 823 x 384, 1.0 | 176.3 (−15.3) | 176.3 (−15.3) | 176.3 (−15.3) | 165.7 (−4.7) | 158.3 (+2.7) |
+| 823 x 384, 1.3 | 180.0 (+9.3) | 180.0 (+9.3) | 180.0 (+9.3) | 165.7 (+23.7) | 156.3 (+33.0) |
+| 823 x 384, 2.0 | 263.0 (+1.3) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) | 151.7 (+112.7) |
+
+- **In miles it fits in 38 of the 105 readings and not in 67.** In kilometres 37 (412 dp, font 1.3, "Dark since 5:23 PM" fits in miles by 4.3 dp and not in kilometres).
+- **At font 1.0** it fits everywhere but the 320 dp phone (17 to 35 dp short) and landscape with "Dark since 10:23 PM" (2.7 dp short). On the S22 it fits, with 29 to 47 dp to spare.
+- **At font 1.3** it fits only at 412 dp (but not with the widest evening line) and 480 dp. On the S22 it is 9 to 33 dp short.
+- **At font 2.0** it fits only at 360 dp with no evening line. Wherever the left part is its widest figure (151.7 dp: every evening line, and the S22 and 412 dp all day), it is 112.7 dp short: the next turn's space alone (115.3) is wider than the room right of the needle there.
+- **Placed in the room right of the needle instead,** leaving the degrees and the needle where #498 put them, it fits in **0** of the 105 (the spare there is at most about 61 dp at 1.0, short of 75.3).
+
+### Why "it should fit" does not hold [inferred from the widths above and #498's own]
+
+- The old turn line ("sharp right 169° ▲ ▲ 134° SE") is gone, as the owner said. But E18 ("Never moves") sized the degrees' space for "No target" in every state: 59.7 dp at font 1.0 where G3 had 28.0, 119.0 at 2.0 where G3 had 54.7. That ate much of what dropping the words saved.
+- The left part is as wide as the card leaves it, and at font 2.0 with an evening line that is the widest figure (151.7 dp), not the turn line's need.
+- The "next-turn reserve" in #498 (`nextTurnReservePx`, `NavigationInfo.kt`, `rememberCardEvening`) only decides whether the before-sunset line breaks at the ▪︎ (H5, H6, E18 (a)). It never held width in the left part. So it did not keep this room, and E18's wider measure changed only that one evening decision (412 dp, font 1.0).
+
+### Question for the owner (stop; options, nothing built)
+
+"The next-turn arrow and its distance ("↰ 88.8 mi") don't fit beside the needle on most screens: on the S22 they fit at normal text, but at the next text size up they're 9 to 33 dp short, and at the largest text 113 dp short; on a 320 dp phone they're short even at normal text. Where they don't fit, what should the card do?"
+
+- **(a) Their own line under the turn line, only where it doesn't fit.** Decided per screen and text size (not per value, so it never flips while walking), as the status words already do (H8: "Own line when too narrow (Recommended)"). The card is one line taller there. Beside the needle everywhere it fits (the S22 at normal text). *Recommended: it keeps A1 wherever there is room, keeps the text size ("Keep the text size the same size"), and has a precedent on this card.*
+- **(b) Always their own line under the turn line,** on every screen. One layout everywhere; the card is one line taller everywhere.
+- **(c) Beside the needle anyway, the card's left part widening and the evening and status column squeezing to make room** (RECORD -941's overflow rule). At the largest text the evening column would be left about 0 to 30 dp on 320 to 412 dp phones, so "Dark since 5:23 PM" would wrap a character or two a line. Not recommended.
+- **(d) In place of the degrees** (the dispatch's Q1 option "In place of the degrees", not chosen then). The degrees' space is 59.7 / 76.0 / 119.0 dp; the next turn needs 71.3 / 83.3 / 115.3: it fits at the largest text, and is 11.6 and 7.3 dp short at the other two unless that space widens. The degrees would no longer show.
+
+A smaller arrow (Phase 1's option (c), about 6 dp) closes none of the gaps above but the 2.7 dp one, so it is not offered on its own.
+
+### Confirmed and inferred
+
+- **[observed]:** the base; the merge and its green CI, 0 outcomes differing by name from pre-main; the probe's 105 readings, its compile log clean and its SHA checked; every width in the table.
+- **[read]:** that `nextTurnReservePx` feeds only `eveningBreaks` (835c311fd, `NavigationInfo.kt` and `NavigationCardEvening.kt`); that the left part's width is what the right part leaves (`leftPartWidthPx`, `NavigationCardParts.kt`'s `InfoParts`).
+- **[inferred]:** the "why" above; option (c)'s evening column (the parts' width less 264.3, not drawn); that the S22 draws within about 1% of these, as #498's sections found.
+
+### Could not determine
+
+- The phone's own widths (no phone in this dispatch). Screens between the tested widths. The way to a waypoint by trail was not read separately: its card is the same composable with the same top-line figure widths, so I expect the same table, but it was not measured.
+
+### Premises that were wrong
+
+- **G4's "The arrows should fit".** They fit in 38 of 105 readings; see the table. The owner's own words make that a stop.
+- **The dispatch's "the next-turn reserve is measured with E18's wider degrees space"** is true, but that reserve governs only the evening line's break, not room beside the needle (above). Read as a guarantee of room, it was wrong.
+- **"What step 2 needs" (step 1's own list, above) put the `nextTurn(...)` call in `CardTurnLine`.** The card holds no line or progress: they live in the way-home tick (`TrackRecordingRouteTicks`) and in `AvailabilityWaypointRoute`. Had it been built, the call would sit there and the result travel to the card on the route the card already gets. Not built; noted for whoever builds it.
+
+### Decided beyond scope
+
+- **Measured before wiring.** The dispatch's order was wire, then measure. I measured first, on a throwaway ref, because the fit decides whether there is anything to wire, and wiring an overflowing space would have changed what #498's tests hold (the needle's place) on a build that may not stand. Nothing on next-turn changed but the merge and this section.
+- **The "fit" counted** is the whole turn line (degrees' space, needle, next turn) centred in the left part as it is today, without widening the left part. Widening it is option (c).
+
+### S22 steps
+
+None yet: nothing a phone could show was built. After the owner's answer, the build's steps will be written with it.
+
+### Clean-up
+
+The throwaway ref `hazel-arrows-fit-probe` is deleted from origin and locally; its run stays readable by number. Scratch `/mnt/work/scratch/hazel-arrows` (mode 700) keeps the probe's source and its FIT lines for whoever builds the answer. PR #500 stays a draft.
+
+## 2b-2 step 2, built: handed back at a stop, nothing merged into next-turn (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J2 and G5. The owner, verbatim: "Own line where needed (Recommended)", the step path "Yes, that's it", and "Build it". **Built on the ref `next-turn-j2-wip` (eae8c8caf), not on next-turn: one full CI run showed the own line breaking an earlier ruling in landscape at the largest text, a visible change J2 did not rule on. That is a stop (below), and the session was near its size limit, so it is handed back here.** next-turn carries only this section. Marks as before.
+
+### Base [observed]
+origin/next-turn 9200dc226, origin/nav-card-kind-line 5e2c0a6c8, origin/pre-main 82d4a091a, origin/records-after-173 6a0fad950; worktree clean. All as the dispatch said. nav-card-kind-line had not moved on origin at hand-back (a local worktree of it sits at 390c069d4, unpushed, not mine).
+
+### What is on `next-turn-j2-wip` [read, eae8c8caf]
+- **The call where the line and progress live (J2).** `TrackRecordingRouteTicks.updateRouteHome` calls `nextTurn(nextTurnWayOf(shown), progress, here)` beside the figure and writes `TrackRecordingUiState.nextTurn`; `MainActivity` passes it to `returnRouteOf`, which puts it on `ReturnRoute.Ahead.nextTurn`. `AvailabilityWaypointRoute.show` puts it on its `ReturnRoute.Ahead`, and works it out again when the junctions arrive. New: `domain/nextturn/NextTurnWayOf.kt` (the way home as `NextTurnWay`: line, pending, no trail route). The card reads `nextTurnOf(route)` (`NextTurnSpaceShown.kt`): no route or `Straight` blank (E3), `Pending` not yet known, `Unavailable` held back (E1).
+- **The place (J2).** New `NavigationCardNextTurnPlace.kt`: `nextTurnPlace(...)` puts the next turn beside the needle where the turn line, 4 dp and the space fit the left part **at its narrowest**: the parts less the divider less the right part at its widest (its daytime width, or the widest evening piece the card can show on this phone's clock, `cardEveningPiecesAtWidest`, through the card's own formatters), never narrower than the left part's own need. Decided in `rememberCardEvening` (keys: width, font, clock, unit), so never per value and never as the evening comes, as H8 is. Beside: the space a gap right of the needle and the whole line centred (`CardTurnLine`). Own line: `NextTurnSpace` under the turn line, centred (`LeftPart`).
+- **G5.** `nextTurnWords`: `NoTurnLeft` gives "keep straight for <distance>"; turns and forks keep "in".
+- **Tests** (new, not yet run): `NextTurnOnCardTest`, `NextTurnOwnLineTest`, `NextTurnPlacementTest` (21 windows and fonts x 5 evening states), `NextTurnCardLongPressTest` (coordinate long-presses under the card, beside, own line, landscape), `NavigationCardNextTurnPlaceTest`, `NextTurnWayOfTest`, `TrackRecordingNextTurnTest` (through Return), `AvailabilityViewModelWaypointNextTurnTest` (through Navigate); rig `NextTurnCardRig.kt`. Step 1's four "keep straight in" assertions changed to "for" (G5's claim change).
+
+### Measured placements [observed, probe run 42397681417 on throwaway ref `hazel-arrows2-probe` 4b286197a: the WIP's code with a printing probe, not its tests; log 0 compile errors; 105 PLACE lines, 21 x 5]
+| Window | Font 1.0 | Font 1.3 | Font 2.0 |
+|---|---|---|---|
+| 320 | own line | own line | own line |
+| 360 | own line | own line | own line |
+| 384 (S22) | **beside** | own line | own line |
+| 412 | **beside** | own line | own line |
+| 480 | **beside** | **beside** | own line |
+| 780 x 360 | own line | own line | own line |
+| 823 x 384 | own line | own line | own line |
+- The same place in all five evening states in every one of the 21 (never flipping).
+- Beside, the card keeps its height: 61.7 dp at 1.0 (as #498's own figure), 65.0 at 480/1.3.
+- Against the fit probe (run 42389607585), two cells differ, both toward the own line: **360/1.0** (the earlier probe had 4.7 dp to spare beside "Dark since 10:23 PM"; a wider piece the card can show, counted here, takes that), and none beside where the earlier probe was short. Which piece is widest there was not printed [inferred: "start back was 10:58" or "Sun stays down today"].
+
+### What broke [observed, same run: 7204 tests, 33 failed, 24 skipped]
+1. **The stop: landscape at font 2.0, the own line's height (the card 142.7 dp with an evening line, 110.0 at 780 x 360 with none, both with the own line; #498's heights there were not re-measured in this run).**
+   - `LandscapeLargeFontTest` x2: the bottom-anchored card's top at 244 dp reaches the walker's dot at 240 (RECORD -953/-766, "never over the walker's dot or the needle").
+   - The evening line no longer fits, so it leaves the card (RECORD -955's rule): `NavigationCardKindLineLargeTextTest` x4, `NavigationCardLoneWordTest` (823/2.0) x1, `HudLandscapeT11At780Test`/`At823Test` x8 ("sundown line reads <null>"), and seven route-card classes at font 2.0 whose precondition is the card's sundown line (`RouteCardOnNavigationCard*Font20*` x3, `RouteCardSundownStepsAside*` x4).
+2. **Expected claim changes, not yet made** (#498's turn-line model, where the next turn is beside the needle the centred line now includes it, so the needle sits about 37.5 dp left of #498's place for good): `NavigationCardNeedleNeverMovesTest` x4 (384/1.0, 412/1.0, 480/1.0, 480/1.3), `NavigationCardKindLinePortraitTest` x1, `NavigationCardLoneWordTest` (384/1.0) x2. These are #498's files; changing their model is for the build after the owner's answer.
+3. **G5 as intended:** step 1's four "keep straight in" assertions (fixed on the WIP ref).
+
+### Question for the owner (stop)
+"On a landscape phone at the largest text size, the next turn has its own line, which makes the navigation card one line taller. It then reaches down onto your blue position dot, and there's no longer room for the sunset/dark line, so that line leaves the card. What should happen there?"
+- (a) Accept both at the largest text in landscape: the sunset line steps out of the card (as it already does when the route card needs room) and the card may touch the dot.
+- (b) In landscape at the largest text, the next turn takes the evening line's place in the right part when there is no evening line, and its own line only when there is one (the dot rule would still need (a) or (c)).
+- (c) In landscape at the largest text, leave the next turn off the card (blank), keeping today's height.
+- (d) Keep the own line, and move the card up so it clears the dot (the map's top area gets less room).
+Not offered on its own: a smaller arrow (closes no gap measured).
+
+### Not done
+Tests-first red run, the three one-line reverts (decision, wiring, G5), full CI by name against pre-main, the S22 steps and taking #500 out of draft: all wait on the answer. The wiring and placement tests on the WIP ref have not been run.
+
+### Confirmed and inferred
+- **[observed]:** the base; the probe run's placements, heights and 33 failures with their messages; 0 compile errors; the scan at 0 before each push (`git diff origin/pre-main HEAD`, both refs).
+- **[read]:** where the line and progress live (above); that `NavigationInfo` is shared by the portrait and landscape cards, so no out-of-bounds file was touched.
+- **[inferred]:** that the WIP's own tests pass (not run); that `start back was` or `Sun stays down today` is what moves 360/1.0.
+
+### Could not determine
+- locate-jump's files: no such branch on origin; a local worktree sits at pre-main 82d4a091a with nothing changed, so no overlap seen.
+- The phone's own widths (no phone in this dispatch).
+
+### Premises that were wrong
+- "beside the needle where it fits ... its own line ... (one line taller)": taller collides with the landscape dot rule and the evening line at font 2.0 (above).
+- The fit probe's 38 of 105 counted five evening states; counting every piece the card can show moves 360/1.0 to the own line.
+
+### Decided beyond scope (open to the owner)
+- "Never flipping" is held by counting every evening piece the card can show, through its own formatters; "dark in" is counted at 59 minutes, the widest at mid-latitudes, not "1 h …" (high-latitude summers).
+- The hand-back ref is kept, not deleted: it holds the build for the next session.
+
+### S22 steps
+None: nothing is on next-turn yet.
+
+### Clean-up
+`hazel-arrows2-probe` deleted from origin (its run stays readable by number). Kept: `next-turn-j2-wip` (eae8c8caf), the build. Scratch `/mnt/work/scratch/hazel-arrows2` (700): the probe source, its results, the WIP patch and the revert runner (gated on the scan, restoring from a saved copy). PR #500 stays a draft.
+
+## J3, built: stopped at two points, #500 stays a draft (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J2, J3 and G5. The owner, verbatim: "Arrow in the right part", "Own line, card moves up", "Centre the line", the step path "Yes, that's it", and "Build it". **Steps 1, 2 and 4 are built on next-turn. Step 3's card moving up is not built: it needs `CompactMapLandscapeNavigationCard.kt`, which E19 is editing on #498 (out of bounds, so this is a stop). Step 2 as built also moves "by trail" / "straight" onto their own line in landscape at font 2.0 in daytime, which J3 did not rule on (a second stop).** Marks: [observed] is a CI run's XML or log read this session (head SHA checked, log checked for compile errors first), [read] is code read at the commit named, [inferred] is worked out and not measured.
+
+### Base and commits [observed]
+- At the start: `origin/next-turn` e5b960b35, ref `next-turn-j2-wip` eae8c8caf, `origin/nav-card-kind-line` 5e2c0a6c8, `origin/pre-main` 82d4a091a, `origin/records-after-173` 8b0174731; worktree clean. All as the dispatch said.
+- `b84ebfac5`: the ref **merged** (not re-applied), so eae8c8caf stays in history as written.
+- `7a5ad452f`: tests first, with stubs (`nextTurnPlaceNow` returns J2's place, `isLandscapeLargeText` false).
+- `8c7f21240`: J3's code.
+- `c682bb469`: a compile fix. **The WIP's test sources never compiled**: `NextTurnCardRig.Card.place` exposed the internal `NextTurnPlace` from a protected class (`NextTurnCardRig.kt:192`). The runs at 7a5ad452f (42400948674) and on the first probe (42401065077) both stopped at `compileDebugUnitTestKotlin`, so neither is cited. The red run below re-ran the tests-first commit with only this fix on a throwaway ref.
+
+### What was built [read, c682bb469]
+- **J3's decision** (`NavigationCardNextTurnPlace.kt`): `nextTurnPlaceNow(decided, landscapeLargeText, eveningLine)`. J2's place everywhere but landscape at font 2.0 (`isLandscapeLargeText`: landscape orientation and font scale at least 2.0). There: `RIGHT_PART` with no evening line, `OWN_LINE` with one. "Evening line" means the card has evening pieces to show, not whether they are drawn, so the decision cannot feed back through RECORD -955's room check.
+- **The right part** (`NavigationCardRightPart.kt`): with no evening line, the next turn's space sits where the evening line goes, above the status words. In landscape at font 2.0 the right part is never narrower than the next turn's space, with or without an evening line (`rememberCardEvening`, `NavigationInfo.kt`), so the left part does not change width as the evening comes and goes.
+- **Step 1** is the WIP as merged: beside the needle where it fits, with the whole turn line centred; its own line where it doesn't.
+- **#498's needle claims changed, not silenced.** `NavigationCardTopLineRules.turnLineNeedleLeft` and `NavigationCardNeedleNeverMovesTest` now count the next turn where it is beside the needle: a 4 dp gap, plus 26 dp, plus the widest of "88.8 mi" and "8888 ft" in the turn line's type. So the needle sits half of that further left (`besideNextTurnDp`, `NavigationCardKindLineScreen.kt`). Elsewhere the claim is unchanged.
+- **The long-press test (WIP, never run before)**: in landscape the card is on the bottom edge, so its rows now sample above the card, not below it. It also gets a landscape 823 x 384 font 2.0 case with the next turn in the right part.
+
+### Measured placements [observed, probe run 42402017914 on throwaway ref `hazel-arrows3-probe` fec3d09f3 = c682bb469 + probe; 0 compile errors; 30 tests, 150 J3PROBE lines, 30 x 5]
+The probe ref switched off RECORD -955's top limit (one line in `CompactMapLandscapeNavigationCard.kt`, throwaway only), so landscape heights with an evening line include it. Card heights are in dp. "Dot" is the walker's dot as `cardTopLimitInRootPx` places it, radius 12.
+
+| Window | 1.0 | 1.3 | 1.5 | 1.8 | 2.0 |
+|---|---|---|---|---|---|
+| 320 / 360 portrait | own line | own line | – | – | own line |
+| 384 (S22) portrait | **beside** (61.7) | own line (87.0) | – | – | own line (154.3) |
+| 412 portrait | **beside** (61.7) | own line | – | – | own line |
+| 480 portrait | **beside** | **beside** (65.0) | – | – | own line |
+| 640 x 360 | own line | own line | own line | own line | **right part** with no evening (120.7), own line with one (153.3) |
+| 780 x 360 | own line | own line | own line | own line | **right part** with no evening (120.7), own line with one (153.3) |
+| 823 x 384 | own line | own line | own line | own line | **right part** with no evening (120.7), own line with one (153.3) |
+
+- The place is the same in all five evening states in every case except landscape at 2.0, where J3's steps 2 and 3 follow the evening line.
+- **Landscape, font 2.0, no evening line (step 2):** the card's top is 11.3 dp clear of the dot's bottom at 823 x 384, and 2.3 dp at 780 x 360 and 640 x 360. `LandscapeLargeFontTest` passes (it failed under J2).
+- **Landscape, font 2.0, with an evening line (step 3):** the card is 153.3 dp tall. Its top is 21.3 dp past the dot's bottom at 823 x 384 and 30.3 dp at 780 x 360 and 640 x 360. With the card moved up just enough to clear the dot (its bottom at the dot's top), its top would be at 74.7 dp (823 x 384) or 59.7 dp (780 x 360 and 640 x 360). That is **37.3 dp and 22.3 dp below the strip's bottom** (37.3 dp). **So it fits [inferred from those measurements; not built]**. The L (Reset north) was not read against the moved card.
+- **Fonts 1.5 and 1.8 in landscape (not ruled, J2 kept):** at 1.8 with an evening line the own line takes the card's top 6.7 dp (823) or 15.7 dp (780, 640) past the dot's bottom, so RECORD -955 would drop the evening line there. At 1.5, and at 1.8 with no evening line, the card clears the dot.
+
+### Evidence [observed]
+- **Red, tests first:** run 42402010466 at cfeaaf074 (7a5ad452f + the compile fix), filter `*NextTurn*;*NavigationCardNeedleNeverMovesTest;*NavigationCardKindLinePortraitTest;*NavigationCardLoneWordTest;*LandscapeLargeFontTest`. 0 compile errors; 164 tests, 9 failed:
+  - J3's pure tests ×3, e.g. "expected:<RIGHT_PART> but was:<BESIDE_NEEDLE>";
+  - `NextTurnPlacementTest` 780 and 823 at 2.0 ×2;
+  - the 823/2.0 long-press ×1;
+  - `LandscapeLargeFontTest` ×2 (the card's top at 244 dp, over the dot);
+  - `NavigationCardLoneWordTest` 823/2.0 Dark since ×1 (the step-3 case).
+  
+  #498's changed needle claims passed there, because the WIP's beside place was already built under them.
+- **Forward, full CI:** PR run 42402010993 at c682bb469. 0 compile errors; **7229 tests, 23 failed**, 24 skipped. By name against pre-main's latest run (42337576510 at 1f6901a11: 6846 tests, 0 failed, 24 skipped): 36 names only on pre-main (the count #498's sections report), 419 only here, 15 whose outcome differs (pass → fail), and 8 new names failing. Every one of the 23 is one of the two stops:
+  - **Step 3, not built (18).** With its own line the card would cover the dot, so RECORD -955 takes the evening line off the card:
+    - `HudLandscapeT11At780Test` / `At823Test` font 2.0 ×8 ("navigation-hud-sundown-line reads <null>");
+    - `RouteCardOnNavigationCard*Font20*` ×3 and `RouteCardSundownStepsAside*` ×4 (precondition: the card's sundown line);
+    - `NavigationCardKindLineLargeTextTest` 823/2.0 Dark since ×2;
+    - `NavigationCardLoneWordTest` 823/2.0 Dark since ×1.
+  - **Step 2's side effect (5).** The right part holding the next turn narrows the left part from 263.0 to 151.7 dp in landscape at 2.0, so the kind leaves the distance's line:
+    - `NavigationCardKindLineLargeTextTest` 780/823 "without an evening time" ×2 ("the kind is drawn OWN_LINE, this case is chosen to reach BESIDE");
+    - `NavigationCardDistanceBesideKindTest` 823/2.0 ×2;
+    - `NavigationCardStatusSpaceTest` H8 823/2.0 ×1 ("in daytime the right part is 111.3 dp wide, not empty").
+  
+  None of these was changed or silenced.
+
+### The four reverts [observed; each a one-line edit on its own worktree from c682bb469, pushed to a throwaway ref, run with the filter above; each log 0 compile errors before any result was read; each file restored from a copy saved before the edit and checked identical to c682bb469's]
+Every revert run also fails `NavigationCardLoneWordTest` 823/2.0 Dark since. That is the standing step-3 failure (it fails in the forward run too), not something any of these reverts could cause.
+
+| Ruling | The line | Run | Failed (besides that one) |
+|---|---|---|---|
+| J2's beside/own-line decision | `nextTurnPlace`'s condition → `if (false)` | 42404304012 at 21884a06b | 10. The pure decision ×4 ("expected:<BESIDE_NEEDLE> but was:<OWN_LINE>"), `NextTurnPlacementTest` 384/1.0, 412/1.0, 480/1.0, 480/1.3, `NextTurnOnCardTest` A1 J2, and the 384/1.0 long-press, each because the next turn is not beside. |
+| J3 step 2, the right part | `else -> NextTurnPlace.RIGHT_PART` → `else -> decided` | 42404312400 at c1683f0fb | 6. The step-2 pure test, `NextTurnPlacementTest` 780 and 823 at 2.0 (NONE), the 823/2.0 long-press, and `LandscapeLargeFontTest` ×2 (the card's top at 244 dp, over the dot). |
+| The wiring (way home) | `TrackRecordingRouteTicks`'s `nextTurn(nextTurnWayOf(shown), progress, here)` → a blank | 42404320779 at f35f7a794 | 2. `TrackRecordingNextTurnTest`, J2 and E2 (the route carries "Blank(NOT_YET_KNOWN)"). |
+| G5 | "keep straight for" → "keep straight in" | 42404329725 at 9cc61e570 | 6. `NextTurnWordsTest` ×2, `NextTurnSpaceShownTest` ×3, `NextTurnOnCardTest` A3 G5, each "expected:<keep straight [for] …> but was:<keep straight [in] …>". |
+| J3 step 3, the card moving up | not built (stop 1) | none | none |
+
+### Questions for the owner (stops)
+1. **The card moving up (step 3)** needs `CompactMapLandscapeNavigationCard.kt`: the card's bottom anchor, its RECORD -955 top limit and its keep-out. Probably also the card's corners and outline (`RoundedMapCard.kt`), since its bottom would no longer sit on the screen edge. E19 is editing both on #498. Measured, it fits: the moved card's top would be 37.3 dp (823 x 384) and 22.3 dp (780 x 360) below the strip. Question: "Should this wait until E19 hands #498 back, then build in next-turn after merging nav-card-kind-line? Or should the E19 coder build it on #498? And once it floats above the dot, should its bottom corners round and get an outline like its top?"
+2. **"by trail" moves to its own line (step 2).** "In landscape at the largest text, with no sunset line, putting the turn arrow in the card's right part takes 115 dp from the left side. "1.5 mi by trail" no longer fits on one line, so "by trail" drops under the distance. The card is still 2 to 11 dp clear of your blue dot. Is that all right, or should something else give way?" Options:
+   - (a) Accept it ("by trail" on its own line there, as it already does when the sunset line shows).
+   - (b) Use the right part only when "by trail"/"straight" still fits beside the distance, and its own line otherwise (the card would then reach the dot, which needs (1) too).
+3. **Fonts 1.5 and 1.8 in landscape** were not ruled on, and they keep J2's own line. At 1.8 with a sunset line the card would reach the dot, and the sunset line steps off the card. Question: "Should 1.5 and 1.8 in landscape follow the 2.0 rule (right part with no sunset line, card moves up with one)?"
+
+### Confirmed and inferred
+- **[observed]:**
+  - the base;
+  - the WIP's compile error and the fix;
+  - the red run's 9 failures, each J3's reason;
+  - the forward run's 23 failures, each one of the two stops, and 0 other outcome changes by name against pre-main;
+  - the probe's placements and heights;
+  - the reverts below;
+  - the scan reading 0 before every push (`git diff origin/pre-main HEAD`, each ref).
+- **[read]:** that the card's bottom anchor, its top limit and its keep-out live in `CompactMapLandscapeNavigationCard.kt` (`CompactMapNavigationDisplay`, `cardTopLimitInRootPx`), and its bottom corners and outline in `MapCardCorners.TOP` and `landscapeColumnOutlineSides(bottom = false)`.
+- **[inferred]:** that card-up fits (from the measured heights, not drawn), and that (b) in question 2 would reach the dot.
+
+### Could not determine
+- The phone's own figures (no phone in this dispatch).
+- The L against a moved card.
+- Fonts other than those listed.
+- The probe's portrait "strip" and "dot" columns read the strip with the card inside it, so they mean nothing in portrait and are not used.
+
+### Premises that were wrong
+- "ref next-turn-j2-wip … (the wiring, placement, G5 and tests, not yet run)": its tests did not compile (above).
+- J2's report counted the WIP's landscape long-press as sampling under the card. The card is on the bottom edge there, so under it is off-screen. Changed to above.
+
+### Decided beyond scope (open to the owner)
+- In landscape at 2.0 the right part keeps the next turn's width with or without an evening line, so the left part never changes width with the evening.
+- "Landscape at font 2.0" is read as a font scale of at least 2.0. 1.5 and 1.8 keep step 1 (question 3).
+- The step-3 case shows J2's behaviour until question 1 is answered: its own line, with RECORD -955 dropping the evening line.
+
+### S22 steps (after the answers; nothing here is for the phone yet)
+- Portrait, normal text, navigating home by trail: the turn arrow and its distance sit right of the needle, and the whole line, needle included, is centred under the distance. Turn the compass off: nothing on that line moves.
+- Portrait, next text size up: the arrow has its own line under the needle, centred, and the card is one line taller.
+- Landscape, largest text, daytime: the arrow is in the card's right part, the card stays below the blue dot, and "by trail" sits under the distance (question 2).
+
+### Clean-up
+- Deleted from origin: `next-turn-j2-wip` (its work is merged into next-turn), `hazel-arrows3-probe`, `hazel-arrows3-red` and the four `hazel-arrows3-rev-*` refs. Their runs stay readable by number.
+- Scratch `/mnt/work/scratch/hazel-arrows3` (700) holds the probe source, its lines (`probe-lines.txt`), the runs' names and the revert runner.
+- PR #500 stays a draft.
+
+## J3/J4, built: stopped at two points, #500 stays a draft (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J3 step 3 and J4. The owner's go: "Record it", "Build #500's rest". **Built:** the card moving up (J3 step 3), its rounded and outlined bottom once up (J4 "Round and outline"), fonts 1.5 and 1.8 following the 2.0 rule (J4 "Follow the largest rule"), and #498/J3 claims changed to J4's "Accept it". **Full CI is not green: 3 failures, two of them stops (below).** Marks as in the sections above. Handed back at the session's size limit.
+
+### Base and commits [observed]
+- At the start: `origin/next-turn` ca03fa6d4, `origin/nav-card-kind-line` 5232b15fa, `origin/pre-main` 82d4a091a (unmoved, nothing to merge), `origin/records-after-173` 06b724837; worktree clean. All as the dispatch said.
+- Merge of nav-card-kind-line (with -m, no conflict); `65ad98a4b` tests first (the lift decision a stub); `7c34a5084` the build; `f7dc3ea72` one value for the rounded and outlined bottom; `b48c3e3d4` claims changed to J3 step 3, and the outline check taught to read a moved-up card's own bottom corners.
+- Other coders' files (`git diff origin/pre-main...` route-card 3052051fe, journal-locate-outline, locate-jump): none shared with mine. One of the 3 failures is in a test file journal-locate-outline changes (`RouteCardRecenterCoversNoCardTest.kt`); not touched.
+
+### What was built [read, b48c3e3d4]
+- `NavigationCardLift.kt` (new, pure): on the bottom edge unless landscape at font 1.5 or more with an evening line (not stepping aside for the route card, D42) would take the card's top past RECORD -955's limit; then up until its bottom is at the walker's dot's top. If moved up it would pass the compass strip's bottom or cover the L in its columns, it stays and -955 drops the line, logged once ("NoRoom").
+- `CompactMapLandscapeNavigationCard.kt`: the move (an offset), the evening line's limit becomes the strip's bottom once up, corners `ALL` and the bottom outlined once up, E20's band given the move so it draws nothing once up (moved more than 16 dp), and D42's "height with the evening lines" recorded plus the move so the route card's decision cannot drop the card back into room it then reads as free.
+- `NavigationInfo.kt`/`NavigationHud.kt`: the card reports its -955 height with the evening line and whether it is landscape at 1.5+.
+- `NavigationCardNextTurnPlace.kt`: the threshold 2.0 → 1.5. `RoundedMapCard.kt` needed no change.
+
+### Measured placements [observed, forward run 42416209350, `NavigationCardMovesUpTest`'s MOVEDUP lines; dp; through the real screen, no insets]
+| Window | 1.5 with evening | 1.8 with evening | 2.0 with evening | no evening (1.5-2.0) |
+|---|---|---|---|---|
+| 640 x 360 | bottom edge, 118.7 tall, top 4.3 below the dot | up, 138.7 tall, bottom at the dot's top, top 38.3 below the strip | up, 153.3, top 22.3 below the strip | bottom edge, right part |
+| 780 x 360 | bottom edge, top 4.3 below the dot | up, top 38.3 below the strip | up, top 22.3 below the strip | bottom edge, right part |
+| 823 x 384 | bottom edge, top 13.3 below the dot | up, top 53.3 below the strip | up, top 37.3 below the strip | bottom edge, right part |
+- Evening line on the card in every case; the L (the rig's default side) not covered in any.
+- Outline check (640 x 360, font 2.0, both rotations, side bar and fullscreen, day and night): card 59.7 to 213.0 down, the screen's bottom 360; every map-facing edge and all four corners outlined.
+
+### Evidence [observed; every log read for compile errors first: 0 in each]
+- **Red** (tests first): PR run 42413846076 at 65ad98a4b: 7291 tests, 42 failed, each J3/J4's reason (the stub's "expected Up but was OnBottomEdge", "the evening line left the card", 1.5/1.8 not yet the rule, the moved-up outline cases' "the evening line is on the card" positive control).
+- **Forward, full CI:** PR run 42416209350 at b48c3e3d4: **7291 tests, 3 failed**, 24 skipped. Of the 23 earlier failures, 22 pass: 18 by the build, 4 by changed claims (`NavigationCardKindLineLargeTextTest` 780/823 no-evening, `NavigationCardDistanceBesideKindTest` 823/2.0 ×2 renamed, `NavigationCardStatusSpaceTest` H8 renamed). Those 4 claim changes pass at the red commit too (J3 step 2 was already built), so they test the ruling's words, not this build. Also changed to J3 step 3's words: `HudLandscapeT11FixesTest` item 2 (was: the lines leave) and H12's two 823/2.0 no-compass cases (was: left out). Not compared by name against pre-main's latest run in this session.
+- **The 3 failures:**
+  1. `RouteCardSundownStepsAsideFont20Test` (one of the 23): **stop 1**.
+  2. `HudLandscapeT11FixesAt780Test` item 2 (my changed claim): at 780 x 360, font 2.0, Try again plus both evening lines, the card stays and the lines leave (no room moved up). **Stop 2.**
+  3. `RouteCardRecenterCoversNoCardAfterSunsetTest` (new failure, a file journal-locate-outline changes): its print reads the navigation card at **-49 to 213 dp**, its top off the screen, so the strip check did not stop the move there. **A defect in this build, not fixed** (inferred cause: the card's -955 height, which the decision uses, is less than the card's drawn height in that state, or the strip's bottom is estimated wrongly there; not checked).
+- **Reverts** (each one line on its own worktree from b48c3e3d4, file restored from a saved copy and checked equal to b48c3e3d4's, worktree checked unchanged after; filtered runs; failures 1 and 2 above fail in each and are left out here):
+  | Item | Line | Run | Failed besides those |
+  |---|---|---|---|
+  | Card up | `val liftPx = (lift as? NavigationCardLift.Up)?.px ?: 0f` → `0f` | 42416233254 at 62c6425b4 | 34: every MovesUp 1.8/2.0 case ("the evening line left the card"), the 8 moved-up outline cases (positive control), T11 05 ×8, the 3 RouteCardOnNavigationCard and 3 short StepsAside preconditions, LoneWord, KindLine ×4, T11Fixes 823. |
+  | Rounded/outlined bottom | `val bottomRoundedAndOutlined = movedUp` → `false` | 42416240766 at 5d2dc4357 | 8: the moved-up outline cases, 142 to 166 map-facing places unlined each. |
+  | 1.5/1.8 rule | `LANDSCAPE_LARGE_TEXT_FONT_SCALE = 1.5f` → `2.0f` | 42416247869 at e7557b556 | 8: MovesUp 1.8 ×3, the pure scale test, NextTurnPlacement 1.5/1.8 ×4. |
+
+### Questions for the owner (stops)
+1. **Route card open while the evening line steps aside.** "In landscape at the largest text after sunset, when a saved route's card is open, the sunset line steps off the navigation card (your D42 ruling) and the card goes back to the bottom. But the turn arrow keeps its own line, so the card stays one line taller and the route card's rows get no room. Should the arrow move to the card's right part while the sunset line is stepped aside (the card one line shorter), or should something else give way?" Found: this failure was counted under "step 3, not built" in "J3, built"; it is the own line's height, not the move.
+2. **780 x 360 at the largest text, route withheld with Try again, sunset and Back by lines:** moved up, the card would pass the compass strip, so the lines leave it as before (-955). Measured: without them the card is 252 to 360 dp; with them it does not fit under the strip (the exact height was not printed). "Is the lines leaving in that one case all right?"
+3. Not a question, a defect to fix next: failure 3 (the card drawn off the top of the screen in `RouteCardRecenterCoversNoCardAfterSunsetTest`).
+
+### Confirmed and inferred
+- [observed]: the base, the runs and counts above, the placements, the reverts, scan 0 before every push.
+- [inferred]: failure 3's cause; that "just enough" means no move where the card already clears the dot (decided, below).
+
+### Could not determine
+- The L against the moved card with the L on the rail side: the rig shows the L on its default side only (not covered there); the T11 rail-side cases pass with the line shown but assert nothing about the L.
+- The phone's own figures (no phone). The by-name comparison with pre-main's latest run (not done this session).
+
+### Premises that were wrong
+- "J3, built" counted `RouteCardSundownStepsAsideFont20Test` under step 3; with the card moved up it still fails (stop 1).
+- My own premise that the strip check bounds the move everywhere (failure 3).
+
+### Decided beyond scope (open to the owner)
+- "Just enough": at 1.5 with an evening line the card already clears the dot from the bottom edge (4.3 / 13.3 dp), so it does not move.
+- The move is instant, not animated.
+- Where moving up would pass the strip or cover the L, the card stays and -955 drops the line, logged.
+- The outline check's own reading for a moved-up card (E20's straight-edge band skipped where the corner is rounded; a line pixel over the map at the corner's edge counted, moved-up cases only).
+
+### S22 steps (after the fixes; nothing here is for the phone yet)
+- Landscape, text size 1.8 or 2.0, after sunset, navigating home by trail: the card sits above the blue dot with the sunset line on it, its bottom corners rounded and outlined all round; the dot is uncovered.
+- The same at 1.5: the card stays on the bottom edge, below the dot, with the sunset line.
+- Landscape at 1.5 or 1.8 in daytime: the arrow in the card's right part, "by trail" under the distance.
+
+### Clean-up
+- Deleted from origin: `hazel-arrows4-fwd`, `hazel-arrows4-wip`, the three `hazel-arrows4-rev-*` refs (their runs stay readable by number). Scratch `/mnt/work/scratch/hazel-arrows4` (700) holds the runner, run results and names.
+- PR #500 stays a draft. Final SHA: this commit.
+
+## J5, built: stopped at two findings, #500 stays a draft (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J5. The owner's go: "Record it", "Build it", "Animate the move". **Built:** "Into the freed right part" (item 1), "Yes, lines leave" as T11 item 2's claim (item 2), the defect's fix (item 3), "Animate the move" (item 4). **Full CI is not green: 17 failures on the build (run 42422989647).** Two of them are a loop my item 1 causes through the route card's room (stop 2); the rest are cases where, with the card's height now counted as drawn, the evening line cannot fit even moved up (stop 1). #500 is not taken out of draft. Marks as in the sections above.
+
+### Base and commits [observed]
+- At the start: `origin/next-turn` 9a1aca0b6, `origin/pre-main` 82d4a091a and `origin/nav-card-kind-line` 5232b15fa both already merged in (nothing to merge), `origin/records-after-173` 7ddde1199; worktree clean. All as the dispatch said.
+- `71c5fd02e` tests first, items 1, 2, 4; `951b89e85` tests first, item 3 (the count a stub); `524ca0d0e` the build; `55d5f15e7` T11 item 2's dot claim scoped (below; **not yet run in CI**).
+- Other coders' files (`git diff HEAD...origin/<branch>`: route-card 1a6a69f2d, journal-locate-outline 7e5ed4785, locate-jump 1f6d34b2e): none edited. `RouteCardRecenterCoversNoCardTest.kt` (#506's) was **not** edited; the fix did not need it. `CompactMapRoutePlotting.kt` (route-card's) was edited only on a throwaway probe branch, never on next-turn.
+
+### The defect's cause [observed, probe run 42421420016, throwaway branch]
+**The decision's height was wrong; the strip's bottom was right.** At 640 x 360, font 2.0, just after sunset, the S22's insets: the strip's bottom was estimated at 112 px (37.3 dp), exactly the strip as drawn. The decision took the card with its evening line as 420 px (140 dp); it was drawn 786 px (262 dp), from -49 to 213 dp. The card there is narrowed (D38, 293 dp wide), the fit overflows, and the right part is 72 dp: each evening piece wraps ("Sun set 12:50 AM" and "dark in 24 min", 160 dp for the two), while RECORD -955's height counted each piece as one line (`pieces.size * pieceHeightPx`). Fix: `eveningStackHeightPx` (NavigationCardLift.kt) measures each piece wrapped at the right part's width with the line (`leftPartWidthPx` of the with-line fit), in `NavigationInfo.kt`. This feeds both -955's bottom-edge decision and the lift.
+
+### What was built [read, 524ca0d0e]
+- Item 1: `nextTurnPlaceNow(..., eveningStepsAside)`: landscape at 1.5+ with the evening line stepped aside (D42), the right part.
+- Item 2: no code; the strip check from J3 already keeps the card down and -955 drops the lines. `HudLandscapeT11FixesTest` item 2 takes `tallestMovesUp` (false at 780): the card's top under the strip in both windows; at 780 the card on the bottom edge and the lines gone; at 823 the line on the card and the dot clear. Renamed (old name "...rather than reach over the walker's dot, and nothing covers the needle"), so it does not match by name.
+- Item 3: as above.
+- Item 4: `animateFloatAsState` on the move, the card's own slide timing (750 ms, RECORD -953's), at once under reduced motion; decisions read the target, drawing (offset, rounded bottom, E20's band) the animated value.
+
+### Evidence [observed; every log checked for compile errors first]
+- **Red**, PR run 42422931092 at 951b89e85: 7295 tests, 8 failed, each for its item's reason: J5 place unit ("expected RIGHT_PART but was OWN_LINE"), Font20 (leg row 0 height 0), Glides ("frames between: []"), the count unit ("expected 480 but was 192"), UnderStrip ("the card's top 15.0 is under the strip's 37.3": false), RecenterCovers AfterSunset (Re-center 160.7 wide), T11Fixes 780 (dot), T11Fixes 823 (card top 0 < strip 37.3, the same defect at 823).
+- **Forward**, workflow_dispatch run 42422989647 at 524ca0d0e (throwaway ref `hazel-arrows5-fwd`): **7295 tests, 17 failed, 24 skipped.** Passing now: UnderStrip, RecenterCovers AfterSunset, Glides, both J5 unit tests. Failing: T11At780 ×4 and T11At823 ×4 at font 2.0 ("positive control, 06: back-by-line reads null"), T11Fixes 780 (dot; claim scoped in 55d5f15e7, not run) and 823 ("the evening line stays on the card"), RouteCardOnNavigationCard Font20Evening, ShortFont20AfterSunset, ShortFont20Evening and the three StepsAsideShort classes (precondition "the sundown line with no card": 0), StepsAsideFont20 (**AppNotIdle: a loop**).
+- Pre-main's latest run (42337576510 at 1f6901a11; 82d4a091a is [skip ci]): 6846 tests, 0 failed. Compared by name: none of the 17 is a pre-main test failing there; all 17 are failures of this branch.
+- **Reverts** (each one line on its own worktree from 524ca0d0e, restored from a saved copy and checked equal to 524ca0d0e's; main worktree checked unchanged; filtered runs):
+  | Item | Line | Run | Failures specific to it |
+  |---|---|---|---|
+  | 1 | `eveningLine && !eveningStepsAside ->` → `eveningLine ->` | 42423031141 at 32ad1eab3 | the J5 place unit; Font20 back to "leg row 0 height 0" (no loop) |
+  | 2 | `stripBottomPx != null && liftedTop < stripBottomPx - 0.5f` → `stripBottomPx != null && false` | 42423912575 at fb1de6933 | T11Fixes 780 "the card's top 25.0 is under the strip's 37.3": false; Lift unit "no room under the strip" gives Up(144) |
+  | 3 | `pieces.sumOf { maxOf(lineHeightPx, wrappedHeightPx(it)) }` → `pieces.size * lineHeightPx` | 42423045553 at 944178ae5 | the count unit (192 for 480); UnderStrip (top 15.0); RecenterCovers AfterSunset; T11Fixes 823 card top 0 |
+  | 4 | `-drawnLiftPx.roundToInt()` → `-liftPx.roundToInt()` | 42423052330 at c02a4447d | Glides, "frames between: []" |
+  - The first item-2 revert (`stripBottomPx != null &&` → `false &&`, run 42423038333) **did not compile** (a smart cast on line 53); the runner found 8 compile errors and refused to read its results. Redone as above.
+
+### Questions for the owner (stops)
+1. **The evening line leaves the card in more places than the 780 case.** "With the card's height now counted as it is drawn, the sunset line can't fit even with the card moved up in these cases at the largest text in landscape: (a) heading home with the route held back ("Try again"), the sunset line and Back by, at 823 and 780 wide; (b) on the S22's own landscape screen after sunset whenever the card is narrowed for Re-center or a saved route's card. There the card would have been taller than the room between the compass strip and the blue dot (at 823: room 190.7 dp, card with the lines drawn 228 dp or more, top cut off; on the S22: room 175.7 dp, card 262 dp). Today's build drew the card over the compass strip or off the screen there. Under your 'Yes, lines leave' the card now stays at the bottom and the lines step off in all of these. Is that all right, or should something else give way?" One sunset line with no Back by still moves up with the line on the card at 640, 780 and 823 (NavigationCardMovesUpTest passes). Fifteen tests whose claims or preconditions say the line is on the card are failing until this is answered (T11At780 ×4, T11At823 ×4, T11Fixes 823, RouteCardOnNavigationCard ×3, StepsAsideShort ×3); none was changed.
+2. **The freed right part and the route card's room loop.** "When the sunset line steps aside for a saved route's card and the turn arrow moves into the freed right part, the navigation card gets one line shorter. The route card measures its room from the navigation card's height, so it then sees room for the sunset line, brings it back, the arrow goes back to its own line, the card grows, and the line steps aside again, without end (probe run 42425317006: the route card's limit 738, 836, 640 px in turn, the card's top 798 and 732 px). Fixing it means the route card reading the navigation card's height as with the arrow on its own line, which is in the route card's files (another coder's). Should I make that change in the route card's files, or keep the arrow on its own line while a route card is open?"
+
+### Confirmed and inferred
+- [observed]: everything under Evidence and the cause, from the runs named.
+- [inferred]: that the loop needs the route card's room to read a fixed height (the probe shows the cycle; the fix is not tried).
+
+### Could not determine
+- Whether 55d5f15e7's T11Fixes 780 claim passes (not run). The phone's figures (no phone).
+
+### Premises that were wrong
+- J5's "the rare 780 dp held-back case": the same case fails at 823, and the S22's narrowed-card evening cases too (stop 1).
+- J5's "the height the decision uses, or the strip's bottom": it was the height, and it was wrong wherever the right part wraps, not only in that test.
+- My own premise that item 1 could not feed back because D42 reads the tallest height: the route card's room reads the card's height too (stop 2).
+
+### Decided beyond scope (open to the owner)
+- The glide's timing is the card's own slide-in timing (750 ms); under reduced motion it moves at once.
+- The rounded bottom and outline follow the card as drawn, so gliding down it keeps them until it lands.
+
+### S22 steps (after the stops; nothing here is for the phone yet)
+- Landscape, text size 1.8 or 2.0, after sunset, navigating home by trail: the card glides up above the blue dot with the sunset line on it, and back down when the line goes.
+- The same with a saved route's card open: the sunset line steps aside and the turn arrow sits in the card's right part, the card not jumping up and down.
+- Landscape at 2.0 with Re-center showing after sunset: the card stays on the bottom edge, nothing over the compass strip.
+
+### Clean-up
+- Scratch `/mnt/work/scratch/hazel-arrows5` (700) holds the runner, the run results and both probes' worktrees. Throwaway refs deleted at the end (listed in the hand-back).
+- PR #500 stays a draft. Final SHA: this commit.
+
+## J6, built: 1 failure left, stopped at one question, #500 stays a draft (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J6. The owner's go: "Record it", "Build it". **Built:** "Lines leave (as built)" as 15 changed claims, and "Arrow own line here" as a one-line change. **Full CI is not green: 1 failure** (run 42428697341), `RouteCardSundownStepsAsideFont20Test`, no longer the loop: the route card shows no leg row (stop below). #500 is not taken out of draft. Marks as in the sections above.
+
+### Base and commits [observed]
+- At the start: `origin/next-turn` 4e8df0524, `origin/pre-main` 82d4a091a (already merged), `origin/records-after-173` e629259a9; worktree clean. All as the dispatch said. `origin/nav-card-kind-line` had moved by one doc-only commit (32251448d, the outline-clash diagnosis); merged in with -m.
+- `6ab0090de` tests first (the 15 claims and the J6 unit test); `8146fa254` the build.
+- Other coders' files: `git diff HEAD...origin/route-card` (67c93c119) and `...origin/nav-card-kind-line`: no file shared with mine. `NavigationCardOutlineEveryEdgeTest.kt`, which `hazel-clash-498-fix-hold` changes, was not touched.
+
+### What changed [read, 8146fa254]
+- `NavigationCardNextTurnPlace.kt`: `eveningLine && !eveningStepsAside -> OWN_LINE` became `eveningLine -> OWN_LINE`. The parameter stays (marked unused) so the J6 case is named where the place is decided and in its unit test.
+- Claims changed, none silenced, no tolerance widened:
+  - T11 measurement step 06 at font 2.0, both windows (8 cases): both evening lines off. Step 05 (one sundown line) still claims the line, and passes.
+  - T11Fixes item 2: the card on the bottom edge with the lines off in both windows. The `tallestMovesUp` switch is removed. The 823 claim "line on the card, dot clear" went with it; NavigationCardMovesUpTest holds the cases that fit.
+  - RouteCardOnNavigationCard Font20Evening, ShortFont20Evening, ShortFont20AfterSunset: `sundownLineShown = false`.
+  - RouteCardSundownStepsAside Short, ShortNoElevation, ShortAfterSunset: `lineExpected = false`.
+  - The J5 unit test became J6's: OWN_LINE while stepped aside.
+
+### Evidence [observed; every log read for compile errors first: 0 in each]
+- **Red**, tests first, run 42428687227 at 6ab0090de (filtered, 99 tests): 2 failed. The J6 unit test (`expected OWN_LINE`), and StepsAsideFont20 (AppNotIdle, the loop). The 14 other changed claims pass there, because J5 already makes the lines leave. Their bite is shown by the next revert.
+- **Forward, full CI**, PR run 42428697341 at 8146fa254: **7295 tests, 1 failed, 24 skipped.** Of J5's 17 failures, 16 pass: 15 by the changed claims, and T11Fixes 780 by 55d5f15e7's scoped claim (its first CI run). The loop is gone. Pre-main's latest run is 42337576510 at 1f6901a11 (82d4a091a is [skip ci]): 6846 tests, 0 failed. By name, the one failure is not a pre-main test failing there.
+- **Revert for (2)**, one line (`eveningLine ->` back to `eveningLine && !eveningStepsAside ->`), run 42428708546 at c101ec35d: the J6 unit test fails, and StepsAsideFont20 is **AppNotIdle** again. Both failures come from this edit.
+- **Revert of J5's height count**, to show the changed claims bite (`pieces.sumOf { maxOf(lineHeightPx, wrappedHeightPx(it)) }` → `pieces.size * lineHeightPx`), run 42428716738 at ce1ab5b7e: 18 failed. They are the 14 changed claims that are not unit tests (T11 06 ×8 "reads <Back by 6:40 PM>", T11Fixes 823, RouteCardOnNavigationCard ×3 "expected 0", StepsAsideShort ×3 "expected 0 but was 1"), plus J5's own tests (Lift unit, UnderStrip) and StepsAsideFont20's leg row.
+- Each revert ran on its own worktree. The file was restored from a copy saved before the edit and checked equal to 8146fa254's, and the main worktree was checked unchanged afterwards.
+
+### Question for the owner (stop)
+**The route card shows no leg row at 823 x 384, font 2.0, in the evening, with 6 stops, expanded.** "With the arrow on its own line (your 'Arrow own line here'), the saved route's card at the largest text in landscape, 6 stops, opened full, shows its title, Undo and Save, but no leg row at all. 3 stops shows its rows. Your option said the rows 'have less room'. Here they have none. On this screen the sunset line has already stepped off before the route card opens, because the card can't fit it even moved up. But the arrow still takes its own line, as if the line were there, so the navigation card is 140 dp tall. Which do you want: (a) accept no rows in this case (the test's claim changes); (b) where the evening line has already stepped off for room, the arrow goes to the card's right part as it does in the daytime (one line shorter, about 32 dp; it needs a check that this can't loop); or (c) something else gives way?" Measured (run 42428697341): the navigation card 244..384 dp; the route card expanded 8..260 dp; title 47..122, Save 191..244, leg row 0 height 0.
+
+### Confirmed and inferred
+- [observed]: the runs, counts and messages above, the D42 prints, and scan 0 before every push.
+- [inferred]: that (b) would give the rows their room. Not tried. The arrow's place feeds the card's height, so it needs the same no-feedback care as H12.
+
+### Could not determine
+- The phone's figures (no phone).
+
+### Premises that were wrong
+- "StepsAsideFont20 green" once the loop is gone: it no longer loops, but it fails at the leg row, as J5's item-1 revert (run 42423031141) had already shown.
+- "With a route card open after sunset (the evening line stepped aside)": in StepsAsideFont20 there is no line to step aside. It had already left for room before the card opened.
+
+### Decided beyond scope (open to the owner)
+- `eveningStepsAside` is kept as a named, unused parameter rather than removed, so the one-line revert compiles and the ruling is stated in code.
+
+### S22 steps (the arrows; for after the stop, nothing here is for the phone yet)
+1. Landscape, text size 2.0, daytime, navigating home by trail with a turn ahead: the arrow and its distance sit in the card's right part, with "by trail" under the distance.
+2. The same after sunset with the sunset line on the card (one line, the card moved up above the blue dot): the arrow has its own line under the turn line, centred.
+3. The same with Back by as well: the card stays on the bottom edge and both evening lines are gone. The arrow keeps its own line.
+4. Still after sunset, open a saved route's card: the arrow keeps its own line, and the cards do not jump up and down. Open the route card full with 6 stops and note whether any leg row shows (the stop above).
+5. Close the route card: the navigation card is as it was in step 2 or 3.
+6. Portrait at text size 1.0: the arrow beside the needle, the whole turn line centred. Turn the phone to landscape and back, and the arrow returns to its place.
+
+### Clean-up
+- Throwaway refs deleted from origin: `hazel-arrows6-red`, `hazel-arrows6-rev-place`, `hazel-arrows6-rev-wrap` (their runs stay readable by number). Scratch `/mnt/work/scratch/hazel-arrows6` (700) holds the runner, the results and the revert worktrees.
+- PR #500 stays a draft. Final SHA: this commit.
+
+## J7, built: full CI green, #500 out of draft (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J7. The owner's go: "Record it", "Build it". **Built:** "(b) Arrow to the right part". Where the evening line has already stepped off for room (it can't fit even moved up), the next turn goes in the card's right part as it does in daytime, and the card is shorter. J6's own line stays where the line steps aside only for the route card. **Full CI: 7298 tests, 0 failed, 24 skipped** (PR run 42435494495 at c1d17e034). The failing J6 test's leg row now shows. #500 is ready for review, not merged. Marks as in the sections above.
+
+### Base and commits [observed]
+- At the start, all as the dispatch said: `origin/next-turn` 63fe2ca28 (code 8146fa254), `origin/pre-main` 82d4a091a (already merged), `origin/nav-card-kind-line` 32251448d (already merged), `origin/records-after-173` 217f6f36a. The worktree was clean. Neither branch moved during the work, so nothing was merged.
+- `db88c5524`: tests first. It also wires in the host's room decision and the height reckoned with the own line. Neither changes what is drawn yet, because `nextTurnPlaceNow` still read `eveningLine -> OWN_LINE`.
+- `8b8862788`: the build, one line: `eveningLine -> OWN_LINE` became `eveningLine && !eveningOffForRoom -> OWN_LINE`.
+- `c88d4748b`: the settling test at the room's edge (why it was added is under Evidence).
+- `c1d17e034`: the own line counted at the height it is drawn: the arrow's height when blank, and the figure's line when a figure shows. Also, the edge test claims that the height stays the same in either place.
+- Other coders' files: I checked `git diff HEAD...origin/route-card` (666867aeb) and `...origin/nav-card-kind-line` before editing and again before each push. Neither shares a file with mine. `RouteCardBarRig.kt` and `CompactMapRoutePlotting.kt` (route-card's) were read, not changed.
+
+### What changed [read, c1d17e034]
+- `NavigationCardNextTurnPlace.kt`: `nextTurnPlaceNow` takes a new input, `eveningOffForRoom`. With it, landscape at font 1.5 and up puts the next turn in the right part even when an evening line exists. `eveningStepsAside` alone still gives the own line (J6).
+- `CompactMapLandscapeNavigationCard.kt`: `navigationCardLift` runs once as `roomLift`, with `liftCase = landscapeLargeText`, whether or not the line steps aside. `eveningOffForRoom = roomLift is NoRoom`. The card's own move, `lift`, is `OnBottomEdge` while the line steps aside, and otherwise `roomLift`, the same as before (the old call's `liftCase` was `landscapeLargeText && !stepsAside`). So off-for-room is told apart from stepping aside for the route card, including when both hold.
+- `NavigationInfo.kt`: the card's height with its evening line, used both by RECORD -955's own decision and by the host's lift, is now always counted with the next turn on its own line. That is where the next turn sits whenever the line is on the card (J3 step 3), whichever place it is drawn in now. The left part's measured height gets the own line's height added when it was measured with the next turn elsewhere (`leftMeasuredPlace`, set in the same callback as the height). The own line's height is the arrow's (22 dp), or the figure's line where an arrow and figure show (as `NextTurnSpace` draws it). Without this, the right part would take a line off that height, which could read as room for the line, which would put the next turn back on its own line, and so on.
+- `NavigationHud.kt`: passes `eveningOffForRoom` through.
+- Tests: the J7 unit test in `NavigationCardNextTurnPlaceTest`, and two new classes, `NextTurnRightPartSettlesTest` and `NextTurnRoomDecisionSettlesTest`. No existing claim changed, none was silenced, and no tolerance was widened.
+
+### Evidence [observed; every log read for compile errors before its results: 0 in each]
+- **Red**, tests first, filtered run 42431442208 at db88c5524: 101 tests, 3 failed, all for J7's reason:
+  - the J7 unit test, "expected:<RIGHT_PART> but was:<OWN_LINE>";
+  - `NextTurnRightPartSettlesTest`, "the next turn is in the right part, right of the divider (504.0.dp); it is at left=361.0.dp";
+  - `RouteCardSundownStepsAsideFont20Test`, "6 stops, expanded: leg row 0 shows, height 0.0.dp", J6's failure.
+- **Forward**:
+  - PR run 42431443518 at 8b8862788: 7297 tests, 0 failed.
+  - PR run 42435494495 at c1d17e034 (final code): **7298 tests, 0 failed, 24 skipped**.
+- **By name against pre-main's latest run**, 42337576510 at 1f6901a11 (82d4a091a is [skip ci]): 6846 tests, 0 failed, 24 skipped.
+  - No test that passes there fails or skips here.
+  - 38 of its names are absent here. They are the same 38 that were absent at J6's run 42428697341 (claims renamed earlier on #498/#500, before J7).
+  - Compared with J6's run, the only new names are J7's.
+- **Measured at 823 x 384, font 2.0, evening, 6 stops** (run 42435494495):
+  - navigation card 266..384 dp, the next turn at 510..617 dp, right of the divider;
+  - the route card expanded 8..282, leg row 0 at 44.0..65.3 dp;
+  - nothing moved across 180 frames after each step (no card, peek, expanded, closed again), and the card came back to 266..384 on closing.
+  - J6 measured 244..384 with no leg row. The card is 22 dp shorter, not the "about 32 dp" I estimated at J6, because a blank space is the arrow's 22 dp.
+- **The first settling test alone does not prove "no loop".** I reverted the height reckoning (`leftHeightPx + if (…) ownLinePx else 0f` → `leftHeightPx`), run 42431482384 at 44053e896. `NextTurnRightPartSettlesTest` still passed (101 tests, 0 failed). At 823 x 384 the card with its line misses the room by more than a line, so that screen would settle either way. So I added `NextTurnRoomDecisionSettlesTest`:
+  - It is the card alone, with a host that decides off-for-room as `navigationCardLift` does, from the height the card reports, against a limit half a line (16 dp) below the height measured with the own line.
+  - **The revert** (one line, the same edit), run 42435494762 at 1f803f833: 102 tests, 1 failed: "the next turn changes place once, never back and forth: **89 swaps**". The height reported alternated 330 / 264 px.
+  - That failure is one this edit can produce, and the build compiled.
+  - Forward at c1d17e034: 0 swaps, 0 frames moved after the first second, and the height reported is 330 px in both places.
+- **Fixed inside J7** (I count it as a refinement, not a failed attempt): at c88d4748b the edge test also ran against that revert (run 42433560203, the same 89 swaps). Forward, it showed the height reported was 362 px in the right part against 330 px on the own line. I had counted the own line at the figure's 32.7 dp, but a blank space is drawn at the arrow's 22 dp. That was too strict but could not loop: a taller height only keeps "no room". c1d17e034 counts the own line as drawn, and the edge test now claims the two heights are equal.
+- Each revert ran on its own worktree (`/mnt/work/scratch/hazel-arrows7/wt-rev-height*`). The file was restored from a copy saved before the edit and checked equal to the forward commit's. After each check the main worktree was checked clean, with both J7 lines present.
+
+### Confirmed and inferred
+- [observed]: the runs, counts, messages and measured bounds above, and scan 0 before every push (including the revert branches).
+- [inferred]: that the right part fits the next turn wherever the line is off for room at fonts 1.5 to 2.0. Measured only at 823 x 384 (both settling tests) and 640 x 360 (the StepsAside Short tests pass with it).
+
+### Could not determine
+- The phone's figures (no phone).
+- The edge test runs with a blank next turn (no route). The figure case uses the same code path, but the equal-heights claim was not measured with a figure showing. The two real-screen tests also show a blank space (22 dp tall).
+
+### Premises that were wrong
+- J6's estimate "one line shorter, about 32 dp": it is 22 dp with a blank space, and the figure's line (about 32.7 dp at font 2.0) where a turn shows.
+
+### Decided beyond scope (open to the owner)
+- While the line steps aside for the route card and also could not fit even moved up, J7 decides (the right part), not J6. I read "J6's own-line rule stays for the case where the evening line steps aside **only** for the route card" that way.
+- The off-for-room check runs with the card's lift rules (the compass strip, the L) whether or not the line steps aside. The card's actual move is unchanged.
+
+### S22 steps (the arrows; nothing here was run on the phone)
+1. Landscape, text size 2.0, daytime, navigating home by trail with a turn ahead: the arrow and its distance sit in the card's right part, with "by trail" under the distance.
+2. The same after sunset with the sunset line on the card (one line, the card moved up above the blue dot): the arrow has its own line under the turn line, centred.
+3. The same with Back by as well (the card can't fit both lines even moved up): the card stays on the bottom edge, both evening lines are gone, and **the arrow is in the right part, as in step 1** (J7; was its own line at J6). The card does not jump.
+4. Still after sunset with the sunset line on the card (step 2), open a saved route's card: where the line steps aside for it, the arrow keeps its own line (J6), and the cards do not jump up and down.
+5. In step 3's state, open the route card full with 6 stops: the arrow stays in the right part, at least the first leg row shows, and nothing moves.
+6. Close the route card: the navigation card is as it was in step 2 or 3.
+7. Portrait at text size 1.0: the arrow beside the needle, the whole turn line centred. Turn the phone to landscape and back, and the arrow returns to its place.
+
+### Clean-up
+- Throwaway refs deleted from origin: `hazel-arrows7-red`, `hazel-arrows7-rev-height`, `hazel-arrows7-rev-height2`, `hazel-arrows7-rev-height3` (their runs stay readable by number). Scratch `/mnt/work/scratch/hazel-arrows7` (700) holds the runner, the results and the revert worktrees.
+- PR #500 is ready for review, not merged. Final SHA: this commit.

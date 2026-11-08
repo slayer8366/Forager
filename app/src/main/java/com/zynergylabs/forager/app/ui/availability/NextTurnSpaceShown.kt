@@ -4,6 +4,7 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
 import com.zynergylabs.forager.app.domain.nextturn.NextTurn
 import com.zynergylabs.forager.app.domain.nextturn.NextTurnArrow
+import com.zynergylabs.forager.app.domain.nextturn.NextTurnBlank
 import com.zynergylabs.forager.app.domain.nextturn.nextTurnArrow
 import com.zynergylabs.forager.app.domain.nextturn.nextTurnSpace
 import com.zynergylabs.forager.app.domain.nextturn.nextTurnWords
@@ -45,6 +46,19 @@ internal fun nextTurnSpaceShown(readout: NavigationHudReadout, hasFix: Boolean, 
     }
     val spoken = figure?.let { f -> nextTurnWords(space, spokenDistanceOf(f)) }
     return NextTurnSpaceShown(arrow, figure, spoken)
+}
+
+/**
+ * The next turn the card's [route] carries (dispatch 2026-11-06-01, Amendment 1, J2: worked out where the line and the progress live
+ * and passed "to the card with the route it already receives"): a route ahead's own ([ReturnRoute.Ahead.nextTurn]). Every other
+ * route is blank for its own reason: no route at all or [ReturnRoute.Straight] is the straight line (E3, the owner: "Blank"),
+ * [ReturnRoute.Pending] is not yet known, and [ReturnRoute.Unavailable] is the held-back route (E1).
+ */
+internal fun nextTurnOf(route: ReturnRoute?): NextTurn = when (route) {
+    is ReturnRoute.Ahead -> route.nextTurn
+    null, is ReturnRoute.Straight -> NextTurn.Blank(NextTurnBlank.NO_TRAIL_ROUTE)
+    ReturnRoute.Pending -> NextTurn.Blank(NextTurnBlank.NOT_YET_KNOWN)
+    is ReturnRoute.Unavailable -> NextTurn.Blank(NextTurnBlank.ROUTE_WITHHELD)
 }
 
 private fun spokenDistanceOf(figure: String): String = spokenFigure(figure) ?: figure.also {

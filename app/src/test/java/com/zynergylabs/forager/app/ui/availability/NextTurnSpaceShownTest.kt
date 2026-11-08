@@ -110,14 +110,14 @@ class NextTurnSpaceShownTest {
         assertEquals(NextTurnArrow.STRAIGHT, s.arrow)
         assertEquals(r.distanceText, s.figure)
         assertEquals("0.4 mi", s.figure)
-        assertEquals("keep straight in 0.4 miles", s.spoken)
+        assertEquals("keep straight for 0.4 miles", s.spoken)
     }
 
     @Test
     fun `A3 - in kilometres the straight-ahead figure is still the top line's own`() {
         val s = shown(fix(400.0), byTrail, NextTurn.NoTurnLeft, unit = DistanceUnit.KILOMETERS)
         assertEquals("640 m", s.figure)
-        assertEquals("keep straight in 640 meters", s.spoken)
+        assertEquals("keep straight for 640 meters", s.spoken)
     }
 
     // D1: "the figure counts from the needle's place, never below 0 ... Units follow the card's."
@@ -193,7 +193,7 @@ class NextTurnSpaceShownTest {
         // this pairing is made up, to reach the fallback.
         val s = shown(fix(400.0), route = null, ahead = NextTurn.NoTurnLeft)
         assertEquals("≈ 1300 ft", s.figure)
-        assertEquals("keep straight in ≈ 1300 ft", s.spoken)
+        assertEquals("keep straight for ≈ 1300 ft", s.spoken)
         assertTrue("a warning logged", ShadowLog.getLogsForTag("NextTurn").any { it.type == Log.WARN })
     }
 }

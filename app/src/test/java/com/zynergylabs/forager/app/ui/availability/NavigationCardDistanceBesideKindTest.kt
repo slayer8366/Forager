@@ -102,9 +102,22 @@ class NavigationCardDistanceBesideKindTest : NavigationCardTopLineRules() {
     @Test @Config(qualifiers = "w360dp-h780dp-xxhdpi", fontScale = 2.0f)
     fun `360 dp, font 2,0 - straight sits right after the distance as it counts down`() = assertSideBySide("360/2.0", straight)
 
+    // Dispatch 2026-11-06-01, Amendment 1, J4 (RECORD -2183, the owner: "Accept it", to ""by trail"/"straight" under the distance where
+    // the arrow takes the right part"): in landscape at font 2.0 the next turn takes the right part (J3 step 2), so the kind sits under
+    // the distance as it counts down. Was "by trail (straight) sits right after the distance as it counts down", assertSideBySide.
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
-    fun `823 x 384, font 2,0 - by trail sits right after the distance as it counts down`() = assertSideBySide("823x384/2.0", byTrail)
+    fun `823 x 384, font 2,0 - J4 - by trail sits under the distance as it counts down, the next turn in the right part`() = assertUnder("823x384/2.0", byTrail)
 
     @Test @Config(qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
-    fun `823 x 384, font 2,0 - straight sits right after the distance as it counts down`() = assertSideBySide("823x384/2.0", straight)
+    fun `823 x 384, font 2,0 - J4 - straight sits under the distance as it counts down, the next turn in the right part`() = assertUnder("823x384/2.0", straight)
+
+    /** J4: every reading clean with the kind on its own line under the distance, and the next turn's space drawn in the right part. */
+    private fun assertUnder(where: String, states: List<State>) {
+        val readings = states.map { topLine(where, it, Evening.NONE, step = Step.OWN_LINE) }
+        val problems = readings.flatMap { it.problems }.toMutableList()
+        val c = card(where)
+        val space = c.nextTurnSpace
+        if (space == null || space.left < c.leftPartRight) problems += "$where: positive control: the next turn's space $space is not in the right part (the left part ends at ${c.leftPartRight})"
+        assertTrue(problems.joinToString("\n"), problems.isEmpty())
+    }
 }

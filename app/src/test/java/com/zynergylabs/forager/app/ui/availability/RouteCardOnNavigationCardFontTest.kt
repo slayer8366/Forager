@@ -180,10 +180,15 @@ class RouteCardOnNavigationCardShortFont20Test : RouteCardOnNavigationCardFontTe
  * The class read the real clock: both red runs ran while the navigation card carried its sundown line, and the green ones while it
  * did not. Every class here now runs at a fixed clock, noon ([ROUTE_CARD_NOON_CLOCK]) by default, and each window also at [ROUTE_CARD_EVENING_CLOCK].
  */
+/**
+ * Dispatch 2026-11-06-01, Amendment 1, J6 (RECORD -2183, the owner: "Lines leave (as built)"): at font 2.0 the rig's navigation card
+ * with its sundown line can't fit even moved up (its height counted as drawn since J5's defect fix), so it stays at the bottom and the line
+ * steps off (RECORD -955). Was `sundownLineShown = true`.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
-class RouteCardOnNavigationCardFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_270, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = true)
+class RouteCardOnNavigationCardFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_270, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = false)
 
 /** Font 1.3 on the S22's window, in the evening. */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -200,10 +205,15 @@ class RouteCardOnNavigationCardFont13EveningTest : RouteCardOnNavigationCardFont
  * "The sundown line does not show here: the evening lines leave the navigation card where they would take its top over Reset north
  * or the walker's dot (RECORD -955), as run 41728736456 showed (its navigation card 242..360 dp at 22:28 UTC)."
  */
+/**
+ * Dispatch 2026-11-06-01, Amendment 1, J6 (RECORD -2183, the owner: "Lines leave (as built)"): at font 2.0 the rig's navigation card
+ * with its sundown line can't fit even moved up (its height counted as drawn since J5's defect fix), so it stays at the bottom and the line
+ * steps off (RECORD -955). Was `sundownLineShown = true`.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
-class RouteCardOnNavigationCardShortFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = true)
+class RouteCardOnNavigationCardShortFont20EveningTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_EVENING_CLOCK, sundownLineShown = false)
 
 /** 2026-11-03 12:00 PST (20:00 UTC): 4 h 50 min before sunset at the rig's place, so no sundown line. */
 internal val ROUTE_CARD_NOON_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-03T20:00:00Z").toEpochMilli() }
@@ -212,10 +222,15 @@ internal val ROUTE_CARD_NOON_CLOCK = com.zynergylabs.forager.app.domain.CurrentT
  * Font 2.0 in the short landscape window, just after sunset: pre-main's push run 41747193319 failed ShortFont20Test with its
  * navigation card at 194..360 dp: after sunset the line is short enough to fit here, which before sunset it is not.
  */
+/**
+ * Dispatch 2026-11-06-01, Amendment 1, J6 (RECORD -2183, the owner: "Lines leave (as built)"): at font 2.0 the rig's navigation card
+ * with its sundown line can't fit even moved up (its height counted as drawn since J5's defect fix), so it stays at the bottom and the line
+ * steps off (RECORD -955). Was `sundownLineShown = true`.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
-class RouteCardOnNavigationCardShortFont20AfterSunsetTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_AFTER_SUNSET_CLOCK, sundownLineShown = true)
+class RouteCardOnNavigationCardShortFont20AfterSunsetTest : RouteCardOnNavigationCardFontTests(Surface.ROTATION_90, ROUTE_CARD_AFTER_SUNSET_CLOCK, sundownLineShown = false)
 
 /** 2026-11-04 00:57 UTC: 6 min after sunset at the rig's place and 24 min before dark, so the sundown line shows. */
 internal val ROUTE_CARD_AFTER_SUNSET_CLOCK = com.zynergylabs.forager.app.domain.CurrentTimeProvider { java.time.Instant.parse("2026-11-04T00:57:00Z").toEpochMilli() }

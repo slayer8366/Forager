@@ -98,7 +98,9 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
     /** Where the centred turn line puts the needle's left edge in a left part whose middle is [middle] (G3 with H1); `null` unmeasurable. */
     protected fun turnLineNeedleLeft(c: Card, middle: Dp): Dp? {
         val like = c.turn?.takeIf { it.layout != null } ?: return null
-        return middle + (turnSpacePx(like) / densityPx).dp / 2 - 9.dp
+        // Dispatch 2026-11-06-01, J3 step 1: with the next turn beside the needle the centred line includes it, so the needle sits
+        // half of what it adds further left ([besideNextTurnDp]); otherwise as #498 laid it.
+        return middle + (turnSpacePx(like) / densityPx).dp / 2 - 9.dp - besideNextTurnDp(c, like) / 2
     }
 
     private fun stepFor(widthPx: Int, gapPx: Int, longestPx: Int, kindPx: Int, stackPx: Int?): Step {
@@ -194,7 +196,10 @@ abstract class NavigationCardTopLineRules : NavigationCardKindLineScreen() {
         val statusBelow = minOf(floorPx, totalPx - dividerPx - leftNeedPx) < widestWordPx
         // H12: a piece left out keeps its width ([eveningLeftOut]), in the evening's tabular type.
         val leftOutPx = eveningLeftOut?.let { widthPx(kindType, it, tabular = true) } ?: 0
-        val wantRightPx = maxOf(if (statusBelow) 0 else floorPx, c.pieces.maxOfOrNull { widthPx(it, it.text) } ?: 0, leftOutPx)
+        // Dispatch 2026-11-06-01, Amendment 1, J3 step 2 and J4 (RECORD -2183, the owner: "Accept it", "Follow the largest rule"): in
+        // landscape at font 1.5 or more the right part is never narrower than the next turn's space, drawn there with no evening line.
+        val nextTurnRightPx = c.nextTurnSpace?.takeIf { it.left >= c.leftPartRight }?.let { px(it.right - it.left) } ?: 0
+        val wantRightPx = maxOf(if (statusBelow) 0 else floorPx, c.pieces.maxOfOrNull { widthPx(it, it.text) } ?: 0, leftOutPx, nextTurnRightPx)
         val basePx = totalPx - dividerPx - wantRightPx
         // Positive controls on that arithmetic: the left part is never narrower than what the evening piece leaves it, and where it
         // is wider (the fit overflowed) the right part is narrower than its widest piece, so that piece wraps.

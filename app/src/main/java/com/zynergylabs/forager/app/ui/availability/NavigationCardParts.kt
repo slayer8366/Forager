@@ -29,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
@@ -53,6 +54,10 @@ internal fun InfoParts(
     eveningHeld: Boolean,
     /** H8: whether the status words are in the right part; `false` where they have their own line under the parts. */
     statusInRight: Boolean,
+    /** Dispatch 2026-11-06-01, J2 and J3: the next turn's space, and where it goes for this window, font and evening line. */
+    nextTurn: NextTurnSpaceShown,
+    nextTurnPlace: NextTurnPlace,
+    distanceUnit: DistanceUnit,
     onLeftHeight: (Float) -> Unit,
     onStatusHeight: (Float) -> Unit,
     modifier: Modifier = Modifier,
@@ -61,7 +66,7 @@ internal fun InfoParts(
     Layout(
         modifier = modifier,
         contents = listOf(
-            { LeftPart(readout, fit, Modifier.onGloballyPositioned { onLeftHeight(it.size.height.toFloat()) }) },
+            { LeftPart(readout, fit, nextTurn, nextTurnPlace, distanceUnit, Modifier.onGloballyPositioned { onLeftHeight(it.size.height.toFloat()) }) },
             {
                 Box(
                     modifier = Modifier
@@ -71,7 +76,14 @@ internal fun InfoParts(
                         .testTag(NAVIGATION_HUD_DIVIDER_TAG),
                 )
             },
-            { RightPart(readout, sundownLine, backByLine, sundownVisibility, backByVisibility, eveningBreaks, eveningHeld, statusInRight, onStatusHeight) },
+            {
+                RightPart(
+                    readout, sundownLine, backByLine, sundownVisibility, backByVisibility, eveningBreaks, eveningHeld, statusInRight, onStatusHeight,
+                    // J3 step 2: landscape at font 2.0 with no evening line, the next turn where the evening line goes.
+                    nextTurn = nextTurn.takeIf { nextTurnPlace == NextTurnPlace.RIGHT_PART },
+                    distanceUnit = distanceUnit,
+                )
+            },
         ),
     ) { (left, divider, right), constraints ->
         val total = constraints.maxWidth
@@ -96,15 +108,25 @@ internal fun InfoParts(
 
 /**
  * The left part: the distance and its kind on the top line ([CardTopLine]; dispatch 2026-11-05-10, RECORD -2181: "move the "by
- * trail" from the bottom to the top right half, on the same line as 2.2 mi"); under it the turn line ([CardTurnLine]). Nothing under
- * the turn line. Was (RECORD -945) the distance, the turn line and the kind word ("by trail under figure"), each centred.
+ * trail" from the bottom to the top right half, on the same line as 2.2 mi"); under it the turn line ([CardTurnLine]). Under the turn
+ * line, only where it does not fit beside the needle, the next turn's own line (dispatch 2026-11-06-01, J2, [NextTurnPlace.OWN_LINE]).
+ * Was (RECORD -945) the distance, the turn line and the kind word ("by trail under figure"), each centred.
  */
 @Composable
-private fun LeftPart(readout: NavigationHudReadout, fit: NavigationInfoFit, modifier: Modifier = Modifier) {
+private fun LeftPart(
+    readout: NavigationHudReadout,
+    fit: NavigationInfoFit,
+    nextTurn: NextTurnSpaceShown,
+    nextTurnPlace: NextTurnPlace,
+    distanceUnit: DistanceUnit,
+    modifier: Modifier = Modifier,
+) {
     val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
         CardTopLine(readout, fit, distanceColor)
-        CardTurnLine(readout, fit)
+        CardTurnLine(readout, fit, nextTurn.takeIf { nextTurnPlace == NextTurnPlace.BESIDE_NEEDLE }, distanceUnit)
+        // J2, "Own line where needed": its own line, the card one line taller; blank (E1 to E3), it keeps the line, empty.
+        if (nextTurnPlace == NextTurnPlace.OWN_LINE) NextTurnSpace(nextTurn, distanceUnit)
     }
 }
 
@@ -120,9 +142,12 @@ private fun LeftPart(readout: NavigationHudReadout, fit: NavigationInfoFit, modi
  *   navigation panel": the north arrow and the heading are the strip's. Was (RECORD -950): the turn words, the needle, then the north
  *   arrow and the heading, "The arrows being side by side is a compass visual"; and the crossed-out compass for a compass status
  *   that did not fit (RECORD -934).
+ * - Dispatch 2026-11-06-01, A1 ("Beside the needle (Recommended)": "The degrees and needle keep their fixed spaces, and the next turn
+ *   gets its own fixed space beside them") with J2: where [besideNeedle] is given, the next turn's own space ([NextTurnSpace]) a gap
+ *   right of the needle, and the whole line centred; held blank where there is no turn to show, so nothing on the line moves.
  */
 @Composable
-private fun CardTurnLine(readout: NavigationHudReadout, fit: NavigationInfoFit) {
+private fun CardTurnLine(readout: NavigationHudReadout, fit: NavigationInfoFit, besideNeedle: NextTurnSpaceShown?, distanceUnit: DistanceUnit) {
     val small = MaterialTheme.typography.labelMedium
     val turnSpace = with(LocalDensity.current) { fit.turnSpacePx.toDp() }
     Row(
@@ -150,6 +175,10 @@ private fun CardTurnLine(readout: NavigationHudReadout, fit: NavigationInfoFit) 
                 tint = if (readout.targetArrowDegrees != null) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.3f),
                 modifier = Modifier.size(COMPASS_ICON_SIZE).rotate(readout.targetArrowDegrees ?: 0f),
             )
+        }
+        if (besideNeedle != null) {
+            Spacer(Modifier.width(Spacing.xs))
+            NextTurnSpace(besideNeedle, distanceUnit)
         }
     }
 }

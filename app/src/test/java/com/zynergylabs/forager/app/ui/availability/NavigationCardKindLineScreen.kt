@@ -318,7 +318,14 @@ abstract class NavigationCardKindLineScreen {
         val exit: DpRect,
         /** The north arrow, or the crossed-out compass in its place. */
         val northArrow: DpRect?,
+        /** Dispatch 2026-11-06-01, J2: the next turn's own space ([NEXT_TURN_SPACE_TAG]), `null` where none is drawn. */
+        val nextTurnSpace: DpRect? = null,
     ) {
+        /**
+         * J2 and J3 step 1: the next turn is beside the needle, on the turn line (its space's middle within the needle's row), so the
+         * centred turn line includes it.
+         */
+        val nextTurnBeside: Boolean get() = nextTurnSpace?.let { (it.top + it.bottom) / 2 in needle.top..needle.bottom && it.left >= needle.right } == true
         /** The turn row's left: its words, or the needle where the words are empty (an empty text reports no place). */
         val turnRowLeft: Dp get() = if (turn == null || turn.text.isEmpty()) needle.left else turn.bounds.left
         val turnRowRight: Dp get() = heading?.bounds?.right ?: northArrow?.right ?: needle.right
@@ -376,8 +383,18 @@ abstract class NavigationCardKindLineScreen {
             pieces = nodes(NAVIGATION_HUD_EVENING_PIECE_TAG).map(::laid),
             exit = rect(single(NAVIGATION_HUD_EXIT_TAG, where)),
             northArrow = nodes(NAVIGATION_HUD_NORTH_ARROW_TAG).singleOrNull()?.let(::rect),
+            nextTurnSpace = nodes(NEXT_TURN_SPACE_TAG).singleOrNull()?.let(::rect),
         )
     }
+
+    /**
+     * Dispatch 2026-11-06-01, Amendment 1, J3 step 1 (the owner: "Centre the line"; "the whole turn line centred (the needle's place
+     * moves with it, for good)"): where the next turn is beside the needle, what it adds to the centred turn line, in dp: a 4 dp gap,
+     * then its own space, the 22 dp arrow, 4 dp and the widest figure in miles ("88.8 mi", "8888 ft", Phase 1 section 6) in [like]'s
+     * type. 0 dp where it is not beside (its own line, the right part, or none), and the line is as #498 laid it.
+     */
+    protected fun besideNextTurnDp(c: Card, like: Laid): Dp =
+        if (c.nextTurnBeside) 30.dp + (listOf("88.8 mi", "8888 ft").maxOf { widthPx(like, it) } / densityPx).dp else 0.dp
 
     /** [text]'s width in pixels in [like]'s own type, measured as the card measures (one line, no wrapping). */
     protected fun widthPx(like: Laid, text: String, tabular: Boolean = false): Int {

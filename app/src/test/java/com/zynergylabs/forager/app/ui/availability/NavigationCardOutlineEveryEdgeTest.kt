@@ -141,23 +141,52 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
         checkEveryMapFacingEdge(name, card, roundedTop = true, railCornerSpotExpected = !fullscreen)
     }
 
+    /**
+     * Dispatch 2026-11-06-01, Amendment 1, J3 step 3 and J4 (RECORD -2183, the owner: "Own line, card moves up", "Round and outline"):
+     * at font 2.0 with an evening line and the next turn on its own line, the card moves up off the screen's bottom edge to clear the
+     * walker's dot; then its bottom corners round and its outline goes all round, so every map-facing edge and all four corners carry it.
+     */
+    protected fun landscapeMovedUp(rotation: Int, fullscreen: Boolean) {
+        Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
+        setScreen(evening = true)
+        val rotation90 = rotation == Surface.ROTATION_90
+        applyInsets(left = if (rotation90) 25.dp else 48.dp, right = if (rotation90) 48.dp else 25.dp, navigationOnRight = rotation90)
+        if (fullscreen) {
+            composeRule.onNodeWithContentDescription("Fullscreen").performTouchInput { click(center) }
+            settle()
+            assertEquals("fullscreen: the side bar has slid away", 0, count(COMPACT_NAVIGATION_RAIL_TAG))
+        }
+        val card = bounds(NAVIGATION_HUD_TAG)
+        val screenBottom = composeRule.onRoot().getUnclippedBoundsInRoot().bottom
+        val name = "moved-up-${if (rotation90) "rot90" else "rot270"}-${if (fullscreen) "fullscreen" else "bar-shown"}"
+        println("MEASURED J4 $name $theme: card $card, the screen's bottom $screenBottom, evening pieces ${count(NAVIGATION_HUD_EVENING_PIECE_TAG)}")
+        assertTrue("$name: positive control: the evening line is on the card", count(NAVIGATION_HUD_EVENING_PIECE_TAG) > 0)
+        assertTrue("$name: positive control: the card $card is moved up off the screen's bottom edge ($screenBottom)", card.bottom < screenBottom - MAP_CARD_CORNER_RADIUS)
+        checkEveryMapFacingEdge(name, card, roundedTop = true, roundedBottom = true)
+    }
+
     protected fun portrait(routeCard: Boolean) {
         setScreen()
         if (routeCard) openRouteCard()
         checkEveryMapFacingEdge("portrait-${if (routeCard) "route-card" else "no-route-card"}", bounds(STRIP_TAG), roundedTop = false)
     }
 
-    private fun setScreen() {
+    private fun setScreen(evening: Boolean = false) {
         composeRule.setContent {
             val state by plotting.uiState.collectAsState()
             ForagerTheme(darkTheme = dark) {
                 AvailabilityScreen(
                     uiState = AvailabilityUiState(liveFix = fix, plannedTrips = listOf(ROUTE_TRIP)).withFixHeight(),
-                    recording = AvailabilityScreenRecording(isRecording = true),
+                    // J4: an evening line ("Dark since", 37 minutes ago), and a next turn, for the card moved up.
+                    recording = AvailabilityScreenRecording(isRecording = true, recordingSundownLine = if (evening) com.zynergylabs.forager.app.domain.SundownLine.DarkSince(t - 37 * 60_000L) else null),
                     navigation = AvailabilityScreenNavigation(
                         isReturning = true,
                         navigationTarget = start,
-                        returnRoute = ReturnRoute.Ahead(LatLng(start.lat, start.lng), 245.0),
+                        returnRoute = if (evening) {
+                            ReturnRoute.Ahead(LatLng(start.lat, start.lng), 245.0, nextTurn = com.zynergylabs.forager.app.domain.nextturn.NextTurn.Turn(com.zynergylabs.forager.app.domain.nextturn.TurnBand.SLIGHT, com.zynergylabs.forager.app.domain.nextturn.TurnSide.LEFT, metersAway = 140.0, sameSidePathsBefore = 0))
+                        } else {
+                            ReturnRoute.Ahead(LatLng(start.lat, start.lng), 245.0)
+                        },
                     ),
                     compassProvider = FixedCompass(134f),
                     computeTrueHeading = ComputeTrueHeadingUseCase(NoDeclination),
@@ -251,7 +280,7 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
      * The claim (see the class doc). [roundedTop]: the landscape card's top two corners are rounded and its bottom is square on the
      * screen's edge; the portrait strip's bottom two are rounded.
      */
-    private fun checkEveryMapFacingEdge(name: String, card: DpRect, roundedTop: Boolean, railCornerSpotExpected: Boolean = false) {
+    private fun checkEveryMapFacingEdge(name: String, card: DpRect, roundedTop: Boolean, railCornerSpotExpected: Boolean = false, roundedBottom: Boolean = false) {
         capture(name)
         val map = bareMap
         fun isMap(x: Int, y: Int) = inside(x, y) && abs(lum(image[x, y]) - lum(map)) < MAP_MATCH &&
@@ -298,14 +327,19 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
 
         // E20: the end edge (right, by the side bar) over the card's bottom MAP_CARD_CORNER_RADIUS, where the side bar's rounded bottom
         // corner curves away from it. Probed 2 dp out, every 1 dp, so the narrow wedge of map between the card and that corner is met.
-        if (roundedTop) {
+        // J4: not on a card moved up, whose own bottom corner is rounded there and read below as a corner (run 42413989442: in
+        // fullscreen this straight-edge reading met the map outside the rounded corner's own shape).
+        if (roundedTop && !roundedBottom) {
             val railCorner = RAIL_CORNER_SPOT
             val alongCorner = (px(card.bottom - MAP_CARD_CORNER_RADIUS)..(bottom - 1) step px(1.dp))
             edge(railCorner, alongCorner, { y -> right + px(2.dp) to y }, { y -> (1..4).map { right - it to y } }, { y -> right - inFill to y })
         }
 
         // Rounded corners: centre, and the signs that point from it to the corner.
-        val corners = if (roundedTop) {
+        val corners = if (roundedTop && roundedBottom) {
+            // J4: moved up, all four.
+            listOf(Triple("top-left corner", -1, -1), Triple("top-right corner", 1, -1), Triple("bottom-left corner", -1, 1), Triple("bottom-right corner", 1, 1))
+        } else if (roundedTop) {
             listOf(Triple("top-left corner", -1, -1), Triple("top-right corner", 1, -1))
         } else {
             listOf(Triple("bottom-left corner", -1, 1), Triple("bottom-right corner", 1, 1))
@@ -328,7 +362,11 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
                 val outer = (1..4).map { at(16.dp + (it / 3f).dp) }.distinct().filter { (x, y) -> inside(x, y) }
                 val gap = lum(lineOver(map)) - lum(map)
                 fun overMap(p: Color) = (lum(p) - lum(map)) * kotlin.math.sign(gap) > abs(gap) / 2f
-                if (run.none { (x, y) -> isLine(image[x, y], fill) } && outer.none { (x, y) -> overMap(image[x, y]) }) {
+                // J4, a card moved up: its bottom corner beside the side bar is drawn out to the side bar's line too, and there the line
+                // lies at the shape's own edge, over the map (run 42413989442: at 54 degrees, 0.376 by day and 0.702 at night at 15.7 dp,
+                // the map 0.502), so a pixel of the line over the map within 14 to 16 dp counts there, by the same half-gap rule.
+                val overMapInside = roundedBottom && sy > 0 && run.any { (x, y) -> overMap(image[x, y]) }
+                if (run.none { (x, y) -> isLine(image[x, y], fill) } && outer.none { (x, y) -> overMap(image[x, y]) } && !overMapInside) {
                     misses += "$where at $deg degrees: bare map ${rgb(image[ox, oy])} at ($ox, $oy), pixels 14 to 16 dp in ${run.joinToString { (x, y) -> rgb(image[x, y]) }}, 16 to 17.3 dp ${outer.joinToString { (x, y) -> rgb(image[x, y]) }}, fill ${rgb(fill)}, the outline over it ${rgb(lineOver(fill))}"
                 }
             }
@@ -386,6 +424,17 @@ abstract class NavigationCardOutlineEveryEdgeLandscapeTests(dark: Boolean) : Nav
     @Test fun `rotation 270, fullscreen, no route card`() = landscape(Surface.ROTATION_270, fullscreen = true, routeCard = false)
 }
 
+/** J3 step 3 and J4: the card moved up, at font 2.0 with an evening line (see [NavigationCardOutlineEveryEdgeTests.landscapeMovedUp]). */
+abstract class NavigationCardOutlineEveryEdgeMovedUpTests(dark: Boolean) : NavigationCardOutlineEveryEdgeTests(dark) {
+    @Test fun `J4 - rotation 90, side bar shown, moved up - rounded and outlined all round`() = landscapeMovedUp(Surface.ROTATION_90, fullscreen = false)
+
+    @Test fun `J4 - rotation 90, fullscreen, moved up - rounded and outlined all round`() = landscapeMovedUp(Surface.ROTATION_90, fullscreen = true)
+
+    @Test fun `J4 - rotation 270, side bar shown, moved up - rounded and outlined all round`() = landscapeMovedUp(Surface.ROTATION_270, fullscreen = false)
+
+    @Test fun `J4 - rotation 270, fullscreen, moved up - rounded and outlined all round`() = landscapeMovedUp(Surface.ROTATION_270, fullscreen = true)
+}
+
 abstract class NavigationCardOutlineEveryEdgePortraitTests(dark: Boolean) : NavigationCardOutlineEveryEdgeTests(dark) {
     @Test fun `portrait, route card open`() = portrait(routeCard = true)
 
@@ -423,3 +472,13 @@ class NavigationCardOutlineEveryEdgePortraitDayTest : NavigationCardOutlineEvery
 @Config(sdk = [36], qualifiers = "w411dp-h891dp-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class NavigationCardOutlineEveryEdgePortraitNightTest : NavigationCardOutlineEveryEdgePortraitTests(dark = true)
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class NavigationCardOutlineEveryEdgeMovedUpDayTest : NavigationCardOutlineEveryEdgeMovedUpTests(dark = false)
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class NavigationCardOutlineEveryEdgeMovedUpNightTest : NavigationCardOutlineEveryEdgeMovedUpTests(dark = true)

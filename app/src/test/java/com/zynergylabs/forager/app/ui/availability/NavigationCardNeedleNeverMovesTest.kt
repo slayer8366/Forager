@@ -27,7 +27,8 @@ import kotlin.math.roundToInt
  * - the needle's left edge is the same in all four, within 0.05 dp;
  * - it is where a turn line centred in the left part puts it when the degrees' space is the widest of its contents ("0°" to "180°",
  *   "Target", "No target"), 4 dp and the 22 dp needle: half that space less 9 dp right of the left part's middle, within 1 dp (as
- *   [NavigationCardTopLineRules] reads the turn line);
+ *   [NavigationCardTopLineRules] reads the turn line); since dispatch 2026-11-06-01, J3 step 1 ("Centre the line"), where the next
+ *   turn is beside the needle the centred line includes it, and the needle sits half of what it adds further left;
  * - and it stays inside the left part.
  * E17's claim (the word clear of the needle) is [NavigationCardNeedleClearOfWordTest]'s, unchanged.
  *
@@ -61,7 +62,10 @@ class NavigationCardNeedleNeverMovesTest : NavigationCardKindLineScreen() {
         fun dpOf(p: Int) = (p / d).dp
         val degreesSpacePx = (0..180).maxOf { widthPx(like, "$it°") }
         val spacePx = maxOf(degreesSpacePx, widthPx(like, "Target"), widthPx(like, "No target"))
-        val expected = turning.middle + dpOf(spacePx) / 2 - 9.dp
+        // Dispatch 2026-11-06-01, J3 step 1 ("Centre the line"): where the next turn is beside the needle the centred turn line
+        // includes it, so the needle sits half of what it adds further left, in every state alike ([besideNextTurnDp]). Was (E18)
+        // the degrees' space and the needle alone, which still holds wherever the next turn is not beside.
+        val expected = turning.middle + dpOf(spacePx) / 2 - 9.dp - besideNextTurnDp(turning, like) / 2
         val readings = mutableListOf("TRAIL <169°>" to turning)
         show(State.TRAIL, Evening.NONE, Facing.NO_COMPASS)
         readings += "TRAIL no compass" to card("$where TRAIL no compass")

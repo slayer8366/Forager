@@ -45,7 +45,15 @@ class NextTurnWordsTest {
 
     @Test
     fun `G3 - the straight-ahead arrow - keep straight`() {
-        assertEquals("keep straight in 0.4 miles", nextTurnWords(NextTurn.NoTurnLeft, "0.4 miles"))
+        assertEquals("keep straight for 0.4 miles", nextTurnWords(NextTurn.NoTurnLeft, "0.4 miles"))
+    }
+
+    /** G5 (2026-11-07, RECORD -2183), the owner: ""keep straight for 0.4 miles"", "Reads as how long to carry on, rather than when something happens". */
+    @Test
+    fun `G5 - the straight-ahead arrow says keep straight for the distance, while turns and forks keep in`() {
+        assertEquals("keep straight for 1 foot", nextTurnWords(NextTurn.NoTurnLeft, "1 foot"))
+        assertEquals("turn right in 1 foot", nextTurnWords(turn(TurnBand.PLAIN, TurnSide.RIGHT), "1 foot"))
+        assertEquals("keep left in 1 foot", nextTurnWords(NextTurn.Fork(TurnSide.LEFT, 0.3), "1 foot"))
     }
 
     @Test

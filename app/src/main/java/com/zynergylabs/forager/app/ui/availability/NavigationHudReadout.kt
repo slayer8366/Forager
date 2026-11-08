@@ -6,6 +6,8 @@ import com.zynergylabs.forager.app.domain.NavigationTargetKind
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteWithheldReason
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.nextturn.NextTurn
+import com.zynergylabs.forager.app.domain.nextturn.NextTurnBlank
 import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
 import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
@@ -121,6 +123,13 @@ sealed interface ReturnRoute {
         val offTrail: OffTrailState = OffTrailState.ON,
         /** Set only by the way to a waypoint along trails (`AvailabilityWaypointRoute`): its off-trail words, not the way home's. */
         val toWaypoint: Boolean = false,
+        /**
+         * The next turn on this route (dispatch 2026-11-06-01, Amendment 1, J2: "Call nextTurn(...) where the line and progress live
+         * (TrackRecordingRouteTicks, AvailabilityWaypointRoute) and pass the result to the card"), worked out by whoever holds the
+         * line and the walker's place on it, and carried to the card with the route it already gets. Not yet known by default, so
+         * a route given without one leaves the space blank (E1), never a guessed arrow.
+         */
+        val nextTurn: NextTurn = NextTurn.Blank(NextTurnBlank.NOT_YET_KNOWN),
     ) : ReturnRoute
 
     /**
@@ -147,8 +156,14 @@ sealed interface ReturnRoute {
  * the walker moving back towards it changes the answer; one withheld for
  * [RouteWithheldReason.NO_USABLE_POINTS] does not, since nothing would (dispatch 2026-09-28-423).
  */
-fun returnRouteOf(routeHome: RouteHome?, wayHomeNote: WayHomeNote? = null, offTrail: OffTrailState = OffTrailState.ON): ReturnRoute = when (routeHome) {
+fun returnRouteOf(
+    routeHome: RouteHome?,
+    wayHomeNote: WayHomeNote? = null,
+    offTrail: OffTrailState = OffTrailState.ON,
+    /** The way home's next turn, as the route tick worked it out beside [routeHome] (J2); read only with a route ahead. */
+    nextTurn: NextTurn = NextTurn.Blank(NextTurnBlank.NOT_YET_KNOWN),
+): ReturnRoute = when (routeHome) {
     null -> ReturnRoute.Pending
-    is RouteHome.Ahead -> ReturnRoute.Ahead(routeHome.lookahead, routeHome.routeMeters, wayHomeNote, offTrail)
+    is RouteHome.Ahead -> ReturnRoute.Ahead(routeHome.lookahead, routeHome.routeMeters, wayHomeNote, offTrail, nextTurn = nextTurn)
     is RouteHome.Withheld -> ReturnRoute.Unavailable(canRetry = routeHome.reason == RouteWithheldReason.OFF_ROUTE)
 }
