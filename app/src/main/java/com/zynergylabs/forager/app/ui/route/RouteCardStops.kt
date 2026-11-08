@@ -40,7 +40,8 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * keeps its leg rows, as before: there is nothing to select or navigate to until the route is saved.
  *
  * The buttons: Navigate, left of Directions (Amendment 1, step 5), to the selected stop. Where it cannot go, Navigate is greyed and the
- * owner's words stand at the row's start, where the space was, as written: "This stop's waypoint was moved or deleted".
+ * owner's words stand on their own line under the buttons (Amendment 4: "Own line under buttons"), as written: "This stop's waypoint
+ * was moved or deleted". While navigating, the buttons and the reason are hidden, and they come back when navigation ends (Amendment 5).
  */
 
 /** The owner's reason, verbatim (Amendment 2: "As I wrote it"). */
@@ -91,17 +92,25 @@ internal fun ColumnScope.RouteCardStopRows(
     }
 }
 
-/** A saved route's buttons: the reason when Navigate is greyed, then Navigate, then Directions, at the end. */
+/**
+ * A saved route's buttons: Navigate, then Directions, at the end of the row; when Navigate is greyed, the reason on its own line under
+ * them, at the card's full width (Amendment 4, the owner: "Own line under buttons"). In the row beside the buttons it had about 36 dp
+ * on the S22 and broke its words mid-word.
+ */
 @Composable
 internal fun RouteCardSavedButtons(content: RouteCardContent.Saved, callbacks: RouteCardCallbacks) {
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        if (content.stopLeadsNowhere) {
-            Text(NAVIGATE_UNAVAILABLE_REASON, style = MaterialTheme.typography.bodySmall, modifier = Modifier.weight(1f).testTag(ROUTE_CARD_NAVIGATE_REASON_TAG))
-        } else {
+    // Amendment 5 (RECORD -2187), the owner: "navigate and directions are still visible on the route card while navigating. Fix this by
+    // removing both buttons.", and of the reason, "They should hide." They come back when navigation ends, however it ends.
+    if (content.navigating) return
+    Column(Modifier.fillMaxWidth()) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Spacer(Modifier.weight(1f))
+            TextButton(onClick = callbacks.onNavigate, enabled = content.canNavigate, modifier = Modifier.testTag(ROUTE_CARD_NAVIGATE_TAG)) { Text("Navigate") }
+            TextButton(onClick = callbacks.onDirections, modifier = Modifier.testTag(ROUTE_CARD_DIRECTIONS_TAG)) { Text("Directions") }
         }
-        TextButton(onClick = callbacks.onNavigate, enabled = content.canNavigate, modifier = Modifier.testTag(ROUTE_CARD_NAVIGATE_TAG)) { Text("Navigate") }
-        TextButton(onClick = callbacks.onDirections, modifier = Modifier.testTag(ROUTE_CARD_DIRECTIONS_TAG)) { Text("Directions") }
+        if (content.stopLeadsNowhere) {
+            Text(NAVIGATE_UNAVAILABLE_REASON, style = MaterialTheme.typography.bodySmall, modifier = Modifier.fillMaxWidth().testTag(ROUTE_CARD_NAVIGATE_REASON_TAG))
+        }
     }
 }
 

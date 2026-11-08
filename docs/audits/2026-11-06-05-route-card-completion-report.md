@@ -891,3 +891,210 @@ from `1a6a69f2d`; `origin/pre-main` was `82d4a091a` at the start and the end, so
    wedge of the route card shows between that rounded corner and the route card's square corner, with the navigation card's outline
    along the curve and no line on the wedge's map side. Judge whether that wedge reads as finished. Repeat in Night Mode, and with the
    phone turned the other way.
+
+# Amendment 4, built: the deleted-stop reason on its own line under the buttons
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC. The owner: **"Own line under buttons"** (Amendment 4, read on `origin/records-after-173`,
+`prompts/preserved/2026-11-06-05-amendment-4.md`), build go **"Build it"**. Branch `route-card`, from `666867aeb` as briefed;
+`origin/pre-main` was `82d4a091a` at the start and the end and is already in `route-card`, so nothing was merged in.
+
+## What was built
+
+- `cf77aec71` + `43990e276` (test): `RouteCardNavigateReasonLineTest` (new, 149 lines). On the real compact Maps tab at the S22's portrait
+  window (`w384dp-h823dp-xxhdpi`) with native graphics (real text measurement), a saved route whose first stop's waypoint is deleted (only
+  the second stop's waypoint is on the phone), opened by a real touch on its marker; Navigate greyed. Checked at font scale 1.0 and 2.0
+  (each case asserts the scale it ran at): the words are exactly the owner's and none is cut off; Navigate and Directions are in one row,
+  Navigate left of Directions; the reason's top is at or below both buttons' bottoms; the reason runs from the card's side padding to its
+  side padding (within 1 dp); every line but the last ends at a space, so no word is broken. `43990e276` only adds a missing import: the
+  first red run (42438495157) did not compile and was not read as a result.
+- `28b6d3534` (fix): `RouteCardSavedButtons` in `ui/route/RouteCardStops.kt` (now 120 lines) is a column: the row of Navigate and
+  Directions at its end, as before, then, only when the stop leads nowhere, the reason at full width under it. The words and the greying are
+  unchanged; nothing else in the card moved. With no deleted stop, the card is exactly as before (the row alone).
+
+## Verified, and how
+
+- **Red, test alone** (`hazel-rc4-red` at `43990e276`, run **42439101958**, filtered to `RouteCardNavigateReasonLineTest` and
+  `RouteCardNavigateTest`; **0 compile errors** in the build job's log, read first). 11 tests, **2 failed**, both the new test, from the JUnit
+  XML: at 1.0, "the reason under the buttons: its top 599.0.dp vs their bottoms 675.0.dp, 675.0.dp", the reason 45 dp wide in 7 lines
+  `[This , stop's , waypoi, nt was , moved , or , deleted]`; at 2.0, "nothing cut off", the reason 15 dp wide in 35 lines, one letter
+  each. So the S22's finding (a narrow column, words broken mid-word) reproduced on the real screen. `RouteCardNavigateTest` (9) passed.
+- **Green: full CI, run 42440439690 at `28b6d3534`** (PR #507), every job success, including the full suite with the Street map deleted.
+  The new test's own measurements: at 1.0 the reason runs 12 dp to 235.7 dp of a 247.7 dp card, 4 dp under the buttons, in 2 lines
+  `[This stop's waypoint was moved or , deleted]`; at 2.0, 12 dp to 308 dp of a 320 dp card, in 2 lines
+  `[This stop's waypoint was , moved or deleted]`.
+- **By name against pre-main's latest run** (**42337576510** at `1f6901a11`; `82d4a091a` is one `[skip ci]` commit past it), both runs'
+  JUnit XML: 6846 vs 6928 test cases (6822 passed and 24 skipped vs 6904 and 24), **no outcome changed** on any name in both; 12 gone and 94
+  new, all passing (the same 12 and 92 as part 7's comparison, plus this test's 2). Against part 7's green (42427958402 at `67c93c119`):
+  **nothing gone, no outcome changed, 2 new**, exactly this test's two.
+- **One one-line revert** in its own scratch worktree (`hazel-rc4-revert` at `123303216`, from `28b6d3534`): in `RouteCardStops.kt`,
+  `Column(Modifier.fillMaxWidth()) {` → `Row(Modifier.fillMaxWidth()) {`, which puts the reason back in the button row. Run
+  **42440456516**, filtered as the red; the build job's log has **0 compile errors**, `compileDebugUnitTestKotlin` ran, and the build failed
+  at `testDebugUnitTest` on exactly the 2 tests, XML timestamped inside this run. Both fail "nothing cut off": the reason measured 0 dp wide
+  beside Directions (235.7 dp..235.7 dp at 1.0, 308 dp..308 dp at 2.0), 41 lines of one character: the row squeezing it out, which is
+  what this edit does. `RouteCardNavigateTest` (9) passed. The file was then restored from the copy saved before the edit and
+  `cmp`-matched the forward file; the forward lines (`Column(Modifier.fillMaxWidth())`, the reason's `fillMaxWidth()`) are present on
+  `origin/route-card`.
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, the real Maps tab, real text measurement): with a stop's waypoint deleted, the reason sits on its own line
+  under Navigate and Directions, at the card's width inside its padding, words whole, at font scale 1.0 and 2.0 in the S22's portrait
+  window; the buttons stay in one row at the row's end; no shared test changed outcome.
+- Inferred, not run: the same on the phone (Robolectric's fonts and insets are not the S22's; CLAUDE.md). The "moved" case lays out the
+  same way, since it is the same flag (`stopLeadsNowhere`) and the same composable; `RouteCardNavigateTest`'s moved case still passes but
+  does not measure the layout. Landscape and the navigation-card placement were not measured.
+
+## Could not determine
+
+- **Whether two lines is what the owner pictured.** The sketch in Amendment 4 shows the sentence on one line. The card is not the screen's
+  width: it is sized to its own content (`rememberRouteCardWidth`), 247.7 dp at the default text size in this window, which leaves
+  223.7 dp for the reason, and the sentence needs a little more, so it wraps once, at a space: "This stop's waypoint was moved or" /
+  "deleted". The ruling says "the card's full width", which is what was built; widening the card for the reason would change its size
+  and is not in the ruling, so it was not done. A question for the owner, below.
+
+## Premises that were wrong
+
+- None found. `route-card` was at `666867aeb` and `pre-main` (`82d4a091a`) already in it, as briefed.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- No space added between the buttons and the reason beyond what the buttons' own touch area gives (4 dp in the measurement), and none
+  under it beyond the card's bottom padding.
+
+## Questions for the owner
+
+- At the default text size the reason takes two lines in the card ("...moved or" / "deleted"), because the card is narrower than the
+  sentence. Is that fine as it is, or should the card widen so the sentence fits on one line when it shows?
+
+## S22 step (nothing was run on a phone)
+
+10. **The reason on its own line.** Plot and save a route of two waypoints, then delete the first waypoint (Records). Open the route on the
+    map. Navigate is greyed; Navigate and Directions stay in one row at the card's right; under them, starting at the card's left padding,
+    "This stop's waypoint was moved or deleted" reads in whole words, wrapping (if at all) only between words. Repeat with the phone's
+    largest text size. Then restore the waypoint (or pick the second stop): the reason is gone and the card looks as before.
+
+# Amendment 5, built: the map chrome's outline all the way round, and no buttons while navigating
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC. Amendment 5 read on `origin/records-after-173`
+(`prompts/preserved/2026-11-06-05-amendment-5.md`, RECORD -2187), build go **"Build it"**. Branch `route-card`, from `40e0bdfa7` as
+briefed; `origin/pre-main` was `82d4a091a` and already in it. Mid-task, on the planner's word that #506 was green, `origin/journal-locate-outline`
+(`13eb45fb1`) was merged in (`420e69742`, a merge, no conflicts).
+
+## What was built
+
+- **The outline** (`ui/route/RouteCardEdges.kt`, `848a512af`). `RouteCardOutline` draws `mapChromeOutline()` (1 dp, Bark at 40% by day,
+  white at 40% at night) in the card's shape on every side, in every placement: portrait (the side flush to the screen edge too), landscape
+  (the bottom on the screen edge too), and resting on the navigation card (the side against the side bar too). Where the navigation card
+  covers the card's bottom, the line is drawn round the card's full bounds and clipped at that card's top, so the sides end there and no
+  line runs across along it ("Stop at the top" and "Hide behind nav card"). `routeCardOpenEdges` and the card's `openEdges` parameter are
+  gone.
+- **The tucked card's tab keeps its old outline** (`RouteCardTabOutline`, same file, pixel-for-pixel the old code path: solid 1 dp
+  `onSurface`, open on its screen edge). Amendment 5 rules the card's outline; the tab's plan says it wears "the card's outline", so
+  whether it follows is a question for the owner, below.
+- **No buttons while navigating** (`848a512af`). `RouteCardContent.Saved` carries `navigating`, filled from the screen's one navigation
+  predicate (`AvailabilityScreen.kt`'s `isNavigating`: the return, its arrival hold, or a waypoint navigation) in
+  `CompactMapRoutePlotting.kt`; `RouteCardSavedButtons` (`RouteCardStops.kt`) draws nothing while it holds, so Navigate, Directions and
+  the reason line are gone, and they come back when it ends. The card's natural heights (D42) still report with the buttons hidden
+  (`RouteCard.kt`), so the landscape sundown/elevation decisions read the shorter card.
+- **Tests** (`e273c5963`, `64b2af93d`): `RouteCardOutlineReading.kt` (shared reading: the ruled line written out as `0x663B2E24` and
+  `0x66FFFFFF`, expected over the card's own pixel 4 dp in, that reference checked level with 5 dp in, tolerance 4/255 per channel);
+  `RouteCardOutlineLandscapeTest` (new, landscape not navigating, all four sides, day and night); `RouteCardNavigatingButtonsTest` (new:
+  Navigate by a real touch, then Back; then the navigation card's ✕ by a real touch; the reason case, navigation started by the view
+  model's own start since the card's Navigate is greyed there, ended by the ✕).
+
+## Tests whose claims changed
+
+- `RouteCardTuckCloseTest`, the two outline cases: were "a 1 dp Bark (#3B2E24) / #EDE3D0 outline on the three sides facing the map", the
+  screen-edge side bare; now "the map chrome's 1 dp outline, Bark at 40% / white at 40%, all the way round".
+- `RouteCardOutlineOnNavigationCardTest`, all three: were "on the top and the side toward the map, not the side bar's"; now the ruled line
+  on the top and both sides.
+- `RouteCardOutlineStopsAtNavigationCardTest`, all three: the line read in the ruled colour on both sides above the navigation card's
+  top; below it, each side's outer pixels level with the card's pixels a few dp in (Amendment 3's exact-colour test below the top could
+  not have seen a 40% line); and, new, no line across the card along that top (read up its middle).
+- `RouteCardOneWidthTests.corners` (both subclasses' two cases): the corner is read `ceil(1 dp) + 1 px` in from the side as well as from
+  top and bottom, since the screen-edge side now carries the line; the claim (square on the edge side, round facing the map) is unchanged.
+  It passed before and after the fix, as a reading move should.
+- `RouteCardReCenterUnderCardTest` (`64b2af93d`, `eaa91e8ee`), found by full CI 42444465598: "with Re-center under the card, real touches across
+  Navigate, Directions and the X each reach their own control" became "...Navigate and Directions are hidden and real touches across the X
+  reach it" (Re-center shows only while navigating, so there are no buttons to reach then); "not navigating the card sits where it does
+  today, and navigating it leaves Re-center's room under it" kept its name and its place claims, and its "only its place changes, not its
+  size" became "its size only by the hidden buttons' row", Material's 48 dp touch row (it reads 128 dp to 80 dp).
+
+## Verified, and how
+
+- **Red** (`hazel-rc5-red` at `e273c5963`, tests only, run **42442574815**, filtered to the seven outline/buttons/navigate classes): the
+  build job's log has **0 compile errors** (`compileDebugUnitTestKotlin` ran), "36 tests completed, 13 failed", matching the JUnit XML. All
+  13 for the reasons predicted: the old solid line read `#3B2E24` / `#EDE3D0` where the ruled line over the card was `#ABA398` / `#797979`;
+  the screen-edge side, the landscape bottom and the side-bar side read bare; "navigating: Navigate is hidden expected:<0> but was:<1>"
+  (twice) and "navigating: the reason is hidden expected:<0> but was:<1>". `RouteCardNavigateTest` (9) and `RouteCardOneWidthTest` (6)
+  passed.
+- **Fix, filtered** (`hazel-rc5-fix` at `848a512af`, run **42442720549**): BUILD SUCCESSFUL, 0 compile errors, all 36 pass. Measured: the
+  ruled line `#ABA298` by day over `#F5F1E6` on every side read, the landscape card's bottom at the screen's (384 dp), below the
+  navigation card's top both sides' outer pixels `#F5F1E6` as inside, the card's middle just above that top bare.
+- **Revert, part 1** (`hazel-rc5-revA`, run **42443284033**): in `RouteCardEdges.kt` the clip around the outline's drawing removed
+  (`clipRect(...) { drawContent() }` to `drawContent()`). 0 compile errors, "18 tests completed, 3 failed": the three
+  `RouteCardOutlineStopsAtNavigationCardTest` cases, each "N dp below the navigation card's top, no line: 1 px in reads #ABA298 (#787878 at
+  night), not the card's own #F5F1E6 (#1F1F1F)", the line running on behind the navigation card, which is what removing the clip does. The
+  other outline classes passed. Restored from the copy saved before the edit; `cmp`-matched `848a512af`'s file; the clip line is present
+  on `origin/route-card`. (The colour and the sides were each shown biting by the red run, where the old code failed them.)
+- **Revert, part 2** (`hazel-rc5-revB`, run **42443288504**): in `RouteCardStops.kt` the line `if (content.navigating) return` deleted.
+  0 compile errors, "12 tests completed, 3 failed": the three `RouteCardNavigatingButtonsTest` cases, with the red run's three messages.
+  Restored from the saved copy, `cmp`-matched; the line is present on `origin/route-card`.
+- **Full CI**: at `420e69742` (after the merge), run **42444465598** failed only the two `RouteCardReCenterUnderCardTest` cases above
+  (both jobs that run the suite, 2 failed each); at `64b2af93d`, run **42446027667** failed one case, the size claim I had changed: I took the hidden row as Navigate's tagged
+  bounds (40 dp), and the row is Material's 48 dp touch row (the card read 128 dp to 80 dp, as before). Fixed in `eaa91e8ee`; at
+  `eaa91e8ee`, run **42447645450**: **every job success**, including the suite with the Street map deleted.
+
+- **By name against pre-main's latest run** (**42337576510** at `1f6901a11`; `82d4a091a` is one `[skip ci]` commit past it), both runs'
+  JUnit XML: 6846 vs 6933 test cases (6822 passed and 24 skipped vs 6909 and 24); **no outcome changed** on any name in both; 18 gone and
+  105 new, all passing. Against Amendment 4's green (**42440439690** at `28b6d3534`): 6928 vs 6933, **no outcome changed**, 14 gone and 19
+  new: the gone are the 6 renamed here (the outline cases in `RouteCardTuckCloseTest` and `RouteCardOutlineOnNavigationCardTest`, and the
+  `RouteCardReCenterUnderCardTest` touch case) and the 8 #506 renamed in `ReCenterOutline*Test` and `LocateRingReCenterLandscapeTest`; the
+  new are those renamed cases, `RouteCardOutlineLandscapeTest` (2) and `RouteCardNavigatingButtonsTest` (3).
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, native graphics, the real Maps tab): the ruled line on every side of the card in portrait, landscape and
+  on the navigation card, by day and at night (landscape-on-card at night in one rotation, by day in both); none below the navigation
+  card's top and none across along it; Navigate, Directions and the reason hidden while navigating and back after Back and after the ✕.
+- Inferred, not run: the same on the phone. Colours are read over this test map's plain ground; on real tiles the 40% line shows the
+  tiles through it, as every other piece of chrome's does. Night colours resting on the navigation card were read in one rotation.
+
+## Could not determine
+
+- **Arrival.** The dispatch says the buttons come back when navigation ends by "Back, ✕ or arrival". In the code, arriving does not end a
+  waypoint navigation: the navigation card reads "Arrived" and navigating goes on until Back or ✕ (`AvailabilityScreenWaypointNavigateTest`,
+  "within 15 m ... the HUD reads Arrived"; `CompactMapArrivedAt.kt`). Built to the predicate, so at "Arrived" the buttons stay hidden
+  until the walker ends it. A question for the owner, below.
+- **Where the card meets the side bar** (landscape, on the navigation card): the side bar draws its own line along its inner edge, and the
+  card's side now carries one too, so two 1 dp lines may sit side by side there. Not measured; for the S22 check.
+
+## Premises that were wrong
+
+- "Arrival" as an end of navigation, above. Otherwise none: `route-card` was at `40e0bdfa7`.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- The tab left as it was (above).
+- The card's D42 natural heights report while the buttons are hidden (a guard waited for a non-zero button row; without the change the
+  landscape decisions would have read the card 48 dp taller while navigating). No test covers this case.
+- The hidden buttons follow the screen's whole navigation predicate, so a return to the vehicle hides them too, not only a navigation the
+  card started.
+- The merge commit `420e69742` carries git's default message without the co-author line (not amended, per the repo's rules).
+
+## Questions for the owner
+
+- At "Arrived", should Navigate and Directions come back, or stay hidden until Back or ✕ ends the navigation (as built)?
+- The tucked card's tab still wears the old solid line, open on its screen edge. Should it take the same plain 40% line all the way round?
+
+## S22 steps (nothing was run on a phone)
+
+11. **The plain line.** Open a saved route in portrait: a thin, soft line (like the bubbles' and the icon bar's) runs all the way round
+    the card, including the side against the screen edge; no darker line. Night Mode: a faint pale line. Turn the phone: the card at the
+    bottom edge has the line along its bottom too.
+12. **Resting on the navigation card.** Landscape, navigating, a route open: the line runs round the top and down both sides, including
+    the side against the side bar, and stops where the navigation card's top meets it; nothing below that and no line across the card
+    along that top. Look at the side against the side bar for a doubled line.
+13. **No buttons while navigating.** Open a saved route, tap Navigate: Navigate and Directions disappear (the card gets shorter). Press
+    Back: they come back. Navigate again, then tap the navigation card's ✕: they come back. Walk to the waypoint: at "Arrived" they stay
+    hidden (as built) until Back or ✕. With a deleted stop selected, the reason line hides the same way while navigating elsewhere.

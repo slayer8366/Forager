@@ -148,9 +148,11 @@ abstract class RouteCardOneWidthTests(private val expectedWidth: Float?) {
         val h = image.height
         // Dispatch 2026-11-06-05, step 6: the card's top and bottom now carry a 1 dp outline right to the square corner, so the
         // corner is read just inside it (ceil(1 dp) + 1 px in), still well within the 16 dp round corner's cut on the map side.
+        // Amendment 5 (RECORD -2187, "Plain line all the way round"): the side on the screen edge carries it too, so the corner is read
+        // that far in from the side as well; the claim, square on the edge side and round facing the map, is unchanged.
         val c = with(composeRule.density) { kotlin.math.ceil(1.dp.toPx()).toInt() } + 1
-        val left = listOf(1 to c, 1 to h - 1 - c)
-        val right = listOf(w - 2 to c, w - 2 to h - 1 - c)
+        val left = listOf(c to c, c to h - 1 - c)
+        val right = listOf(w - 1 - c to c, w - 1 - c to h - 1 - c)
         val (square, round) = if (barOnLeft) right to left else left to right
         square.forEach { (x, y) ->
             assertTrue("bar on left $barOnLeft: the corner at ($x, $y) on the edge side is square, the card's fill", image.sameAsInside(x, y, insideX = x))

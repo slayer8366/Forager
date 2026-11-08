@@ -38,7 +38,6 @@ import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
-import org.robolectric.shadows.ShadowToast
 
 /**
  * Dispatch 2026-11-06-05, Amendment 1, plan step 1 (RECORD -2187), the owner: "(b) Card leaves room", which replaces -1861 ("Pill sits
@@ -231,11 +230,17 @@ class RouteCardReCenterUnderCardTest : RouteCardReCenterUnderCardTests() {
         val resting = card()
         log("not navigating")
         assertEquals("not navigating, no band: the card's bottom is the bottom Re-center sits on", home.bottom.value, resting.bottom.value, 0.5f)
+        // Amendment 5 (RECORD -2187): navigating, Navigate and Directions are hidden, so the card is shorter by their row. Before
+        // Amendment 5 this claimed the size did not change at all.
+        // The row's height is Material's 48 dp minimum touch target, which the buttons' own tagged bounds (40 dp) do not include.
+        assertEquals("precondition: Navigate shows, not navigating", 1, count(ROUTE_CARD_NAVIGATE_TAG))
+        val buttonsRow = 48.dp
         setNavigating(true)
         val raised = card()
         log("navigating")
         assertEquals("navigating, the card's bottom is Re-center's height and a gap higher", (home.top - 8.dp).value, raised.bottom.value, 0.5f)
-        assertEquals("only its place changes, not its size", (resting.bottom - resting.top).value, (raised.bottom - raised.top).value, 0.5f)
+        assertEquals("navigating, Navigate is hidden", 0, count(ROUTE_CARD_NAVIGATE_TAG))
+        assertEquals("its place changes, and its size only by the hidden buttons' row ($buttonsRow)", (resting.bottom - resting.top - buttonsRow).value, (raised.bottom - raised.top).value, 0.5f)
     }
 
     @Test
@@ -256,24 +261,18 @@ class RouteCardReCenterUnderCardTest : RouteCardReCenterUnderCardTests() {
         assertSame("the card closed, Re-center", home, pill())
     }
 
+    /**
+     * Amendment 5 (RECORD -2187, the owner: "navigate and directions are still visible on the route card while navigating. Fix this by
+     * removing both buttons."): Re-center shows only while navigating, and then the card has no Navigate or Directions, so only the X
+     * is left to reach. Before Amendment 5 this also touched across Navigate and Directions with Re-center under the card.
+     */
     @Test
-    fun `with Re-center under the card, real touches across Navigate, Directions and the X each reach their own control`() {
+    fun `with Re-center under the card, Navigate and Directions are hidden and real touches across the X reach it`() {
         setScreen()
         openRoute()
-        ACROSS.forEach { (fx, fy) ->
-            leaveView()
-            val navigations = navigatedTo.size
-            touchAcross(ROUTE_CARD_NAVIGATE_TAG, fx, fy)
-            assertEquals("a touch at ($fx, $fy) on Navigate starts navigating to the first stop", listOf(CREEK.id), navigatedTo.drop(navigations))
-            assertTrue("a touch at ($fx, $fy) on Navigate leaves the card open", plotting.uiState.value.mode is RoutePlotMode.Showing)
-        }
-        ACROSS.forEachIndexed { i, (fx, fy) ->
-            leaveView()
-            touchAcross(ROUTE_CARD_DIRECTIONS_TAG, fx, fy)
-            // No maps app in the test, so Directions says so in a toast (L4): that toast is Directions being reached.
-            assertEquals("a touch at ($fx, $fy) on Directions reaches it", i + 1, ShadowToast.shownToastCount())
-            assertTrue("a touch at ($fx, $fy) on Directions leaves the card open", plotting.uiState.value.mode is RoutePlotMode.Showing)
-        }
+        leaveView()
+        assertEquals("navigating, with Re-center showing: Navigate is hidden", 0, count(ROUTE_CARD_NAVIGATE_TAG))
+        assertEquals("navigating, with Re-center showing: Directions is hidden", 0, count(ROUTE_CARD_DIRECTIONS_TAG))
         ACROSS.forEach { (fx, fy) ->
             if (plotting.uiState.value.mode !is RoutePlotMode.Showing) openRoute()
             leaveView()

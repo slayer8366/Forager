@@ -4,7 +4,6 @@ import androidx.activity.ComponentActivity
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.assertIsDisplayed
@@ -26,7 +25,6 @@ import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.ui.map.ForagerThemeWithNoSignal
 import com.zynergylabs.forager.app.ui.map.hex
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
-import com.zynergylabs.forager.app.ui.map.runOf
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_CLOSE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_DIRECTIONS_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
@@ -52,7 +50,8 @@ import org.robolectric.shadows.ShadowToast
  * Dispatch 2026-11-06-05, Amendment 1 (RECORD -2187): the saved route card's ✕ (step 3), its tuck and tab (step 2) and its outline
  * (step 6), on the real compact Maps tab with the real [RoutePlottingViewModel]. Every touch is a real one at screen coordinates,
  * several across each target (CLAUDE.md: a finger is not a point); the outline is read from drawn pixels, in the ruled colours
- * written out as hex (Re-center's, #505: Bark #3B2E24 by day, #EDE3D0 at night), so an outline drawn any other colour, or none, fails.
+ * written out as the ruling gives them (Amendment 5: the map chrome's, Bark #3B2E24 at 40% by day, white at 40% at night;
+ * `RouteCardOutlineReading.kt`), so an outline drawn any other colour, or none, fails.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
@@ -264,31 +263,39 @@ class RouteCardTuckCloseTest {
         assertTrue("the long-presses left the card tucked", plotting.uiState.value.tucked)
     }
 
+    /**
+     * Amendment 5 (RECORD -2187; the owner: "Plain line all the way round, like a bubble"): the map chrome's outline, Bark at 40% by
+     * day and white at 40% at night, on all four sides, the side flush to the screen edge too. Before Amendment 5 this read a solid
+     * `onSurface` line on the three sides facing the map and none on the screen edge's side.
+     */
     private fun assertCardOutline(dark: Boolean) {
-        val outline = if (dark) Color(0xFFEDE3D0) else Color(0xFF3B2E24)
         val name = if (dark) "night" else "day"
         setScreen(dark)
         openSavedRoute()
         val onRight = cardOnRight()
         val pixels = composeRule.onNodeWithTag(ROUTE_CARD_TAG, useUnmergedTree = true).captureToImage().toPixelMap()
-        val n = with(composeRule.density) { 6.dp.roundToPx() }
+        val px = composeRule.density.density
+        val n = with(composeRule.density) { 8.dp.roundToPx() }
         val row = (0 until pixels.width).map { pixels[it, pixels.height / 2] }
         val column = (0 until pixels.height).map { pixels[pixels.width / 2, it] }
         val mapSide = if (onRight) row.take(n) else row.takeLast(n).reversed()
         val edgeSide = if (onRight) row.takeLast(n).reversed() else row.take(n)
-        val faced = listOf("top" to column.take(n), "bottom" to column.takeLast(n).reversed(), "side facing the map" to mapSide)
-        for ((side, edge) in faced) {
-            val run = runOf(edge, outline)
-            assertNotNull("$name, the card's $side: a ${outline.hex()} outline is drawn; the edge reads ${edge.map { it.hex() }}", run)
-            assertTrue("$name, the card's $side: the outline is at the card's own edge, ${run!!.first} px in", run.first <= 1)
-            println("MEASURED $name, the card's $side: ${outline.hex()} for ${run.last - run.first + 1} px from ${run.first} px in")
+        val sides = listOf(
+            "top" to column.take(n),
+            "bottom" to column.takeLast(n).reversed(),
+            "side facing the map" to mapSide,
+            "side flush to the screen edge" to edgeSide,
+        )
+        val off = sides.mapNotNull { (side, edge) ->
+            println("MEASURED $name, the card's $side: ${edge.take(6).map { it.hex() }}")
+            whyNotRuledLine(edge, dark, px)?.let { "$side: $it" }
         }
-        assertNull("$name, the side flush to the screen edge carries no outline; it reads ${edgeSide.map { it.hex() }}", runOf(edgeSide, outline))
+        assertTrue("$name, the saved route card carries the ruled line on every side; off: $off", off.isEmpty())
     }
 
     @Test
-    fun `by day, the saved route card has a 1 dp Bark outline on the three sides facing the map`() = assertCardOutline(dark = false)
+    fun `by day, the saved route card has the map chrome's 1 dp outline, Bark at 40 percent, all the way round`() = assertCardOutline(dark = false)
 
     @Test
-    fun `at night, the saved route card has a 1 dp pale outline on the three sides facing the map`() = assertCardOutline(dark = true)
+    fun `at night, the saved route card has the map chrome's 1 dp outline, white at 40 percent, all the way round`() = assertCardOutline(dark = true)
 }

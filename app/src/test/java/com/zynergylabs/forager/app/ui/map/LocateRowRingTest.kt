@@ -46,6 +46,11 @@ import org.robolectric.annotation.GraphicsMode
  * The ring is read from the drawn pixels of the locate row ("Center on my location") as before: each side inwards from
  * the row's own edge along its middle row and centre column, in the first 11 dp only (the glyph starts at about 13 dp),
  * for the ruled hex written out (`onSurface`, Bark #3B2E24 by day, Cream #EDE3D0 at night). No side may carry it.
+ *
+ * Amendment 4 (RECORD -2186) gave the ring the map chrome's own translucent outline (the owner, to the ring: "Yes, same
+ * outline"), so "no ring" no longer looks for one colour: on each side the ring's place ([ringBand], 6 to 7 dp in, a pixel
+ * either side) must read as the row's own fill just inside it ([ringUnder], two pixels past it) and nothing else, within a tolerance a fading press highlight fits, so a ring of any colour
+ * fails it. Until Amendment 4 these looked only for the solid `onSurface` above.
  */
 abstract class LocateRowRingTests {
 
@@ -54,13 +59,11 @@ abstract class LocateRowRingTests {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
-    private class Look(val name: String, val dark: Boolean, val ring: Color)
+    private class Look(val name: String, val dark: Boolean)
 
-    /** The day `onSurface`, Bark. */
-    private val day = Look("day", dark = false, ring = Color(0xFF3B2E24))
+    private val day = Look("day", dark = false)
 
-    /** The night `onSurface`, Cream. */
-    private val night = Look("night", dark = true, ring = Color(0xFFEDE3D0))
+    private val night = Look("night", dark = true)
 
     private val entry = CartographyEntry.draft(id = "entry-1", date = LocalDate.of(2026, 8, 1), updatedAtEpochMillis = 1_000L)
         .copy(
@@ -141,8 +144,11 @@ abstract class LocateRowRingTests {
         val bounds = composeRule.onNodeWithContentDescription(LOCATE).getUnclippedBoundsInRoot()
         assertEquals("$where: the locate row's width is unchanged, the 48 dp target", 48f, (bounds.right - bounds.left).value, 0.5f)
         assertEquals("$where: the locate row's height is unchanged, the 48 dp target", 48f, (bounds.bottom - bounds.top).value, 0.5f)
+        val band = ringBand(::px)
         for ((side, edge) in sides(LOCATE)) {
-            assertNull("$where, ${look.name}, locate row, $side side: no ring; the edge reads ${edge.map { it.hex() }}", runOf(edge, look.ring))
+            val under = edge[ringUnder(::px)]
+            val off = firstNotUnder(edge, under, band.first, band.last)
+            assertNull("$where, ${look.name}, locate row, $side side: no ring, the ring's place ($band px in) is the fill ${under.hex()} alone; ${off?.let { "$it px in reads ${edge[it].hex()}" }}; the edge reads ${edge.map { it.hex() }}", off)
         }
     }
 
