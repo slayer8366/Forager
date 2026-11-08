@@ -66,7 +66,7 @@ internal fun nextTurnPlaceNow(
     eveningOffForRoom: Boolean = false,
 ): NextTurnPlace = when {
     !landscapeLargeText -> decided
-    eveningLine -> NextTurnPlace.OWN_LINE
+    eveningLine && !eveningOffForRoom -> NextTurnPlace.OWN_LINE
     else -> NextTurnPlace.RIGHT_PART
 }
 
