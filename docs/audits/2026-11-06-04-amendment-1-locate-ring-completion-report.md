@@ -397,3 +397,102 @@ These are device-only. Robolectric reports no insets, and the result can turn on
 - One coder per file, checked against `origin/pre-main...` for locate-jump (#508, 54e4829ff), route-card (c6d7fb352), next-turn
   (7a5ad452f) and nav-card-kind-line (097ca1add): none of them changes `ReCenterOnLocate.kt`, `CompactMapBottomChrome.kt`,
   `CompactMapIconCluster.kt`, `MapIconClusterState.kt` or the test files here.
+
+# Amendment 4, built: Re-center and the locate ring take the map chrome's outline (Hazel, a fresh session)
+
+The owner (prompts/preserved/2026-11-06-04-amendment-4.md on records-after-173, RECORD -2186), on the route card's outline: "Yes
+that's it, but it'll still same as re-center. If re-center is different, then fix that too"; to the locate ring: "Yes, same
+outline". Build go: "Build it". Base checked on arrival: journal-locate-outline at 7e5ed4785 as the dispatch states, pre-main
+(82d4a091a) already contained.
+
+## What changed (761c3ebf2)
+
+- `ReturnToRoutePill.kt`: Re-center's `border` is `mapChromeOutline()` (`MapChromeOutline.kt`: 1 dp in `mapIconStackBorderColor()`,
+  Bark at 40% by day, white at 40% at night), in place of `BorderStroke(1.dp, onSurface)`. One line, plus its comment and the
+  `BorderStroke` import it no longer needs. The pill and the icon alone are the same surface, so both changed.
+- `MapIconBar.kt`: the locate row's `ring` is `mapChromeOutline()` while `locateRinged`, in place of `BorderStroke(1.dp, onSurface)`.
+  The three imports Amendment 2 added for that line (`BorderStroke`, `MaterialTheme`, `dp`) went with it, so the file's imports are
+  pre-main's again.
+- Nothing else: when the ring or the pill shows, where, their sizes, the 36 dp ring circle and every touch area are unchanged.
+
+## Tests whose claims changed
+
+- New helper `app/src/test/.../ui/map/MapChromeOutlineRead.kt`. The outline is translucent, so a test reads the ruled colour (written
+  out: `0x663B2E24`, `0x66FFFFFF`) composited over the fill just inside the line on the same row or column, within 4/255 a channel.
+- `ReCenterOutlinePortraitTest` (4 outline cases) and `ReCenterOutlineLandscapeTest` (2): until now they read solid #3B2E24 / #EDE3D0.
+  They now read the map chrome's outline, the same width (exactly ceil(1 dp) on straight edges; ceil(1 dp) or one less on the round
+  ends, which until now allowed "at most"). Renamed from "a 1 dp Bark / pale outline" to "the map chrome's 1 dp outline".
+- `LocateRingReCenterLandscapeTest`, the two ring cases: the same change of colour, the ring still found on the badge circle 6 dp in,
+  now ceil(1 dp) or one less wide (until now "at most"). Renamed from "a 1 dp Bark / pale ring" to "the map chrome's 1 dp outline as
+  its ring". Its touch test reads the ring through the same helper.
+- Every "no ring" case (`LocateRingReCenter*`, and `LocateRowRingTest`'s four): until now they looked for the solid `onSurface`
+  colour only, which the new ring would never have matched, so they would have passed with the ring drawn everywhere. They now read
+  the ring's place (6 to 7 dp in, a pixel either side) as the fill beside it, within 12/255, so a ring of any colour fails them.
+  12/255 rather than 4/255 because a fading press highlight shades the row about 1/255 a pixel (red run, below); the faintest ring
+  steps about 70/255 from the fill.
+
+## Evidence
+
+- **Tests first: run 42440600462 on e8883baa1** (throwaway `hazel-lo4-red`, filter
+  `*ReCenterOutline*;*LocateRingReCenter*;*LocateRowRingTest*`). 30 tests, 10 failed:
+  - The 6 Re-center outline cases, each reading the old line, e.g. "portrait, day, left edge: the map chrome's outline is drawn,
+    #ABA398 over the fill #F5F1E6; the edge reads [#3E3228, #3B2E24, #3B2E24, #F1EDE1, ...]", and at night [#E8DECB, #EDE3D0, #EDE3D0,
+    ...] against #797979 expected.
+  - The 3 ringed cases (day, night, the touch test), each finding the solid ring at 18 px in ([..., #3E3228, #3B2E24, #3B2E24, ...])
+    and no #ABA398 / #797979 there.
+  - 1 that was the test's fault, not the code's: `LocateRingReCenterTabletLandscapeTest`'s touches beside the pill, a no-ring case,
+    read "11 px in reads #E0DBD0" against a fill of #D9D3C9: a smooth shade from a fading press highlight, no ring. The no-ring check
+    was too strict (exact fill); it became the 12/255 step above (70922d900, before the fix). That check was not re-run red on its
+    own; it passed on the green run on every no-ring case, as it must, and a ring of any colour steps far past it.
+- **Full CI on 761c3ebf2: run 42442214975 (PR #506), all 8 jobs green.** 6868 tests, 0 failed, 24 skipped. Measured there, at xxhdpi:
+  Re-center's edge #ABA398 over #F5F1E6 by day and #797979 over #1F1F1F at night, 3 px from its edge; the icon alone #ABA399 / #949494;
+  the ring #ABA398 / #797979 for 3 px from 18 px in (6 dp), 2 px on one touch-test side where a shade sits under it.
+- **By name.** Against #506's previous green (42410272354 on 7493d03a1): no test changed status; 8 names only there and 8 only here,
+  the 8 renames above, nothing else. Against pre-main's latest run (42337576510 on 1f6901a11; pre-main's head 82d4a091a has no CI
+  run): no shared test changed status; 15 names only on pre-main (Amendment 2's 9 renames and the 6 Re-center renames here) and 37
+  only on this branch (Amendments 1 to 4); skipped tests the same 24.
+- **Revert: run 42442242031 on 756baf6dc** (throwaway `hazel-lo4-revert`, same filter). The one-line edit: Re-center's
+  `border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.onSurface)`. The job log shows
+  `compileDebugKotlin` and `compileDebugUnitTestKotlin` ran with no `e:` line; 30 tests, 6 failed: exactly the 6 Re-center outline
+  cases, each reading the solid #3B2E24 / #EDE3D0 line, which this edit is what draws. The ring cases passed, as they must: this edit
+  leaves the ring alone. The file was restored from a copy saved before the edit; `git status` was clean against 761c3ebf2 after it,
+  and `border = mapChromeOutline()` was present. The ring's half was not reverted on its own (one revert, as the dispatch asks); its
+  red-run failures are the evidence that its tests bite.
+- **Scan** read 0 on every count before every push. **One coder per file:** the six files here share none with route-card's own
+  changes or nav-card-kind-line's.
+
+## Device check steps (S22)
+
+1. Day, portrait, navigating, pan away: Re-center's outline looks like the navigation card's and the icon bar's (a soft brown hairline),
+   not the darker solid line of build 4844. Robolectric's pixel at its edge: #ABA398 over a #F5F1E6 fill, over a flat test map.
+2. Night Mode, the same: a soft light-grey hairline (white at 40%), not the cream line. Robolectric: #797979 over #1F1F1F.
+3. Landscape navigation, not fullscreen, pan away: the ring on the locate row has the same hairline as the bar's own edge, day and
+   night. Tap it: the camera follows and the ring goes (unchanged).
+4. Fullscreen landscape and the journal map: no ring, as before.
+Over real map imagery the outline's colour depends on the map under it, so these are judged by eye against the bar's own edge, not
+by a sampled hex.
+
+## Disclosure
+
+### Confirmed and inferred
+
+- Confirmed by the runs: the new tests failed on the solid line for that reason, pass on the outline, and the revert fails the 6
+  Re-center cases with its own message after a clean compile.
+- Confirmed from the code: both lines now call `mapChromeOutline()`, the function the bubbles, the icon bar and the navigation card
+  call, so they cannot drift from it.
+- Inferred: the outline reads fainter than the solid line on the phone. That is the ruling, but nobody has seen it yet.
+
+### Could not determine
+
+- How it looks on the S22 over real tiles; the phone was not touched.
+- Whether the revert of the ring's half alone would fail only its own tests; not run (one revert asked).
+
+### Premises that were wrong
+
+- None found: Re-center was at `ReturnToRoutePill.kt:119` as stated, and the ring at `MapIconBar.kt:201` drew the same solid line.
+
+### Decided beyond scope, and questions for the owner
+
+- The "no ring" checks were tightened, as described above, because with a translucent ring the old ones could no longer fail. They
+  pass the same before and after the fix, by design.
+- No question for the owner from this build. The visual step (1 to 3 above) is the one thing left.
