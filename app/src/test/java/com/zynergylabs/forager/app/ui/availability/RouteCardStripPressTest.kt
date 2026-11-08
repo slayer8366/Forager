@@ -32,6 +32,12 @@ import org.robolectric.annotation.GraphicsMode
  * A real coordinate touch is pressed and held in the touch area's outer half, the clear map beside the strip; the screen beside the strip
  * (between the strip's inner edge and the touch area's) is read while it is held and compared pixel for pixel with the same screen read
  * before the press. Lifting the finger must then bring the card back, so the press is known to have landed in the touch area.
+ *
+ * Under the app's theme the press highlight is Material's ripple, which on Android is drawn by a platform view that Robolectric does not
+ * render: the first version of this class read the band under the app's theme, day and night, and saw 0 pixels change on the code with
+ * the highlight (run 42525146220), so it could not fail. The screen is therefore set without the app's theme ([RouteCardBarRig.setScreen]
+ * with no `dark`), where the ambient highlight is Compose's own default indication, drawn in Compose, which a capture does read. The
+ * claim is the same: the strip's touch area draws whatever highlight is ambient, or none.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
@@ -66,10 +72,11 @@ class RouteCardStripPressTest {
         xs to (touch.top.toPx().toInt() + 1)..(touch.bottom.toPx().toInt() - 2)
     }
 
-    private fun pressBesideTheStrip(dark: Boolean) {
-        val name = if (dark) "night" else "day"
+    @Test
+    fun `a press held beside the tucked strip draws no highlight past the strip, and lifting brings the card back`() {
+        val name = "no app theme"
         val trip = rig.savedTrip("Creek loop", 2)
-        rig.setScreen(trips = listOf(trip), dark = dark)
+        rig.setScreen(trips = listOf(trip))
         rig.open(trip)
         tuck()
         val strip = rig.bounds(ROUTE_CARD_TAB_DRAWN_TAG)
@@ -102,10 +109,4 @@ class RouteCardStripPressTest {
         assertFalse("precondition, $name: lifting the finger brought the card back, so the press was in the touch area", rig.plotting.uiState.value.tucked)
         assertEquals("$name: a press held beside the tucked strip, in its touch area, draws nothing past the strip (no press highlight); changed: $changed", 0, count)
     }
-
-    @Test
-    fun `by day, a press held beside the tucked strip draws no highlight past the strip, and lifting brings the card back`() = pressBesideTheStrip(dark = false)
-
-    @Test
-    fun `at night, a press held beside the tucked strip draws no highlight past the strip, and lifting brings the card back`() = pressBesideTheStrip(dark = true)
 }
