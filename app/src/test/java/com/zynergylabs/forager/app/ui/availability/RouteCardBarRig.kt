@@ -155,12 +155,13 @@ internal class RouteCardBarRig(
     /**
      * D32 (RECORD -1987): window insets as the platform delivers them, which Robolectric otherwise reports as zero: [left] a display
      * cutout and [right] the navigation bar, as the S22 had in landscape (s8 b3-3p-rc.xml: the L at 124 px, the rail's items ending
-     * 180 px short of its edge, at 3.75 px per dp). Which kind of inset each is on the phone is inferred, not read.
+     * 180 px short of its edge, at 3.75 px per dp). Which kind of inset each is on the phone is inferred, not read. [bottom]: a
+     * navigation bar along the bottom, as in portrait (Amendment 6, the credit while tucked, AttributionWhileTuckedTest).
      */
-    fun applyInsets(left: Dp, right: Dp) {
+    fun applyInsets(left: Dp, right: Dp, bottom: Dp = 0.dp) {
         val insets = androidx.core.view.WindowInsetsCompat.Builder()
             .setInsets(androidx.core.view.WindowInsetsCompat.Type.displayCutout(), androidx.core.graphics.Insets.of(with(composeRule.density) { left.roundToPx() }, 0, 0, 0))
-            .setInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars(), androidx.core.graphics.Insets.of(0, 0, with(composeRule.density) { right.roundToPx() }, 0))
+            .setInsets(androidx.core.view.WindowInsetsCompat.Type.navigationBars(), androidx.core.graphics.Insets.of(0, 0, with(composeRule.density) { right.roundToPx() }, with(composeRule.density) { bottom.roundToPx() }))
             .build()
         composeRule.runOnUiThread {
             androidx.core.view.ViewCompat.dispatchApplyWindowInsets(composeRule.activity.window.decorView.findViewById(android.R.id.content), insets)
