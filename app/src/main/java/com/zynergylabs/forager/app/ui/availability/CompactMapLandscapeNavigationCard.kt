@@ -224,7 +224,9 @@ internal fun BoxScope.CompactMapNavigationDisplay(
             .width(with(density) { (layout.landscapeStripWidthPx.toDp() - narrowBy).coerceAtLeast(0.dp) })
             // E21 (RECORD -2181, the owner: one shared line, no 1 dp step): clipped as before, but open a stroke beyond the side-bar edge
             // over the side bar's rounded bottom corner, where the card's end line continues the side bar's ([navigationCardEndBesideRailCorner]).
-            .clipToBoundsOpenBesideRailCorner(com.zynergylabs.forager.app.ui.map.MAP_CHROME_OUTLINE_WIDTH, railPortEdge, railShown = !isFullscreen, bottomGap = controlsPadding.calculateBottomPadding())
+            // Merged with J3 step 3: the same gap as the end line's below, the move included, so the opening follows the line (none once
+            // the card is moved up 16 dp or more, where the side bar's corner no longer lies beside it).
+            .clipToBoundsOpenBesideRailCorner(com.zynergylabs.forager.app.ui.map.MAP_CHROME_OUTLINE_WIDTH, railPortEdge, railShown = !isFullscreen, bottomGap = controlsPadding.calculateBottomPadding() + with(density) { drawnLiftPx.toDp() })
             .leavingTakesNoTouches(leaving = !isNavigating),
     ) {
         NavigationHud(
