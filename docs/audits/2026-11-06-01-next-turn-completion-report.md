@@ -1414,3 +1414,75 @@ The scope is Amendment 1, J6. The owner's go: "Record it", "Build it". **Built:*
 ### Clean-up
 - Throwaway refs deleted from origin: `hazel-arrows6-red`, `hazel-arrows6-rev-place`, `hazel-arrows6-rev-wrap` (their runs stay readable by number). Scratch `/mnt/work/scratch/hazel-arrows6` (700) holds the runner, the results and the revert worktrees.
 - PR #500 stays a draft. Final SHA: this commit.
+
+## J7, built: full CI green, #500 out of draft (Hazel, 2026-11-07)
+
+The scope is Amendment 1, J7. The owner's go: "Record it", "Build it". **Built:** "(b) Arrow to the right part". Where the evening line has already stepped off for room (it can't fit even moved up), the next turn goes in the card's right part as it does in daytime, and the card is shorter. J6's own line stays where the line steps aside only for the route card. **Full CI: 7298 tests, 0 failed, 24 skipped** (PR run 42435494495 at c1d17e034). The failing J6 test's leg row now shows. #500 is ready for review, not merged. Marks as in the sections above.
+
+### Base and commits [observed]
+- At the start, all as the dispatch said: `origin/next-turn` 63fe2ca28 (code 8146fa254), `origin/pre-main` 82d4a091a (already merged), `origin/nav-card-kind-line` 32251448d (already merged), `origin/records-after-173` 217f6f36a. The worktree was clean. Neither branch moved during the work, so nothing was merged.
+- `db88c5524`: tests first. It also wires in the host's room decision and the height reckoned with the own line. Neither changes what is drawn yet, because `nextTurnPlaceNow` still read `eveningLine -> OWN_LINE`.
+- `8b8862788`: the build, one line: `eveningLine -> OWN_LINE` became `eveningLine && !eveningOffForRoom -> OWN_LINE`.
+- `c88d4748b`: the settling test at the room's edge (why it was added is under Evidence).
+- `c1d17e034`: the own line counted at the height it is drawn: the arrow's height when blank, and the figure's line when a figure shows. Also, the edge test claims that the height stays the same in either place.
+- Other coders' files: I checked `git diff HEAD...origin/route-card` (666867aeb) and `...origin/nav-card-kind-line` before editing and again before each push. Neither shares a file with mine. `RouteCardBarRig.kt` and `CompactMapRoutePlotting.kt` (route-card's) were read, not changed.
+
+### What changed [read, c1d17e034]
+- `NavigationCardNextTurnPlace.kt`: `nextTurnPlaceNow` takes a new input, `eveningOffForRoom`. With it, landscape at font 1.5 and up puts the next turn in the right part even when an evening line exists. `eveningStepsAside` alone still gives the own line (J6).
+- `CompactMapLandscapeNavigationCard.kt`: `navigationCardLift` runs once as `roomLift`, with `liftCase = landscapeLargeText`, whether or not the line steps aside. `eveningOffForRoom = roomLift is NoRoom`. The card's own move, `lift`, is `OnBottomEdge` while the line steps aside, and otherwise `roomLift`, the same as before (the old call's `liftCase` was `landscapeLargeText && !stepsAside`). So off-for-room is told apart from stepping aside for the route card, including when both hold.
+- `NavigationInfo.kt`: the card's height with its evening line, used both by RECORD -955's own decision and by the host's lift, is now always counted with the next turn on its own line. That is where the next turn sits whenever the line is on the card (J3 step 3), whichever place it is drawn in now. The left part's measured height gets the own line's height added when it was measured with the next turn elsewhere (`leftMeasuredPlace`, set in the same callback as the height). The own line's height is the arrow's (22 dp), or the figure's line where an arrow and figure show (as `NextTurnSpace` draws it). Without this, the right part would take a line off that height, which could read as room for the line, which would put the next turn back on its own line, and so on.
+- `NavigationHud.kt`: passes `eveningOffForRoom` through.
+- Tests: the J7 unit test in `NavigationCardNextTurnPlaceTest`, and two new classes, `NextTurnRightPartSettlesTest` and `NextTurnRoomDecisionSettlesTest`. No existing claim changed, none was silenced, and no tolerance was widened.
+
+### Evidence [observed; every log read for compile errors before its results: 0 in each]
+- **Red**, tests first, filtered run 42431442208 at db88c5524: 101 tests, 3 failed, all for J7's reason:
+  - the J7 unit test, "expected:<RIGHT_PART> but was:<OWN_LINE>";
+  - `NextTurnRightPartSettlesTest`, "the next turn is in the right part, right of the divider (504.0.dp); it is at left=361.0.dp";
+  - `RouteCardSundownStepsAsideFont20Test`, "6 stops, expanded: leg row 0 shows, height 0.0.dp", J6's failure.
+- **Forward**:
+  - PR run 42431443518 at 8b8862788: 7297 tests, 0 failed.
+  - PR run 42435494495 at c1d17e034 (final code): **7298 tests, 0 failed, 24 skipped**.
+- **By name against pre-main's latest run**, 42337576510 at 1f6901a11 (82d4a091a is [skip ci]): 6846 tests, 0 failed, 24 skipped.
+  - No test that passes there fails or skips here.
+  - 38 of its names are absent here. They are the same 38 that were absent at J6's run 42428697341 (claims renamed earlier on #498/#500, before J7).
+  - Compared with J6's run, the only new names are J7's.
+- **Measured at 823 x 384, font 2.0, evening, 6 stops** (run 42435494495):
+  - navigation card 266..384 dp, the next turn at 510..617 dp, right of the divider;
+  - the route card expanded 8..282, leg row 0 at 44.0..65.3 dp;
+  - nothing moved across 180 frames after each step (no card, peek, expanded, closed again), and the card came back to 266..384 on closing.
+  - J6 measured 244..384 with no leg row. The card is 22 dp shorter, not the "about 32 dp" I estimated at J6, because a blank space is the arrow's 22 dp.
+- **The first settling test alone does not prove "no loop".** I reverted the height reckoning (`leftHeightPx + if (…) ownLinePx else 0f` → `leftHeightPx`), run 42431482384 at 44053e896. `NextTurnRightPartSettlesTest` still passed (101 tests, 0 failed). At 823 x 384 the card with its line misses the room by more than a line, so that screen would settle either way. So I added `NextTurnRoomDecisionSettlesTest`:
+  - It is the card alone, with a host that decides off-for-room as `navigationCardLift` does, from the height the card reports, against a limit half a line (16 dp) below the height measured with the own line.
+  - **The revert** (one line, the same edit), run 42435494762 at 1f803f833: 102 tests, 1 failed: "the next turn changes place once, never back and forth: **89 swaps**". The height reported alternated 330 / 264 px.
+  - That failure is one this edit can produce, and the build compiled.
+  - Forward at c1d17e034: 0 swaps, 0 frames moved after the first second, and the height reported is 330 px in both places.
+- **Fixed inside J7** (I count it as a refinement, not a failed attempt): at c88d4748b the edge test also ran against that revert (run 42433560203, the same 89 swaps). Forward, it showed the height reported was 362 px in the right part against 330 px on the own line. I had counted the own line at the figure's 32.7 dp, but a blank space is drawn at the arrow's 22 dp. That was too strict but could not loop: a taller height only keeps "no room". c1d17e034 counts the own line as drawn, and the edge test now claims the two heights are equal.
+- Each revert ran on its own worktree (`/mnt/work/scratch/hazel-arrows7/wt-rev-height*`). The file was restored from a copy saved before the edit and checked equal to the forward commit's. After each check the main worktree was checked clean, with both J7 lines present.
+
+### Confirmed and inferred
+- [observed]: the runs, counts, messages and measured bounds above, and scan 0 before every push (including the revert branches).
+- [inferred]: that the right part fits the next turn wherever the line is off for room at fonts 1.5 to 2.0. Measured only at 823 x 384 (both settling tests) and 640 x 360 (the StepsAside Short tests pass with it).
+
+### Could not determine
+- The phone's figures (no phone).
+- The edge test runs with a blank next turn (no route). The figure case uses the same code path, but the equal-heights claim was not measured with a figure showing. The two real-screen tests also show a blank space (22 dp tall).
+
+### Premises that were wrong
+- J6's estimate "one line shorter, about 32 dp": it is 22 dp with a blank space, and the figure's line (about 32.7 dp at font 2.0) where a turn shows.
+
+### Decided beyond scope (open to the owner)
+- While the line steps aside for the route card and also could not fit even moved up, J7 decides (the right part), not J6. I read "J6's own-line rule stays for the case where the evening line steps aside **only** for the route card" that way.
+- The off-for-room check runs with the card's lift rules (the compass strip, the L) whether or not the line steps aside. The card's actual move is unchanged.
+
+### S22 steps (the arrows; nothing here was run on the phone)
+1. Landscape, text size 2.0, daytime, navigating home by trail with a turn ahead: the arrow and its distance sit in the card's right part, with "by trail" under the distance.
+2. The same after sunset with the sunset line on the card (one line, the card moved up above the blue dot): the arrow has its own line under the turn line, centred.
+3. The same with Back by as well (the card can't fit both lines even moved up): the card stays on the bottom edge, both evening lines are gone, and **the arrow is in the right part, as in step 1** (J7; was its own line at J6). The card does not jump.
+4. Still after sunset with the sunset line on the card (step 2), open a saved route's card: where the line steps aside for it, the arrow keeps its own line (J6), and the cards do not jump up and down.
+5. In step 3's state, open the route card full with 6 stops: the arrow stays in the right part, at least the first leg row shows, and nothing moves.
+6. Close the route card: the navigation card is as it was in step 2 or 3.
+7. Portrait at text size 1.0: the arrow beside the needle, the whole turn line centred. Turn the phone to landscape and back, and the arrow returns to its place.
+
+### Clean-up
+- Throwaway refs deleted from origin: `hazel-arrows7-red`, `hazel-arrows7-rev-height`, `hazel-arrows7-rev-height2`, `hazel-arrows7-rev-height3` (their runs stay readable by number). Scratch `/mnt/work/scratch/hazel-arrows7` (700) holds the runner, the results and the revert worktrees.
+- PR #500 is ready for review, not merged. Final SHA: this commit.
