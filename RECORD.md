@@ -36637,6 +36637,7 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
   - **The owner (2026-11-07T21:06:19Z):** **"Fresh coder finishes it"**, **"Record it"**.
 - **Plan step 1 verified (route-card 1a6a69f2d):** the earlier red and PR runs had not compiled; fixed (tests only); red 42414397848 failed 6, all step 1's; green 42416307227; the revert failed the same 6 (card at today's bottom, Re-center 48 dp into it); no shared test changed outcome against pre-main. #507 out of draft, ready, not merged (2026-11-07T22:33:05Z).
 - **Changed (2026-11-07T23:49:50Z), the owner,** from the combined-build clash: the route card's outline **"Stop at the top"**: where the route card rests on the navigation card, its outline ends at the navigation card's top edge, so nothing shows through the 80% navigation card. Go: **"Build it"**. Amendment 3 gains it.
+  - **"Stop at the top" written, not verified (refs hazel-rcline-red 69e85a884, hazel-rcline-wip 67c93c119; route-card unchanged at 1a6a69f2d):** RouteCardOutline gains coveredBottom, passed as the 16 dp tuck behind the navigation card; the coder handed back early. It noted a small unlined wedge of route card beside the navigation card's rounded top corner (inferred). The owner (2026-11-08T00:00:57Z): **"Judge on the S22 first"**, **"Fresh coder finishes it"**, **"Record it"**.
 **Notes:** Written by the planner by hand. Next free ID -2188.
 
 ---
