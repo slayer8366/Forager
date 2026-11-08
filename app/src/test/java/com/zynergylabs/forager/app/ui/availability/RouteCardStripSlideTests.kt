@@ -128,7 +128,7 @@ abstract class RouteCardStripSlideTests {
             val to = if (onRight) width * 0.8f else width * 0.2f
             swipe(Offset(from, y), Offset(to, y), durationMillis = 300)
         }
-        val tucking = frames()
+        val tucking = frames(card, onRight)
         assertTrue("$name, precondition: the swipe tucked the card", rig.plotting.uiState.value.tucked)
         off += check("tucking", tucking, resting, shrinking = true)
         val tucked = tucking.last()
@@ -136,7 +136,7 @@ abstract class RouteCardStripSlideTests {
         if (tucked.ink > INK_GONE) off += "tucked: words or buttons still show on the strip (ink ${"%.3f".format(tucked.ink)})"
 
         composeRule.onNodeWithTag(ROUTE_CARD_TAB_TAG).performTouchInput { click(Offset(width * 0.25f, height * 0.5f)) }
-        val back = frames()
+        val back = frames(card, onRight)
         assertTrue("$name, precondition: the tap brought the card back", !rig.plotting.uiState.value.tucked)
         off += check("coming back", back, resting, shrinking = false)
         val out = back.last()
@@ -147,9 +147,8 @@ abstract class RouteCardStripSlideTests {
     }
 
     /** Frames every [FRAME_MS] for [FRAMES_MS] after the touch, past the slide's 750 ms (NAVIGATION_VIEW_TRANSITION_MILLIS). */
-    private fun frames(): List<Frame> {
-        val card = rig.bounds(ROUTE_CARD_TAG)
-        val onRight = onRight(card)
+    /** Read against the card's resting bounds, [card], taken before the touch: a card that leaves the screen is read as gone, not skipped. */
+    private fun frames(card: DpRect, onRight: Boolean): List<Frame> {
         return (0 until FRAMES_MS / FRAME_MS).map {
             composeRule.mainClock.advanceTimeBy(FRAME_MS.toLong())
             composeRule.waitForIdle()
