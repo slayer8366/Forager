@@ -1447,3 +1447,65 @@ it draws, `RouteCardFace.kt`). So a tucked card still hid the "i" across the who
     Portrait in fullscreen with the icon bar on the left, a route open: the same.
 19. **Landscape navigating.** A route open on the navigation card: tuck it; the "i" stays hidden (the navigation card covers its
     corner); nothing else moves, as step 17.
+
+# Sorrel's review items, fixed (part done; item 1.1 stopped on a question)
+
+Review: `prompts/preserved/2026-11-08-sorrel-review-507.md` (records-after-173). Dispatched: item 1.1 and note 3.2 (RECORD -2190);
+added by the planner mid-task: item 2.2 with the owner's answer (RECORD -2187): "Option 1, but remove the tap highlight since it
+spills out the zone". Built on route-card 50ae42c64. Pushed to the throwaway ref `hazel-rail-fix` only, not to route-card, so #507
+stays green while 1.1 waits: its re-claimed tests are committed and red.
+
+- **Note 3.2, built.** "Navigated from the card" is cleared when the waypoint navigation is not running
+  (`RoutePlottingViewModel.onWaypointNavigationOver`, told by `RoutePlottingBackHandler` in `CompactMapRoutePlotting.kt`). Nothing
+  visible changes. Tests: `RouteCardNavigatedFromCardEndsTest` (2, the real screen: the card's Navigate by real touch, ended by Back
+  and by the navigation card's ✕, then a navigation started the way a bubble starts it is not the card's) and one
+  `RoutePlottingViewModelTest` case. Red 42525146220 ("the card's navigation ended by Back: none is the card's now", the same for the
+  ✕); revert 42529011439 (the screen's one line removed) failed the same 2 and no other new test; green 42527216431.
+- **Item 2.2, built.** The strip's touch area keeps 48 dp and draws no press highlight (`RouteCardTuck.kt`, `indication = null`).
+  Test: `RouteCardStripPressTest`, a real touch held in the touch area beside the 24 dp strip, the band between the strip and the
+  touch area's edge compared pixel for pixel with the screen before the press, then lifting must bring the card back. Red 42527186082
+  (13,370 of 13,370 band pixels changed, #FEF7FF to #B1ACB2); revert 42529006236 failed it and no other new test; green 42527216431
+  (0 changed).
+- **Item 1.1, not built: a question.** The re-claimed `RouteCardOutlineOnNavigationCardTest` (7 cases, below) is red on today's code
+  (42525146220: 1 px in reads #ABA298 by day, #787878 at night, the ruled line, where the card's own fill is expected) and still red
+  on the fix ref, as it must be with no fix yet.
+
+## Confirmed vs inferred
+
+- Confirmed: each revert ran (the compile step passed: 6,944 tests completed in each run, no compile errors in the logs) and failed
+  only its own new tests plus the 5 unbuilt 1.1 cases; the reverts were built from copies of the committed files, never the working
+  tree, and the forward changes are at the fix ref's head (e9ce2e3bf).
+- Confirmed: by name against 42521097620, fix run 42527216431 changes no shared test's outcome: 3 tests renamed in the re-claim, 11
+  new, 5 of them the unbuilt 1.1 cases failing.
+- Confirmed from CI output (RouteCardTabOutlineLandscapeTest, the strip at 719..743 dp on an 823 dp screen with the 80 dp rail): in
+  landscape plotting the route card and its strip sit flush against the side bar too. That is the question below.
+- Inferred: the app's real ripple spills on the phone as the owner saw; under Robolectric it is not drawn (below).
+
+## Could not determine
+
+- Whether a press highlight still shows on a phone: the test reads Compose's default indication with the app's theme left out,
+  because Material's ripple is drawn by a platform view Robolectric does not render. The first version of the test, under the app's
+  theme, read 0 changed pixels on the code with the highlight (42525146220), so it could not fail, and was replaced. For the S22.
+
+## Premises that were wrong
+
+- "In landscape navigation" names one of the places the card meets the side bar. Landscape plotting puts the card, and its tucked
+  strip, against the side bar as well, and both draw the ruled line there today, pinned by `RouteCardOutlineLandscapeTest`'s
+  "right side" and `RouteCardTabOutlineLandscapeTest`'s "side on its screen edge".
+
+## Decided beyond scope
+
+- None built. The fullscreen case with no system bar on that side expects the side bare, matching the navigation card's rule
+  (`landscapeColumnOutlineSides`: unlined where nothing is left between it and the screen's edge); on the S22 there is a navigation
+  bar, so the line shows there.
+
+## Questions (stopped here)
+
+- -967 at the side bar: (a) only the card resting on the navigation card (the dispatch's wording); (b) also the landscape plotting
+  card against the side bar; (c) also the tucked strip's edge against the side bar, navigating and plotting, which the owner's tab
+  ruling "Same as the card" (plain line all the way round) currently covers.
+
+## S22 step
+
+20. **Strip press.** A saved route open, tucked to its strip. Press and hold on the map just beside the strip (within a finger's width
+    of it): no grey highlight appears anywhere; lift: the card slides back.
