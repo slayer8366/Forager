@@ -1,7 +1,9 @@
 package com.zynergylabs.forager.app.ui.map
 
+import android.util.Log
 import com.zynergylabs.forager.app.ui.map.fanout.FanKey
 import com.zynergylabs.forager.app.ui.map.fanout.FanMember
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 
 /*
  * A saved route's selected stop in an open fan (dispatch 2026-11-06-05, Amendment 6 B). The owner: "When fanning out, the highlighted
@@ -23,7 +25,16 @@ internal const val FAN_ACCENT_KEY_PROPERTY = "fanKey"
 internal fun fanAccentKeyValue(key: FanKey): String = "${key.layerId}/${key.featureId}"
 
 /** The accent keys the accent layer hides while [members] are fanned (Amendment 6 B): every member's, empty when nothing is fanned. */
-internal fun fanHiddenAccentKeys(members: List<FanMember>): List<String> = emptyList()
+internal fun fanHiddenAccentKeys(members: List<FanMember>): List<String> = members.map { fanAccentKeyValue(it.key) }
 
 /** The image a fanned copy of [key] on [layerId] draws: its layer's own, or the accent's when it is the selected stop's [accent]. */
-internal fun fanCopyIcon(layerId: String, key: FanKey, accent: FanKey?): MarkerIcon? = markerIconForLayer(layerId)
+internal fun fanCopyIcon(layerId: String, key: FanKey, accent: FanKey?): MarkerIcon? = when {
+    key != accent -> markerIconForLayer(layerId)
+    layerId == MapLayerIds.WAYPOINTS -> MarkerIcon.WAYPOINT_ROUTE_SELECTED
+    layerId == MapLayerIds.PLANNED_TRIPS -> MarkerIcon.PLANNED_TRIP_ROUTE_SELECTED
+    else -> {
+        // A selected stop is a waypoint or a trip (SelectedStopMarker.fanKey), so this is not expected; the copy keeps its own icon.
+        Log.w(SIGHTINGS_MAP_TAG, "A route's selected stop on $layerId has no accent icon; its fanned copy keeps its own.")
+        markerIconForLayer(layerId)
+    }
+}
