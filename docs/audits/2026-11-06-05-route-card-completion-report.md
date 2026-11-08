@@ -1352,3 +1352,98 @@ Every run's build log was read for compile errors before its results; every coun
     under the strip. Landscape in the evening (sundown line showing), open a route on the navigation card so the sundown line steps
     aside, then tuck: the line stays aside and the strip stays where the card was; tap ✕ or Cancel (bring the card back first) and the
     line returns. While plotting, and in landscape, tuck: the same slide.
+
+# Amendment 6, the credit, built: the "i" comes back while the card is tucked
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC. Read on `origin/records-after-173`, `prompts/preserved/2026-11-06-05-amendment-6.md`, section
+"Added (2026-11-08T16:58:24Z, -2187)": the owner, "Come back"; restated and confirmed: tucked, the spot where the card rested is clear,
+so the "i" shows there again; the card brought back out, the "i" hides under it as today. Base `19c766575` (the fan merge), whose CI run
+42501736298 finished green before anything was pushed.
+
+## What hid the "i", from source
+
+`AvailabilityCompactMapUi.kt` hands the map `attributionHideUnder`, the cards' bounds in the map's px, and `MapAttributionInsets`
+hides the "i" and the logo when any of them overlaps the "i"'s rectangle (`attributionHiddenUnder`, D28 with D30). The route card's
+entry was `routeCardBoundsInRoot`, which A2 keeps reporting while tucked (the resting bounds: the card's layout never moves, only what
+it draws, `RouteCardFace.kt`). So a tucked card still hid the "i" across the whole place it rested.
+
+## What changed
+
+- New `ui/availability/RouteCardAttributionCover.kt`: `routeCardDrawnBounds`, the card's bounds moved by the tuck's slide and cut at
+  those bounds (the same geometry `RouteCardFace.kt` draws), so the whole card at rest, its 24 dp strip once tucked, and the part still
+  over its place on the way; and `ReportRouteCardAttributionCover`, which reports that.
+- `CompactMapRoutePlotting.kt`: a new `onCardCoverInRoot` callback, fed from the card's measured bounds and its tuck; `null` when the
+  card leaves, as the other reports.
+- `AvailabilityCompactMapUi.kt`: the "i" is handed that cover in place of the card's bounds. Nothing else reads it: the evening line,
+  Re-center (`cardsInRoot`), the walker's dot (`navigationSideInsetsBesideCard`), the card's height and span all keep the resting
+  bounds, so nothing else moves (Amendment 6's "Stays aside" and "Stays under" stand).
+- `RouteCardTuck.kt`: one sentence of its header comment, saying the "i" is the one exception.
+- Test rig `RouteCardBarRig.applyInsets`: an optional bottom navigation bar inset (default 0, so its other callers are unchanged).
+
+## Verified, and how
+
+- New `AttributionWhileTuckedTest.kt` on the real Maps tab (`RouteCardBarRig`), the card tucked by a real swipe and brought back by a
+  real tap on the strip. It asserts the map is handed exactly what is drawn (the card's node out, the strip's node tucked), and that the
+  "i" is hidden exactly while something drawn covers it, against the "i"'s rectangle worked out from the margins the map is handed:
+  - landscape, not navigating, the L left, 1 and 3 stops, peek and expanded: card out, hidden; tucked, shown (the strip at
+    2157-2229 px clears the "i" at 2001-2073); brought back, hidden; the "i"'s corner never moves;
+  - portrait, fullscreen with a 48 dp bottom navigation bar delivered (Robolectric reports none; without it the portrait card rests
+    above the "i" and never covers it, as AttributionUnderCardPortraitTest records), the bar left, 1 and 3 stops, peek and expanded: the
+    same, hidden, shown, hidden;
+  - landscape navigating, on the navigation card, 3 stops, peek and expanded: tucked, the route card counts only as its strip, and the
+    "i" stays hidden, because it is the navigation card that covers it there (premise below).
+- Red, run 42503341832 (throwaway ref `hazel-rcc-red`, the test commit `9de7f63b6` alone, filtered to these classes and
+  AttributionUnderCard*): 3 of 8 failed, each on its first tucked check, for this reason: "landscape, the L left, 1 stops, peek,
+  tucked: the map is handed the route card's strip as drawn, Rect.fromLTRB(2157.0, 768.0, 2229.0, 1152.0) (handed
+  [Rect.fromLTRB(1635.0, 768.0, 2229.0, 1152.0)])", the same in portrait (strip 1080-1152 px, handed 558-1152) and navigating (strip
+  2157-2229, handed 1887-2229 with the navigation card). The same run's full-suite job (Street map deleted) had 6903 tests, 3 failed,
+  the same three.
+- Fix `26811090431` pushed to route-card; run 42504864619 green on every job.
+- Revert, run 42504873440 (ref `hazel-rcc-rev`, commit `a1477d611`): the one line handing the "i" `routeCardCoverInRoot` set back to
+  `routeCardBoundsInRoot`. Compile log checked first: no `e:` lines, no compile task failed; the JUnit XML timestamps are that run's
+  (17:30 UTC). The same three failed with the same messages as the red, each one this revert causes (the resting bounds handed while
+  tucked); the full-suite job, 6903 tests, those 3 failed. The file was restored from a copy saved before the edit, never from git, and
+  the forward line confirmed present afterwards (`git status` clean against `26811090431`).
+- By name, run 42504864619 against route-card's latest green 42501736298 (the fan merge): 6906 pass / 24 skipped before, 6909 pass /
+  24 skipped after; no test only before, the 3 new tests only after, no test changed status.
+
+## Confirmed vs inferred
+
+- Confirmed (source and the tests' prints): what hid the "i"; that the tucked strip clears the "i" in every case tested; that in
+  landscape navigation the navigation card, not the route card, covers the "i".
+- Inferred: that MapLibre then shows the button and the logo again; the map is a stub under Robolectric, as in AttributionUnderCardTest.
+  The "i"'s margins are the S22 run record's, as there.
+
+## Could not determine
+
+- Portrait outside fullscreen: under Robolectric the card never covers the "i" there, so the portrait case is tested only in fullscreen
+  with a delivered 48 dp navigation bar. Whether the S22's real bar puts the card over the "i" is device-only.
+- The moment of the switch during the slide: the cover follows the drawn card frame by frame, so the "i" should appear as the sliding card
+  uncovers it and hide as it slides back over it; no frame-by-frame test was written for that.
+
+## Premises that were wrong
+
+- The dispatch's test list asked for the "i" present while tucked in landscape "resting on the navigation card too". There the "i" is
+  under the navigation card, not the route card (the route card ends at the navigation card's top, 924 px, above the "i" at 1068-1140
+  px; the same in AttributionUnderCardTest's prints before this change), so by D28 it stays hidden while the route card is tucked. The
+  ruling ("the spot where the card rested is clear") does not reach it; built as D28 has it, and asked below.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- The tucked card still counts as its 24 dp strip, not as nothing, so the "i" would stay hidden wherever the strip itself covered it
+  (D28). In every case tested the strip clears the "i", so this shows no difference today.
+- The cover follows the slide, not the tucked flag, so the "i" does not appear under a card still sliding over it.
+
+## Questions for the owner
+
+- Landscape, navigating, a route open on the navigation card: the "i" is under the navigation card, so it stays hidden while the route
+  card is tucked. Should it stay that way (as today, D28), or is something else wanted there?
+
+## S22 steps (nothing was run on a phone)
+
+18. **The "i" comes back while tucked.** Landscape, not navigating, the icon bar dragged to the left, a route open (its card in the
+    bottom-right corner): the "i" and the MapLibre logo are not showing. Swipe the card to its strip: as the card slides away the "i" and
+    the logo appear in the bottom-right corner, in their usual place. Tap the strip: as the card slides back over them they disappear.
+    Portrait in fullscreen with the icon bar on the left, a route open: the same.
+19. **Landscape navigating.** A route open on the navigation card: tuck it; the "i" stays hidden (the navigation card covers its
+    corner); nothing else moves, as step 17.
