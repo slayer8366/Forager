@@ -36686,3 +36686,15 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Changed (2026-11-07T17:28:45Z), the owner:** to "Should that fetch stop moving the camera on a locate tap?": **"Yes, stop the jump"** ("Locate just glides to you with your zoom, like Re-center"); to the journal entry map's locate: **"Glide, keep zoom, no follow"**. Go: **"Record it"**, **"Build it"**. Amendment 1.
 - **Built (2026-11-07), PR #508 (locate-jump, 1f6d34b2e):** the jump reproduced through the real screen before the fix (run 42399012115: the camera moved instantly to the fallback region's centre at zoom 12.0); Loading now keeps the last fix so the camera target doesn't change at the tap; the journal map's locate eases over Re-center's 750 ms at the current zoom, no following; CI 42401031766 green, 6,849 tests, none changed against pre-main; both reverts failed for their own reason. Not tested: the navigating case; not on a phone. The owner (2026-11-07T19:12:29Z): **"Put #508 in the phone check"**, **"Record it"**.
 **Notes:** Written by the planner by hand. Next free ID -2190.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2190
+**Timestamp:** 2026-11-08T09:39:56Z
+**Title:** Every app PR gets an independent review by Sorrel before it merges to pre-main
+**Decision:**
+- **The owner, verbatim:** **"I've noticed that nothing went to Sorrel for review either"**. The planner checked from source: the planner profile lists Sorrel as reviewing research results (D18); app PRs merged on CI and the owner's word, with Elder's UX audit only at promotion. Every coder that night, and the planner, ran on one model family, and the 1 dp step, the overlap and the corner notch had each passed checks the coder wrote and the planner accepted (the owner's reason for different models, -1134: "It's useful because the same model shares blind spots").
+- To "Should Sorrel review the app PRs before they merge to pre-main?": **"Review #500 now"**, **"Review the rest later"**, **"Make it standing"** (the option: "Every app PR gets a Sorrel review before merging to pre-main; recorded and added to the planner profile").
+- So: every Forager app PR gets a review by Sorrel (a fresh session, never the coder's model; Fable while coders are Opus) before the owner's merge word: the diff against its dispatch and the owner's recorded rulings; tests that could not fail; removed, loosened or silenced checks; report claims the code does not support. Verdict pass, pass with items, or fail; it advises, the owner decides. #500 (carrying #498) first; #506, #507, #508 after the current round. Added to docs/process/planner-profile.md, "Reviews and merges".
+**Notes:** Written by the planner by hand. Next free ID -2191.
