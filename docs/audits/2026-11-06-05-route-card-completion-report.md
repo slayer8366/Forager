@@ -972,3 +972,122 @@ Hazel Cairnwright (Opus), 2026-11-08 UTC. The owner: **"Own line under buttons"*
     map. Navigate is greyed; Navigate and Directions stay in one row at the card's right; under them, starting at the card's left padding,
     "This stop's waypoint was moved or deleted" reads in whole words, wrapping (if at all) only between words. Repeat with the phone's
     largest text size. Then restore the waypoint (or pick the second stop): the reason is gone and the card looks as before.
+
+# Amendment 5, built: the map chrome's outline all the way round, and no buttons while navigating
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC. Amendment 5 read on `origin/records-after-173`
+(`prompts/preserved/2026-11-06-05-amendment-5.md`, RECORD -2187), build go **"Build it"**. Branch `route-card`, from `40e0bdfa7` as
+briefed; `origin/pre-main` was `82d4a091a` and already in it. Mid-task, on the planner's word that #506 was green, `origin/journal-locate-outline`
+(`13eb45fb1`) was merged in (`420e69742`, a merge, no conflicts).
+
+## What was built
+
+- **The outline** (`ui/route/RouteCardEdges.kt`, `848a512af`). `RouteCardOutline` draws `mapChromeOutline()` (1 dp, Bark at 40% by day,
+  white at 40% at night) in the card's shape on every side, in every placement: portrait (the side flush to the screen edge too), landscape
+  (the bottom on the screen edge too), and resting on the navigation card (the side against the side bar too). Where the navigation card
+  covers the card's bottom, the line is drawn round the card's full bounds and clipped at that card's top, so the sides end there and no
+  line runs across along it ("Stop at the top" and "Hide behind nav card"). `routeCardOpenEdges` and the card's `openEdges` parameter are
+  gone.
+- **The tucked card's tab keeps its old outline** (`RouteCardTabOutline`, same file, pixel-for-pixel the old code path: solid 1 dp
+  `onSurface`, open on its screen edge). Amendment 5 rules the card's outline; the tab's plan says it wears "the card's outline", so
+  whether it follows is a question for the owner, below.
+- **No buttons while navigating** (`848a512af`). `RouteCardContent.Saved` carries `navigating`, filled from the screen's one navigation
+  predicate (`AvailabilityScreen.kt`'s `isNavigating`: the return, its arrival hold, or a waypoint navigation) in
+  `CompactMapRoutePlotting.kt`; `RouteCardSavedButtons` (`RouteCardStops.kt`) draws nothing while it holds, so Navigate, Directions and
+  the reason line are gone, and they come back when it ends. The card's natural heights (D42) still report with the buttons hidden
+  (`RouteCard.kt`), so the landscape sundown/elevation decisions read the shorter card.
+- **Tests** (`e273c5963`, `64b2af93d`): `RouteCardOutlineReading.kt` (shared reading: the ruled line written out as `0x663B2E24` and
+  `0x66FFFFFF`, expected over the card's own pixel 4 dp in, that reference checked level with 5 dp in, tolerance 4/255 per channel);
+  `RouteCardOutlineLandscapeTest` (new, landscape not navigating, all four sides, day and night); `RouteCardNavigatingButtonsTest` (new:
+  Navigate by a real touch, then Back; then the navigation card's ✕ by a real touch; the reason case, navigation started by the view
+  model's own start since the card's Navigate is greyed there, ended by the ✕).
+
+## Tests whose claims changed
+
+- `RouteCardTuckCloseTest`, the two outline cases: were "a 1 dp Bark (#3B2E24) / #EDE3D0 outline on the three sides facing the map", the
+  screen-edge side bare; now "the map chrome's 1 dp outline, Bark at 40% / white at 40%, all the way round".
+- `RouteCardOutlineOnNavigationCardTest`, all three: were "on the top and the side toward the map, not the side bar's"; now the ruled line
+  on the top and both sides.
+- `RouteCardOutlineStopsAtNavigationCardTest`, all three: the line read in the ruled colour on both sides above the navigation card's
+  top; below it, each side's outer pixels level with the card's pixels a few dp in (Amendment 3's exact-colour test below the top could
+  not have seen a 40% line); and, new, no line across the card along that top (read up its middle).
+- `RouteCardOneWidthTests.corners` (both subclasses' two cases): the corner is read `ceil(1 dp) + 1 px` in from the side as well as from
+  top and bottom, since the screen-edge side now carries the line; the claim (square on the edge side, round facing the map) is unchanged.
+  It passed before and after the fix, as a reading move should.
+- `RouteCardReCenterUnderCardTest` (`64b2af93d`), found by full CI 42444465598: "with Re-center under the card, real touches across
+  Navigate, Directions and the X each reach their own control" became "...Navigate and Directions are hidden and real touches across the X
+  reach it" (Re-center shows only while navigating, so there are no buttons to reach then); "not navigating the card sits where it does
+  today, and navigating it leaves Re-center's room under it" kept its name and its place claims, and its "only its place changes, not its
+  size" became "its size only by the hidden buttons' row" (it read 128 dp to 80 dp).
+
+## Verified, and how
+
+- **Red** (`hazel-rc5-red` at `e273c5963`, tests only, run **42442574815**, filtered to the seven outline/buttons/navigate classes): the
+  build job's log has **0 compile errors** (`compileDebugUnitTestKotlin` ran), "36 tests completed, 13 failed", matching the JUnit XML. All
+  13 for the reasons predicted: the old solid line read `#3B2E24` / `#EDE3D0` where the ruled line over the card was `#ABA398` / `#797979`;
+  the screen-edge side, the landscape bottom and the side-bar side read bare; "navigating: Navigate is hidden expected:<0> but was:<1>"
+  (twice) and "navigating: the reason is hidden expected:<0> but was:<1>". `RouteCardNavigateTest` (9) and `RouteCardOneWidthTest` (6)
+  passed.
+- **Fix, filtered** (`hazel-rc5-fix` at `848a512af`, run **42442720549**): BUILD SUCCESSFUL, 0 compile errors, all 36 pass. Measured: the
+  ruled line `#ABA298` by day over `#F5F1E6` on every side read, the landscape card's bottom at the screen's (384 dp), below the
+  navigation card's top both sides' outer pixels `#F5F1E6` as inside, the card's middle just above that top bare.
+- **Revert, part 1** (`hazel-rc5-revA`, run **42443284033**): in `RouteCardEdges.kt` the clip around the outline's drawing removed
+  (`clipRect(...) { drawContent() }` to `drawContent()`). 0 compile errors, "18 tests completed, 3 failed": the three
+  `RouteCardOutlineStopsAtNavigationCardTest` cases, each "N dp below the navigation card's top, no line: 1 px in reads #ABA298 (#787878 at
+  night), not the card's own #F5F1E6 (#1F1F1F)", the line running on behind the navigation card, which is what removing the clip does. The
+  other outline classes passed. Restored from the copy saved before the edit; `cmp`-matched `848a512af`'s file; the clip line is present
+  on `origin/route-card`. (The colour and the sides were each shown biting by the red run, where the old code failed them.)
+- **Revert, part 2** (`hazel-rc5-revB`, run **42443288504**): in `RouteCardStops.kt` the line `if (content.navigating) return` deleted.
+  0 compile errors, "12 tests completed, 3 failed": the three `RouteCardNavigatingButtonsTest` cases, with the red run's three messages.
+  Restored from the saved copy, `cmp`-matched; the line is present on `origin/route-card`.
+- **Full CI**: at `420e69742` (after the merge), run **42444465598** failed only the two `RouteCardReCenterUnderCardTest` cases above
+  (both jobs that run the suite, 2 failed each); at `64b2af93d`, run **RUN_FULL** (below).
+
+FULL_CI_SECTION
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, native graphics, the real Maps tab): the ruled line on every side of the card in portrait, landscape and
+  on the navigation card, by day and at night (landscape-on-card at night in one rotation, by day in both); none below the navigation
+  card's top and none across along it; Navigate, Directions and the reason hidden while navigating and back after Back and after the ✕.
+- Inferred, not run: the same on the phone. Colours are read over this test map's plain ground; on real tiles the 40% line shows the
+  tiles through it, as every other piece of chrome's does. Night colours resting on the navigation card were read in one rotation.
+
+## Could not determine
+
+- **Arrival.** The dispatch says the buttons come back when navigation ends by "Back, ✕ or arrival". In the code, arriving does not end a
+  waypoint navigation: the navigation card reads "Arrived" and navigating goes on until Back or ✕ (`AvailabilityScreenWaypointNavigateTest`,
+  "within 15 m ... the HUD reads Arrived"; `CompactMapArrivedAt.kt`). Built to the predicate, so at "Arrived" the buttons stay hidden
+  until the walker ends it. A question for the owner, below.
+- **Where the card meets the side bar** (landscape, on the navigation card): the side bar draws its own line along its inner edge, and the
+  card's side now carries one too, so two 1 dp lines may sit side by side there. Not measured; for the S22 check.
+
+## Premises that were wrong
+
+- "Arrival" as an end of navigation, above. Otherwise none: `route-card` was at `40e0bdfa7`.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- The tab left as it was (above).
+- The card's D42 natural heights report while the buttons are hidden (a guard waited for a non-zero button row; without the change the
+  landscape decisions would have read the card 48 dp taller while navigating). No test covers this case.
+- The hidden buttons follow the screen's whole navigation predicate, so a return to the vehicle hides them too, not only a navigation the
+  card started.
+- The merge commit `420e69742` carries git's default message without the co-author line (not amended, per the repo's rules).
+
+## Questions for the owner
+
+- At "Arrived", should Navigate and Directions come back, or stay hidden until Back or ✕ ends the navigation (as built)?
+- The tucked card's tab still wears the old solid line, open on its screen edge. Should it take the same plain 40% line all the way round?
+
+## S22 steps (nothing was run on a phone)
+
+11. **The plain line.** Open a saved route in portrait: a thin, soft line (like the bubbles' and the icon bar's) runs all the way round
+    the card, including the side against the screen edge; no darker line. Night Mode: a faint pale line. Turn the phone: the card at the
+    bottom edge has the line along its bottom too.
+12. **Resting on the navigation card.** Landscape, navigating, a route open: the line runs round the top and down both sides, including
+    the side against the side bar, and stops where the navigation card's top meets it; nothing below that and no line across the card
+    along that top. Look at the side against the side bar for a doubled line.
+13. **No buttons while navigating.** Open a saved route, tap Navigate: Navigate and Directions disappear (the card gets shorter). Press
+    Back: they come back. Navigate again, then tap the navigation card's ✕: they come back. Walk to the waypoint: at "Arrived" they stay
+    hidden (as built) until Back or ✕. With a deleted stop selected, the reason line hides the same way while navigating elsewhere.

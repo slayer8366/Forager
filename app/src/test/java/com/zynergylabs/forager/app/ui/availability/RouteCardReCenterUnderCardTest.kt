@@ -232,7 +232,9 @@ class RouteCardReCenterUnderCardTest : RouteCardReCenterUnderCardTests() {
         assertEquals("not navigating, no band: the card's bottom is the bottom Re-center sits on", home.bottom.value, resting.bottom.value, 0.5f)
         // Amendment 5 (RECORD -2187): navigating, Navigate and Directions are hidden, so the card is shorter by their row. Before
         // Amendment 5 this claimed the size did not change at all.
-        val buttonsRow = bounds(ROUTE_CARD_NAVIGATE_TAG).let { it.bottom - it.top }
+        // The row's height is Material's 48 dp minimum touch target, which the buttons' own tagged bounds (40 dp) do not include.
+        assertEquals("precondition: Navigate shows, not navigating", 1, count(ROUTE_CARD_NAVIGATE_TAG))
+        val buttonsRow = 48.dp
         setNavigating(true)
         val raised = card()
         log("navigating")
