@@ -69,7 +69,7 @@ internal val ROUTE_CARD_STRIP: Dp = 24.dp
  * is tucked, when its content leaves the semantics tree, as the card did when it left the screen before A2.
  */
 @Immutable
-internal data class RouteCardTuckDraw(val slide: Float = 0f, val faded: Float = 0f, val towardLeft: Boolean = false, val tucked: Boolean = false) {
+data class RouteCardTuckDraw(val slide: Float = 0f, val faded: Float = 0f, val towardLeft: Boolean = false, val tucked: Boolean = false) {
     /** The slide in px for a card [widthPx] wide, the strip [stripPx]: the card's width less the strip, signed toward its edge. */
     fun slidePx(widthPx: Float, stripPx: Float): Float = (if (towardLeft) -1f else 1f) * slide * (widthPx - stripPx).coerceAtLeast(0f)
 
