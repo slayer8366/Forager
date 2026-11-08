@@ -84,8 +84,11 @@ import org.robolectric.shadows.ShadowDisplay
  * rounded bottom corner; "Outline the card's end there"). The straight edges above are read only from 17 dp above the card's bottom,
  * and the side bar's corner curves away within its bottom 16 dp, so the reading never reached that spot (E19's 36 cases passed for
  * that reason). The end edge is now read there too: every 1 dp up the bottom [MAP_CARD_CORNER_RADIUS] of the side the side bar is on,
- * the pixel 2 dp outside; where it is bare map, one of the four pixels where a 1 dp line lies inside that edge must be the outline.
- * With the side bar shown, the spot must be found (bare map read there at least once), so the reading cannot pass without reaching it.
+ * the pixel 2 dp outside; where it is bare map, one of the four pixels where a 1 dp line lies at that edge must be the outline. With the
+ * side bar shown, the spot must be found (bare map read there at least once), so the reading cannot pass without reaching it. **E21**
+ * (RECORD -2181, the owner: one shared line, no 1 dp step) moved that line, with the side bar shown, from inside the card's edge out to
+ * where the side bar's line lies, so it is read there, over the map; in fullscreen the card's own end edge is read inside it, as before.
+ * `NavigationCardEndLineInLineTests` claims the columns exactly.
  */
 abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
 
@@ -332,7 +335,13 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
         if (roundedTop && !roundedBottom) {
             val railCorner = RAIL_CORNER_SPOT
             val alongCorner = (px(card.bottom - MAP_CARD_CORNER_RADIUS)..(bottom - 1) step px(1.dp))
-            edge(railCorner, alongCorner, { y -> right + px(2.dp) to y }, { y -> (1..4).map { right - it to y } }, { y -> right - inFill to y })
+            // E21: with the side bar shown, the line lies just beyond the card's edge, in the side bar's line's columns, over the map; in
+            // fullscreen the card's own end edge is drawn, inside its edge, as before.
+            if (railCornerSpotExpected) {
+                edge(railCorner, alongCorner, { y -> right + px(2.dp) to y }, { y -> (0..3).map { right + it to y } }, { y -> right + px(2.dp) to y })
+            } else {
+                edge(railCorner, alongCorner, { y -> right + px(2.dp) to y }, { y -> (1..4).map { right - it to y } }, { y -> right - inFill to y })
+            }
         }
 
         // Rounded corners: centre, and the signs that point from it to the corner.
