@@ -4,10 +4,10 @@ import android.util.Log
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RouteStop
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import com.zynergylabs.forager.app.ui.map.fanout.FanKey
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
-import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import com.zynergylabs.forager.app.ui.theme.MushroomDeep
 import org.maplibre.android.maps.Style
@@ -59,11 +59,22 @@ data class SelectedStopMarker(val at: LatLng, val trip: Boolean, val featureId: 
 
 /**
  * The selected stop's accent (dispatch 2026-11-06-05, Amendment 1, step 4, the owner: "Accent colour"; Amendment 2, "Keep cream, judge
- * on phone"): cream [Cream] #EDE3D0 by day, rust red [MushroomDeep] #A2612C at night, per the palette, on the palette's own casing. The
- * day cream sits close to the light day ground and its white casing (measured in the completion report, part 1); kept as the owner
- * chose, for them to judge on the phone.
+ * on phone"; Amendment 6, "a dimmer cream by day", RECORD -2187): [RouteStopDimmerCream] #E3D3B5 by day, rust red [MushroomDeep]
+ * #A2612C at night (the owner: "Leave it"), per the palette, on the palette's own casing. The same colour is the fan's accent copy, through
+ * `MarkerIcon.WAYPOINT_ROUTE_SELECTED` / `PLANNED_TRIP_ROUTE_SELECTED` (FanRouteStopAccent.kt). For the owner to judge on the phone.
  */
-internal fun routeStopSelectedColour(palette: MapPalette): Int = (if (palette == MapPalette.NIGHT) MushroomDeep else Cream).toArgb()
+internal fun routeStopSelectedColour(palette: MapPalette): Int =
+    (if (palette == MapPalette.NIGHT) MushroomDeep else RouteStopDimmerCream).toArgb()
+
+/**
+ * The day accent's dimmer cream (Amendment 6, RECORD -2187; the owner: "Also reduce the brightness of the highlight in day mode", then
+ * "Dimmer cream", "A slightly darker solid cream in place of today's"). It is [Cream] #EDE3D0 at the same hue and saturation (HSL about
+ * 39 degrees, 45%) with its lightness lowered from 0.87 to 0.80. A named colour of its own rather than one from the palette: the palette's
+ * warm neutrals a little darker than Cream (NeutralGray200 #CFC9BE, OutlineVariantLight #D5CEBF, SurfaceContainerHighestLight #E2DCCC)
+ * carry 15-27% saturation against Cream's 45%, so they read grey, not as a darker cream; MushroomContainerLight #F6DFC8 is peach and
+ * lighter. Rejected: Cream at 80% opacity over the pin colour, the owner's other offer, which they did not pick.
+ */
+internal val RouteStopDimmerCream = Color(0xFFE3D3B5)
 
 internal object PlottedRouteIds {
     const val SOURCE = "plotted-route"
