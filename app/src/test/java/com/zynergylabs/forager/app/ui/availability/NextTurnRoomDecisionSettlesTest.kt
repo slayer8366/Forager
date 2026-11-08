@@ -23,6 +23,7 @@ import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -127,6 +128,7 @@ class NextTurnRoomDecisionSettlesTest {
         assertTrue("J7: off for room, the next turn is in the right part: $first", inRightPart(first))
         assertTrue("J7: the next turn changes place once, never back and forth: $swaps swaps", swaps <= 1)
         assertTrue("J7: nothing moves once settled (no loop); first $first, then ${moved.take(3)}", moved.isEmpty())
+        assertEquals("J7: the height the room is decided on is the same with the next turn in the right part as on its own line", own.reportedPx, first.reportedPx, 0.5f)
     }
 
     private companion object {

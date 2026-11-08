@@ -161,7 +161,14 @@ internal fun NavigationInfo(
         // the next turn on its own line (J3 step 3), so its height with the line counts that line wherever the next turn is drawn now.
         // Read as drawn, the right part (J7, the line off for room) took a line off this height, which could make room for the line,
         // which put the next turn back on its own line, which took the room again.
-        val ownLinePx = maxOf(with(LocalDensity.current) { COMPASS_ICON_SIZE.toPx() }, rememberTextMeasurer().measure("8", MaterialTheme.typography.labelMedium, maxLines = 1).size.height.toFloat())
+        // Dispatch 2026-11-06-01, Amendment 1, J2: the next turn the route carries (worked out where the line and the walker's place
+        // live), as the space draws and says it; blank in every state but a figure (E1) and on a way with no trail route (E2, E3).
+        val nextTurnShown = nextTurnSpaceShown(readout, hasFix = liveFix != null, ahead = nextTurnOf(route), unit = distanceUnit)
+        // The own line is as tall as [NextTurnSpace] draws it: the arrow's height, or the figure's line where one shows and is taller
+        // (blank, E1 to E3, the arrow's height alone).
+        val arrowLinePx = with(LocalDensity.current) { COMPASS_ICON_SIZE.toPx() }
+        val figureLinePx = rememberTextMeasurer().measure("8", MaterialTheme.typography.labelMedium, maxLines = 1).size.height.toFloat()
+        val ownLinePx = if (nextTurnShown.arrow != null && nextTurnShown.figure != null) maxOf(arrowLinePx, figureLinePx) else arrowLinePx
         val leftWithEveningPx = leftHeightPx + if (evening.landscapeLargeText && leftMeasuredPlace != NextTurnPlace.OWN_LINE) ownLinePx else 0f
         val heightWithStackPx = topPaddingPx + maxOf(leftWithEveningPx, rightWithStackPx) + linesBelowHeightPx + bottomPaddingPx
         // A margin once shown, so a top a pixel either side of the limit cannot flip the decision back and forth.
@@ -196,9 +203,6 @@ internal fun NavigationInfo(
         val lastBackBy = rememberLastShown(shownBackBy)
         val holdSundown = shownSundown ?: lastSundown.takeIf { sundownVisibility.currentState || !sundownVisibility.isIdle }
         val holdBackBy = shownBackBy ?: lastBackBy.takeIf { backByVisibility.currentState || !backByVisibility.isIdle }
-        // Dispatch 2026-11-06-01, Amendment 1, J2: the next turn the route carries (worked out where the line and the walker's place
-        // live), as the space draws and says it; blank in every state but a figure (E1) and on a way with no trail route (E2, E3).
-        val nextTurnShown = nextTurnSpaceShown(readout, hasFix = liveFix != null, ahead = nextTurnOf(route), unit = distanceUnit)
         // J3: in landscape at font 2.0 the right part with no evening line, its own line with one; J2's decision everywhere else.
         // J7: the right part too where the line can't fit even moved up.
         val nextTurnPlace = nextTurnPlaceNow(evening.nextTurnPlace, evening.landscapeLargeText, eveningLine = pieces.isNotEmpty(), eveningStepsAside = eveningStepsAside, eveningOffForRoom = eveningOffForRoom)
