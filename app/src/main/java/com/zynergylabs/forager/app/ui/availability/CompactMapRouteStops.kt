@@ -80,9 +80,9 @@ internal fun selectedStopMarker(
 ): SelectedStopMarker? =
     when (val target = selectedStopTarget(controls, sources)) {
         // Amendment 3, the owner: "Hide with the layer". With the Waypoints switch off there is no pin to colour, so no accent either.
-        is RouteStopLink.Waypoint -> if (!waypointsDrawn) null else sources?.waypoints?.firstOrNull { it.id == target.id }?.let { SelectedStopMarker(LatLng(it.lat, it.lng), trip = false) }
+        is RouteStopLink.Waypoint -> if (!waypointsDrawn) null else sources?.waypoints?.firstOrNull { it.id == target.id }?.let { SelectedStopMarker(LatLng(it.lat, it.lng), trip = false, featureId = it.id) }
         // Amendment 3, last bullet, the owner: "Hide with its layer". A trip stop's flag goes with the Planned Trips switch, as above.
-        is RouteStopLink.Trip -> if (!tripsDrawn) null else sources?.plannedTrips?.firstOrNull { it.id == target.id }?.let { SelectedStopMarker(it.location, trip = true) }
+        is RouteStopLink.Trip -> if (!tripsDrawn) null else sources?.plannedTrips?.firstOrNull { it.id == target.id }?.let { SelectedStopMarker(it.location, trip = true, featureId = it.id) }
         null -> null
     }
 

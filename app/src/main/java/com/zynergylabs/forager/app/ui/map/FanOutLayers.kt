@@ -220,6 +220,8 @@ internal fun fanFrameCollections(
     progress: Float,
     /** The registry's layers in draw order, bottom to top: where a copy's original draws among the others. */
     drawOrder: List<MapLayerSpec> = MAP_LAYER_REGISTRY,
+    /** A saved route's selected stop's marker, whose copy draws the accent (Amendment 6 B, [fanCopyIcon]); `null` for none. */
+    accent: FanKey? = null,
 ): FanFrame {
     if (members.isEmpty()) return EMPTY_FRAME
     val legs = mutableListOf<Feature>()
@@ -229,7 +231,8 @@ internal fun fanFrameCollections(
     for (member in members) {
         val now = at(member)
         val layerId = member.key.layerId
-        val image = markerIconForLayer(layerId)?.imageId
+        val icon = fanCopyIcon(layerId, member.key, accent)
+        val image = icon?.imageId
         when {
             layerId == MapLayerIds.SIGHTINGS -> dots += Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat)).apply {
                 val observationId = member.key.featureId.toLongOrNull()
@@ -239,7 +242,7 @@ internal fun fanFrameCollections(
             image != null -> {
                 icons += Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat)).apply {
                     addStringProperty(FanOutIds.IMAGE_PROPERTY, image)
-                    val offset = markerIconForLayer(layerId)!!.glyph.fanCentringOffsetDp()
+                    val offset = icon!!.glyph.fanCentringOffsetDp()
                     addProperty(FanOutIds.ICON_OFFSET_PROPERTY, JsonArray().apply { add(offset.xDp * progress); add(offset.yDp * progress) })
                     addStringProperty(FEATURE_ID_PROPERTY, member.key.featureId)
                     val place = drawOrder.indexOfFirst { it.id == layerId }
@@ -312,6 +315,12 @@ internal fun applyFanOutHiding(style: Style, members: List<FanMember>) {
             null -> Log.w(FAN_OUT_TAG, "Layer ${spec.id} is not in the loaded style; its originals were not hidden.")
             else -> Log.w(FAN_OUT_TAG, "Layer ${spec.id} is a ${layer::class.java.simpleName}; its originals were not hidden.")
         }
+    }
+    // Dispatch 2026-11-06-05, Amendment 6 B: a route's selected stop's accent goes with the pin it stands on; its copy carries it instead.
+    when (val accent = style.getLayer(PlottedRouteIds.SELECTED_LAYER)) {
+        is SymbolLayer -> accent.setFilter(fanOutHiddenFilter(FAN_ACCENT_KEY_PROPERTY, fanHiddenAccentKeys(members)))
+        null -> Log.w(FAN_OUT_TAG, "Layer ${PlottedRouteIds.SELECTED_LAYER} is not in the loaded style; the selected stop's accent was not hidden.")
+        else -> Log.w(FAN_OUT_TAG, "Layer ${PlottedRouteIds.SELECTED_LAYER} is a ${accent::class.java.simpleName}; the selected stop's accent was not hidden.")
     }
     // Dispatch 2026-11-02-04: a fanned pin's name goes with its pin (WaypointNameLayers.kt), by the same waypoint ids.
     when (val names = style.getLayer(WaypointNameIds.LAYER)) {

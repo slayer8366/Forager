@@ -28,7 +28,7 @@ class PlottedRouteSelectedStopTest {
 
     @Test
     fun `a selected waypoint is one point at its spot, drawn with the accent pin`() {
-        val features = selectedFeatures(PlottedRouteOnMap(legs, listOf(a, b), selected = SelectedStopMarker(b, trip = false)))
+        val features = selectedFeatures(PlottedRouteOnMap(legs, listOf(a, b), selected = SelectedStopMarker(b, trip = false, featureId = "wp-b")))
 
         assertEquals(1, features.size)
         val point = features.single().geometry() as Point
@@ -39,7 +39,7 @@ class PlottedRouteSelectedStopTest {
 
     @Test
     fun `a selected trip is drawn with the accent flag`() {
-        val features = selectedFeatures(PlottedRouteOnMap(legs, listOf(a, b), selected = SelectedStopMarker(a, trip = true)))
+        val features = selectedFeatures(PlottedRouteOnMap(legs, listOf(a, b), selected = SelectedStopMarker(a, trip = true, featureId = "trip-a")))
 
         assertEquals(MarkerIcon.PLANNED_TRIP_ROUTE_SELECTED.imageId, features.single().getStringProperty(PlottedRouteIds.SELECTED_ICON_PROPERTY))
     }

@@ -196,7 +196,7 @@ class RouteCardFullscreenBackTest {
     fun `the selected stop's accent marker hides when the Waypoints layer is switched off, and comes back with it`() {
         setScreen()
         openRoute()
-        val accent = SelectedStopMarker(LatLng(CREEK.lat, CREEK.lng), trip = false)
+        val accent = SelectedStopMarker(LatLng(CREEK.lat, CREEK.lng), trip = false, featureId = CREEK.id)
         assertEquals("precondition: the accent marker at the first stop", accent, map.content?.plottedRoute?.selected)
 
         setWaypointsLayer(firstOpening = true)
