@@ -188,6 +188,10 @@ that run: 6,906 tests, 2 failed, and those two are the same FanOpeningCentreAcce
 detached worktree, so no file in the working tree was edited or restored. Its saved copy was not needed. The forward line is present
 at `131bfe2ca` (count 1). Throwaway refs are deleted.
 
+**Full CI on route-card: run 42516850265** (`043eb296d`, dispatched by hand because the head commit is `[skip ci]`). Every job passed:
+6,960 cases, 6,936 passed, 24 skipped, 0 failed. **By name, against 42504864619** (`268110904`, route-card's last green): 6,957 cases
+there. Three cases are only here, the new FanOpeningCentreAccentTest. None is only there, and no shared case changed status.
+
 ## Part 2, the pause: found, not changed (it needs the owner's choice)
 
 **What the ~0.28 s is spent on.** It is mostly the system's double-tap window, before the app hears of the tap at all.
