@@ -2,17 +2,13 @@ package com.zynergylabs.forager.app.ui.availability
 
 import android.view.Surface
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.map.hex
-import com.zynergylabs.forager.app.ui.map.runOf
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
-import org.junit.Assert.assertNotNull
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -25,12 +21,12 @@ import org.robolectric.annotation.GraphicsMode
 import org.robolectric.shadows.ShadowDisplay
 
 /**
- * Dispatch 2026-11-06-05, Amendment 3, the planner's addition (RECORD -2187): the route card's outline in landscape navigation, where
- * the card rests on the navigation card beside the side bar. The owner, to "In landscape navigation, which edges of the route card get
- * the outline?": "Every edge facing the map" ("Top and left here (right meets the side bar, bottom meets the navigation card)"). So the
- * top and the side toward the map carry the 1 dp `onSurface` outline (Bark #3B2E24 by day, #EDE3D0 at night, written out as hex), and
- * the side against the side bar carries none. Read from drawn pixels on the real Maps tab, recording and navigating, a route plotted.
- * The bottom, behind the navigation card's top, is printed, not asserted: what is drawn there is the navigation card's.
+ * Dispatch 2026-11-06-05, the route card's outline in landscape navigation, where the card rests on the navigation card beside the side
+ * bar. Amendment 3 (RECORD -2187) drew it on the top and the side toward the map only; Amendment 5 (the owner: "Plain line all the way
+ * round, like a bubble") draws the map chrome's line, Bark at 40% by day and white at 40% at night (`RouteCardOutlineReading.kt`), on
+ * the top and both sides, the side against the side bar too. Read from drawn pixels on the real Maps tab, recording and navigating, a
+ * route plotted, above the part the navigation card covers. The bottom, behind the navigation card, is
+ * [RouteCardOutlineStopsAtNavigationCardTest]'s.
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
@@ -45,7 +41,6 @@ class RouteCardOutlineOnNavigationCardTest {
     private val rig = RouteCardBarRig(composeRule)
 
     private fun assertOutline(dark: Boolean, rotation: Int) {
-        val outline = if (dark) Color(0xFFEDE3D0) else Color(0xFF3B2E24)
         val name = "${if (dark) "night" else "day"}, rotation $rotation"
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(rotation)
         rig.setScreen(navigating = true, dark = dark)
@@ -57,34 +52,33 @@ class RouteCardOutlineOnNavigationCardTest {
         // The card's own side is the side bar's (RouteCardPlacement.kt, routeCardOnLeft): the nearer screen edge.
         val onRight = screen.right - card.right < card.left - screen.left
         val pixels = composeRule.onNodeWithTag(ROUTE_CARD_TAG, useUnmergedTree = true).captureToImage().toPixelMap()
-        val n = with(composeRule.density) { 6.dp.roundToPx() }
+        val px = composeRule.density.density
+        val n = with(composeRule.density) { 8.dp.roundToPx() }
         // Read below the top corners' rounding and above the tuck behind the navigation card.
         val row = (0 until pixels.width).map { pixels[it, pixels.height / 3] }
         val column = (0 until pixels.height).map { pixels[pixels.width / 2, it] }
         val mapSide = if (onRight) row.take(n) else row.takeLast(n).reversed()
         val barSide = if (onRight) row.takeLast(n).reversed() else row.take(n)
-        for ((side, edge) in listOf("top" to column.take(n), "side toward the map" to mapSide)) {
-            val run = runOf(edge, outline)
-            assertNotNull("$name, the card's $side faces the map: a ${outline.hex()} outline is drawn; the edge reads ${edge.map { it.hex() }}", run)
-            assertTrue("$name, the card's $side: the outline is at the card's own edge, ${run!!.first} px in", run.first <= 1)
-            println("MEASURED $name, the card's $side: ${outline.hex()} for ${run.last - run.first + 1} px from ${run.first} px in")
+        val sides = listOf("top" to column.take(n), "side toward the map" to mapSide, "side against the side bar" to barSide)
+        val off = sides.mapNotNull { (side, edge) ->
+            println("MEASURED $name, the card's $side: ${edge.take(6).map { it.hex() }}")
+            whyNotRuledLine(edge, dark, px)?.let { "$side: $it" }
         }
-        assertNull("$name, the side against the side bar carries no outline; it reads ${barSide.map { it.hex() }}", runOf(barSide, outline))
-        println("MEASURED $name, the card's bottom reads ${column.takeLast(n).reversed().map { it.hex() }} (not asserted)")
+        assertTrue("$name, the route card on the navigation card carries the ruled line on its top and both sides; off: $off", off.isEmpty())
     }
 
     @Test
-    fun `by day in landscape navigation, the outline is on the top and the side toward the map, not the side bar's`() {
+    fun `by day in landscape navigation, the ruled outline is on the top and both sides, the side bar's too`() {
         assertOutline(dark = false, rotation = Surface.ROTATION_90)
     }
 
     @Test
-    fun `at night in landscape navigation, the outline is on the top and the side toward the map, not the side bar's`() {
+    fun `at night in landscape navigation, the ruled outline is on the top and both sides, the side bar's too`() {
         assertOutline(dark = true, rotation = Surface.ROTATION_90)
     }
 
     @Test
-    fun `turned the other way by day, the side bar's side still carries none`() {
+    fun `turned the other way by day, the side bar's side carries the ruled outline too`() {
         assertOutline(dark = false, rotation = Surface.ROTATION_270)
     }
 }
