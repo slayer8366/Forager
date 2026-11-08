@@ -1,11 +1,17 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.test.junit4.createComposeRule
 import com.zynergylabs.forager.app.ui.map.NavigationSideInsets
 import com.zynergylabs.forager.app.ui.map.navigationViewPaddingPx
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
+import org.junit.runner.RunWith
+import org.robolectric.RobolectricTestRunner
+import org.robolectric.annotation.Config
 
 /**
  * Dispatch 2026-11-06-01, Amendment 1, J8 (RECORD -2183), the owner with the route card resting on the navigation card: "(b) Above top
@@ -82,5 +88,48 @@ class NavigationDotAboveCardInputTest {
         val result = navigationDotAboveCardBottomPx(cluster(card, restingOnTop = 60f), NavigationSideInsets.NONE, clearancePx)
         assertTrue("held", result.capped)
         assertEquals("the dot's centre its clearance below the top padding's edge", 90.0 + 12.0, dotY(result.bottomPx), 1e-3)
+    }
+}
+
+/**
+ * Sorrel's J8 review on PR #500, item 1.2 (RECORD -2190). The owner, J8: "(a) Landscape only". The screen passes
+ * `applies = navigation.isNavigating && cluster.landscape` (AvailabilityCompactMapUi.kt); a portrait screen test may not bite, as the
+ * portrait card may never reach the dot (then the padding is 0 for the overlap's reason, not the ruling's). So this holds the gate where
+ * it acts: [navigationInsetsWithDotAboveCard] with `applies = false` returns D29's padding unchanged even where the card covers the dot.
+ * It is a composable (it reads the density and logs from an effect), so it runs in a composition.
+ */
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36])
+class NavigationDotAboveCardLandscapeOnlyTest {
+
+    private val composeRule = createComposeRule()
+
+    @get:Rule
+    val rules: RuleChain = RuleChain.outerRule(layoutFixesHostActivityRule()).around(composeRule)
+
+    /** The map 780 x 360 px at the root's origin, as [NavigationDotAboveCardInputTest]; the card across the dot's middle and over it. */
+    private fun coveringCluster() = MapIconClusterState(MapIconClusterPositionState()).apply {
+        mapContentBoxLeftInRootPx = 0f
+        mapContentBoxTopInRootPx = 0f
+        mapContentBoxWidthPx = 780f
+        mapContentBoxHeightPx = 360f
+        navigationCardRestingBoundsInRoot = Rect(200f, 230f, 600f, 360f)
+        navigationRestingOnCardTopInRootPx = null
+    }
+
+    @Test
+    fun `J8 review 1_2 - not applying (portrait), a card covering the dot leaves the side padding unchanged`() {
+        // D29's sideways move, so "unchanged" is a padding with values, not only NONE; the dot is then at x 385, under the card.
+        val side = NavigationSideInsets(20.0, 30.0)
+        val cluster = coveringCluster()
+        var applied: NavigationSideInsets? = null
+        var notApplied: NavigationSideInsets? = null
+        composeRule.setContent {
+            applied = navigationInsetsWithDotAboveCard(side, applies = true, cluster = cluster)
+            notApplied = navigationInsetsWithDotAboveCard(side, applies = false, cluster = cluster)
+        }
+        composeRule.waitForIdle()
+        assertTrue("positive control: applying (landscape), this card covers the dot and the dot is moved up: $applied", (applied?.bottomPx ?: 0.0) > 0.0)
+        assertEquals("J8 (a) Landscape only: not applying, D29's side padding is returned unchanged, no bottom added", side, notApplied)
     }
 }
