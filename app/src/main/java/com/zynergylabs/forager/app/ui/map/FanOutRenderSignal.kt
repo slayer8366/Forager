@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.map
 
 import android.graphics.RectF
 import android.util.Log
+import com.zynergylabs.forager.app.ui.map.fanout.FanKey
 import com.zynergylabs.forager.app.ui.map.fanout.FanMember
 import com.zynergylabs.forager.app.ui.map.fanout.FanOutHideGate
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
@@ -21,8 +22,11 @@ internal data class ExpectedCopies(val iconIds: Set<String>, val dotIds: Set<Str
     val isEmpty: Boolean get() = iconIds.isEmpty() && dotIds.isEmpty() && unnumberedDots == 0
 }
 
-/** What [members]' copies will be called in the renderer's answers. A member with no icon and no dot has no copy ([fanFrameCollections] logs and skips it). */
-internal fun expectedCopies(members: List<FanMember>): ExpectedCopies {
+/**
+ * What [members]' copies will be called in the renderer's answers. A member with no icon and no dot has no copy ([fanFrameCollections] logs and skips it).
+ * [accent] is the saved route's selected stop's marker, whose copy [fanFrameCollections] draws with the accent image (Amendment 6 B).
+ */
+internal fun expectedCopies(members: List<FanMember>, accent: FanKey? = null): ExpectedCopies {
     val icons = mutableSetOf<String>()
     val dots = mutableSetOf<String>()
     var unnumbered = 0
@@ -49,6 +53,16 @@ internal fun renderedCopyIds(features: List<org.maplibre.geojson.Feature>): Set<
     if (image != null && id != null) "$image:$id" else null
 }.toSet()
 
+/**
+ * True when the renderer's answer for one frame, the fan's icon layer's [iconFeatures] and dot layer's [dotFeatures], holds every copy of [members]
+ * as [fanFrameCollections] draws them with [accent]: the check [awaitCopiesRendered] makes on each rendered frame, pure so it is testable headless.
+ */
+internal fun copiesReported(members: List<FanMember>, accent: FanKey?, iconFeatures: List<org.maplibre.geojson.Feature>, dotFeatures: List<org.maplibre.geojson.Feature>): Boolean {
+    val dotIds = dotFeatures.mapNotNull { it.getNumberProperty("observationId")?.toLong()?.toString() }.toSet()
+    val unnumbered = dotFeatures.count { it.getNumberProperty("observationId") == null }
+    return copiesDrawn(expectedCopies(members, accent), renderedCopyIds(iconFeatures), dotIds, unnumbered)
+}
+
 /** True when every expected copy is among what the renderer reported: the signal that the copies are drawn. An empty expectation is true at once. */
 internal fun copiesDrawn(expected: ExpectedCopies, renderedIconIds: Set<String>, renderedDotIds: Set<String>, renderedUnnumberedDots: Int): Boolean =
     renderedIconIds.containsAll(expected.iconIds) &&
@@ -67,11 +81,12 @@ internal suspend fun awaitCopiesRendered(
     mapView: MapView,
     map: MapLibreMap,
     members: List<FanMember>,
+    /** The selected stop's marker now, read on each frame, so a copy drawn with the accent counts as its copy (Amendment 6 B). */
+    accent: () -> FanKey? = { null },
     onFrame: (Int) -> Unit = {},
     giveUp: (framesQueried: Int) -> Boolean = { false },
 ): Boolean {
-    val expected = expectedCopies(members)
-    if (expected.isEmpty) return true
+    if (expectedCopies(members, accent()).isEmpty) return true
     return suspendCancellableCoroutine { continuation ->
         var frames = 0
         lateinit var listener: MapView.OnDidFinishRenderingFrameListener
@@ -79,11 +94,9 @@ internal suspend fun awaitCopiesRendered(
             frames++
             onFrame(frames)
             val box = RectF(0f, 0f, mapView.width.toFloat(), mapView.height.toFloat())
-            val icons = renderedCopyIds(map.queryRenderedFeatures(box, FanOutIds.ICONS_LAYER))
+            val icons = map.queryRenderedFeatures(box, FanOutIds.ICONS_LAYER)
             val dotFeatures = map.queryRenderedFeatures(box, FanOutIds.DOTS_LAYER)
-            val dotIds = dotFeatures.mapNotNull { it.getNumberProperty("observationId")?.toLong()?.toString() }.toSet()
-            val unnumbered = dotFeatures.count { it.getNumberProperty("observationId") == null }
-            if (copiesDrawn(expected, icons, dotIds, unnumbered)) {
+            if (copiesReported(members, accent(), icons, dotFeatures)) {
                 mapView.removeOnDidFinishRenderingFrameListener(listener)
                 if (continuation.isActive) continuation.resume(true)
             } else if (giveUp(frames)) {
@@ -122,6 +135,8 @@ internal suspend fun hideWhenCopiesDrawn(
     members: List<FanMember>,
     generation: Int,
     atRest: () -> Boolean,
+    /** The selected stop's marker now (Amendment 6 B), passed on to [awaitCopiesRendered]. */
+    accent: () -> FanKey? = { null },
 ) {
     if (!anyMemberOnScreen(map, mapView, members)) {
         Log.i(SIGNAL_TAG, "None of the ${members.size} fanned markers is on screen; their originals are hidden at once.")
@@ -130,7 +145,7 @@ internal suspend fun hideWhenCopiesDrawn(
         return
     }
     var framesAtRest = 0
-    val drawn = awaitCopiesRendered(mapView, map, members, giveUp = {
+    val drawn = awaitCopiesRendered(mapView, map, members, accent = accent, giveUp = {
         if (atRest()) framesAtRest++
         framesAtRest >= REST_FRAMES_BEFORE_GIVING_UP
     })

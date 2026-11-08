@@ -105,7 +105,7 @@ internal fun MapFan(
                 }
                 if (step.awaiting) {
                     waiting = effectScope.launch {
-                        hideWhenCopiesDrawn(style, map, state.mapView, gate, members, step.generation) { state.fanOut.progress >= 1f }
+                        hideWhenCopiesDrawn(style, map, state.mapView, gate, members, step.generation, atRest = { state.fanOut.progress >= 1f }, accent = { currentAccent })
                     }
                 }
             }
