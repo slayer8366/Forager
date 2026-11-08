@@ -66,11 +66,14 @@ import org.robolectric.shadows.ShadowDisplay
  * above it, as wide, and in the outline's colour.**
  *
  * How a row's line is found: in a window across the card's end, a pixel is the line's when it lies on the outline's side (darker by day,
- * lighter at night) of both the card's fill read 2 dp inside the card and the colour read 2 dp outside it, each by more than half the
- * contrast the outline makes over that colour (the half-gap rule of `NavigationCardOutlineEveryEdgeTests`). The side bar's line is read
- * on the six rows from 6 dp to 1 dp above where its corner starts to curve (outside: the side bar's fill). The card's end line is read on
- * every row below that whose pixels from just past the side bar's line out to 2 dp beyond the card's edge are all bare map, so neither
- * the side bar nor its curving line is in the window (outside: the map). At least one such row must be found.
+ * lighter at night) of the card's fill read 2 dp inside the card, by more than half the contrast the outline makes over that fill (the
+ * half-gap rule of `NavigationCardOutlineEveryEdgeTests`), and is not the flat colour read 2 dp outside the card (within [EXACT]). The
+ * outside colour is excluded rather than read for the outline's side, because at night the outline over the card's fill comes within
+ * 0.02 of the stand-in map's grey (red run 42440723930: E20's line read 0.522 at night, the map 0.502), so a pixel lighter than the map
+ * would have missed E20's line and reported no line at all, not where it was. The side bar's line is read on the six rows from 6 dp to
+ * 1 dp above where its corner starts to curve (outside: the side bar's fill). The card's end line is read on every row below that whose
+ * pixels from just past the side bar's line out to 2 dp beyond the card's edge are all bare map, so neither the side bar nor its curving
+ * line is in the window (outside: the map). At least one such row must be found.
  */
 abstract class NavigationCardEndLineInLineTests(private val dark: Boolean) {
 
@@ -129,7 +132,7 @@ abstract class NavigationCardEndLineInLineTests(private val dark: Boolean) {
         assertEquals("$name: the side bar's line is a stroke ($strokePx px) wide: $railLine", strokePx, railLine.size)
 
         // The card's end line, below, on every row where the side bar and its curving line are clear of the window.
-        val clear = (curveStart until px(card.bottom)).filter { y -> ((edge + strokePx + 1)..(edge + px(2.dp))).all { x -> isMap(x, y) } }
+        val clear = (curveStart until px(card.bottom)).filter { y -> ((edge + strokePx)..(edge + px(2.dp))).all { x -> isMap(x, y) } }
         assertTrue("$name: no row below the side bar's corner start has bare map beside the card's end (the spot was not reached)", clear.isNotEmpty())
         val steps = mutableListOf<String>()
         val offColour = mutableListOf<String>()
@@ -149,7 +152,7 @@ abstract class NavigationCardEndLineInLineTests(private val dark: Boolean) {
     private fun lineColumns(y: Int, window: IntRange, edge: Int): List<Int> {
         val inside = image[edge - px(2.dp), y]
         val outside = image[edge + px(2.dp), y]
-        return window.filter { x -> onLineSide(image[x, y], inside) && onLineSide(image[x, y], outside) }
+        return window.filter { x -> onLineSide(image[x, y], inside) && !exact(image[x, y], outside) }
     }
 
     private fun onLineSide(p: Color, ref: Color): Boolean {
@@ -162,6 +165,7 @@ abstract class NavigationCardEndLineInLineTests(private val dark: Boolean) {
         return Color(red = outline.red * a + fill.red * (1f - a), green = outline.green * a + fill.green * (1f - a), blue = outline.blue * a + fill.blue * (1f - a))
     }
 
+    private fun exact(p: Color, q: Color) = abs(p.red - q.red) < EXACT && abs(p.green - q.green) < EXACT && abs(p.blue - q.blue) < EXACT
     private fun near(p: Color, q: Color) = abs(p.red - q.red) < COLOUR_MATCH && abs(p.green - q.green) < COLOUR_MATCH && abs(p.blue - q.blue) < COLOUR_MATCH
     private fun isMap(x: Int, y: Int) = x in 0 until image.width && y in 0 until image.height && near(image[x, y], bareMap)
     private fun lum(c: Color) = 0.2126f * c.red + 0.7152f * c.green + 0.0722f * c.blue
@@ -251,6 +255,9 @@ abstract class NavigationCardEndLineInLineTests(private val dark: Boolean) {
 
         /** How close two colours are read as the same, per channel. */
         const val COLOUR_MATCH = 0.03f
+
+        /** Two pixels of one flat fill: within 2 of 255 per channel. */
+        const val EXACT = 0.008f
     }
 }
 
