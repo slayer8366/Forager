@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import android.view.Surface
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.toPixelMap
@@ -18,14 +19,17 @@ import org.junit.Test
 import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 import org.robolectric.annotation.GraphicsMode
+import org.robolectric.shadows.ShadowDisplay
 
 /**
  * Dispatch 2026-11-06-05, Amendment 5, its added item (RECORD -2187; the owner, of the tucked card's tab: "Same as the card"): the tab
  * draws the map chrome's outline as the card does since Amendment 5, 1 dp, Bark #3B2E24 at 40% by day and white at 40% at night
  * (`RouteCardOutlineReading.kt`, the colours written out as the ruling gives them), all the way round, the side flush to its screen edge
- * included. Before this the tab drew step 6's solid 1 dp `onSurface` line on the three sides facing the map and none on its edge side.
+ * included, except at the side bar's edge in landscape (below). Before this the tab drew step 6's solid 1 dp `onSurface` line on the
+ * three sides facing the map and none on its edge side.
  *
  * Read from drawn pixels on the real Maps tab ([RouteCardBarRig]), the card tucked by a real sideways swipe, in each placement the tab
  * has: portrait (a saved route, against either edge, and while plotting) and landscape ([RouteCardTabOutlineLandscapeTest]).
@@ -58,8 +62,11 @@ abstract class RouteCardTabOutlineTests {
         assertEquals("precondition: the tab shows", 1, rig.count(ROUTE_CARD_TAB_DRAWN_TAG))
     }
 
-    /** The tab's four sides each carry the ruled line, [dark] or by day, in [where]. */
-    protected fun assertTabOutline(where: String, dark: Boolean) {
+    /**
+     * The tab's sides each carry the ruled line, [dark] or by day, in [where]; its side on its edge carries none of its own instead
+     * when [edgeSideBare], where that edge is the side bar's (RECORD -2187, "(c) All three"; -967).
+     */
+    protected fun assertTabOutline(where: String, dark: Boolean, edgeSideBare: Boolean = false) {
         val name = if (dark) "night" else "day"
         val tab = rig.bounds(ROUTE_CARD_TAB_DRAWN_TAG)
         val onRight = tab.left.value > rig.screen().right.value / 2
@@ -76,14 +83,19 @@ abstract class RouteCardTabOutlineTests {
             "top" to column.take(n),
             "bottom" to column.takeLast(n).reversed(),
             "side facing the map" to mapSide,
-            "side on its screen edge" to edgeSide,
-        )
+        ) + if (edgeSideBare) emptyList() else listOf("side on its screen edge" to edgeSide)
         println("MEASURED $name, $where: the tab at ${tab.left.value}..${tab.right.value} x ${tab.top.value}..${tab.bottom.value}, on the ${if (onRight) "right" else "left"}")
         val off = sides.mapNotNull { (side, edge) ->
             println("MEASURED $name, $where, the tab's $side: ${edge.take(6).map { it.hex() }}")
             whyNotRuledLine(edge, dark, px)?.let { "$side: $it" }
+        } + if (edgeSideBare) {
+            println("MEASURED $name, $where, the tab's side against the side bar: ${edgeSide.take(6).map { it.hex() }}")
+            listOfNotNull(whyNotBare(edgeSide, px)?.let { "side against the side bar, not bare (a second line beside the side bar's): $it" })
+        } else {
+            emptyList()
         }
-        assertTrue("$name, $where: the tucked card's tab carries the ruled line on every side, its screen edge's too; off: $off", off.isEmpty())
+        val expected = if (edgeSideBare) "the ruled line on its top, bottom and side facing the map, and none of its own against the side bar" else "the ruled line on every side, its screen edge's too"
+        assertTrue("$name, $where: the tucked card's tab carries $expected; off: $off", off.isEmpty())
     }
 }
 
@@ -133,22 +145,59 @@ class RouteCardTabOutlineTest : RouteCardTabOutlineTests() {
     fun `at night, the tab while plotting has the map chrome's outline all the way round`() = plottingTab(dark = true)
 }
 
-/** Landscape, recording, a route plotted: the card rises from the bottom edge, and its tab sits at that corner. */
+/**
+ * Landscape, recording, a route plotted: the card rises from the bottom edge against the side bar, or rests on the navigation card
+ * there, and its strip sits at the side bar. The strip's edge there draws no line of its own: Sorrel's review of PR #507, item 1.1,
+ * and the owner's answer (RECORD -2187, 2026-11-08T22:50:26Z): "(c) All three (Recommended)", the tucked strip's edge among them,
+ * navigating and plotting, under RECORD -967 ("Where two outlined pieces touch, one shared 1 dp line is drawn: ... strip or card
+ * against the rail"). That qualifies the tab's "Same as the card" at the side bar's edge only. Until then these cases claimed the ruled
+ * line on the "side on its screen edge" too.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
 class RouteCardTabOutlineLandscapeTest : RouteCardTabOutlineTests() {
 
-    private fun landscapeTab(dark: Boolean) {
-        rig.setScreen(dark = dark)
+    /** [rotation] null leaves the display as the qualifier sets it. */
+    private fun landscapeTab(dark: Boolean, rotation: Int? = null, navigating: Boolean = false) {
+        rotation?.let { Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(it) }
+        rig.setScreen(navigating = navigating, dark = dark)
         rig.plotTo(2)
         tuck()
-        assertTabOutline("in landscape", dark)
+        val tab = rig.bounds(ROUTE_CARD_TAB_DRAWN_TAG)
+        val screen = rig.screen()
+        val gap = minOf((tab.left - screen.left).value, (screen.right - tab.right).value)
+        assertTrue("precondition: the strip is against the side bar, not on the screen's edge (gap $gap dp)", gap > 1f)
+        assertTabOutline("in landscape${rotation?.let { ", rotation $it" } ?: ""}${if (navigating) ", navigating" else ", plotting"}", dark, edgeSideBare = true)
     }
 
     @Test
-    fun `by day in landscape, the tab has the map chrome's outline all the way round`() = landscapeTab(dark = false)
+    fun `by day in landscape, the tab has the map chrome's outline, and none of its own against the side bar`() = landscapeTab(dark = false)
 
     @Test
-    fun `at night in landscape, the tab has the map chrome's outline all the way round`() = landscapeTab(dark = true)
+    fun `at night in landscape, the tab has the map chrome's outline, and none of its own against the side bar`() = landscapeTab(dark = true)
+
+    @Test
+    fun `by day turned one way while plotting, the strip's edge against the side bar has no line of its own`() = landscapeTab(dark = false, rotation = Surface.ROTATION_90)
+
+    @Test
+    fun `at night turned one way while plotting, the strip's edge against the side bar has no line of its own`() = landscapeTab(dark = true, rotation = Surface.ROTATION_90)
+
+    @Test
+    fun `by day turned the other way while plotting, the strip's edge against the side bar has no line of its own`() = landscapeTab(dark = false, rotation = Surface.ROTATION_270)
+
+    @Test
+    fun `at night turned the other way while plotting, the strip's edge against the side bar has no line of its own`() = landscapeTab(dark = true, rotation = Surface.ROTATION_270)
+
+    @Test
+    fun `by day turned one way while navigating, the strip's edge against the side bar has no line of its own`() = landscapeTab(dark = false, rotation = Surface.ROTATION_90, navigating = true)
+
+    @Test
+    fun `at night turned one way while navigating, the strip's edge against the side bar has no line of its own`() = landscapeTab(dark = true, rotation = Surface.ROTATION_90, navigating = true)
+
+    @Test
+    fun `by day turned the other way while navigating, the strip's edge against the side bar has no line of its own`() = landscapeTab(dark = false, rotation = Surface.ROTATION_270, navigating = true)
+
+    @Test
+    fun `at night turned the other way while navigating, the strip's edge against the side bar has no line of its own`() = landscapeTab(dark = true, rotation = Surface.ROTATION_270, navigating = true)
 }
