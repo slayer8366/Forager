@@ -810,3 +810,84 @@ Portrait unless named. Day, then Night Mode where a colour is named.
    navigation card, on the top and the map side only.
 8. **Upgrade (part 2/3).** On release builds only: schema 23 with two saved routes → this build: both open with every stop; schema 22 with
    records → this build: every record there.
+
+# Build, part 7 (Amendment 3, the addition of 2026-11-07T23:49:50Z): the route card's outline stops at the navigation card's top
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC, a fresh coder on the owner's "Fresh coder finishes it" (RECORD -2187's last bullet, read on
+`origin/records-after-173` at `5e82472c5`; `e629259a9` since, a -2183 line only). The owner: **"Stop at the top"**. Branch `route-card`,
+from `1a6a69f2d`; `origin/pre-main` was `82d4a091a` at the start and the end, so nothing was merged in.
+
+## What was built (by the earlier Hazel, read here and pushed unchanged)
+
+- `69e85a884` (test): `RouteCardOutlineStopsAtNavigationCardTest` (113 lines, new). On the real Maps tab at the S22's landscape window,
+  recording, navigating, a route plotted, the route card on the navigation card: in the route card's map-facing columns its line is drawn
+  from 4 dp to 1 dp above the navigation card's top, and those same columns carry no pixel of the line's colour from 1 dp to 3 dp below
+  it. By day and at night at rotation 90, by day at rotation 270.
+- `67c93c119` (fix): `RouteCardOutline(shape, openEdges, coveredBottom)` in `RouteCardEdges.kt` (109 lines): with `coveredBottom` above
+  0 dp the outline's box ends that far above the card's bottom and is clipped there, so nothing of it is drawn below. `RouteCard.kt` passes
+  `coveredBottom = contentBottomPadding`, which is the 16 dp tuck (`ROUTE_CARD_NAVIGATION_TUCK`) on the navigation card and 0 dp in every
+  other placement, so every other outline is unchanged. The bottom edge is already open there (`routeCardOpenEdges`), so the clip draws no
+  stroke along the navigation card's top.
+- Neither file, nor the test, is in `next-turn`'s (`4e8df0524`) or `nav-card-kind-line`'s (`32251448d`) diff from pre-main (checked before
+  pushing).
+
+## Verified, and how
+
+- **Red, on the test alone** (`hazel-rcline-red` at `69e85a884`, run **42427248741**, filtered to `*RouteCardOutlineStopsAtNavigationCardTest*`
+  and `*RouteCardOutlineOnNavigationCardTest*`; head SHA confirmed; the unit-test Kotlin compiled, **0 compile errors** in the log, read
+  first). 6 tests, **3 failed**, each this test at its "below" check, from the JUnit XML: "day, rotation 1, 1.0 dp below the navigation
+  card's top: the route card's line stops at that top, so its columns carry no #3B2E24; they read [#3B2E24, #3B2E24, #3B2E24]"; the same
+  at night (#EDE3D0) and at rotation 3. So the line ran on below the top in its exact colour, the failure the test predicts; the "above"
+  check and both preconditions passed in each, and `RouteCardOutlineOnNavigationCardTest` (3) passed.
+- **Green: full CI, run 42427958402 at `67c93c119`, every job.** The test's own reading below the top is now the card's fill (by day
+  #F5F1E6, at night #1F1F1F) from 1 dp to 3 dp, and the line above it in columns 1189 to 1191. By name against pre-main's latest run
+  (**42337576510** at `1f6901a11`; `82d4a091a` is one `[skip ci]` line past it), both runs' JUnit XML: 6926 vs 6846 test cases (6902 passed,
+  24 skipped vs 6822 and 24), **no outcome changed** on any name in both; 12 gone and 92 new, all passing. Against part 6's green
+  (42416307227 at `1da75bb12`): **nothing gone, no outcome changed, 3 new**, exactly this test's three.
+- **One one-line revert** in its own scratch worktree (`hazel-rcline2-revert`, from `67c93c119`): `coveredBottom = contentBottomPadding`
+  → `coveredBottom = 0.dp` in `RouteCard.kt`. Run **42427978951** at `f5d024b70`; **0 compile errors** in both test jobs' logs, read
+  before the results. Filtered: 6 tests, 3 failed; unfiltered ("Street map deleted" job): 6872 tests, **3 failed**, 24 skipped, nothing
+  else. All three are this test's "below" check with the line's exact colour, the same messages as the red: the failure this edit produces
+  and no other. After it the worktree's file was restored from the copy saved before the edit and `cmp`-matched `route-card`'s; the
+  forward line is present on `origin/route-card`.
+- **Combined throwaway build, #498 + this branch, without the held reading fix** (`hazel-rcline2-combined` = `67c93c119` merged with
+  `origin/nav-card-kind-line` `32251448d`, merge `1f70469cc`, clean; `hazel-clash-498-fix-hold` confirmed not an ancestor, and left alone).
+  Run **42427998192**, filtered to `*NavigationCardOutlineEveryEdge*`, both test jobs green, **0 compile errors**: **36 cases, 0 failed**,
+  and the 16 "route card on the navigation card" cases (4 in each of `NavigationCardOutlineEveryEdge{Narrow,S26}{Day,Night}Test`) are among
+  them by name and passed. So with the line stopped at the top, #498's check reads its own outline at the corner's 6 degree spot again; the
+  held reading fix is not needed for these 16.
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, the real Maps tab, the drawn pixels): in landscape navigation the route card's map-facing line is drawn
+  above the navigation card's top and is absent for the 3 dp below it, by day and at night, both rotations tested; every other outline test
+  (portrait, landscape off the navigation card) unchanged; #498's 36 outline cases pass with this branch.
+- Inferred, not run: the wedge (below). Real insets (Robolectric reports none, CLAUDE.md). Rotation 270 at night (the day case and the
+  night case at 90 cover the two colours and the two sides). A caller passing a route card shape with rounded bottom corners (none does).
+
+## Could not determine
+
+- **How the small wedge reads on the phone.** The navigation card's top corners are rounded at 16 dp (`MAP_CARD_CORNER_RADIUS`), the same
+  as the tuck, and the route card's bottom corners are square. So beside the navigation card's map-facing top corner, between its arc and
+  the route card's square corner, a sliver of route card shows (at most 16 dp tall at the very edge, tapering to nothing 16 dp in, about
+  55 dp²): bordered by the navigation card's own outline along the arc, but now with no route card line on its map-facing side. The test
+  reads that sliver's top 3 dp as the bare card fill. The owner will judge it on the S22 ("Judge on the S22 first").
+
+## Premises that were wrong
+
+- None found. `origin/route-card` was `1a6a69f2d` and the local branch two commits ahead with exactly the two refs, as briefed; the red
+  run had finished its test job (its "Street map deleted" job was still running) and had not been read.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- The earlier Hazel's WIP commit message ("WIP ... Not yet verified") was pushed as written, not amended (never amend); this part is the
+  verification it names.
+
+## S22 step (nothing was run on a phone)
+
+9. **Stop at the top.** Landscape, record a short walk, start the return, open a saved route so its card rests on the navigation card. By
+   day: the route card's thin outline runs along its top and down its map side and **ends where the navigation card's top edge begins**;
+   no line shows through the navigation card below that. Look closely at the navigation card's top corner on the map side: a small curved
+   wedge of the route card shows between that rounded corner and the route card's square corner, with the navigation card's outline
+   along the curve and no line on the wedge's map side. Judge whether that wedge reads as finished. Repeat in Night Mode, and with the
+   phone turned the other way.

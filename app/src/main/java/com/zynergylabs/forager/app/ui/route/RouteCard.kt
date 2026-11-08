@@ -235,7 +235,8 @@ fun RouteCard(
             Box(Modifier.naturalHeight { buttonsNatural = it }) { RouteCardButtons(content, callbacks) }
         }
         if (content is RouteCardContent.Saved) RouteCardCloseButton(callbacks.onClose)
-        RouteCardOutline(shape, openEdges)
+        // Amendment 3 (RECORD -2187, the owner: "Stop at the top"): the part tucked behind the navigation card carries none of it.
+        RouteCardOutline(shape, openEdges, coveredBottom = contentBottomPadding)
         }
     }
 }
