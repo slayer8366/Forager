@@ -3,13 +3,16 @@ package com.zynergylabs.forager.app.ui.map
 import android.content.res.Resources
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.RecordPoint
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.map.fanout.FanKey
 import com.zynergylabs.forager.app.ui.map.fanout.FanMember
 import com.zynergylabs.forager.app.ui.map.fanout.FanOutHideGate
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
@@ -43,7 +46,10 @@ internal fun MapFan(
     returnMemory: MapReturnMemory?,
     chromeColour: Int,
     resources: Resources,
+    /** A saved route's selected stop's marker, whose fanned copy draws the accent (dispatch 2026-11-06-05, Amendment 6 B); `null` for none. */
+    accent: FanKey? = null,
 ) {
+    val currentAccent by rememberUpdatedState(accent)
     // Layer visibility and opacity (map layers L0a, A3): each native layer's `visibility` layout
     // property and its opacity paint properties set from layersState through layerPaintFor, on the
     // loaded style's own layers — no setStyle, so nothing is rebuilt. Keyed on loadedStyle as well,
@@ -78,7 +84,8 @@ internal fun MapFan(
         var hiddenFor: List<FanMember>? = null
         // True to start with, so a restart that finds the fan folding drops a wait that was still pending (gate.onFold) on its first pass.
         var wasOpen = true
-        snapshotFlow { Triple(state.fanOut.members, state.fanOut.progress, state.fanOut.wantOpen) }.collect { (members, progress, wantOpen) ->
+        // Amendment 6 B: the selected stop is read with the fan, so a stop picked from the open fan takes the accent on its copy at once.
+        snapshotFlow { FanStep(state.fanOut.members, state.fanOut.progress, state.fanOut.wantOpen, currentAccent) }.collect { (members, progress, wantOpen, accentKey) ->
             if (currentStyle(style, "A fan step") == null) return@collect
             if (hiddenFor !== members) {
                 hiddenFor = members
@@ -114,6 +121,7 @@ internal fun MapFan(
                 fanFrameCollections(
                     members, { fanMemberLatLng(map, it, progress, density) }, focusedObservationId, progress,
                     drawOrder = orderedLayers(MAP_LAYER_REGISTRY, state.layersState),
+                    accent = accentKey,
                 ),
             )
         }
@@ -155,3 +163,6 @@ internal fun MapFan(
         }
     }
 }
+
+/** One step of the fan as the drawing effect reads it: its members, progress and intent, and the selected stop's marker (Amendment 6 B). */
+private data class FanStep(val members: List<FanMember>, val progress: Float, val wantOpen: Boolean, val accent: FanKey?)

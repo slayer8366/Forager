@@ -5,6 +5,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RouteStop
 import androidx.compose.ui.graphics.toArgb
+import com.zynergylabs.forager.app.ui.map.fanout.FanKey
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.theme.Cream
 import com.zynergylabs.forager.app.ui.theme.MapPalette
@@ -46,8 +47,15 @@ data class PlottedRouteOnMap(
     val selected: SelectedStopMarker? = null,
 )
 
-/** Where the selected stop's waypoint ([trip] false) or trip stands: its pin, or its flag, is drawn there again in the accent colour. */
-data class SelectedStopMarker(val at: LatLng, val trip: Boolean)
+/**
+ * Where the selected stop's waypoint ([trip] false) or trip stands: its pin, or its flag, is drawn there again in the accent colour.
+ * [featureId] is that waypoint's or trip's own id, as its marker carries it, so the fan can tell which of its copies is this one
+ * (dispatch 2026-11-06-05, Amendment 6 B; [fanKey]).
+ */
+data class SelectedStopMarker(val at: LatLng, val trip: Boolean, val featureId: String) {
+    /** The marker this accent stands on, by its layer and id, as a fan names its members (Amendment 6 B). */
+    val fanKey: FanKey get() = FanKey(if (trip) MapLayerIds.PLANNED_TRIPS else MapLayerIds.WAYPOINTS, featureId)
+}
 
 /**
  * The selected stop's accent (dispatch 2026-11-06-05, Amendment 1, step 4, the owner: "Accent colour"; Amendment 2, "Keep cream, judge
@@ -204,6 +212,8 @@ internal fun plottedRouteFeatureCollections(route: PlottedRouteOnMap?): Map<Stri
             Feature.fromGeometry(Point.fromLngLat(marker.at.lng, marker.at.lat)).also {
                 val icon = if (marker.trip) MarkerIcon.PLANNED_TRIP_ROUTE_SELECTED else MarkerIcon.WAYPOINT_ROUTE_SELECTED
                 it.addStringProperty(PlottedRouteIds.SELECTED_ICON_PROPERTY, icon.imageId)
+                // Amendment 6 B: the marker it stands on, so the fan hides it while that marker is fanned (fanHiddenAccentKeys).
+                it.addStringProperty(FAN_ACCENT_KEY_PROPERTY, fanAccentKeyValue(marker.fanKey))
             }
         },
     ),
