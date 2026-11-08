@@ -42,7 +42,6 @@ import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import com.zynergylabs.forager.app.ui.motion.MotionTokens
-import com.zynergylabs.forager.app.ui.route.RouteCardEdge
 import com.zynergylabs.forager.app.ui.route.RouteCardTabOutline
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 
@@ -103,8 +102,8 @@ internal fun routeCardTuckTransitions(cardOnLeft: Boolean): Pair<EnterTransition
 /**
  * The tucked card's tab, at the card's bottom corner on its edge ([cardOnLeft]), inside [controlsPadding] and [bottomPadding] as the
  * card is. Drawn [ROUTE_CARD_TAB_WIDTH] wide against the edge, square there and round toward the map, in the map chrome's 80% fill
- * with the card's outline on the three sides facing the map, and a short vertical grip bar in the card handle's look. Its touch target
- * is [ROUTE_CARD_TAB_TOUCH_WIDTH] by [ROUTE_CARD_TAB_HEIGHT]; the part past the drawn tab is clear, and every touch outside it reaches
+ * with the card's outline all the way round (Amendment 5's added item, "Same as the card"), and a short vertical grip bar in the card
+ * handle's look. Its touch target is [ROUTE_CARD_TAB_TOUCH_WIDTH] by [ROUTE_CARD_TAB_HEIGHT]; the part past the drawn tab is clear, and every touch outside it reaches
  * the map. A tap, or a drag away from the edge past [ROUTE_CARD_TUCK_SWIPE], brings the card back ([onBringBack]).
  */
 @Composable
@@ -151,7 +150,7 @@ internal fun BoxScope.RouteCardTab(cardOnLeft: Boolean, controlsPadding: Padding
                         .size(width = 4.dp, height = 24.dp)
                         .background(LocalContentColor.current.copy(alpha = 0.4f), RoundedCornerShape(2.dp)),
                 )
-                RouteCardTabOutline(shape, if (cardOnLeft) RouteCardEdge.LEFT else RouteCardEdge.RIGHT)
+                RouteCardTabOutline(shape)
             }
         }
     }

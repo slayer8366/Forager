@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.route
 
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
@@ -9,14 +8,12 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.Shape
-import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
@@ -26,7 +23,8 @@ import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 
 /*
  * The route card's edges (dispatch 2026-11-06-05, Amendment 1, RECORD -2187): its outline (step 6, and Amendment 5) and its ✕ (step 3),
- * and the tucked card's tab's outline. Kept out of RouteCard.kt, which is near the 400-line mark (.claude/skills/modular-code/SKILL.md).
+ * and the tucked card's tab's outline (the card's, since Amendment 5's added item). Kept out of RouteCard.kt, which is near the 400-line
+ * mark (.claude/skills/modular-code/SKILL.md).
  */
 
 /**
@@ -53,32 +51,20 @@ internal fun BoxScope.RouteCardOutline(shape: Shape, coveredBottom: Dp = 0.dp) {
     )
 }
 
-/** The screen edge the tucked card's tab sits flush against, which its outline leaves open (step 2's tab, unchanged by Amendment 5). */
-enum class RouteCardEdge { LEFT, RIGHT }
-
-/** The tab's outline width: step 6's, 1 dp. */
-private val ROUTE_CARD_TAB_OUTLINE_WIDTH: Dp = 1.dp
-
-/** How far the tab's outline box reaches past its open edge, so the tab's own clip cuts that side's stroke off. */
-private val OUTLINE_PAST_EDGE = 2.dp
-
 /**
- * The tucked card's tab's outline, as step 6 drew the card's and the tab's plan gave it ("the card's outline" on the three sides facing
- * the map): 1 dp `onSurface`, its box reaching [OUTLINE_PAST_EDGE] past [openEdge], where the tab's clip cuts it. Amendment 5 ruled the
- * card's outline and not the tab's, so the tab keeps this until the owner rules on it.
+ * The tucked card's tab's outline. Amendment 5's added item (RECORD -2187), the owner, of the tab: "Same as the card". So the map
+ * chrome's outline ([mapChromeOutline]: 1 dp, Bark at 40% by day, white at 40% at night), all the way round in [shape], the side flush to
+ * the tab's screen edge included, in every placement, as [RouteCardOutline] draws the card's. It replaced step 6's solid 1 dp `onSurface`
+ * line on the three sides facing the map, whose box reached 2 dp past the screen edge so the tab's clip cut that side off (the
+ * `RouteCardEdge` parameter that chose the side went with it). Drawn over the tab's grip, inside its bounds; it takes no touch and changes
+ * no size.
  */
 @Composable
-internal fun BoxScope.RouteCardTabOutline(shape: Shape, openEdge: RouteCardEdge) {
+internal fun BoxScope.RouteCardTabOutline(shape: Shape) {
     Box(
         Modifier
             .matchParentSize()
-            .layout { measurable, constraints ->
-                val past = OUTLINE_PAST_EDGE.roundToPx()
-                val left = if (openEdge == RouteCardEdge.LEFT) past else 0
-                val placeable = measurable.measure(androidx.compose.ui.unit.Constraints.fixed(constraints.maxWidth + past, constraints.maxHeight))
-                layout(constraints.maxWidth, constraints.maxHeight) { placeable.place(-left, 0) }
-            }
-            .border(BorderStroke(ROUTE_CARD_TAB_OUTLINE_WIDTH, MaterialTheme.colorScheme.onSurface), shape)
+            .border(mapChromeOutline(), shape)
             .testTag(ROUTE_CARD_OUTLINE_TAG),
     )
 }
