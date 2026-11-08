@@ -92,6 +92,7 @@ Since 2026-10-16 (RECORD -1085 to -1087; the gate amended by -1133 and -1134). T
 ## Reviews and merges
 
 - **Every forecast task gets an independent review** by a separate session before it merges (D18). Reviewers recompute headline numbers with their own code and run their own revert checks.
+- **Every app PR gets an independent review by Sorrel** before the owner's merge word (-2190; the owner: "I've noticed that nothing went to Sorrel for review either", then "Make it standing"). A fresh session, never on the coder's model. It reads the diff against the dispatch and the owner's recorded rulings, looks for tests that could not fail, removed or loosened checks and report claims the code does not support, and reports pass, pass with items, or fail. It advises; the owner decides.
 - **Merges happen only on the owner's word.** In forager-forecast, that word names the branch (D40). When the owner says "merge once the review is filed", a finding that's the owner's call is brought back first.
 - **Before an app merge,** back up the target branch (main for a promotion) to `~/Zynergy/forager-repo-backups/` with a verified bundle, and read the diff for `@Ignore` and removed assertions.
 - **Red CI on our own PR is ours to fix.** Root-cause it; "flake" is not a cause. A failure that also happens on code the PR doesn't touch gets one comment and one re-run.
