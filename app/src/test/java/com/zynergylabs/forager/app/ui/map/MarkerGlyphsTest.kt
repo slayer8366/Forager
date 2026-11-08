@@ -260,9 +260,10 @@ class MarkerGlyphsTest {
                 MarkerIcon.PLANNED_TRIP to palette.plannedTrip,
                 MarkerIcon.PHOTO to palette.photo,
                 MarkerIcon.SEARCH_CENTRE to palette.searchCentre,
-                // The accent written out as hex, so a selected marker drawn in any other colour fails: cream by day, rust at night.
-                MarkerIcon.WAYPOINT_ROUTE_SELECTED to if (palette == MapPalette.NIGHT) 0xFFA2612C.toInt() else 0xFFEDE3D0.toInt(),
-                MarkerIcon.PLANNED_TRIP_ROUTE_SELECTED to if (palette == MapPalette.NIGHT) 0xFFA2612C.toInt() else 0xFFEDE3D0.toInt(),
+                // The accent written out as hex, so a selected marker drawn in any other colour fails: the dimmer cream #E3D3B5 by day
+                // (Amendment 6, "a dimmer cream by day"; #EDE3D0 before), rust at night, unchanged.
+                MarkerIcon.WAYPOINT_ROUTE_SELECTED to if (palette == MapPalette.NIGHT) 0xFFA2612C.toInt() else 0xFFE3D3B5.toInt(),
+                MarkerIcon.PLANNED_TRIP_ROUTE_SELECTED to if (palette == MapPalette.NIGHT) 0xFFA2612C.toInt() else 0xFFE3D3B5.toInt(),
             )
             for ((icon, glyph) in glyphs) {
                 assertEquals("$icon glyph", glyph, icon.glyph)
