@@ -156,10 +156,11 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     // J7 (RECORD -2183, the owner: "(b) Arrow to the right part"): whether the card with its evening line could fit even moved up is
     // decided whether or not the line steps aside for the route card (D42), so the next turn's place can tell the line off for room
     // from the line stepped aside only for the route card. Stepping aside, the card does not move ([lift]), as before.
+    val bottomEdgePx = with(density) { boxTopPx + cluster.mapContentBoxHeightPx - controlsPadding.calculateBottomPadding().toPx() }
     val roomLift = navigationCardLift(
         liftCase = landscapeLargeText,
         heightWithEveningPx = heightWithEveningPx,
-        bottomEdgePx = with(density) { boxTopPx + cluster.mapContentBoxHeightPx - controlsPadding.calculateBottomPadding().toPx() },
+        bottomEdgePx = bottomEdgePx,
         topLimitPx = topLimitPx,
         dotTopPx = walkerDotCentreInRootPx(cluster)?.let { it - with(density) { WALKER_DOT_CLEARANCE.toPx() } },
         stripBottomPx = stripBottomPx.takeIf { layout.landscapeStripHeightPx > 0 },
@@ -202,6 +203,8 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     )
     val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
     // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
+    // J8 (RECORD -2183): no resting place once navigation ends, so the dot is kept above nothing.
+    LaunchedEffect(isNavigating) { if (!isNavigating) cluster.navigationCardRestingBoundsInRoot = null }
     LaunchedEffect(Unit) {
         cluster.navigationDisplayBottomInRootPx = null
         // D42: measured afresh for each navigation.
@@ -277,6 +280,15 @@ internal fun BoxScope.CompactMapNavigationDisplay(
                 // RECORD -955: its columns, for cardTopLimitInRootPx (whether the L shares them).
                 .onGloballyPositioned { coordinates ->
                     cluster.navigationCardBoundsInRoot = coordinates.boundsInRoot()
+                    // J8 (RECORD -2183): where it rests, its height up from the bottom edge less its move ([liftPx], where it is going),
+                    // not where it is drawn mid-glide or mid-slide, so the dot is kept above its place, not chased along with its motion.
+                    cluster.navigationCardRestingBoundsInRoot = if (isNavigating) {
+                        val drawn = coordinates.boundsInRoot()
+                        val restBottom = bottomEdgePx - liftPx
+                        androidx.compose.ui.geometry.Rect(drawn.left, restBottom - coordinates.size.height, drawn.right, restBottom)
+                    } else {
+                        null
+                    }
                     // D42: the tallest it has been with its evening lines, so a frame of their grow or shrink is never taken for the
                     // card's height with them (that fed the route card's decision back into itself: Compose never idle, run 41753745001).
                     // J3 step 3: moved up, its height plus the move, so D42's top with the evening lines (the box's bottom less this)
