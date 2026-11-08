@@ -46,19 +46,31 @@ internal fun outlineRunOf(edge: List<Color>, outline: Color, under: Color, from:
 }
 
 /**
+ * How far, per channel, a pixel in the ring's place may be from the fill beside it and still read as no ring. Wider than
+ * [OUTLINE_TOLERANCE] because the fill there is not always flat: a fading press highlight shades it by about 1/255 per pixel
+ * (red run 42440600462, the tablet's touches beside the pill). The faintest ring, the map chrome's own by day, steps about
+ * 70/255 from the fill, so any ring still fails this.
+ */
+internal const val NO_RING_TOLERANCE = 12f / 255f
+
+/**
  * In [edge], between [from] and [to] inclusive, the first pixel that does not read as [under] itself (within
- * [OUTLINE_TOLERANCE]); null if the whole band is [under]. "No ring" is a band that is only the fill, so a ring of any colour
+ * [NO_RING_TOLERANCE]); null if the whole band is [under]. "No ring" is a band that is only the fill, so a ring of any colour
  * fails it, not only the ruled one.
  */
 internal fun firstNotUnder(edge: List<Color>, under: Color, from: Int, to: Int): Int? =
-    (from..minOf(to, edge.lastIndex)).firstOrNull { !near(edge[it], under) }
+    (from..minOf(to, edge.lastIndex)).firstOrNull {
+        abs(edge[it].red - under.red) > NO_RING_TOLERANCE ||
+            abs(edge[it].green - under.green) > NO_RING_TOLERANCE ||
+            abs(edge[it].blue - under.blue) > NO_RING_TOLERANCE
+    }
 
 /**
  * The locate row's ring, dispatch 2026-11-06-04 Amendments 2 and 4 (RECORD -2186): on the badge circle, 6 dp in from each side
  * of the 48 dp row, so a line from 6 dp to 7 dp in. [ringBand] is that place with a pixel either side; [ringUnder] is the
- * row's fill inside it, 9 dp in, clear of the glyph (from about 13 dp).
+ * row's fill just inside it, two pixels past the band, clear of the glyph (from about 13 dp).
  */
 internal fun ringBand(px: (Float) -> Int): IntRange = (px(6f) - 1)..(px(7f) + 1)
 
 /** See [ringBand]. */
-internal fun ringUnder(px: (Float) -> Int): Int = px(9f)
+internal fun ringUnder(px: (Float) -> Int): Int = ringBand(px).last + 2

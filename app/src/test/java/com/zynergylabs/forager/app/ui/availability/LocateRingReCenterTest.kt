@@ -63,7 +63,7 @@ import kotlin.math.ceil
  * **Amendment 4 (RECORD -2186) changes the colour the ring is read for.** The owner, to the ring: "Yes, same outline": it takes
  * the map chrome's own outline, the bubbles' and the icon bar's ([com.zynergylabs.forager.app.ui.map.mapChromeOutline]: 1 dp,
  * Bark at 40% by day, white at 40% at night). That line is translucent, so each side is read for the ruled colour composited
- * over the row's own fill just inside the ring (9 dp in), as `MapChromeOutlineRead.kt` describes, and "no ring" now reads the
+ * over the row's own fill just inside the ring (two pixels past its place), as `MapChromeOutlineRead.kt` describes, and "no ring" now reads the
  * ring's place (6 to 7 dp in, a pixel either side) as that fill alone, so a ring of any colour fails it. Until Amendment 4 these
  * read the solid `onSurface` (#3B2E24 / #EDE3D0) and "no ring" looked for that colour only. When the ring shows, where and how
  * wide, and every touch, are unchanged.

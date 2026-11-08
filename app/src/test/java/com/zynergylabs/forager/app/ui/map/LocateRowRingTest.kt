@@ -49,7 +49,7 @@ import org.robolectric.annotation.GraphicsMode
  *
  * Amendment 4 (RECORD -2186) gave the ring the map chrome's own translucent outline (the owner, to the ring: "Yes, same
  * outline"), so "no ring" no longer looks for one colour: on each side the ring's place ([ringBand], 6 to 7 dp in, a pixel
- * either side) must read as the row's own fill just inside it ([ringUnder], 9 dp in) and nothing else, so a ring of any colour
+ * either side) must read as the row's own fill just inside it ([ringUnder], two pixels past it) and nothing else, within a tolerance a fading press highlight fits, so a ring of any colour
  * fails it. Until Amendment 4 these looked only for the solid `onSurface` above.
  */
 abstract class LocateRowRingTests {
