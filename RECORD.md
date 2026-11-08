@@ -36704,3 +36704,14 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - So: every Forager app PR gets a review by Sorrel (a fresh session, never the coder's model; Fable while coders are Opus) before the owner's merge word: the diff against its dispatch and the owner's recorded rulings; tests that could not fail; removed, loosened or silenced checks; report claims the code does not support. Verdict pass, pass with items, or fail; it advises, the owner decides. #500 (carrying #498) first; #506, #507, #508 after the current round. Added to docs/process/planner-profile.md, "Reviews and merges".
 - **Corrected here (2026-11-08T09:42:58Z), the owner:** **"The reason Sorrel reviews is to catch these cases before they reach me. The outlines should be caught before I see them, and that's why I have the reviewer."** The review sits before any build reaches the owner, not only before the merge word. Restated: Hazel builds to green (red, revert, comparison) → Sorrel reviews against the rulings, the record and the app-wide principles (one line where pieces meet, 80% chrome, Back retraces the way in, "Don't make me think"), anything that breaks one going back to Hazel → the S22 check for anything visual → only then a build to the owner → merges on the owner's word. **"Yes, that's it"**, **"Record it"**, **"Apply to this round"** (Amendment 6's two Hazels' work goes to Sorrel when green, before the S22 and the S26 build). Also: **"The coder's name is Hazel. She has her own profile."** The planner profile line is corrected to match.
 **Notes:** Written by the planner by hand. Next free ID -2191.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2191
+**Timestamp:** 2026-11-08T18:19:01Z
+**Title:** CI's release-packaging step gets more memory
+**Decision:**
+- Sorrel's J8 review (prompts/preserved/2026-11-08-sorrel-review-500-j8.md, 2.3): run 42504332419's "Release compiles and packages (unsigned)" job failed in packageReleaseBundle and packageRelease with `java.lang.OutOfMemoryError: Java heap space` after compiling; the same code passed on the next run (42506464973) and the run before (42492588638), so a runner memory failure, not #500's code.
+- The owner, to "Give it more memory before the next release?": **"Raise it (Recommended)"** (the option: "A Hazel raises the packaging step's memory in CI, small change, own PR; nothing in the app changes"); restated (own small PR from pre-main → more memory for the packaging step → Sorrel reviews → merge on the owner's word); go: **"Record it"**, **"Build it"**.
+**Notes:** Written by the planner by hand. Next free ID -2192.
