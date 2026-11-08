@@ -25,8 +25,7 @@ import org.robolectric.shadows.ShadowDisplay
  * bar. Amendment 3 (RECORD -2187) drew it on the top and the side toward the map only; Amendment 5 (the owner: "Plain line all the way
  * round, like a bubble") draws the map chrome's line, Bark at 40% by day and white at 40% at night (`RouteCardOutlineReading.kt`), on
  * the top and both sides, the side against the side bar too. Read from drawn pixels on the real Maps tab, recording and navigating, a
- * route plotted, above the part the navigation card covers. The bottom, behind the navigation card, is
- * [RouteCardOutlineStopsAtNavigationCardTest]'s.
+ * route plotted. Where it meets the navigation card is [RouteCardMeetsNavigationCardTest]'s (Amendment 6, A1).
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
@@ -54,7 +53,7 @@ class RouteCardOutlineOnNavigationCardTest {
         val pixels = composeRule.onNodeWithTag(ROUTE_CARD_TAG, useUnmergedTree = true).captureToImage().toPixelMap()
         val px = composeRule.density.density
         val n = with(composeRule.density) { 8.dp.roundToPx() }
-        // Read below the top corners' rounding and above the tuck behind the navigation card.
+        // Read below the top corners' rounding, a third of the way down.
         val row = (0 until pixels.width).map { pixels[it, pixels.height / 3] }
         val column = (0 until pixels.height).map { pixels[pixels.width / 2, it] }
         val mapSide = if (onRight) row.take(n) else row.takeLast(n).reversed()

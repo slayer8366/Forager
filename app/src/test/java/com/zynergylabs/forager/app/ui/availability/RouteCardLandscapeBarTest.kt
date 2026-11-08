@@ -154,12 +154,13 @@ abstract class RouteCardLandscapeBarTests(private val rotation: Int) {
 
     /**
      * C21 (RECORD -1955, the owner: "On top of the navigation card (Recommended)", "sits on it, at its width"): while navigating the
-     * card rises from behind the navigation card and rests on it, at its width, edge to edge, its lower edge tucked behind it by
-     * [ROUTE_CARD_NAVIGATION_TUCK] and all its content, Save included, above it. Restored from C11 (8a6126f9d), replacing C18's
-     * "touching it" side by side.
+     * card rises from behind the navigation card and rests on it, at its width, edge to edge, all its content, Save included, above it.
+     * Restored from C11 (8a6126f9d), replacing C18's "touching it" side by side. Dispatch 2026-11-06-05, Amendment 6, A1 (RECORD -2187,
+     * the owner: "there is a visible overlap between the two cards"): its bottom is the navigation card's top, nothing of it behind that
+     * card. Before A1 this claimed its lower edge was tucked 16 dp behind it (ROUTE_CARD_NAVIGATION_TUCK).
      */
     @Test
-    fun `navigating - the card rests on the navigation card at its width, behind it, with Save above it`() {
+    fun `navigating - the card rests on the navigation card at its width, its bottom on that card's top, with Save above it`() {
         setScreen(navigating = true)
         val hud = rig.bounds(NAVIGATION_HUD_TAG)
         val bar = rig.bounds(MAP_ICON_CLUSTER_TAG)
@@ -174,7 +175,7 @@ abstract class RouteCardLandscapeBarTests(private val rotation: Int) {
                     println("C21 rot $rotation $where: card ${card.left.value}..${card.right.value} x ${card.top.value}..${card.bottom.value}, Save ${save.top.value}..${save.bottom.value}")
                     assertEquals("$where: the navigation card's left", hud.left.value, card.left.value, 0.5f)
                     assertEquals("$where: the navigation card's right", hud.right.value, card.right.value, 0.5f)
-                    assertEquals("$where: its lower edge tucked behind the navigation card's top ${hud.top}", ROUTE_CARD_NAVIGATION_TUCK.value, (card.bottom - hud.top).value, 0.5f)
+                    assertEquals("$where: its bottom on the navigation card's top ${hud.top}, nothing of it behind", hud.top.value, card.bottom.value, 0.5f)
                     assertTrue("$where: Save's bottom ${save.bottom} shows at or above the navigation card's top ${hud.top}", save.bottom <= hud.top + 0.5.dp)
                     assertTrue("$where: the top ${card.top} is below the strip's bottom ${strip.bottom}", card.top >= strip.bottom)
                     rig.assertBarUntouched(where, bar)

@@ -166,7 +166,8 @@ private fun routeCardContent(controls: RoutePlottingControls?, sources: MapRecor
  * One width from the first tap, the reference card's, within the room beside the bar (C16 with C19, RECORD -1946, -1953). In portrait
  * it slides in from the edge away from the bar (Amendment 15, RECORD -1929) and sits flush against it, square on that side (C17). In
  * landscape it rises from the bottom edge in the corner away from the L (C18 with C20, RECORD -1947, -1953), or, while navigating,
- * from behind the navigation card to rest on it at its width (C21 with C23, -1955, -1956). See `RouteCardPlacement.kt`. A card still leaving draws what it last showed, and takes no touch.
+ * from behind the navigation card to rest on it at its width, filling its rounded top corners (C21 with C23, -1955, -1956; Amendment 6,
+ * A1, -2187). See `RouteCardPlacement.kt`. A card still leaving draws what it last showed, and takes no touch.
  */
 @Composable
 internal fun BoxScope.CompactMapRouteCard(
@@ -241,7 +242,7 @@ internal fun BoxScope.CompactMapRouteCard(
     var reCenterWordSize by remember { mutableStateOf(IntSize.Zero) }
     if (portrait) ReturnToRouteWordProbe { reCenterWordSize = it }
     val reCenterRoom = routeCardReCenterRoomFor(cluster, controlsPadding, isNavigating, portrait, cardOnLeft, barColumn, referenceWidth, reCenterWordSize)
-    // C21 (RECORD -1955): on the navigation card while navigating in landscape, its lower edge tucked behind that card's top.
+    // C21 (RECORD -1955): on the navigation card while navigating in landscape, its bottom on that card's top (A1, RECORD -2187).
     val bottomPadding = landscapeRoom?.bottom ?: (bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + reCenterRoom)
     // D37 (RECORD -2006, the owner: "Cover the top bar (Recommended)"): where the peek lines fill the cap, the expanded card's cap rises
     // over the strip; collapsing brings the cap, and so the strip, back at once (the planner accepted that, -2008).
@@ -267,7 +268,6 @@ internal fun BoxScope.CompactMapRouteCard(
                 hasRows = hasRows,
                 capTopPx = boxBottom - (room.bottom + room.maxHeight).toPx(),
                 raisedCapTopPx = boxBottom - (room.bottom + room.overStripMaxHeight).toPx(),
-                tuckPx = room.tuck.toPx(),
             )
         }
     }
@@ -329,7 +329,7 @@ internal fun BoxScope.CompactMapRouteCard(
                         ),
                         expandedMaxHeight = expandedMaxHeight,
                         shape = shape,
-                        contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
+                        cornerFill = landscapeRoom?.cornerFill ?: 0.dp,
                         onLinesHeightPx = { linesPx = it },
                         hideElevation = hideElevation,
                         onNaturalHeightsPx = { naturalHeights = it },

@@ -91,10 +91,12 @@ internal val ROUTE_CARD_LANDSCAPE_SHAPE: Shape = RoundedCornerShape(topStart = R
  *
  * Navigating (C21, the owner: "On top of the navigation card (Recommended)", "sits on it, at its width"), [onNavigationCard] is the
  * navigation card's width, the strip's (`CompactMapLandscapeNavigationCard.kt`), and the card rests on that card at that width, edge to
- * edge, in its column on the rail's side ([railOnLeft]): [bottom] above the map's bottom edge, the navigation card's top less [tuck],
- * which the card keeps empty under its buttons so all its content, Save included, shows above (restored from C11, 8a6126f9d). At large
+ * edge, in its column on the rail's side ([railOnLeft]): [bottom] above the map's bottom edge, the navigation card's top, so nothing of
+ * the card lies behind that card, and its fill and sides run [cornerFill] on past its bottom into that card's rounded top corners
+ * (dispatch 2026-11-06-05, Amendment 6, A1, RECORD -2187, the owner: "(2) Card fills corner"; `RouteCardFace.kt`). That replaced C11's
+ * tuck (restored by C21, 8a6126f9d), where the card's bottom ran 16 dp on behind the navigation card, kept empty under its buttons. At large
  * text the navigation card is narrower than C19's reference (329 dp against 409.67 at font 2.0) and the card keeps its width, its lines
- * wrapping (C23: "Navigation card's width, lines wrap (Recommended)"). Not navigating, [onNavigationCard], [bottom] and [tuck] are 0.
+ * wrapping (C23: "Navigation card's width, lines wrap (Recommended)"). Not navigating, [onNavigationCard], [bottom] and [cornerFill] are 0.
  *
  * At most [maxHeight] tall, below the strip and the search bar, the rows taking what is cut (`RouteCard`'s rows are measured last, and
  * scroll).
@@ -107,7 +109,7 @@ internal val ROUTE_CARD_LANDSCAPE_SHAPE: Shape = RoundedCornerShape(topStart = R
  * lines already fill [maxHeight], so the rows would get no room ([routeCardCoversStrip]): up over the strip, to a gap below the
  * controls' top. The bottom is the same, so the card stays on the navigation card.
  */
-internal data class RouteCardLandscapeRoom(val onNavigationCard: Dp, val railOnLeft: Boolean, val maxHeight: Dp, val bottom: Dp = 0.dp, val tuck: Dp = 0.dp, val leaveRoom: Dp = 0.dp, val overStripMaxHeight: Dp = maxHeight)
+internal data class RouteCardLandscapeRoom(val onNavigationCard: Dp, val railOnLeft: Boolean, val maxHeight: Dp, val bottom: Dp = 0.dp, val cornerFill: Dp = 0.dp, val leaveRoom: Dp = 0.dp, val overStripMaxHeight: Dp = maxHeight)
 
 /**
  * D37 (RECORD -2006; the planner accepted the reading, -2008): whether the expanded card rises over the strip. Only while [expanded],
@@ -124,8 +126,11 @@ internal fun routeCardCoversStrip(expanded: Boolean, hasRows: Boolean, linesPx: 
 /** D32: the width both cards take while the route card rests on the navigation card: the strip's, less [RouteCardLandscapeRoom.leaveRoom]. */
 internal val RouteCardLandscapeRoom.onNavigationCardWidth: Dp get() = (onNavigationCard - leaveRoom).coerceAtLeast(0.dp)
 
-/** How far the card's lower edge sits behind the landscape navigation card: past that card's rounded top corners (C11, C21). */
-internal val ROUTE_CARD_NAVIGATION_TUCK: Dp = 16.dp
+/**
+ * A1 (RECORD -2187): how far past its bottom the card resting on the landscape navigation card fills that card's rounded top corners:
+ * their radius, so the card's sides run down to where the corners' curves meet them.
+ */
+internal val ROUTE_CARD_NAVIGATION_CORNER_FILL: Dp = MAP_CARD_CORNER_RADIUS
 
 /**
  * `null` outside a landscape window, and for the frames before the strip is measured, when there is no width to take. Navigating, until
@@ -150,16 +155,15 @@ internal fun routeCardLandscapeRoom(cluster: MapIconClusterState, stripWidthPx: 
             0f
         }
         val boxBottomPx = cluster.mapContentBoxTopInRootPx + cluster.mapContentBoxHeightPx
-        val tuck = if (navigationCard != null) ROUTE_CARD_NAVIGATION_TUCK else 0.dp
-        // Sorrel's N-5: a navigation card whose top is within the tuck of the box's bottom leaves no room to tuck into; never below 0.
-        val bottom = if (navigationCard != null) ((boxBottomPx - navigationCard.top).toDp() - tuck).coerceAtLeast(0.dp) else 0.dp
+        // A1: the card's bottom on the navigation card's top; never below the box's bottom.
+        val bottom = if (navigationCard != null) (boxBottomPx - navigationCard.top).toDp().coerceAtLeast(0.dp) else 0.dp
         val overStripMaxHeight = cluster.mapContentBoxHeightPx.toDp() - controlsPadding.calculateTopPadding() - Spacing.sm - bottom
         RouteCardLandscapeRoom(
             onNavigationCard = if (isNavigating) stripWidthPx.toDp() else 0.dp,
             railOnLeft = railOnLeft,
             maxHeight = (cluster.mapContentBoxHeightPx - topLimitPx).toDp() - Spacing.sm - bottom,
             bottom = bottom,
-            tuck = tuck,
+            cornerFill = if (navigationCard != null) ROUTE_CARD_NAVIGATION_CORNER_FILL else 0.dp,
             leaveRoom = leaveRoomPx.toDp(),
             overStripMaxHeight = overStripMaxHeight,
         )
@@ -170,15 +174,15 @@ internal fun routeCardLandscapeRoom(cluster: MapIconClusterState, stripWidthPx: 
  * D42 (RECORD -2021, the owner: "Only where room is short", whose option hid the sundown line from the navigation card only while the
  * route card rests on it and would not otherwise fit): the lowest the navigation card's top may sit, in root px, for the route card to
  * fit above it, from natural heights only, so hiding the line cannot feed back into the decision. The route card's bottom is the
- * navigation card's top plus [tuckPx], and its top may reach [capTopPx] (the normal cap's top) at peek, or [raisedCapTopPx] (D37's,
+ * navigation card's top (A1, RECORD -2187; before it, that top plus C11's 16 dp tuck, which the lines counted too), and its top may reach [capTopPx] (the normal cap's top) at peek, or [raisedCapTopPx] (D37's,
  * over the strip) while [expanded] with [hasRows]. At peek it needs its natural lines, [heights]' linesPx; expanded with rows, those
  * lines less the elevation line D40 may leave out, plus the first leg row, so the rows show.
  */
-internal fun routeCardNavigationTopLimitPx(heights: com.zynergylabs.forager.app.ui.route.RouteCardNaturalHeights, expanded: Boolean, hasRows: Boolean, capTopPx: Float, raisedCapTopPx: Float, tuckPx: Float): Float =
+internal fun routeCardNavigationTopLimitPx(heights: com.zynergylabs.forager.app.ui.route.RouteCardNaturalHeights, expanded: Boolean, hasRows: Boolean, capTopPx: Float, raisedCapTopPx: Float): Float =
     if (expanded && hasRows) {
-        raisedCapTopPx + heights.linesPx - heights.elevationPx + heights.firstRowPx - tuckPx
+        raisedCapTopPx + heights.linesPx - heights.elevationPx + heights.firstRowPx
     } else {
-        capTopPx + heights.linesPx - tuckPx
+        capTopPx + heights.linesPx
     }
 
 /**
