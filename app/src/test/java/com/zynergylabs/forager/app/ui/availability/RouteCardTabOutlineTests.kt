@@ -41,7 +41,7 @@ abstract class RouteCardTabOutlineTests {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
 
-    protected val rig = RouteCardBarRig(composeRule)
+    internal val rig = RouteCardBarRig(composeRule)
 
     /** A real sideways swipe across the card toward its edge, so it tucks and leaves the tab. */
     protected fun tuck() {
