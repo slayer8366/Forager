@@ -29,8 +29,7 @@ internal enum class NextTurnPlace {
  * Dispatch 2026-11-06-01, Amendment 1, J3 (RECORD -2183), the owner: "Arrow in the right part", "Own line, card moves up", "Centre
  * the line"; the step path confirmed, "Yes, that's it":
  * 1. portrait at every font, and landscape at fonts 1.0 and 1.3: J2's [decided] place, beside the needle or its own line;
- * 2. landscape at font 2.0 with no evening line: the card's right part ([NextTurnPlace.RIGHT_PART]); J5: also while the evening line
- *    steps aside for the route card (D42), "Into the freed right part";
+ * 2. landscape at font 2.0 with no evening line: the card's right part ([NextTurnPlace.RIGHT_PART]);
  * 3. landscape at font 2.0 with an evening line: its own line, the card moving up where it must ([navigationCardLift]);
  * J4 ("Follow the largest rule"): steps 2 and 3 at fonts 1.5 and 1.8 too ([isLandscapeLargeText]);
  * 4. decided once per screen, font and clock; only steps 2 and 3 follow the evening line, as the owner's own steps do.
@@ -45,15 +44,17 @@ internal fun nextTurnPlaceNow(
     landscapeLargeText: Boolean,
     eveningLine: Boolean,
     /**
-     * J5 (RECORD -2183, the owner: "Into the freed right part"): the evening line stepped aside for the route card resting on the card
-     * (D42). The right part it leaves takes the next turn, so the card is no taller. Safe from feedback: D42 decides from the card's
-     * tallest height with its evening line ([MapIconClusterState.navigationCardHeightWithEveningPx]), never from its height while
-     * stepped aside, so the card getting shorter here cannot undo the step aside.
+     * The evening line stepped aside for the route card resting on the card (D42). J6 (RECORD -2183, the owner: "Arrow own line here",
+     * the option reading "With a route card open after sunset, the arrow keeps its own line (no loop; the route card's rows have less
+     * room)"): it changes nothing here, the next turn keeps its own line, as with the line shown. Kept as a parameter so the ruling is
+     * stated where the place is decided and its unit test can name the case. Replaces J5's "Into the freed right part" (the right part
+     * while stepped aside), which looped: the card a line shorter, the route card's room, read from the card's height, brought the line
+     * back, and so on (J5's probe run 42425317006).
      */
-    eveningStepsAside: Boolean = false,
+    @Suppress("UNUSED_PARAMETER") eveningStepsAside: Boolean = false,
 ): NextTurnPlace = when {
     !landscapeLargeText -> decided
-    eveningLine && !eveningStepsAside -> NextTurnPlace.OWN_LINE
+    eveningLine -> NextTurnPlace.OWN_LINE
     else -> NextTurnPlace.RIGHT_PART
 }
 
