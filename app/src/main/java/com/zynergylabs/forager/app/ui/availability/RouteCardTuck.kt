@@ -98,6 +98,10 @@ internal fun rememberRouteCardTuckDraw(tucked: Boolean, cardOnLeft: Boolean): Ro
  * [ROUTE_CARD_TUCK_SWIPE], brings the card back ([onBringBack]). [ROUTE_CARD_STRIP_TOUCH_WIDTH] from the edge, at the card's full
  * height; every touch outside it reaches the map (the card's own shape is clipped to the strip while it is tucked). Drawn by the card
  * (`RouteCardFace.kt`); [ROUTE_CARD_TAB_DRAWN_TAG] marks where the strip is drawn, and draws nothing.
+ *
+ * No press highlight (Sorrel's review of PR #507, item 2.2; the owner, RECORD -2187: "Option 1, but remove the tap highlight since it
+ * spills out the zone"): the touch area keeps its 48 dp, half of it over clear map, so a highlight drawn across it would show past the
+ * 24 dp strip. Rejected: a highlight clipped to the strip, which would still light the strip for a press on the map beside it.
  */
 @Composable
 internal fun BoxScope.RouteCardStripTouch(cardOnLeft: Boolean, onBringBack: () -> Unit) {
@@ -113,7 +117,7 @@ internal fun BoxScope.RouteCardStripTouch(cardOnLeft: Boolean, onBringBack: () -
                 .width(ROUTE_CARD_STRIP_TOUCH_WIDTH)
                 .fillMaxHeight()
                 .testTag(ROUTE_CARD_TAB_TAG)
-                .clickable(role = Role.Button, onClickLabel = "Show route") { currentOnBringBack() }
+                .clickable(interactionSource = null, indication = null, role = Role.Button, onClickLabel = "Show route") { currentOnBringBack() }
                 .draggable(
                     state = rememberDraggableState { dragged += it },
                     orientation = Orientation.Horizontal,
