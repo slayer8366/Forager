@@ -21,11 +21,11 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableIntStateOf
@@ -35,10 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.semantics.isTraversalGroup
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -197,21 +194,16 @@ fun RouteCard(
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
-    // Amendment 6 (RECORD -2187): the fill and the line are drawn by routeCardFace (A1's corners, A2's slide); this Box clips the content
-    // to what is drawn and, as the Surface it replaced did, takes every touch over the card, but not while tucked, when only the strip
-    // takes touches (RouteCardTuck.kt) and the rest of the card's bounds reach the map (the Surface's own catch-all took them: run
-    // 42469746272, "a long-press beside the tab, toward the map").
-    CompositionLocalProvider(LocalContentColor provides contentColour) {
-    Box(
+    Surface(
         modifier = modifier
             .fillMaxWidth()
             .testTag(ROUTE_CARD_TAG)
             .mapChromeContainerColor(fill)
-            .routeCardFace(shape, fill, mapChromeOutline(), cornerFill, tuck)
-            .clip(if (tuck.slide == 0f) shape else RouteCardSlidShape(shape, tuck))
-            .semantics(mergeDescendants = false) { isTraversalGroup = true }
-            .then(if (tuck.tucked) Modifier else Modifier.pointerInput(Unit) {}),
-        propagateMinConstraints = true,
+            // Amendment 5's outline and A1's corners (RouteCardFace.kt): the fill and the line are drawn here, the Surface only clips.
+            .routeCardFace(shape, fill, mapChromeOutline(), cornerFill, tuck),
+        shape = if (tuck.slide == 0f) shape else RouteCardSlidShape(shape, tuck),
+        color = Color.Transparent,
+        contentColor = contentColour,
     ) {
         val density = androidx.compose.ui.platform.LocalDensity.current
         val reveal = remember { RouteCardReveal(expanded) }
@@ -258,7 +250,6 @@ fun RouteCard(
         }
         RouteCardStripGrip(tuck)
         }
-    }
     }
 }
 

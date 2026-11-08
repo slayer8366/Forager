@@ -331,7 +331,9 @@ internal fun BoxScope.CompactMapRouteCard(
                         onNaturalHeightsPx = { naturalHeights = it },
                         tuck = tuck,
                         modifier = Modifier
-                            .routeCardTuckSwipe(enabled = !tucked) { shownActions.onSetTucked(true) }
+                            // Not there at all while tucked: a disabled draggable still counts as a touch target, so the card's
+                            // whole bounds kept long-presses from the map (run 42493712752's grid; RouteCardTuckCloseTest).
+                            .then(if (tucked) Modifier else Modifier.routeCardTuckSwipe { shownActions.onSetTucked(true) })
                             .width(width)
                             .then(if (cardMaxHeight != null) Modifier.heightIn(max = cardMaxHeight) else Modifier)
                             .onGloballyPositioned {

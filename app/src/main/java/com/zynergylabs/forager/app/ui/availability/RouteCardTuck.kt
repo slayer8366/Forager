@@ -58,18 +58,17 @@ internal val ROUTE_CARD_STRIP_TOUCH_WIDTH: Dp = 48.dp
 /**
  * A sideways swipe on the card past [ROUTE_CARD_TUCK_SWIPE], either way, tucks it. Either way, so a finger that swipes toward the map
  * is not refused: the card has one edge to go to (the plan), and the owner's "Don't make me think" weighs against a direction that
- * silently does nothing. Vertical drags stay the handle's and the rows'. Off while [enabled] is false (the card tucked: its strip
- * takes the touches).
+ * silently does nothing. Vertical drags stay the handle's and the rows'. Not applied while the card is tucked: its strip takes the
+ * touches, and a draggable, even disabled, would keep the card's whole bounds from the map.
  */
 @Composable
-internal fun Modifier.routeCardTuckSwipe(enabled: Boolean = true, onTuck: () -> Unit): Modifier {
+internal fun Modifier.routeCardTuckSwipe(onTuck: () -> Unit): Modifier {
     val thresholdPx = with(LocalDensity.current) { ROUTE_CARD_TUCK_SWIPE.toPx() }
     val currentOnTuck by rememberUpdatedState(onTuck)
     var dragged by remember { mutableFloatStateOf(0f) }
     return draggable(
         state = rememberDraggableState { dragged += it },
         orientation = Orientation.Horizontal,
-        enabled = enabled,
         onDragStarted = { dragged = 0f },
         onDragStopped = { if (kotlin.math.abs(dragged) >= thresholdPx) currentOnTuck() },
     )
