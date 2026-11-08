@@ -72,8 +72,9 @@ import org.robolectric.shadows.ShadowDisplay
  * 0.02 of the stand-in map's grey (red run 42440723930: E20's line read 0.522 at night, the map 0.502), so a pixel lighter than the map
  * would have missed E20's line and reported no line at all, not where it was. The side bar's line is read on the six rows from 6 dp to
  * 1 dp above where its corner starts to curve (outside: the side bar's fill). The card's end line is read on every row below that whose
- * pixels from just past the side bar's line out to 2 dp beyond the card's edge are all bare map, so neither the side bar nor its curving
- * line is in the window (outside: the map). At least one such row must be found.
+ * pixels from just past the side bar's line out to 2 dp beyond the card's edge are all exactly the bare map, so neither the side bar nor
+ * its curving line is in the window (outside: the map; the corrected red run 42442571747 read the side bar's arc, within 0.03 of the
+ * map, 2 dp out on the band's first rows). At least one such row must be found.
  */
 abstract class NavigationCardEndLineInLineTests(private val dark: Boolean) {
 
@@ -125,20 +126,20 @@ abstract class NavigationCardEndLineInLineTests(private val dark: Boolean) {
 
         // The side bar's line, just above where its corner curves.
         val railRows = (curveStart - px(6.dp))..(curveStart - px(1.dp))
-        val railColumns = railRows.map { y -> lineColumns(y, window, edge) }.distinct()
+        val railColumns = railRows.map { y -> lineColumns(y, window, edge, outside = image[edge + px(2.dp), y]) }.distinct()
         println("MEASURED E21 $name: the side bar's line, rows $railRows, columns $railColumns (the card's edge at x $edge)")
         assertEquals("$name: the side bar's line lies in the same columns on every row just above its corner: $railColumns", 1, railColumns.size)
         val railLine = railColumns.single()
         assertEquals("$name: the side bar's line is a stroke ($strokePx px) wide: $railLine", strokePx, railLine.size)
 
         // The card's end line, below, on every row where the side bar and its curving line are clear of the window.
-        val clear = (curveStart until px(card.bottom)).filter { y -> ((edge + strokePx)..(edge + px(2.dp))).all { x -> isMap(x, y) } }
+        val clear = (curveStart until px(card.bottom)).filter { y -> ((edge + strokePx)..(edge + px(2.dp))).all { x -> exact(image[x, y], bareMap) } }
         assertTrue("$name: no row below the side bar's corner start has bare map beside the card's end (the spot was not reached)", clear.isNotEmpty())
         val steps = mutableListOf<String>()
         val offColour = mutableListOf<String>()
         val lineOverMap = lineOver(bareMap)
         for (y in clear) {
-            val columns = lineColumns(y, window, edge)
+            val columns = lineColumns(y, window, edge, outside = bareMap)
             if (columns != railLine) steps += "row $y: the card's end line in columns $columns (${columns.firstOrNull()?.minus(railLine.first())?.let { "%+d px".format(it) } ?: "none"}), pixels ${window.joinToString { rgb(image[it, y]) }}"
             columns.filter { x -> !near(image[x, y], lineOverMap) }.forEach { x -> offColour += "($x, $y) ${rgb(image[x, y])}, the outline over the map ${rgb(lineOverMap)}" }
         }
@@ -149,9 +150,8 @@ abstract class NavigationCardEndLineInLineTests(private val dark: Boolean) {
     }
 
     /** The x columns of row [y] within [window] that are the outline's (see the class doc). */
-    private fun lineColumns(y: Int, window: IntRange, edge: Int): List<Int> {
+    private fun lineColumns(y: Int, window: IntRange, edge: Int, outside: Color): List<Int> {
         val inside = image[edge - px(2.dp), y]
-        val outside = image[edge + px(2.dp), y]
         return window.filter { x -> onLineSide(image[x, y], inside) && !exact(image[x, y], outside) }
     }
 
@@ -167,7 +167,6 @@ abstract class NavigationCardEndLineInLineTests(private val dark: Boolean) {
 
     private fun exact(p: Color, q: Color) = abs(p.red - q.red) < EXACT && abs(p.green - q.green) < EXACT && abs(p.blue - q.blue) < EXACT
     private fun near(p: Color, q: Color) = abs(p.red - q.red) < COLOUR_MATCH && abs(p.green - q.green) < COLOUR_MATCH && abs(p.blue - q.blue) < COLOUR_MATCH
-    private fun isMap(x: Int, y: Int) = x in 0 until image.width && y in 0 until image.height && near(image[x, y], bareMap)
     private fun lum(c: Color) = 0.2126f * c.red + 0.7152f * c.green + 0.0722f * c.blue
     private fun rgb(c: Color) = "(%.3f, %.3f, %.3f)".format(c.red, c.green, c.blue)
 
