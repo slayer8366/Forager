@@ -268,3 +268,67 @@ fallback if the owner prefers a palette value. The owner judges the shade on the
 2. Fold (Back). The accent returns on its pin with no blink.
 3. The same at night (rust), and with a selected trip flag.
 4. In logcat (tag MarkerFanOut), there is no "did not report the N copies drawn" warning on these opens.
+
+# Amendment 6, dimmer cream, built (part 3)
+
+The owner's ruling (RECORD -2187): "Dimmer cream" ("A slightly darker solid cream in place of today's"), and for night's rust, "Leave
+it". Built on route-card at `9201b8a3e`, on top of the red test the previous Hazel left (`2180708cc`, cherry-picked unchanged as
+`97f39c0cd`; it applied cleanly to route-card's head `999495695`, whose only commits after its base were two report commits).
+
+## What changed
+
+- `routeStopSelectedColour` (PlottedRouteLayers.kt) returns `RouteStopDimmerCream` #E3D3B5 by day in place of `Cream` #EDE3D0. Night stays
+  `MushroomDeep` #A2612C. `RouteStopDimmerCream` is a new named colour next to the function. Its comment cites RECORD -2187 and the
+  owner's words, and names the palette colours that were rejected and why.
+- The fan uses the same colour with no second change. `fanCopyIcon` (FanRouteStopAccent.kt) gives the selected stop's fanned copy
+  `MarkerIcon.WAYPOINT_ROUTE_SELECTED` / `PLANNED_TRIP_ROUTE_SELECTED`. Those icons draw their fill from `::routeStopSelectedColour`
+  (MarkerGlyphs.kt), as does the accent at its place (PlottedRouteLayers.kt, the selected-stop symbol). A grep of `app/src/main` finds
+  no other copy of #EDE3D0 standing for the accent.
+- **Before and after.** Before: #EDE3D0 (HSL 39°, 0.45, 0.87; relative luminance 0.775). After: #E3D3B5 (HSL 39°, 0.45, 0.80; luminance
+  0.663). Contrast against the white day casing goes from 1.27:1 to 1.47:1. Against the plain pin #350560 it goes from 12.3:1 to
+  10.6:1, and against the plain flag #9553A4 from 4.1:1 to 3.5:1.
+
+## Runs
+
+- **Red**, run 42519039246 (`97f39c0cd`, test only; filtered to MarkerGlyphsTest and PlottedRouteSelectedStopTest, 19 tests): 2 failed,
+  both on the colour. `WAYPOINT_ROUTE_SELECTED fill: #FFEDE3D0 expected:<#FFE[3D3B5]> but was:<#FFE[DE3D0]>` and `the day accent is the
+  dimmer cream expected:<-1846347> but was:<-1186864>` (#E3D3B5 expected, #EDE3D0 found). The same run's full-suite job (with the
+  Street map deleted) had the same 2 failures out of 6906 and nothing else.
+- **Revert**, run 42521087461 (`7af6f9f13` on a throwaway ref: one line, the day branch back to `Color(0xFFEDE3D0)`; filtered to the two
+  classes plus FanOpeningCentreAccentTest, 22 tests). The compile log was checked first: `compileDebugUnitTestKotlin` ran, the debug APK
+  built, and there were no `e:` lines. 2 failed, with the same two messages, both naming #EDE3D0, the colour the revert sets. The
+  report was downloaded from this run's own artifact. The file was restored from a copy saved before the edit, and the forward
+  change was confirmed present (byte-identical to the copy, and `git diff` against the forward commit empty).
+- **Green, full CI on route-card**, run 42521097620 (`9201b8a3e`, pull_request): every job passed, 6960 tests, 0 failed, 24 skipped
+  (the total matches CI's own summary table).
+- **By name against run 42516850265** (`043eb296d`, part 1's full run): 6960 against 6960. None appeared, none dropped, none changed
+  status (6936 pass and 24 skip in both). The two changed tests passed on their old values before and pass on their new values now.
+  That is expected, because they were rewritten. Their red and revert runs are what shows they bite.
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric): the day accent's pixel, read from the drawn pin and flag bitmaps, is #E3D3B5, and night stays #A2612C.
+  The day accent differs from the plain pin and the plain flag. Reverting the one line brings back #EDE3D0 and fails both tests.
+- Confirmed from source: the fan's copy and the accent at its place both take their colour from `routeStopSelectedColour`.
+- Inferred: that #E3D3B5 still reads clearly against the light map on a phone screen. The contrast figures are computed, not seen.
+
+## Could not determine
+
+- How the shade looks on the S22 in daylight. No phone was used. The owner judges the shade.
+
+## Premises that were wrong
+
+- None found. The dispatch's premise that the palette's warm neutrals read grey holds. The ones a little darker than Cream carry 15 to
+  27% saturation against Cream's 45%: NeutralGray200 #CFC9BE, OutlineVariantLight #D5CEBF and SurfaceContainerHighestLight #E2DCCC.
+
+## Decided beyond scope
+
+- The constant is `internal`, in PlottedRouteLayers.kt next to its only reader, and not in the theme's Color.kt. It is the accent's own
+  colour, not a theme role.
+
+## S22 step (nothing was run on a phone)
+
+1. Day map. Open a saved route and select a stop on a waypoint, then on a trip flag. The highlighted pin or flag is a slightly darker,
+   still clearly cream colour than before. It stands out from the light map and from the plain purple pins and flags.
+2. Tap the selected stop's stack to fan it. The highlighted copy in the fan is the same dimmer cream.
+3. Night map. The highlight is the same rust as before.
