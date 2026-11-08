@@ -21,8 +21,14 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.map.ForagerThemeWithNoSignal
 import com.zynergylabs.forager.app.ui.map.NavigationViewRequest
+import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OUTLINE_DAY
+import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OUTLINE_NIGHT
+import com.zynergylabs.forager.app.ui.map.firstNotUnder
 import com.zynergylabs.forager.app.ui.map.hex
-import com.zynergylabs.forager.app.ui.map.runOf
+import com.zynergylabs.forager.app.ui.map.outlineOver
+import com.zynergylabs.forager.app.ui.map.outlineRunOf
+import com.zynergylabs.forager.app.ui.map.ringBand
+import com.zynergylabs.forager.app.ui.map.ringUnder
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -53,6 +59,14 @@ import kotlin.math.ceil
  * reads it: each side inwards from the row's own edge over its first 11 dp, for the ruled hex written out (Re-center's
  * outline, #505: `onSurface`, Bark #3B2E24 by day, Cream #EDE3D0 at night), at most ceil(1 dp) wide, on the badge circle 6 dp
  * in. Where no ring is ruled, no side carries that colour at all.
+ *
+ * **Amendment 4 (RECORD -2186) changes the colour the ring is read for.** The owner, to the ring: "Yes, same outline": it takes
+ * the map chrome's own outline, the bubbles' and the icon bar's ([com.zynergylabs.forager.app.ui.map.mapChromeOutline]: 1 dp,
+ * Bark at 40% by day, white at 40% at night). That line is translucent, so each side is read for the ruled colour composited
+ * over the row's own fill just inside the ring (9 dp in), as `MapChromeOutlineRead.kt` describes, and "no ring" now reads the
+ * ring's place (6 to 7 dp in, a pixel either side) as that fill alone, so a ring of any colour fails it. Until Amendment 4 these
+ * read the solid `onSurface` (#3B2E24 / #EDE3D0) and "no ring" looked for that colour only. When the ring shows, where and how
+ * wide, and every touch, are unchanged.
  */
 abstract class LocateRingReCenterTests {
 
@@ -69,11 +83,11 @@ abstract class LocateRingReCenterTests {
 
     protected class Look(val name: String, val dark: Boolean, val ring: Color)
 
-    /** The day `onSurface`, Bark. */
-    protected val day = Look("day", dark = false, ring = Color(0xFF3B2E24))
+    /** By day the map chrome's outline, Bark at 40% (Amendment 4). */
+    protected val day = Look("day", dark = false, ring = MAP_CHROME_OUTLINE_DAY)
 
-    /** The night `onSurface`, Cream. */
-    protected val night = Look("night", dark = true, ring = Color(0xFFEDE3D0))
+    /** At night the map chrome's outline, white at 40% (Amendment 4). */
+    protected val night = Look("night", dark = true, ring = MAP_CHROME_OUTLINE_NIGHT)
 
     private fun settle() {
         composeRule.mainClock.advanceTimeBy(2_000)
@@ -135,20 +149,26 @@ abstract class LocateRingReCenterTests {
         assertEquals("$where: the locate row's width is unchanged, the 48 dp target", 48f, (bounds.right - bounds.left).value, 0.5f)
         assertEquals("$where: the locate row's height is unchanged, the 48 dp target", 48f, (bounds.bottom - bounds.top).value, 0.5f)
         val width = ringWidthPx()
+        val band = ringBand(::px)
         for ((side, edge) in sides()) {
-            val run = runOf(edge, look.ring)
-            assertNotNull("$where, ${look.name}, locate row, $side side: a ${look.ring.hex()} ring is drawn; the edge reads ${edge.map { it.hex() }}", run)
+            val under = edge[ringUnder(::px)]
+            val expected = outlineOver(look.ring, under)
+            val run = outlineRunOf(edge, look.ring, under, from = band.first, to = band.last)
+            assertNotNull("$where, ${look.name}, locate row, $side side: the map chrome's outline is drawn as the ring, ${expected.hex()} over the fill ${under.hex()}; the edge reads ${edge.map { it.hex() }}", run)
             run!!
             val drawn = run.last - run.first + 1
-            println("MEASURED $where, ${look.name}, locate row, $side side: ${look.ring.hex()} for $drawn px from ${run.first} px in (6 dp = ${px(6f)} px, ceil(1 dp) = $width px)")
-            assertTrue("$where, ${look.name}, $side side: the ring is at most ceil(1 dp) = $width px wide, drew $drawn", drawn <= width)
+            println("MEASURED $where, ${look.name}, locate row, $side side: ${expected.hex()} (over ${under.hex()}) for $drawn px from ${run.first} px in (6 dp = ${px(6f)} px, ceil(1 dp) = $width px); the edge reads ${edge.map { it.hex() }}")
+            assertTrue("$where, ${look.name}, $side side: the ring is ceil(1 dp) = $width px wide, its outer pixel at most softened, drew $drawn", drawn in (width - 1)..width)
             assertTrue("$where, ${look.name}, $side side: the ring sits on the badge circle, 6 dp (${px(6f)} px) in, found ${run.first} px in", run.first in (px(6f) - 1)..(px(7f)))
         }
     }
 
     protected fun assertNoRing(where: String, look: Look) {
+        val band = ringBand(::px)
         for ((side, edge) in sides()) {
-            assertNull("$where, ${look.name}, locate row, $side side: no ring; the edge reads ${edge.map { it.hex() }}", runOf(edge, look.ring))
+            val under = edge[ringUnder(::px)]
+            val off = firstNotUnder(edge, under, band.first, band.last)
+            assertNull("$where, ${look.name}, locate row, $side side: no ring, the ring's place ($band px in) is the fill ${under.hex()} alone; ${off?.let { "$it px in reads ${edge[it].hex()}" }}; the edge reads ${edge.map { it.hex() }}", off)
         }
     }
 
@@ -222,7 +242,7 @@ abstract class LocateRingReCenterTests {
 class LocateRingReCenterLandscapeTest : LocateRingReCenterTests() {
 
     @Test
-    fun `in landscape navigation moved away, by day, the locate row has a 1 dp Bark ring and Re-center does not show`() {
+    fun `in landscape navigation moved away, by day, the locate row has the map chrome's 1 dp outline as its ring and Re-center does not show`() {
         setMapsTab(day)
         moveAway()
         assertRing("landscape navigation, moved away", day)
@@ -230,7 +250,7 @@ class LocateRingReCenterLandscapeTest : LocateRingReCenterTests() {
     }
 
     @Test
-    fun `in landscape navigation moved away, at night, the locate row has a 1 dp pale ring and Re-center does not show`() {
+    fun `in landscape navigation moved away, at night, the locate row has the map chrome's 1 dp outline as its ring and Re-center does not show`() {
         setMapsTab(night)
         moveAway()
         assertRing("landscape navigation, moved away", night)
