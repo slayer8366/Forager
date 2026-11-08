@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
+import com.zynergylabs.forager.app.domain.hasArrived
 import com.zynergylabs.forager.app.domain.isApproaching
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -103,6 +104,33 @@ class NextTurnCardStateTest {
         assertTrue("inside the fix's own circle", isApproaching(30.0, 20f))
         assertEquals(null, readout(poor, byTrail).targetArrowDegrees)
         assertEquals(NextTurnCardState.ARRIVED, stateOf(poor, byTrail))
+    }
+
+    /**
+     * E1's "within the fix's own circle" has no check of its own: [nextTurnCardState] leaves it to the top line reading "Arrived"
+     * there, which holds only while arrival's radius (`hasArrived`) contains the circle the needle is withheld in (`isApproaching`).
+     * The two thresholds sit in `domain/NavigationReadout.kt`, and the arrival radius has moved before (-502, Amendment 2), so this
+     * pins the containment itself (Sorrel's review of PR #500, item 1.2): for each accuracy, every distance out to past twice it,
+     * in 5 cm steps, plus the boundary itself.
+     */
+    @Test
+    fun `E1 - wherever the needle is withheld the top line reads Arrived, at every accuracy`() {
+        listOf(0f, 5f, 8f, 20f, 50f).forEach { accuracy ->
+            val circle = 2.0 * accuracy
+            val distances = (0..((circle + 10.0) * 20).toInt()).map { it / 20.0 } + circle
+            val withheld = distances.filter { isApproaching(it, accuracy) }
+            assertTrue("accuracy $accuracy m: the needle is withheld somewhere", withheld.isNotEmpty())
+            withheld.forEach { d ->
+                assertTrue(
+                    "E1: at $d m with $accuracy m accuracy the needle is withheld (isApproaching) but the top line does not read " +
+                        "Arrived (hasArrived), so the next-turn space would show a turn inside the fix's own circle",
+                    hasArrived(d, accuracy),
+                )
+            }
+            // The same through the card's own readout, a little inside the circle's edge (the fix's distance is computed, not given).
+            val inside = maxOf(0.0, circle - 0.5)
+            assertEquals("E1, through the readout: $inside m with $accuracy m accuracy", NextTurnCardState.ARRIVED, stateOf(fix(inside, accuracy), byTrail))
+        }
     }
 
     // Everywhere else, a figure: the space shows what lies ahead.
