@@ -35,10 +35,37 @@ and leaves room on the runner. `ubuntu-24.04` on a public repo is the standard 4
 Kotlin daemon, which takes its heap from the Gradle daemon's arguments when `kotlin.daemon.jvmargs` is unset (it is
 unset in this repo), could also grow to 4 GB. 4 + 4 GB plus overhead still fits.
 
+## Addendum: the Play release workflow (Sorrel's review item 1, owner: "Yes, add it (Recommended)")
+
+Sorrel's review (`prompts/preserved/2026-11-08-sorrel-review-509.md` on records-after-173) pointed out that
+`.github/workflows/release.yml` builds the real Play bundle with `bundleRelease`. That runs the same
+`packageReleaseBundle` task, on the same `ubuntu-24.04` runner (`release.yml:49`), and still used the 2 GB heap.
+On the owner's word it gets the same change, in the step "Build the signed release bundle" only (about lines
+144–150):
+
+- the same `"-Dorg.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8"` on its `./gradlew` call;
+- the same daemon-heap readout line after the build.
+
+The readout prints only the `-Xmx` token. Signing values reach Gradle through environment variables, not JVM
+arguments, and in any case nothing but that one token is extracted. Nothing else in release.yml changed.
+
+How it was checked, and what wasn't: release.yml can't run from a PR (main only, `release` environment, signing
+secrets), so **this change has not run in a real release**. What was checked:
+- the file still parses as YAML (Python `yaml.safe_load`);
+- the step's `run:` script, pulled out of the parsed YAML, passes `bash -n`;
+- the job sets up the same JDK 21 (`setup-java`, line 86, so `jps` is on PATH) and the same `setup-gradle`
+  (line 92) as ci.yml's job, and nothing in release.yml or `gradle.properties` turns the daemon off;
+- the two added lines are the same form as ci.yml's, which ran green with `Gradle daemon heap: -Xmx4096m` in run
+  42509592023.
+
+`actionlint` isn't installed on this laptop and wasn't run. The first real release run's log should show
+`Gradle daemon heap: -Xmx4096m`. If it shows anything else, the setting didn't reach the daemon.
+
 ## Evidence
 
-- The CI run on this PR: run ID and result are given in the PR conversation and the hand-back. It's the result for
-  the SHA that carries the workflow change.
+- ci.yml on this PR: run 42509592023 on `fb072a21c`, all 8 jobs success. The release-compile job's log shows
+  `packageRelease` and `packageReleaseBundle` ran, `BUILD SUCCESSFUL in 3m 13s`, and `Gradle daemon heap: -Xmx4096m`.
+  Later SHAs on this branch change only release.yml and this note. Their ci.yml run IDs are in the hand-back.
 - A single past OOM can't be made to happen again on demand. The same code passed in the run before (42492588638)
   and the run after (42506464973) with the old 2 GB heap. So a green run here fits the fix but doesn't prove it.
   The only thing a green run shows by itself is that the new setting doesn't break the job, plus the
