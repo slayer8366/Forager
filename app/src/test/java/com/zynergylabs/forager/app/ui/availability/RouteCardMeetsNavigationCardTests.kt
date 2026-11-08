@@ -40,9 +40,13 @@ import kotlin.math.floor
  *   with the outline reading's 4-level tolerance and could not see the overlap).
  * - **One line, the navigation card's.** Just above that top, up the middle, the route card reads bare (`whyNotBare`): no line of its
  *   own along the meeting edge. The navigation card's line is the one in the rows above.
- * - **Its sides run down into the corners.** On both sides, above the navigation card's top and for [INTO_CORNER] below it, inside
+ * - **Its side toward the map runs down into the corner.** Above the navigation card's top and for [INTO_CORNER] below it, inside
  *   the wedge the navigation card's rounded corner leaves, the route card's outermost pixels carry the ruled line
- *   (`RouteCardOutlineReading.kt`: Bark at 40% by day, white at 40% at night) over its own fill.
+ *   (`RouteCardOutlineReading.kt`: Bark at 40% by day, white at 40% at night) over its own fill. Its side against the side bar reads
+ *   bare over the same rows: Sorrel's review of PR #507, item 1.1, and the owner's answer (RECORD -2187, 2026-11-08T22:50:26Z): "(c)
+ *   All three (Recommended)", under RECORD -967 ("Where two outlined pieces touch, one shared 1 dp line is drawn: ... strip or card
+ *   against the rail"); the side bar's line is the one there, as it is beside the navigation card under it. Until then these cases
+ *   claimed the ruled line on both sides, the side bar's included.
  * - **The corners are filled.** A pixel inside each wedge, [WEDGE_IN] in from the side and [WEDGE_DOWN] below the top, well clear of
  *   the corner's arc, reads the route card's own fill, as the card reads just above the top: no map shows there.
  */
@@ -93,24 +97,32 @@ abstract class RouteCardMeetsNavigationCardTests {
         println("MEASURED $name, the middle just above the navigation card's top, upward: ${upward.take(6).map { it.hex() }}")
         whyNotBare(upward, density)?.let { off += "the middle just above the navigation card's top, no line of the route card's own: $it" }
 
-        // The sides run down into the navigation card's corners, and the corners are filled.
+        // The side toward the map runs down into the navigation card's corner, the side against the side bar (the nearer screen edge,
+        // RouteCardPlacement.kt, routeCardOnLeft) carries none of its own, and the corners are filled.
         val n = px(8.dp)
+        val screen = rig.screen()
+        val railOnRight = screen.right - card.right < card.left - screen.left
         val sides = listOf("left side" to (leftPx until leftPx + n).toList(), "right side" to (rightPx downTo rightPx - n + 1).toList())
         val oneDp = px(1.dp)
         val rows = ((floor(hudTopPx).toInt() - px(4.dp)) until floor(hudTopPx).toInt() - oneDp) + ((topRow + oneDp)..(topRow + px(INTO_CORNER)))
         for ((side, columns) in sides) {
+            val againstSideBar = (side == "right side") == railOnRight
             for (y in rows) {
                 val edge = columns.map { open[it, y] }
                 val where = if (y < hudTopPx) "${"%.1f".format((hudTopPx - y) / density)} dp above" else "${"%.1f".format((y - hudTopPx) / density)} dp below"
-                if (y > hudTopPx) println("MEASURED $name, $side, $where the navigation card's top: ${edge.take(6).map { it.hex() }}")
-                whyNotRuledLine(edge, dark, density)?.let { off += "$side, $where the navigation card's top: $it" }
+                if (y > hudTopPx) println("MEASURED $name, $side${if (againstSideBar) " (against the side bar)" else ""}, $where the navigation card's top: ${edge.take(6).map { it.hex() }}")
+                if (againstSideBar) {
+                    whyNotBare(edge, density)?.let { off += "$side, against the side bar, $where the navigation card's top, not bare (a second line beside the side bar's): $it" }
+                } else {
+                    whyNotRuledLine(edge, dark, density)?.let { off += "$side, $where the navigation card's top: $it" }
+                }
             }
             val wedge = open[columns[px(WEDGE_IN)], topRow + px(WEDGE_DOWN)]
             val own = open[columns[px(WEDGE_IN)], floor(hudTopPx).toInt() - px(WEDGE_DOWN)]
             println("MEASURED $name, $side corner: wedge ${wedge.hex()}, the card just above ${own.hex()}, alone ${alone[columns[px(WEDGE_IN)], topRow + px(WEDGE_DOWN)].hex()}")
             if (!wedge.near(own)) off += "$side corner, ${WEDGE_IN} in and ${WEDGE_DOWN} below the navigation card's top: reads ${wedge.hex()}, not the route card's own fill ${own.hex()} (map shows in the corner)"
         }
-        assertTrue("$name, the route card meets the navigation card: nothing behind it, one line (the navigation card's), the sides run down into its filled corners; off: $off", off.isEmpty())
+        assertTrue("$name, the route card meets the navigation card: nothing behind it, one line (the navigation card's), the side toward the map runs down into its filled corners and the side bar's side has no line of its own; off: $off", off.isEmpty())
     }
 
     protected companion object {
