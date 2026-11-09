@@ -30,6 +30,9 @@ object CameraMapFixture {
     class Recording(val fit: CameraPosition) {
         var camera: CameraPosition? = null
         var jumps = 0
+
+        /** The camera the last `easeTo` was given (an eased move: `Transform.easeCamera`), kept apart from [camera], which it does not move. */
+        var eased: CameraPosition? = null
         var trackingChanges = 0
         lateinit var cameraController: Any
 
@@ -72,8 +75,20 @@ object CameraMapFixture {
         else -> null
     }
 
+    /**
+     * With [easing], the map's view for an eased move with a callback (`Transform.easeCamera` registers it on the view's
+     * `MapChangeReceiver`): a view with no constructor run, holding the SDK's own receiver, which nothing here ever fires. Without
+     * it, none, as before.
+     */
+    private fun easingView(easing: Boolean): MapView? {
+        if (!easing) return null
+        val view = inert(MapView::class.java)
+        set(view, "mapChangeReceiver", MapChangeReceiver::class.java.getDeclaredConstructor().apply { isAccessible = true }.newInstance())
+        return view
+    }
+
     /** A map whose camera starts at [start], with following on when [cameraMode] is a tracking mode; [fit] is where a fit lands. */
-    fun map(start: CameraPosition, fit: CameraPosition, cameraMode: Int = CameraMode.NONE): Pair<MapLibreMap, Recording> {
+    fun map(start: CameraPosition, fit: CameraPosition, cameraMode: Int = CameraMode.NONE, easing: Boolean = false): Pair<MapLibreMap, Recording> {
         val recording = Recording(fit).also { it.camera = start }
         val native = Proxy.newProxyInstance(NativeMap::class.java.classLoader, arrayOf(NativeMap::class.java)) { _, method, args ->
             when (method.name) {
@@ -89,6 +104,18 @@ object CameraMapFixture {
                     recording.jumps++
                     null
                 }
+                "easeTo" -> {
+                    // NativeMap.easeTo(target, zoom, bearing, tilt, padding, duration, easing), as Transform.easeCamera calls it.
+                    val padding = args[4] as DoubleArray?
+                    recording.eased = CameraPosition.Builder()
+                        .target(args[0] as LatLng)
+                        .zoom(args[1] as Double)
+                        .bearing(args[2] as Double)
+                        .tilt(args[3] as Double)
+                        .apply { if (padding != null) padding(padding) }
+                        .build()
+                    null
+                }
                 "getCameraPosition" -> recording.camera
                 "getCameraForLatLngBounds" -> recording.fit
                 else -> defaultFor(method.returnType)
@@ -98,7 +125,7 @@ object CameraMapFixture {
         val transform = Transform::class.java
             .getDeclaredConstructor(MapView::class.java, NativeMap::class.java, CameraChangeDispatcher::class.java)
             .apply { isAccessible = true }
-            .newInstance(null, native, dispatcher)
+            .newInstance(easingView(easing), native, dispatcher)
         val uiSettings = inert(UiSettings::class.java)
         set(uiSettings, "focalPointChangeListener", FocalPointChangeListener { _: PointF? -> })
         val map = MapLibreMap::class.java.declaredConstructors.single { it.parameterCount == 7 }

@@ -174,6 +174,16 @@ internal fun applyCameraRestore(map: MapLibreMap, restore: MapCameraRestore) {
 }
 
 /**
+ * The first style load's restore (MapStyleReload.kt): [applyCameraRestore], and when it carried the navigation view's padding
+ * (only while navigating, [cameraRestoreFor]) the map is marked as holding that view, so stopping navigation on it clears the
+ * padding, tilt and bearing (RECORD -2192, Sorrel's review of PR #511).
+ */
+internal fun applyFirstStyleCameraRestore(map: MapLibreMap, restore: MapCameraRestore, navigationModeChange: NavigationModeChange) {
+    applyCameraRestore(map, restore)
+    if (restore.padding != null) navigationModeChange.holdRestoredView()
+}
+
+/**
  * The camera [map] has settled on, for [MapCameraMemory.saved] (the camera idle listener, MapListeners.kt), or null before it has
  * a target: where it looks, how close, turned and tilted how far, whether the puck leads it, [appliedTarget], and its padding.
  */
