@@ -149,7 +149,7 @@ class RouteStopAccentPulseTest {
     @Test
     fun `the highlight goes at once with its layer, not fading over nothing`() {
         show(reduceMotion = false)
-        val before = selectAndRecord(creek, frames = 10) // still pulsing
+        val before = selectAndRecord(creek, frames = 16) // mid-swell, about 200 ms in
         assertTrue("precondition: the highlight is drawn, mid-motion, before its layer goes", before.last().singleOrNull()?.let { it.opacity > 0f && it.scale > 1f } == true)
         val frames = selectAndRecord(null, frames = 4)
 
