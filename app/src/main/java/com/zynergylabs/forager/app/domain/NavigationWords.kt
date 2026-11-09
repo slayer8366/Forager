@@ -80,8 +80,18 @@ fun turnWords(turn: Turn): String {
     return "$words ${turn.degrees}°"
 }
 
-/** [turnWords] for a relative bearing: what the display's turn line reads. */
-fun turnText(relativeDegrees: Float): String = turnWords(turnFor(relativeDegrees))
+/**
+ * The turn's size alone, "109°" (dispatch 2026-11-05-10, Amendment 1, G2; RECORD -2181). The owner, to "The turn words: what stays
+ * on the turn line?": "Drop the words, keep the degrees (Recommended)", the option reading ""right 109°" becomes "109°". The needle
+ * shows which way, and the number how far. No "slight right", "sharp left" and so on."
+ */
+fun turnDegrees(turn: Turn): String = "${turn.degrees}°"
+
+/**
+ * What the navigation card's turn line reads for a relative bearing: the degrees alone since G2 ([turnDegrees]). Was [turnWords]
+ * ("sharp right 169°"), which is kept, unread on screen, with the bands it words.
+ */
+fun turnText(relativeDegrees: Float): String = turnDegrees(turnFor(relativeDegrees))
 
 /**
  * What a distance on the display measures, said beside it (the owner's "0.4 mi by trail" or "0.3 mi straight"). [words] is

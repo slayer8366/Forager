@@ -54,6 +54,7 @@ fun isApproaching(distanceMeters: Double, accuracyMeters: Float?): Boolean {
     return distanceMeters <= APPROACHING_ACCURACY_MULTIPLIER * accuracyMeters
 }
 
+/** E1 relies on [hasArrived]'s radius containing this circle; `NextTurnCardStateTest` ("wherever the needle is withheld") pins it. */
 const val APPROACHING_ACCURACY_MULTIPLIER = 2.0
 
 /**
@@ -63,6 +64,7 @@ const val APPROACHING_ACCURACY_MULTIPLIER = 2.0
  * told that the S22 reports a constant 3.79 m (so twice it is a fixed 7.6 m) and that the walk drifted
  * 5 to 15 m: "Twice accuracy, at least 15 m". A separate rule from [isApproaching], which, with the
  * HUD's "Approaching", is unchanged.
+ * E1 relies on this radius containing [isApproaching]'s circle; `NextTurnCardStateTest` ("wherever the needle is withheld") pins it.
  */
 fun hasArrived(distanceMeters: Double, accuracyMeters: Float?): Boolean =
     distanceMeters <= maxOf(ARRIVAL_MIN_RADIUS_METERS, APPROACHING_ACCURACY_MULTIPLIER * (accuracyMeters ?: 0f))

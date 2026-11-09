@@ -198,14 +198,19 @@ abstract class MapTopCardScreenTests(private val rotation: Int?) {
 
     fun inAny(x: Dp, y: Dp, rects: List<DpRect>) = rects.any { x >= it.left && x <= it.right && y >= it.top && y <= it.bottom }
 
-    /** RECORD -950, "Nothing repeats": the heading once, in the navigation info; height, grid reference and the three-dot button once, on the strip. */
+    /**
+     * RECORD -950, "Nothing repeats": height, grid reference and the three-dot button once, on the strip; and since Amendment 1, H1 ("Keep
+     * the compass strip the exact same when in navigation mode as out; so keep the north compass out of the navigation panel"), the
+     * heading once, on the strip's line too. Was "navigating, nothing repeats - the heading in the navigation info, …", asserting
+     * `textOf(NAVIGATION_HUD_HEADING_TAG)` "45° NE" and no COMPASS_STRIP_HEADING_TAG.
+     */
     @Test
-    fun `navigating, nothing repeats - the heading in the navigation info, height, grid reference and the button on the strip`() {
+    fun `navigating, nothing repeats - the heading, height, grid reference and the button on the strip`() {
         setScreen()
         assertTrue("the strip stays", shown(TOP_CARD_STRIP_TAG))
         assertEquals("the heading reads once", 1, composeRule.onAllNodesWithText("45° NE", useUnmergedTree = true).fetchSemanticsNodes().size)
-        assertEquals("in the navigation info", "45° NE", textOf(NAVIGATION_HUD_HEADING_TAG))
-        assertEquals("no heading on the strip's line", 0, composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).fetchSemanticsNodes().size)
+        assertEquals("on the strip's line", "45° NE", textOf(COMPASS_STRIP_HEADING_TAG))
+        assertEquals("no heading in the navigation info", 0, composeRule.onAllNodesWithTag(NAVIGATION_HUD_HEADING_TAG).fetchSemanticsNodes().size)
         assertEquals("one height", 1, composeRule.onAllNodesWithTag(COMPASS_STRIP_ELEVATION_TAG).fetchSemanticsNodes().size)
         assertEquals("one grid reference", 1, composeRule.onAllNodesWithTag(COMPASS_STRIP_COORDINATES_TAG).fetchSemanticsNodes().size)
         assertEquals("one three-dot button", 1, composeRule.onAllNodesWithTag(MAP_QUICK_SETTINGS_BUTTON_TAG).fetchSemanticsNodes().size)

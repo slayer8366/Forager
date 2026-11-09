@@ -97,6 +97,15 @@ internal const val WAYPOINT_OFF_TRAIL_SHORT_TEXT = "Off trail"
 /** Back on the trail line, shown for `BACK_ON_TRAIL_SHOW_MILLIS` (RECORD -445's words, -1631). */
 internal const val BACK_ON_TRAIL_TEXT = "Back on trail"
 
+/**
+ * The way to a waypoint's notes whose words the navigation card shows (dispatch 2026-11-05-10, Amendment 1, F2, widening F1; RECORD
+ * -2181). The owner: "Keep the ones asking something": "Remove the ones that only say why (no routes here, another area, far from any
+ * trail, no clear way in…). Keep "Trail routes not downloaded" and "Trail routes need an app update", since you could act on them."
+ * F1: "the straight line is the explanation". The other 11 leave the status line empty, in a trip's words as in a waypoint's. Each
+ * note still chooses the straight line, its retry (WayToRetry) and its log line (FindWayToWaypointUseCase); only the card's words go.
+ */
+internal val WAY_TO_NOTES_ON_CARD: Set<WayToWaypointNote> = setOf(WayToWaypointNote.ROUTES_NOT_DOWNLOADED, WayToWaypointNote.ROUTES_NEED_APP_UPDATE)
+
 /** The way to a waypoint's notes' shared tail, dropped in their short forms (step 6 PR 3; RECORD -1652 Q4: "short forms drop the tail"). */
 private const val WAY_TO_WAYPOINT_NOTE_TAIL = " · straight line"
 
