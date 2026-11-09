@@ -6,9 +6,11 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performTouchInput
@@ -18,6 +20,11 @@ import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_CLOSE_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_DETAILS_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_DIRECTIONS_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_NAVIGATE_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_PLOT_ROUTE_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_TAG
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
@@ -26,6 +33,7 @@ import com.zynergylabs.forager.app.ui.route.RoutePlotMode
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -39,6 +47,9 @@ import org.robolectric.shadows.ShadowDisplay
 
 /** A waypoint that is not one of the route's stops, so a tap on it opens its bubble and selects nothing on the card. */
 private val BUBBLE_SPOT = Waypoint("wp-bubble-spot", 45.3636, -121.6859, null, "Bubble spot", "", 7_000L)
+
+/** A second such waypoint, placed just above the expanded card's top in landscape, for the bubble's Details over the card. */
+private val BUBBLE_SPOT_TWO = Waypoint("wp-bubble-spot-two", 45.3640, -121.6850, null, "Second spot", "", 7_000L)
 
 /**
  * The S22 check of build 5054 (2026-11-09): a waypoint's bubble drew under the expanded route card (the bubble is composed before
@@ -74,7 +85,7 @@ abstract class RouteCardBubbleAboveCardTests(private val rotation: Int, private 
                 viewModel = viewModel,
                 mapSlot = map.slot,
                 store = OneCellStore(),
-                waypoints = listOf(CREEK, RIDGE, BUBBLE_SPOT),
+                waypoints = listOf(CREEK, RIDGE, BUBBLE_SPOT, BUBBLE_SPOT_TWO),
                 routePlotting = RoutePlottingControls(state, plotting),
             )
         }
@@ -147,7 +158,93 @@ abstract class RouteCardBubbleAboveCardTests(private val rotation: Int, private 
         assertEquals("precondition: the card expanded", true, plotting.uiState.value.expanded)
         val expanded = bounds(ROUTE_CARD_TAG)
         assertTrue("precondition: the expanded card ${expanded.text()} rises above the peek's top ${peek.top.value}", expanded.top < peek.top - 1.dp)
-        bubbleEndsAbove("expanded", expanded.top)
+        if (!landscape) {
+            bubbleEndsAbove("expanded", expanded.top)
+            return
+        }
+        // Landscape, expanded: no room between the strip and the card's top for the bubble. The owner (RECORD -2187): "Bubble over
+        // the card (Recommended)": it is placed as the card were not there (where it was with the card tucked) and drawn over it.
+        bubbleOverTheExpandedCard(expanded, tuckedBubble, x, slot)
+    }
+
+    private fun boundsPx(tag: String): List<Rect> = composeRule.onAllNodesWithTag(tag).fetchSemanticsNodes().map { it.boundsInRoot }
+
+    private fun DpRect.px(): Rect = with(composeRule.density) { Rect(left.toPx(), top.toPx(), right.toPx(), bottom.toPx()) }
+
+    private fun bubbleShown() = composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).fetchSemanticsNodes().isNotEmpty()
+
+    /** A real touch at [at], px in the root. */
+    private fun touch(at: Offset) {
+        composeRule.onRoot().performTouchInput { click(at) }
+        settle()
+    }
+
+    private fun bubbleOverTheExpandedCard(expanded: DpRect, unlimited: DpRect, glyphX: Dp, slot: DpRect) {
+        val bubble = bounds(MAP_BUBBLE_TAG)
+        val screen = composeRule.onRoot().getUnclippedBoundsInRoot()
+        println("BUBBLE expanded, over the card: bubble ${bubble.text()}, card ${expanded.text()}, as tucked ${unlimited.text()}")
+        assertTrue(
+            "expanded: the bubble ${bubble.text()} overlaps the card ${expanded.text()}",
+            bubble.bottom > expanded.top + 0.5.dp && bubble.left < expanded.right && bubble.right > expanded.left,
+        )
+        assertEquals("expanded: the bubble ${bubble.text()} is where the card does not limit it, ${unlimited.text()} (top)", unlimited.top.value, bubble.top.value, 0.5f)
+        assertEquals("expanded: the bubble ${bubble.text()} is where the card does not limit it, ${unlimited.text()} (left)", unlimited.left.value, bubble.left.value, 0.5f)
+        assertTrue("expanded: the bubble ${bubble.text()} is wholly in the window ${screen.text()}", bubble.top >= screen.top && bubble.bottom <= screen.bottom)
+
+        // Touches on the bubble where it is over the card, clear of its buttons, go to the bubble: it stays open, and neither the map
+        // nor the card takes them.
+        val cardPx = expanded.px()
+        val overlap = bubble.px().intersect(cardPx)
+        val margin = with(composeRule.density) { 4.dp.toPx() }
+        val buttons = listOf(MAP_BUBBLE_CLOSE_TAG, MAP_BUBBLE_NAVIGATE_TAG, MAP_BUBBLE_PLOT_ROUTE_TAG, MAP_BUBBLE_DIRECTIONS_TAG, MAP_BUBBLE_DETAILS_TAG)
+            .flatMap { boundsPx(it) }.map { it.inflate(margin) }
+        val points = (1..5).flatMap { i -> (1..3).map { j -> Offset(overlap.left + overlap.width * i / 6f, overlap.top + overlap.height * j / 4f) } }
+            .filter { p -> buttons.none { it.contains(p) } }
+        println("BUBBLE expanded: overlap $overlap, buttons $buttons, ${points.size} touches")
+        assertTrue("precondition: ${points.size} touch points on the bubble over the card, clear of its buttons", points.size >= 3)
+        val state = plotting.uiState.value
+        val taps = map.taps
+        points.forEach { p ->
+            touch(p)
+            assertTrue("a touch at $p on the bubble over the card left it open", bubbleShown())
+            assertEquals("a touch at $p on the bubble over the card did not reach the map", taps, map.taps)
+            assertEquals("a touch at $p on the bubble over the card did not reach the route card", state, plotting.uiState.value)
+        }
+
+        // A tap away, on the open map beside the card, closes the bubble as usual, and the card is there whole.
+        val onRight = expanded.left - slot.left > slot.right - expanded.right
+        val away = with(composeRule.density) {
+            Offset((if (onRight) (slot.left + expanded.left) / 2 else (expanded.right + slot.right) / 2).toPx(), (slot.top + (slot.bottom - slot.top) * 0.6f).toPx())
+        }
+        assertFalse("precondition: the tap away $away is off the bubble", bubble.px().contains(away))
+        assertFalse("precondition: the tap away $away is off the card", cardPx.contains(away))
+        touch(away)
+        assertEquals("the tap away at $away reached the map", taps + 1, map.taps)
+        assertFalse("the tap away closed the bubble", bubbleShown())
+        assertEquals("the card is still expanded", true, plotting.uiState.value.expanded)
+        val after = bounds(ROUTE_CARD_TAG)
+        assertEquals("the card ${after.text()} is where it was, ${expanded.text()} (top)", expanded.top.value, after.top.value, 0.5f)
+        assertEquals("the card ${after.text()} is where it was, ${expanded.text()} (bottom)", expanded.bottom.value, after.bottom.value, 0.5f)
+
+        // A second waypoint just above the card's top: its bubble too is over the card, and a real touch on its Details, where the
+        // Details is over the card, is the bubble's (it closes, for the details) and not the card's.
+        glyphs.add(StubGlyph(MapLayerIds.WAYPOINTS, BUBBLE_SPOT_TWO.id, glyphX - slot.left, expanded.top - 10.dp - slot.top, LatLng(BUBBLE_SPOT_TWO.lat, BUBBLE_SPOT_TWO.lng)))
+        composeRule.waitForIdle()
+        composeRule.onNodeWithTag(glyphTag(BUBBLE_SPOT_TWO.id)).performTouchInput { click(Offset(width * 0.5f, height * 0.2f)) }
+        settle()
+        assertTrue("precondition: the second waypoint's bubble opened", bubbleShown())
+        val second = bounds(MAP_BUBBLE_TAG)
+        val details = boundsPx(MAP_BUBBLE_DETAILS_TAG)
+        println("BUBBLE second: bubble ${second.text()}, details $details")
+        assertTrue("precondition: the second bubble ${second.text()} overlaps the card ${expanded.text()}", second.bottom > expanded.top + 0.5.dp)
+        assertEquals("precondition: the bubble has one Details", 1, details.size)
+        val detailsOverCard = details.single().intersect(cardPx)
+        assertTrue("precondition: the Details ${details.single()} is over the card $cardPx", detailsOverCard.width > 0f && detailsOverCard.height > 0f)
+        val beforeDetails = plotting.uiState.value
+        touch(detailsOverCard.center)
+        assertFalse("the touch on Details at ${detailsOverCard.center}, over the card, reached the bubble (it closed for the details)", bubbleShown())
+        assertEquals("the touch on Details did not reach the map", taps + 1, map.taps)
+        assertEquals("the touch on Details did not reach the route card", beforeDetails, plotting.uiState.value)
     }
 }
 
