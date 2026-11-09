@@ -332,3 +332,110 @@ it". Built on route-card at `9201b8a3e`, on top of the red test the previous Haz
    still clearly cream colour than before. It stands out from the light map and from the plain purple pins and flags.
 2. Tap the selected stop's stack to fan it. The highlighted copy in the fan is the same dimmer cream.
 3. Night map. The highlight is the same rust as before.
+
+---
+
+# Amendment 7, built
+
+Dispatch 2026-11-06-05, Amendment 7 (RECORD -2187; prompts/preserved/2026-11-06-05-amendment-7.md on records-after-173). The owner:
+"when we tap the waypoint and it highlights, have the waypoint highlight fade in and out and pulse once, the instant change makes it
+look clunky. That lets you know something was selected". Restated and confirmed ("Yes, that's it"), with "Pin swells (Recommended)".
+Built on route-card from `880dcbcb6`, by Hazel (Opus).
+
+## What changed
+
+- **The mechanism.** The accent layer (`plotted-route-selected-layer`) now reads `icon-opacity` and `icon-size` from each feature's
+  `opacity` and `scale` properties (PlottedRouteLayers.kt). A frame of the motion is new data for the accent's GeoJSON source, one or two
+  points, and nothing else: no layer is added, removed or restyled per frame. Feature state was not used: whether this MapLibre Android
+  build exposes it was not checked, and per-feature properties are already how every marker layer here is driven.
+- **The motion** is plain Kotlin on a millisecond clock (RouteStopAccentMotion.kt, new, 135 lines). It fades in over 200 ms. The swell
+  starts at 150 ms, as the fade arrives, peaks at 1.15x at 300 ms, and is back to 1x at 500 ms. When another stop is picked, the old one
+  fades out over 200 ms from wherever its own fade had got to, drawn under the new one. A stop picked again while it is still fading out
+  arrives from that opacity, not from nothing. Under Reduce Motion the highlight is full at once with no pulse, and the old one goes at
+  once. When the selection becomes none (its layer switched off, or the route closed) every highlight goes at once.
+- **The driver** (MapRouteStopAccent.kt, new): `rememberRouteStopAccentFrame` runs the motion on the frame clock (`withFrameMillis`) and
+  stops when it settles. `mapPlottedRoute` pushes the route as before, and pushes the highlight at each frame. The route's own push no
+  longer writes the accent's source, so a route change cannot draw the accent at rest for a frame in the middle of a fade.
+  SightingsMap.kt changes by the same two lines it had, so it stays at 801 lines.
+- **The fan** (FanOutLayers.kt, MapFan.kt). While a highlight moves, its fanned copy is the plain copy with the accent image over it, at
+  that opacity and size. The overlay sits half a place above its layer's copies in the sort order, and its offset is divided by its size,
+  because `icon-offset` scales with `icon-size`. At rest the selected stop's copy is the accent copy alone, exactly as before. A highlight
+  fading out is always drawn as the overlay, even at its first, still-full frame, because the hide expects a stop that is no longer
+  selected by its plain image. MapFan reads the highlight's frame only while a fan has members.
+- **The centre-copy fix.** The fix that matches copies by the image drawn (`expectedCopies`, FanOutRenderSignal.kt) is unchanged. The
+  overlay carries the copy's feature id and the accent image, so mid-fade the copy the hide waits for is still there.
+
+## Runs
+
+- **Red**, run 42565996647 (`hazel-pulse-red3`: the forward code with two lines set back to today's behaviour, `frameAt` returning the
+  settled accent and the fan ignoring the motion; filtered to the three classes). There were no `e:` lines and the tests ran. 6 failed:
+  `the highlight starts faint, not at full (it was 1.0)`, `faint at first`, `the old highlight is still drawn, fading, for a few frames:
+  [1.0, 1.0]`, the fan's two copy-shape tests (`but was:<[waypoint-pin-route-selected]>` and `but was:<[waypoint-pin]>`), and the layer
+  case's precondition (`the highlight is drawn, mid-motion`). Each is a failure that snapping produces. Passed on red, as expected, and
+  so these are guards rather than proof that the new tests bite: Reduce Motion (today's snap is already instant), and the two fan-opening
+  mid-fade cases (today's fan has no mid-fade). The revert below is what shows that the fan-opening cases bite.
+- Earlier reds, 42561630098 and 42563741461, are **not cited for RouteStopAccentPulseTest**. In the first, the test had no host activity
+  (`Unable to resolve activity for Intent`). In the second, its selection writes were never applied, so nothing was ever drawn. The forward
+  runs 42561645090 and 42563835284 failed the same way. Both test faults were fixed (`eb18b8327`, `3af1c6de0`).
+- **Revert**, run 42563743474 (`hazel-pulse-revert2`: one line, the fan overlay's `FEATURE_ID_PROPERTY` removed; filtered). There were no
+  `e:` lines and 29 tests ran. 4 failed in the fan classes, each one this revert causes: `the copies were reported drawn by frame 4,
+  mid-fade`, `the copies were reported drawn before the pins leave`, and the two copy-shape tests (`but was:<[waypoint-pin]>`, the
+  overlay no longer counting as the copy). Its RouteStopAccentPulseTest failures are the harness fault above, not the revert. The file was
+  restored from a copy saved before the edit, and the forward line was confirmed present (2 occurrences, `git status` clean).
+- **Green, full CI on route-card**: see the hand-back. The last run before it, 42565984715, failed only the layer case's precondition
+  (10 frames came before the swell starts), fixed in `58e27f6b0`.
+
+## The attribution tests (Rowan's extra item, RECORD -2187)
+
+- The three classes assumed a 52 dp right margin for MapLibre's "i". The planner reports that the S22 shows MapLibre's 4 dp, with the
+  side bar's width as the end inset. Corrected to 4 dp in AttributionClearOfLTest, AttributionUnderCardTest and
+  AttributionWhileTuckedTest.
+- **Red with only the margin corrected**, run 42561713129. There were no `e:` lines. Of the 11 attribution tests, 2 failed, and both were
+  tucked cases, each printing `covered by [route card's strip], hidden true`. These are
+  `landscape, the L left, 1 stops, peek, tucked: the spot where the card rested is clear, so the "i" comes back expected:<false> but
+  was:<true>`, and the same for `portrait fullscreen, the bar left`. The corrected geometry sees the strip covering the "i".
+- **Claim changes**, both in AttributionWhileTuckedTest:
+  1. AttributionWhileTuckedLandscapeTest, not navigating: from "tucked the i comes back" to "tucked the strip covers the i and it stays
+     hidden". The owner ruled this one: "(c) Stay hidden here".
+  2. AttributionWhileTuckedPortraitTest, fullscreen with the bar left: the same change. **The owner's ruling was given for landscape.**
+     Portrait fullscreen turned too, and it now asserts what the code does by D28 ("hides while any card covers that corner"). It needs
+     the owner's word. To restore the old claim, drop `hiddenWhileTucked = true` from that call.
+  - AttributionClearOfLTest and AttributionUnderCardTest passed with the corrected margin. Their claims are unchanged.
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, on the frame clock): the frames through a selection, a change of selection and Reduce Motion, as the accent's
+  source receives them; the fan's copy shape mid-motion and at rest; and the fan-opening hide by the first moving frame with the highlight
+  mid-fade, including with an old highlight fading out.
+- Inferred, not seen: that MapLibre draws per-feature `icon-opacity` and `icon-size` smoothly at 60 fps from a GeoJSON source updated
+  every frame. Also inferred: that `queryRenderedFeatures` reports a symbol at a low `icon-opacity`, which the hide relies on when a fan
+  opens in the first frames of a fade.
+
+## Could not determine
+
+- How the motion looks and feels on the S22, and whether a per-frame `setGeoJson` on a one- or two-point source ever lags a frame
+  behind the fan's own source. No phone was used.
+
+## Premises that were wrong
+
+- None in the amendment. The dispatch's "FanRouteStopAccent.kt draws the fan's copy" holds: the copy's image is chosen there. The drawing is
+  FanOutLayers.kt's `fanFrameCollections`.
+
+## Decided beyond scope
+
+- **Reduce Motion is instant**, not a very short fade. The dispatch allowed either, and instant is what the app's other reduced-motion paths do.
+- **The highlight animates whenever it appears on a stop**, not only on a tap. That includes opening a saved route (stop 1 selected) and
+  switching its layer back on. The map cannot tell a tap from these without new plumbing. Re-selecting the same stop does not pulse again.
+- **Going to none is instant** (layer off, route closed). The pin under it goes at once, so a fading accent would be left over nothing.
+- The portrait attribution claim above.
+
+## S22 step (nothing was run on a phone)
+
+1. Day map. Open a saved route, expand the card, and tap the second stop's row. Its pin fades from purple to cream, and as it arrives it
+   swells a little and settles, in about half a second. The first stop's cream fades back to purple at the same time.
+2. Tap a trip-flag stop's flag on the map. It does the same, and its bubble opens.
+3. Tap a stop whose pin is in a stack. The fan opens, then tap its fanned copy. The copy fades and pulses in the fan. Fold and open the fan
+   again: no cream pin is left at the stack's centre once the pins leave.
+4. Night map: the same, in rust.
+5. Settings, Developer options, Animator duration scale off. Selecting a stop turns it cream at once, with no swell.
+6. Map Layers, Waypoints off while a waypoint stop is selected: the highlight goes at once with the pins.
