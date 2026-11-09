@@ -10,12 +10,13 @@ From release 2 (1.0.5026, live on Play production 2026-11-09). The owner, after 
 
 ## The path that worked
 
-1. **The code is on main**, by a promotion from pre-main.
-2. **Walk it on the S22 first**, with CI's debug APK of the same tree (`gh run download <run> -n app-debug-apk`). It installs over the S22's debug build and keeps its data, so there is no wipe and no wait on a download from Play. Warn the owner before the phone moves. Walk early, while the owner has time, not after publishing.
-3. **Write the release notes** (Play's limit is 500 characters per language) and check each line against the code that ships. The workflow sends no notes; the owner adds them in Play Console.
-4. **Start the release:** `gh workflow run play-production.yml --ref main`, with no input. Never start this workflow for anything but a release: a test or dry run takes the next release's number.
-5. **The owner approves the run in GitHub.** It then builds, signs, verifies the signature and version, and publishes to production with status completed, with no rollout click. Google's review took minutes for 5026.
-6. **Report** the version code and name, and the production track before and after.
+1. **Final gate, before the promotion:** run `gh workflow run play-premain-signed.yml --ref pre-main` ("Signed build from pre-main (final gate)"). The owner approves it. It builds and signs pre-main and uploads it to Play's internal track as a draft that goes to no one. The owner tests that exact signed file from Play Console, under App bundle explorer, then the version code, then Downloads, then Signed, universal APK, installing it over the Play version on a phone with records. The owner, 2026-11-09: "Add an option to sign and release on pre main before the promotion as the final gate". This workflow is a separate file, so it never takes a release number.
+2. **The code is on main**, by a promotion from pre-main. If main's tree equals the tested pre-main, play-production.yml can publish the tested bundle itself with its `version_code` input; otherwise it builds main.
+3. **Walk it on the S22 first**, with CI's debug APK of the same tree (`gh run download <run> -n app-debug-apk`). It installs over the S22's debug build and keeps its data, so there is no wipe and no wait on a download from Play. Warn the owner before the phone moves. Walk early, while the owner has time, not after publishing.
+4. **Write the release notes** (Play's limit is 500 characters per language) and check each line against the code that ships. The workflow sends no notes; the owner adds them in Play Console.
+5. **Start the release:** `gh workflow run play-production.yml --ref main`, with no input. Never start this workflow for anything but a release: a test or dry run takes the next release's number.
+6. **The owner approves the run in GitHub.** It then builds, signs, verifies the signature and version, and publishes to production with status completed, with no rollout click. Google's review took minutes for 5026.
+7. **Report** the version code and name, and the production track before and after.
 
 ## Already settled
 
@@ -31,4 +32,4 @@ From release 2 (1.0.5026, live on Play production 2026-11-09). The owner, after 
 
 ## Open before release 3
 
-The owner: "I need to test the release before it uploads". play-production.yml publishes on approval, so the signed build only exists once it is live. How the owner tests the signed build before it publishes (for example a build-and-hold step, or Play's internal app sharing before publishing) is to be settled with the owner before release 3.
+The owner: "I need to test the release before it uploads". Step 1's final gate answers it. One setting is still needed: the `release` environment allows main only, so the final-gate run is refused until pre-main is added to it (GitHub, under Settings, Environments, release, Deployment branches and tags, Add deployment branch or tag rule, Ref type Branch, name `pre-main`). The required reviewer stays. play-production.yml still refuses anything but main in its own first step.
