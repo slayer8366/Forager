@@ -158,6 +158,7 @@ internal fun cameraRestoreFor(saved: MapCameraSnapshot?, previousCameraMode: Int
         tilt = saved.tilt,
         appliedTarget = saved.appliedTarget,
         cameraMode = if (saved.following) CameraMode.TRACKING else CameraMode.NONE,
+        padding = if (navigating) saved.padding else null,
     )
 }
 
@@ -168,6 +169,7 @@ internal fun applyCameraRestore(map: MapLibreMap, restore: MapCameraRestore) {
         .zoom(restore.zoom)
         .bearing(restore.bearing)
         .tilt(restore.tilt)
+        .apply { restore.padding?.let { padding(it.toDoubleArray()) } }
         .build()
 }
 
@@ -185,6 +187,7 @@ internal fun cameraSnapshotOf(map: MapLibreMap, appliedTarget: Pair<Region, LatL
         tilt = camera.tilt,
         following = map.locationComponent.isLocationComponentActivated && map.locationComponent.cameraMode != CameraMode.NONE,
         appliedTarget = appliedTarget,
+        padding = camera.padding?.toList(),
     )
 }
 

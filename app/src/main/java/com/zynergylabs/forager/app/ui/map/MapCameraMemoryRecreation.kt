@@ -55,6 +55,7 @@ internal data class SavedCamera(
     val following: Boolean,
     val appliedRegion: Triple<Double, Double, Int>?,
     val appliedFocus: Pair<Double, Double>?,
+    val padding: List<Double>?,
 ) : Serializable
 
 /** The saver for a process whose token is [token]; separate so a test can stand in a value saved by another process. */
@@ -84,6 +85,7 @@ private fun MapCameraSnapshot.toSaved(): SavedCamera = SavedCamera(
     target.lat, target.lng, zoom, bearing, tilt, following,
     appliedRegion = appliedTarget?.first?.let { Triple(it.lat, it.lng, it.radiusKm) },
     appliedFocus = appliedTarget?.second?.let { it.lat to it.lng },
+    padding = padding?.let { ArrayList(it) },
 )
 
 private fun SavedCamera.toSnapshot(): MapCameraSnapshot = MapCameraSnapshot(
@@ -95,4 +97,5 @@ private fun SavedCamera.toSnapshot(): MapCameraSnapshot = MapCameraSnapshot(
     appliedTarget = appliedRegion?.let { (regionLat, regionLng, radiusKm) ->
         Region(regionLat, regionLng, radiusKm) to appliedFocus?.let { (focusLat, focusLng) -> LatLng(focusLat, focusLng) }
     },
+    padding = padding,
 )
