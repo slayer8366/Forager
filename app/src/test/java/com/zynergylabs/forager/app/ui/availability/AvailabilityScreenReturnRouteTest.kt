@@ -168,7 +168,7 @@ class AvailabilityScreenReturnRouteTest {
         assertEquals("0.9 mi", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         // RECORD -942: on the route there is no straight-line note. Was "0.7 mi straight".
         assertEquals("", textOfTag(NAVIGATION_HUD_STATUS_TAG))
-        assertEquals("right 45°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("45°", textOfTag(NAVIGATION_HUD_TARGET_TAG)) // G2 (Amendment 1): the degrees alone. Was "right 45°".
     }
 
     @Test
@@ -190,31 +190,46 @@ class AvailabilityScreenReturnRouteTest {
     }
 
     /**
-     * The HUD is the same height on the route and pending. Dispatch 2026-10-12-06 (RECORD -932, step 3; RECORD -935): a withheld
-     * route's message has moved from the large slot to its own line under the columns, so withheld with no usable points the HUD
-     * is taller by that one line, and with "Try again" offered by "Try again"'s row, laid out at its 48 dp touch height, beside
-     * the message. Was: "the HUD is one row taller only while Try again is offered", withheld with no usable points the same
-     * height as on the route. No new surface either way: the map-chrome fill at 80% is the HUD's existing one.
+     * Dispatch 2026-10-12-06 (RECORD -932, step 3; RECORD -935): a withheld route's message has moved from the large slot to its
+     * own line under the columns, so withheld with no usable points the HUD is taller by that one line, and with "Try again"
+     * offered by "Try again"'s row, laid out at its 48 dp touch height, beside the message. Was: "the HUD is one row taller only
+     * while Try again is offered", withheld with no usable points the same height as on the route. No new surface either way:
+     * the map-chrome fill at 80% is the HUD's existing one.
+     *
+     * Dispatch 2026-11-05-10 (RECORD -2181, the owner: "move the "by trail" from the bottom to the top right half, on the same line
+     * as 2.2 mi"): on the route the kind no longer takes a line of its own, so the HUD there is one line shorter than pending, which
+     * keeps its status line ("0.7 mi straight"). The two growths are now measured from pending, the state with the same lines but
+     * the message and Try again, so their bounds are the ones this test had. Was, the first and the two bounds:
+     * `assertEquals("pending, the HUD's height is the route's", onRoute.value, …, 0.5f)`, `withheld > onRoute + 0.5.dp && withheld
+     * <= onRoute + line + 0.5.dp` and `taller <= onRoute + row + 0.5.dp`.
      */
     @Test
     fun `the HUD grows by the route message's line when a route is withheld, and by Try again's row when it is offered`() {
         setScreen(ReturnRoute.Ahead(east, 1_500.0))
         val onRoute = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
+        assertEquals("positive control: on the route the status line is empty", "", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         composeRule.runOnIdle { route = ReturnRoute.Pending }
         composeRule.waitForIdle()
-        assertEquals("pending, the HUD's height is the route's", onRoute.value, boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }.value, 0.5f)
+        val pending = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
+        val status = boundsOf(NAVIGATION_HUD_STATUS_TAG).let { it.bottom - it.top }
+        assertEquals("positive control: pending's status line", "0.7 mi straight", textOfTag(NAVIGATION_HUD_STATUS_TAG))
+        // Dispatch 2026-11-05-10, Amendment 1, H2 ("Under the evening line (Recommended)": "The card is two lines tall"): the status
+        // words are in the right part, beside the left part's two lines, so pending is the route's height. Was `assertEquals("pending,
+        // the HUD is the route's and its status line ($status)", (onRoute + status).value, pending.value, 0.5f)`.
+        assertTrue("positive control: pending's status words take a line's height ($status)", status > 0.5.dp)
+        assertEquals("pending, the HUD is the route's: its status words sit in the right part", onRoute.value, pending.value, 0.5f)
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = false) }
         composeRule.waitForIdle()
         val withheld = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
         val message = boundsOf(NAVIGATION_HUD_DISTANCE_TAG)
         val line = message.bottom - message.top
-        assertTrue("taller by the message's line, no more: $withheld against $onRoute, line $line", withheld > onRoute + 0.5.dp && withheld <= onRoute + line + 0.5.dp)
+        assertTrue("taller than pending by the message's line, no more: $withheld against $pending, line $line", withheld > pending + 0.5.dp && withheld <= pending + line + 0.5.dp)
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
         composeRule.waitForIdle()
         val taller = boundsOf(NAVIGATION_HUD_TAG).let { it.bottom - it.top }
         val row = boundsOf(NAVIGATION_HUD_RETRY_TAG).let { it.bottom - it.top }
         assertTrue("taller with Try again: $taller against $withheld", taller > withheld + 0.5.dp)
-        assertTrue("taller by no more than the row ($row) over the route's height: $taller against $onRoute", taller <= onRoute + row + 0.5.dp)
+        assertTrue("taller by no more than the row ($row) over pending's height: $taller against $pending", taller <= pending + row + 0.5.dp)
     }
 
     /**

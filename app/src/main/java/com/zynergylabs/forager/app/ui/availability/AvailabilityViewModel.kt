@@ -189,6 +189,8 @@ class AvailabilityViewModel(
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /** Step 6 PR 3: the way to a waypoint along trails (AppContainer.findWayToWaypoint); `null`, none (tests), is today's straight line. */
     private val findWayToWaypoint: (suspend (LatLng, LatLng, Float?) -> WayToWaypointResult)? = null,
+    /** Dispatch 2026-11-06-01, H4 (2b-1): each trail line's junctions for the next turn; `null`, none (tests). */
+    private val readRouteTurns: com.zynergylabs.forager.app.domain.nextturn.RouteTurnsReader? = null,
     /** Dispatch 2026-10-28-13: the barometer and the sea-level converter behind the live height ([AvailabilityLiveLocation]). Defaulted to none: "Alt unavailable". */
     private val pressureProvider: PressureProvider = NoBarometer,
     private val seaLevelConverter: SeaLevelConverter = NoSeaLevelConverter,
@@ -327,7 +329,7 @@ class AvailabilityViewModel(
     private val waypointLine = AvailabilityWaypointLine({ transform -> _uiState.update(transform) }, navigationTargetReader(readWaypoint, getPlannedTrips::invoke), currentTime, errorLog)
     /** The way to that waypoint along trails (step 6 PR 3): see the class. Started and ended beside the line, below. */
     private val waypointRoute =
-        AvailabilityWaypointRoute({ transform -> _uiState.update(transform) }, navigationTargetReader(readWaypoint, getPlannedTrips::invoke), findWayToWaypoint, { _uiState.value.offlineRegions }, currentTime, errorLog)
+        AvailabilityWaypointRoute({ transform -> _uiState.update(transform) }, navigationTargetReader(readWaypoint, getPlannedTrips::invoke), findWayToWaypoint, { _uiState.value.offlineRegions }, currentTime, errorLog, readRouteTurns)
 
     /**
      * The species lookup (its one job and the debounce) and the search inputs' plain writes, moved to their own

@@ -6,6 +6,8 @@ import com.zynergylabs.forager.app.domain.NavigationTargetKind
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.RouteWithheldReason
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.nextturn.NextTurn
+import com.zynergylabs.forager.app.domain.nextturn.NextTurnBlank
 import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
 import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
@@ -61,6 +63,18 @@ internal data class NavigationHudReadout(
      * RECORD -950, already says. The navigation info's status line leaves it out. The readout still carries it, as data.
      */
     val statusIsPositionStatus: Boolean = false,
+    /**
+     * Dispatch 2026-11-05-10, Amendment 1, H3 (RECORD -2181): the compass notice the card's status space shows while the map's
+     * navigation view retries a stuck compass, or once it has turned north-up ("Compass calibrating…", "Compass unavailable · north
+     * up"); `null` otherwise. The same words [headingText] carries in those states (dispatch 2026-09-28-430, ruling E: "this label is
+     * the notice"), which the card no longer draws since H1 gave the heading back to the strip.
+     */
+    val compassNoticeText: String? = null,
+    /**
+     * Amendment 1, H10 (RECORD -2181): [statusText] warns of the fix's age, stale or lost ("Last fix 45 s ago", "No fix for 6 min"),
+     * which comes first where the status words have one line under the parts ([oneStatusLine]).
+     */
+    val statusIsFixAge: Boolean = false,
 ) {
     /**
      * The status's forms, longest first (T11 fixes). With "By trail ·" leading the line ([kindInStatus]) the straight-line
@@ -109,6 +123,13 @@ sealed interface ReturnRoute {
         val offTrail: OffTrailState = OffTrailState.ON,
         /** Set only by the way to a waypoint along trails (`AvailabilityWaypointRoute`): its off-trail words, not the way home's. */
         val toWaypoint: Boolean = false,
+        /**
+         * The next turn on this route (dispatch 2026-11-06-01, Amendment 1, J2: "Call nextTurn(...) where the line and progress live
+         * (TrackRecordingRouteTicks, AvailabilityWaypointRoute) and pass the result to the card"), worked out by whoever holds the
+         * line and the walker's place on it, and carried to the card with the route it already gets. Not yet known by default, so
+         * a route given without one leaves the space blank (E1), never a guessed arrow.
+         */
+        val nextTurn: NextTurn = NextTurn.Blank(NextTurnBlank.NOT_YET_KNOWN),
     ) : ReturnRoute
 
     /**
@@ -135,8 +156,14 @@ sealed interface ReturnRoute {
  * the walker moving back towards it changes the answer; one withheld for
  * [RouteWithheldReason.NO_USABLE_POINTS] does not, since nothing would (dispatch 2026-09-28-423).
  */
-fun returnRouteOf(routeHome: RouteHome?, wayHomeNote: WayHomeNote? = null, offTrail: OffTrailState = OffTrailState.ON): ReturnRoute = when (routeHome) {
+fun returnRouteOf(
+    routeHome: RouteHome?,
+    wayHomeNote: WayHomeNote? = null,
+    offTrail: OffTrailState = OffTrailState.ON,
+    /** The way home's next turn, as the route tick worked it out beside [routeHome] (J2); read only with a route ahead. */
+    nextTurn: NextTurn = NextTurn.Blank(NextTurnBlank.NOT_YET_KNOWN),
+): ReturnRoute = when (routeHome) {
     null -> ReturnRoute.Pending
-    is RouteHome.Ahead -> ReturnRoute.Ahead(routeHome.lookahead, routeHome.routeMeters, wayHomeNote, offTrail)
+    is RouteHome.Ahead -> ReturnRoute.Ahead(routeHome.lookahead, routeHome.routeMeters, wayHomeNote, offTrail, nextTurn = nextTurn)
     is RouteHome.Withheld -> ReturnRoute.Unavailable(canRetry = routeHome.reason == RouteWithheldReason.OFF_ROUTE)
 }

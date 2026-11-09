@@ -43,11 +43,18 @@
 // and the Worker's tests are the new files'. v1 to v3 are untouched. v4's night tables are unchanged: they are keyed by
 // layer id and the app holds its own copy equal to them, so until the app maps the clones to their originals, night
 // draws a clone with the plain inversion where its original has a named exception.
+//
+// Since I8 (dispatch 2026-11-06-01 Amendment 1, RECORD -2183; the owner: "Update v4 in place") v4 also moves the Forest
+// Service trail number up to the bottom of its top run of labels (withTrailNumberUnderLabels in
+// overrides/forager-reference.mjs), applied last, so the app's lines, drawn just under that run, go under it too (I5:
+// "Under all names, trail no. too"). Only that layer's place changes; street-v4 and trail-v4 change together again, and
+// v1 to v3 are untouched. In place only because Trail Map has not been released yet; after release a style change ships
+// as a new version.
 import fs from "node:fs";
 import { layers, namedFlavor } from "@protomaps/basemaps";
 import { applyTrailDesign, withBuildingOutline, COLOURS, NIGHT_ICON_RINGS, NIGHT_LAYER_BANDS, NIGHT_LAYER_COLOURS } from "./overrides/forager-trail.mjs";
 import { applyCharacter, NIGHT_FILL_COLOURS, NIGHT_PATTERN_COLOURS } from "./overrides/forager-character.mjs";
-import { REFERENCE_SOURCE_ID, referenceSource, withReferenceLayers } from "./overrides/forager-reference.mjs";
+import { REFERENCE_SOURCE_ID, referenceSource, withReferenceLayers, withTrailNumberUnderLabels } from "./overrides/forager-reference.mjs";
 import { applyFillIn, FILL_IN_COLOURS, NIGHT_FILL_COLOURS_V4, NIGHT_HILLSHADE_V4, NIGHT_LAYER_COLOURS_V4, NIGHT_LINE_COLOURS_V4 } from "./overrides/forager-fill-in.mjs";
 import { applyReferenceZooms, CLONES } from "./overrides/forager-reference-zooms.mjs";
 
@@ -81,8 +88,8 @@ const spriteIconsOf = (sprite) => Object.keys(JSON.parse(fs.readFileSync(here(`.
 const v3Layers = () => withReferenceLayers(withBuildingOutline(applyCharacter(applyTrailDesign(layers("protomaps", namedFlavor("light"), { lang: "en" })))));
 
 /**
- * What differs between the versions this script writes: v4 is v3's layers with the fill-in, then the first zooms, and v4's
- * night tables.
+ * What differs between the versions this script writes: v4 is v3's layers with the fill-in, then the first zooms, then
+ * the trail number moved up among the labels (I8), and v4's night tables.
  */
 const VERSIONS = {
   v3: {
@@ -93,7 +100,7 @@ const VERSIONS = {
     toWorker: true,
   },
   v4: {
-    layers: applyReferenceZooms(applyFillIn(v3Layers())),
+    layers: withTrailNumberUnderLabels(applyReferenceZooms(applyFillIn(v3Layers()))),
     palette: { ...COLOURS, fillIn: FILL_IN_COLOURS },
     nightLayers: NIGHT_LAYER_COLOURS_V4,
     nightFills: NIGHT_FILL_COLOURS_V4,

@@ -271,7 +271,7 @@ class AvailabilityScreenApproximatePositionTest {
 
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
         assertEquals("≈ 3.2 km", text(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("the needle: the creek is due north of a walker facing north", "ahead 0°", text(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("the needle: the creek is due north of a walker facing north", "0°", text(NAVIGATION_HUD_TARGET_TAG)) // Amendment 1, G2 (dispatch 2026-11-05-10): the degrees alone. Was "ahead 0°".
         // Dispatch 2026-09-28-677: from an approximate reading the figure is the straight line, and says so.
         assertEquals("straight", text(NAVIGATION_HUD_DISTANCE_KIND_TAG))
         // Dispatch 2026-10-12-08 (RECORD -951, option (a): GPS status messages show on the strip only): the strip stays while

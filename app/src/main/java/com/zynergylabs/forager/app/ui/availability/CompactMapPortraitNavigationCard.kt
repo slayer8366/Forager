@@ -54,7 +54,8 @@ internal fun compactMapEveningLines(
     sundownClock: SundownClock,
 ): Pair<String?, String?> {
     val sundown = (recordingSundownLine ?: rememberScreenSundownLine(uiState.headingFix?.let { com.zynergylabs.forager.app.domain.model.LatLng(it.lat, it.lng) }, currentTime))
-        .let { sundownLineText(it, sundownClock) }
+        // Dispatch 2026-11-05-10, Amendment 1, H5: before sunset, "Sunset: 4:52 PM ▪︎ Dark: 5:23 PM", the countdown off the card.
+        .let { cardSundownLineText(it, sundownClock) }
     return sundown to backByLineText(quickSettings?.backBy, sundownClock)
 }
 

@@ -244,3 +244,8 @@ Sorrel's review of #511 (`prompts/preserved/2026-11-09-sorrel-review-511-padding
 
 ## Clean-up
 - The throwaway ref `hazel-follow4-revert` was deleted from origin, and its worktree was removed.
+
+## Merged with pre-main (2026-11-09)
+- Merged `origin/pre-main` 23b1bf25c (#500, #508 locate-jump, #510) into this branch; merge, no rebase.
+- One textual conflict, test-only: `CameraMapFixture.kt`. Pre-main's copy is byte-identical to the one the S22 combined build resolved against (`e18a4ede8`), so the combined build's resolution (`c29c0956d`) was taken whole: one `easeTo`/`flyTo` branch appends to `eases`, sets `eased` on `easeTo` and lands `camera = end`; every map's transform gets locate-jump's inert view; `easingView` removed; the `easing` parameter kept under `@Suppress("UNUSED_PARAMETER")`, documented as changing nothing, so `MapCameraRestorePaddingTest`'s `easing = true` call is untouched.
+- Auto-merged app code: `NavigationView.kt` is the only main file both sides changed, in disjoint regions (#500's J8 `side.bottomPx` in `paddingWhileTracking` vs this branch's `holdRestoredView()`). `MapCameraMoves.kt` and `MapStyleReload.kt` are changed by this branch only. The CI comparison is in the PR hand-back.

@@ -7,6 +7,7 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.routing.TrailEngineSource
 import com.zynergylabs.forager.app.domain.routing.TrailSnapMethod
 import com.zynergylabs.forager.app.domain.wayhome.FindWayHomeUseCase
+import com.zynergylabs.forager.app.domain.wayhome.WayHome
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
 import com.zynergylabs.forager.app.domain.wayhome.WayHomeResult
 import kotlinx.coroutines.CoroutineDispatcher
@@ -29,6 +30,8 @@ class WayHomeRouting(
     private val engines: TrailEngineSource,
     private val offlineMapRepository: OfflineMapRepository,
     private val errorLog: ErrorLog,
+    /** Handed to [FindWayHomeUseCase]: told of every trail route found (dispatch 2026-11-06-01, Phase 2a, the M1 line). */
+    private val trailRouteFound: (wayHome: WayHome, routeData: File) -> Unit = { _, _ -> },
 ) {
     /**
      * A way home with an engine of its own, as this class was built before the engine was shared: what its own tests
@@ -48,7 +51,7 @@ class WayHomeRouting(
             errorLog.w(TAG, "The routing profile could not be installed; the way home follows the track.", e)
             return WayHomeResult.TrackOnly(WayHomeNote.NO_ROUTE_FOUND)
         }
-        return FindWayHomeUseCase(offlineMapRepository, engine.router, engine.snapper, errorLog)(track, origin)
+        return FindWayHomeUseCase(offlineMapRepository, engine.router, engine.snapper, errorLog, trailRouteFound)(track, origin)
     }
 
     private companion object {

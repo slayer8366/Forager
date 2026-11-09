@@ -11,6 +11,9 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.nextturn.HeldRouteTurns
+import com.zynergylabs.forager.app.domain.nextturn.RouteTurns
+import com.zynergylabs.forager.app.domain.nextturn.RouteTurnsReader
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -24,7 +27,8 @@ import kotlinx.coroutines.launch
  * What [WayHomeWatch] shows for [trackId]: the way home of [generation], or `null` [result] while the first one of a
  * return is still being worked out (the track is shown meanwhile, "as today"). [line] is [result]'s line when it is
  * along trails. [offTrail] is the quiet off-trail state along [line] (plan step 7 PR 3; RECORD -1631), [OffTrailState.ON]
- * with no line.
+ * with no line. [turns] are [line]'s junctions for the next turn (dispatch 2026-11-06-01, Amendment 1, H4, 2b-1), read
+ * after the line is shown: `null` while they are being read, and with no line.
  */
 data class WayHomeShown(
     val trackId: String,
@@ -32,6 +36,7 @@ data class WayHomeShown(
     val result: WayHomeResult?,
     val line: WayHomeLine? = null,
     val offTrail: OffTrailState = OffTrailState.ON,
+    val turns: RouteTurns? = null,
 )
 
 /**
@@ -88,6 +93,11 @@ class WayHomeWatch(
     /** Whether the walker is returning on this track now (`ReturnWatch`'s state); arrival ends it. */
     private val isReturning: (String) -> Boolean,
     private val errorLog: ErrorLog,
+    /**
+     * Reads each line's junctions for the next turn, from the route data the line was found on (dispatch 2026-11-06-01,
+     * Amendment 1, H4, 2b-1); `null`, none (tests): [WayHomeShown.turns] stays `null`.
+     */
+    readTurns: RouteTurnsReader? = null,
 ) {
     private val lock = Any()
 
@@ -106,6 +116,7 @@ class WayHomeWatch(
     private var loggedWhy: String? = null
     private val keptPoints = WayHomeKeptPoints()
     private val offTrail = WayHomeOffTrail()
+    private val heldTurns = readTurns?.let(::HeldRouteTurns)
 
     /**
      * The walker tapped Return on [trackId], with [origin] its start marker: the track is shown, and the way home is
@@ -199,6 +210,8 @@ class WayHomeWatch(
     /** Call with [lock] held. */
     private fun launchJob(id: String, origin: Waypoint?, firstOfReturn: Boolean) {
         job?.cancel()
+        // The shown line keeps its turns until the re-route's line comes, as it keeps the line; that line's are then read
+        // afresh (H4: "recomputed on each re-route"), in readTurnsOf.
         val mine = ++generation
         if (firstOfReturn) _shown.value = WayHomeShown(id, mine, null)
         job = scope.launch {
@@ -228,6 +241,27 @@ class WayHomeWatch(
                 // Step 7 PR 3: the off-trail state carries onto a re-routed line, and ends with a fallback to the track.
                 if (line == null) offTrail.reset()
                 _shown.value = WayHomeShown(id, mine, result, line, offTrail.state)
+                readTurnsOf(id, mine, result as? WayHomeResult.AlongTrails, line)
+            }
+        }
+    }
+
+    /**
+     * Call with [lock] held. Reads [line]'s junctions (H4, 2b-1) and adds them to what is shown, only while [mine] is
+     * still the line shown for [id]; with no line, any read in flight is cancelled.
+     */
+    private fun readTurnsOf(id: String, mine: Long, found: WayHomeResult.AlongTrails?, line: WayHomeLine?) {
+        val held = heldTurns ?: return
+        if (found == null || line == null) {
+            held.cancel()
+            return
+        }
+        held.read(scope, found.wayHome, line, found.routeData) { turns ->
+            synchronized(lock) {
+                val now = _shown.value
+                // Only onto the line it was read for: a later line, Stop or another track's Return has replaced it otherwise.
+                if (now == null || now.trackId != id || now.generation != mine || now.line !== line) return@synchronized
+                _shown.value = now.copy(turns = turns)
             }
         }
     }
@@ -258,6 +292,7 @@ class WayHomeWatch(
     private fun forget() {
         job?.cancel()
         job = null
+        heldTurns?.cancel()
         generation++
         trackId = null
         origin = null

@@ -225,7 +225,7 @@ class TripNavigateTest {
     /** The HUD aims at the trip, due north of a walker facing north, with the straight distance to it; the map has the line to it. */
     private fun assertHudAimsAtTrip() {
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
-        assertEquals("the needle aims at the trip", "ahead 0°", text(NAVIGATION_HUD_TARGET_TAG))
+        assertEquals("the needle aims at the trip", "0°", text(NAVIGATION_HUD_TARGET_TAG)) // Amendment 1, G2 (dispatch 2026-11-05-10): the degrees alone. Was "ahead 0°".
         val straight = GeoDistance.metersBetween(LatLng(fix.lat, fix.lng), trip.location)
         assertEquals(formatDistanceWithAccuracy(straight, fix.accuracyMeters, viewModel.uiState.value.distanceUnit), text(NAVIGATION_HUD_DISTANCE_TAG))
         assertEquals("Stop navigating", controlLabel())
@@ -388,18 +388,40 @@ class TripNavigateTest {
 
     // ── The way along trails, and its notes in the trip's words ──
 
+    /**
+     * Dispatch 2026-11-05-10 (RECORD -2181), Amendment 1, F2: "No clear way in" only says why, so its words, in the trip's ("No clear
+     * way in to the trip"), leave the card. Was "the way along trails is asked for the trip's spot, and a note that names the waypoint
+     * names the trip", asserting the status line read "No clear way in to the trip · straight line" or "No clear way in to the trip".
+     * The three notes with a trip wording all go, so none reaches the card; the wordings are pinned by WayToTripNotesTest.
+     */
     @Test
-    fun `the way along trails is asked for the trip's spot, and a note that names the waypoint names the trip`() {
+    fun `the way along trails is asked for the trip's spot, and a note that only says why leaves no status line`() {
         wayTo = WayToWaypointResult.StraightLine(WayToWaypointNote.WAY_IN_BLOCKED)
         setScreen()
         openBubble()
         touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
 
         assertEquals("asked once, for the trip's own spot", listOf(trip.location), asked)
+        assertEquals(
+            "positive control: the trip's note is still chosen",
+            ReturnRoute.Straight(WayToWaypointNote.WAY_IN_BLOCKED, NavigationTargetKind.TRIP),
+            viewModel.uiState.value.waypointRoute?.hud,
+        )
+        assertEquals("no status line: the straight line is the explanation", "", text(NAVIGATION_HUD_STATUS_TAG))
+    }
+
+    /** F2's positive control on the way to a trip: a note that asks something still shows, in a waypoint's words. */
+    @Test
+    fun `a note that asks something still shows on the way to a trip`() {
+        wayTo = WayToWaypointResult.StraightLine(WayToWaypointNote.ROUTES_NOT_DOWNLOADED)
+        setScreen()
+        openBubble()
+        touchCentreOf(MAP_BUBBLE_NAVIGATE_TAG)
+
         val status = text(NAVIGATION_HUD_STATUS_TAG)
         assertTrue(
-            "the trip's words, whole or short: '$status'",
-            status == "No clear way in to the trip · straight line" || status == "No clear way in to the trip",
+            "the note, whole or short: '$status'",
+            status == "Trail routes not downloaded · straight line" || status == "Trail routes not downloaded",
         )
     }
 

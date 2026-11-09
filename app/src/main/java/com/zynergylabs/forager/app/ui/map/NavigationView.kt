@@ -505,10 +505,11 @@ class NavigationModeChange {
                 }
                 val paddingToken = ++paddingAnimationToken
                 paddingAnimationInFlight = paddingToken
-                // D29: the side padding as it is when the padding lands, read then rather than at the call (sideInsetsPx).
+                // D29: the side padding as it is when the padding lands, read then rather than at the call (sideInsetsPx). J8: its
+                // bottom too, which keeps the dot above the landscape card on top (NavigationSideInsets.bottomPx).
                 val side = sideInsetsPx()
                 component.paddingWhileTracking(
-                    doubleArrayOf(side.leftPx, topPaddingPx, side.rightPx, 0.0),
+                    doubleArrayOf(side.leftPx, topPaddingPx, side.rightPx, side.bottomPx),
                     NAVIGATION_VIEW_TRANSITION_MILLIS,
                     object : MapLibreMap.CancelableCallback {
                         override fun onFinish() {

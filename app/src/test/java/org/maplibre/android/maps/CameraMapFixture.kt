@@ -31,10 +31,17 @@ object CameraMapFixture {
         var camera: CameraPosition? = null
         var jumps = 0
 
-        /** The camera the last `easeTo` was given (an eased move: `Transform.easeCamera`), kept apart from [camera], which it does not move. */
+        /** The camera the last `easeTo` was given (an eased move: `Transform.easeCamera`); it also lands on [camera], as every animated move does. */
         var eased: CameraPosition? = null
         var trackingChanges = 0
         lateinit var cameraController: Any
+
+        /**
+         * Every animated move, in order (dispatch 2026-11-07-01 Amendment 1): `easeTo` (what `MapLibreMap.easeCamera` reaches
+         * through `Transform.easeCamera`) and `flyTo` (`animateCamera`). Each lands at once on its end camera, as if the animation
+         * ran to its end; [jumps] counts only the instant moves, so a glide and a snap are told apart.
+         */
+        val eases = mutableListOf<Ease>()
 
         /** The location component's camera mode, read from the SDK's own controller. */
         val cameraMode: Int get() = field(cameraController, "cameraMode").getInt(cameraController)
@@ -42,6 +49,9 @@ object CameraMapFixture {
         /** Puts the component in [mode] the way a locate tap's own transition leaves it, without a transition to run. */
         fun setModeDirectly(mode: Int) = field(cameraController, "cameraMode").setInt(cameraController, mode)
     }
+
+    /** One animated move: where it ends, at what zoom, over how long, and which native call made it. */
+    data class Ease(val camera: CameraPosition, val durationMs: Long, val call: String)
 
     // The JVM's own allocator, reached by reflection: the Android compile classpath does not carry sun.misc, the test JVM does.
     private val unsafeType: Class<*> = Class.forName("sun.misc.Unsafe")
@@ -76,18 +86,10 @@ object CameraMapFixture {
     }
 
     /**
-     * With [easing], the map's view for an eased move with a callback (`Transform.easeCamera` registers it on the view's
-     * `MapChangeReceiver`): a view with no constructor run, holding the SDK's own receiver, which nothing here ever fires. Without
-     * it, none, as before.
+     * A map whose camera starts at [start], with following on when [cameraMode] is a tracking mode; [fit] is where a fit lands.
+     * [easing] is kept for its callers and changes nothing: every map's transform now holds the view an eased move needs.
      */
-    private fun easingView(easing: Boolean): MapView? {
-        if (!easing) return null
-        val view = inert(MapView::class.java)
-        set(view, "mapChangeReceiver", MapChangeReceiver::class.java.getDeclaredConstructor().apply { isAccessible = true }.newInstance())
-        return view
-    }
-
-    /** A map whose camera starts at [start], with following on when [cameraMode] is a tracking mode; [fit] is where a fit lands. */
+    @Suppress("UNUSED_PARAMETER")
     fun map(start: CameraPosition, fit: CameraPosition, cameraMode: Int = CameraMode.NONE, easing: Boolean = false): Pair<MapLibreMap, Recording> {
         val recording = Recording(fit).also { it.camera = start }
         val native = Proxy.newProxyInstance(NativeMap::class.java.classLoader, arrayOf(NativeMap::class.java)) { _, method, args ->
@@ -104,16 +106,19 @@ object CameraMapFixture {
                     recording.jumps++
                     null
                 }
-                "easeTo" -> {
-                    // NativeMap.easeTo(target, zoom, bearing, tilt, padding, duration, easing), as Transform.easeCamera calls it.
-                    val padding = args[4] as DoubleArray?
-                    recording.eased = CameraPosition.Builder()
+                "easeTo", "flyTo" -> {
+                    // NativeMap.easeTo(target, zoom, bearing, tilt, padding, duration, easing), as Transform.easeCamera calls it;
+                    // flyTo takes the same first six.
+                    val end = CameraPosition.Builder()
                         .target(args[0] as LatLng)
                         .zoom(args[1] as Double)
                         .bearing(args[2] as Double)
                         .tilt(args[3] as Double)
-                        .apply { if (padding != null) padding(padding) }
+                        .apply { (args[4] as DoubleArray?)?.let { padding(it) } }
                         .build()
+                    recording.eases += Ease(end, args[5] as Long, method.name)
+                    if (method.name == "easeTo") recording.eased = end
+                    recording.camera = end
                     null
                 }
                 "getCameraPosition" -> recording.camera
@@ -122,10 +127,14 @@ object CameraMapFixture {
             }
         } as NativeMap
         val dispatcher = CameraChangeDispatcher::class.java.getDeclaredConstructor().apply { isAccessible = true }.newInstance()
+        // An animated move registers a camera-did-change listener on the view (Transform.easeCamera, animateCamera; 13.5.0
+        // bytecode), so the transform holds an inert view whose one part that call reaches, its change receiver, is real.
+        val view = inert(MapView::class.java)
+        set(view, "mapChangeReceiver", MapChangeReceiver::class.java.getDeclaredConstructor().apply { isAccessible = true }.newInstance())
         val transform = Transform::class.java
             .getDeclaredConstructor(MapView::class.java, NativeMap::class.java, CameraChangeDispatcher::class.java)
             .apply { isAccessible = true }
-            .newInstance(easingView(easing), native, dispatcher)
+            .newInstance(view, native, dispatcher)
         val uiSettings = inert(UiSettings::class.java)
         set(uiSettings, "focalPointChangeListener", FocalPointChangeListener { _: PointF? -> })
         val map = MapLibreMap::class.java.declaredConstructors.single { it.parameterCount == 7 }
