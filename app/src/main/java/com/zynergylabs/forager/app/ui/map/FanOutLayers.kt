@@ -66,6 +66,13 @@ internal object FanOutIds {
 
     /** The feature property holding a copy's `symbol-sort-key`: its registry layer's place in the draw order (dispatch 2026-09-28-318). */
     const val SORT_KEY_PROPERTY = "sortKey"
+
+    /**
+     * The selected stop's highlight over its copy while it fades or pulses (dispatch 2026-11-06-05, Amendment 7): the overlay's opacity and
+     * size. Only that overlay carries them; every other copy is drawn full and at its size.
+     */
+    const val ACCENT_OPACITY_PROPERTY = "accentOpacity"
+    const val ACCENT_SCALE_PROPERTY = "accentScale"
 }
 
 /** The leg's own line width, in dp: "a thin line". Its casing is [CASING_WIDTH_DP] wider on each side, as a track's is. */
@@ -142,9 +149,14 @@ internal fun fanIconLayerProperties(): Array<PropertyValue<*>> = arrayOf(
     // opens and is gone when it has folded (dispatch 2026-09-28-299); a glyph copy has no scale and is drawn at its size.
     PropertyFactory.iconSize(
         Expression.switchCase(
-            Expression.has(FanOutIds.CIRCLE_SCALE_PROPERTY), Expression.number(Expression.get(FanOutIds.CIRCLE_SCALE_PROPERTY)), Expression.literal(1f),
+            Expression.has(FanOutIds.CIRCLE_SCALE_PROPERTY), Expression.number(Expression.get(FanOutIds.CIRCLE_SCALE_PROPERTY)),
+            // Amendment 7: the selected stop's highlight swells once over its copy as it arrives.
+            Expression.has(FanOutIds.ACCENT_SCALE_PROPERTY), Expression.number(Expression.get(FanOutIds.ACCENT_SCALE_PROPERTY)),
+            Expression.literal(1f),
         ),
     ),
+    // Amendment 7: the highlight over the selected stop's copy fades in (and a stop no longer selected fades out); every other copy is full.
+    PropertyFactory.iconOpacity(Expression.coalesce(Expression.number(Expression.get(FanOutIds.ACCENT_OPACITY_PROPERTY)), Expression.literal(1f))),
     // Each copy's own offset: the glyph's centring offset times the fold's progress, so a copy's body is on its circle's
     // centre when spread and its anchor is on the coordinate, exactly where its original draws, when folded.
     PropertyFactory.iconOffset(Expression.get(FanOutIds.ICON_OFFSET_PROPERTY)),
@@ -222,6 +234,12 @@ internal fun fanFrameCollections(
     drawOrder: List<MapLayerSpec> = MAP_LAYER_REGISTRY,
     /** A saved route's selected stop's marker, whose copy draws the accent (Amendment 6 B, [fanCopyIcon]); `null` for none. */
     accent: FanKey? = null,
+    /**
+     * The highlights moving in this frame, by the marker each stands on (Amendment 7, RouteStopAccentMotion.kt). A member here whose
+     * highlight is not yet full, or is pulsing, draws its plain copy with the highlight over it at that opacity and size; at rest it draws
+     * the accent copy alone, as before. Empty: the [accent] copy at rest.
+     */
+    accentMotion: Map<FanKey, RouteStopAccentShown> = emptyMap(),
 ): FanFrame {
     if (members.isEmpty()) return EMPTY_FRAME
     val legs = mutableListOf<Feature>()
@@ -231,7 +249,12 @@ internal fun fanFrameCollections(
     for (member in members) {
         val now = at(member)
         val layerId = member.key.layerId
-        val icon = fanCopyIcon(layerId, member.key, accent)
+        val moving = accentMotion[member.key]?.takeIf { it.opacity < 1f || it.scale != 1f }
+        val icon = when {
+            moving != null -> markerIconForLayer(layerId)
+            accentMotion[member.key] != null -> fanCopyIcon(layerId, member.key, member.key)
+            else -> fanCopyIcon(layerId, member.key, accent)
+        }
         val image = icon?.imageId
         when {
             layerId == MapLayerIds.SIGHTINGS -> dots += Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat)).apply {
@@ -249,6 +272,7 @@ internal fun fanFrameCollections(
                     if (place < 0) Log.w(FAN_OUT_TAG, "$layerId is not in the draw order; its copy sorts below every other.")
                     addNumberProperty(FanOutIds.SORT_KEY_PROPERTY, place)
                 }
+                if (moving != null) fanAccentOverlay(member, now, progress, moving, layerId, drawOrder)?.let { icons += it }
             }
             else -> {
                 Log.w(FAN_OUT_TAG, "A fanned marker on $layerId has no icon to draw; it is left out.")
@@ -282,6 +306,27 @@ internal fun fanFrameCollections(
  * `literal(true)`: whether the native filter parser takes a bare boolean is unverified, while `["all"]`
  * is the canonical match-everything filter. Device-only either way.
  */
+/**
+ * Amendment 7: the selected stop's highlight over its plain copy at [now], at [moving]'s opacity and size, just above its own layer's copies
+ * (half a place up the sort order). It carries the copy's feature id and the accent image, so the hide waits for it as the copy the
+ * accent is drawn on (expectedCopies). Its offset is divided by its size, since `icon-offset` is scaled with `icon-size`: the swell stays
+ * centred on the copy. `null`, logged, for a layer with no accent image.
+ */
+private fun fanAccentOverlay(member: FanMember, now: LatLng, progress: Float, moving: RouteStopAccentShown, layerId: String, drawOrder: List<MapLayerSpec>): Feature? {
+    val accentIcon = fanCopyIcon(layerId, member.key, member.key) ?: return null
+    if (accentIcon == markerIconForLayer(layerId)) return null // fanCopyIcon logged it: no accent image for this layer
+    return Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat)).apply {
+        addStringProperty(FanOutIds.IMAGE_PROPERTY, accentIcon.imageId)
+        val offset = accentIcon.glyph.fanCentringOffsetDp()
+        val scale = moving.scale
+        addProperty(FanOutIds.ICON_OFFSET_PROPERTY, JsonArray().apply { add(offset.xDp * progress / scale); add(offset.yDp * progress / scale) })
+        addStringProperty(FEATURE_ID_PROPERTY, member.key.featureId)
+        addNumberProperty(FanOutIds.SORT_KEY_PROPERTY, drawOrder.indexOfFirst { it.id == layerId } + 0.5f)
+        addNumberProperty(FanOutIds.ACCENT_OPACITY_PROPERTY, moving.opacity)
+        addNumberProperty(FanOutIds.ACCENT_SCALE_PROPERTY, scale)
+    }
+}
+
 internal fun fanOutHiddenFilter(property: String, ids: List<Any>): Expression =
     if (ids.isEmpty()) {
         Expression.all()
