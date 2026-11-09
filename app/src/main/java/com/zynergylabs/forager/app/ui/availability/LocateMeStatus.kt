@@ -12,7 +12,15 @@ import com.zynergylabs.forager.app.domain.model.LatLng
  */
 sealed interface LocateMeStatus {
     data object Idle : LocateMeStatus
-    data object Loading : LocateMeStatus
+
+    /**
+     * A fetch is running. [previous] is the last fix it replaces, kept while it runs (dispatch 2026-11-07-01 Amendment 1;
+     * the owner: "Yes, stop the jump"): the map's camera target ([lastLocateFix], read by [compactMapDisplayRegion] and
+     * [compactMapLocateFocus]) stays on it, so a locate tap no longer moves the camera to the search region or the fallback
+     * before following takes over. Rejected: dropping the Loading state while a fix is held, which would also stop a repeat
+     * of the same failure from re-keying its toast (MapControlToasts).
+     */
+    data class Loading(val previous: Located? = null) : LocateMeStatus
 
     /**
      * [altitude] is the same nullable GPS altitude [com.zynergylabs.forager.app.domain.LocationResult.Success]
@@ -27,4 +35,11 @@ sealed interface LocateMeStatus {
     data class Located(val location: LatLng, val altitude: Double?, val searchFrameSerial: Int = 0) : LocateMeStatus
     data object PermissionDenied : LocateMeStatus
     data object Unavailable : LocateMeStatus
+}
+
+/** The last fix this status holds: its own, or, while a fetch runs, the one that fetch replaces ([LocateMeStatus.Loading.previous]). */
+internal fun LocateMeStatus.lastLocateFix(): LocateMeStatus.Located? = when (this) {
+    is LocateMeStatus.Located -> this
+    is LocateMeStatus.Loading -> previous
+    else -> null
 }

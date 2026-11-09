@@ -65,8 +65,17 @@ abstract class RouteCardSundownStepsAsideTests(legHeights: Boolean = true, clock
 
     /**
      * Where the room is short, the line steps aside (D42) and, if that is not enough at peek, the elevation line too (D44, RECORD
-     * -2027): the card is whole and its rows show. [lineExpected] is whether the sundown line shows with no card in this window
-     * (at 640 x 360 with the S22's insets -955's dot rule already leaves it out, so only D44 is left to make the room).
+     * -2027): the card is whole and its rows show. [lineExpected] is whether the sundown line shows with no card in this window.
+     * At 640 x 360 with the S22's insets, in the evening, it shows since Amendment 1, H10 of dispatch 2026-11-05-10 (RECORD -2181): the
+     * rig's lost fix and missing compass take one line under the parts, not two, so the line fits by -955's rule and D42 steps it aside
+     * when the card opens (CI run 42278603468). Was `lineExpected = false` there: "at 640 x 360 with the S22's insets -955's dot rule
+     * already leaves it out, so only D44 is left to make the room".
+     * Dispatch 2026-11-06-01, Amendment 1, J6 (RECORD -2183, the owner: "Lines leave (as built)"): `false` again at 640 x 360, font 2.0,
+     * in the evening and just after sunset. With the card's height counted as drawn (J5's defect fix) the card with its sundown line
+     * can't fit even moved up, so it stays at the bottom and the line steps off (RECORD -955) before any card opens. Was `true`.
+     * With `false` the "steps aside" assertion below is trivially true, so those classes now say what they prove (the line is
+     * already off before the card opens); D42's own positive control is [RouteCardSundownStepsAsideFont15Test], `true` (Sorrel's
+     * review of PR #500, item 1.1).
      */
     protected fun assertStepsAsideWhereShort(lineExpected: Boolean? = null) {
         start()
@@ -86,7 +95,7 @@ abstract class RouteCardSundownStepsAsideTests(legHeights: Boolean = true, clock
                 val save = unclipped(ROUTE_CARD_SAVE_TAG)
                 val saveShown = clipped(ROUTE_CARD_SAVE_TAG)
                 println("D42 short $where: sundown line ${sundownShown()}, card ${card.top.value}..${card.bottom.value}, title ${title.top.value}..${title.bottom.value} shown ${titleShown.top.value}..${titleShown.bottom.value}, Save ${save.top.value}..${save.bottom.value} shown ${saveShown.top.value}..${saveShown.bottom.value}, navigation card ${rig.bounds(NAVIGATION_HUD_TAG).top.value}")
-                assertEquals("$where: D42, the sundown line steps aside", 0, sundownShown())
+                assertEquals("$where: D42, the sundown line steps aside (1 is the line still on the navigation card)", 0, sundownShown())
                 rig.assertSame("$where: the title is whole, nothing of it clipped", title, titleShown)
                 rig.assertSame("$where: Save is whole, nothing of it clipped", save, saveShown)
                 rig.assertSame("$where: Undo is whole, nothing of it clipped", unclipped(ROUTE_CARD_UNDO_TAG), clipped(ROUTE_CARD_UNDO_TAG))
@@ -123,7 +132,7 @@ abstract class RouteCardSundownStepsAsideTests(legHeights: Boolean = true, clock
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardSundownStepsAsideShortTest : RouteCardSundownStepsAsideTests() {
     @Test
-    fun `evening, 640 x 360, font 2_0, the S22's insets - the card is whole at peek and its rows show when expanded`() = assertStepsAsideWhereShort(lineExpected = false)
+    fun `evening, 640 x 360, font 2_0, the S22's insets - J6, the line is already off before the card opens - the card is whole at peek and its rows show when expanded`() = assertStepsAsideWhereShort(lineExpected = false)
 }
 
 /** The same with legs that carry no trail heights, so no elevation line at all: the S22's case in session 10. */
@@ -132,7 +141,7 @@ class RouteCardSundownStepsAsideShortTest : RouteCardSundownStepsAsideTests() {
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardSundownStepsAsideShortNoElevationTest : RouteCardSundownStepsAsideTests(legHeights = false) {
     @Test
-    fun `evening, 640 x 360, font 2_0, the S22's insets, no elevation line - the card is whole at peek and its rows show when expanded`() = assertStepsAsideWhereShort(lineExpected = false)
+    fun `evening, 640 x 360, font 2_0, the S22's insets, no elevation line - J6, the line is already off before the card opens - the card is whole at peek and its rows show when expanded`() = assertStepsAsideWhereShort(lineExpected = false)
 }
 
 /** The S22's normal landscape window (823 x 384 dp) at font 1.0. */
@@ -145,16 +154,33 @@ class RouteCardSundownStaysNormalTest : RouteCardSundownStepsAsideTests() {
 }
 
 /**
- * The S22's normal window at font 2.0, where Robolectric shows the line with no card (run 41738664095: the navigation card 186..384
- * dp), so a card that needs the room makes it step aside and come back: the case that bites in Robolectric whatever the short window
- * does with its line before the card opens.
+ * The S22's normal window at font 2.0. Robolectric showed the line here with no card once (run 41738664095: the navigation card
+ * 186..384 dp), so this was the class that bit. Since J6 the line is off before the card opens here too (run 42447453302: "sundown line
+ * shown 0, navigation card 266.0..384.0"), so it proves the card whole and its rows shown, not the stepping aside; that is
+ * [RouteCardSundownStepsAsideFont15Test]'s (Sorrel's review of PR #500, item 1.1).
  */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardSundownStepsAsideFont20Test : RouteCardSundownStepsAsideTests() {
     @Test
-    fun `evening, 823 x 384, font 2_0 - the sundown line steps aside, the card is whole and its rows show`() = assertStepsAsideWhereShort()
+    fun `evening, 823 x 384, font 2_0 - J6, the line is already off before the card opens - the card is whole and its rows show`() = assertStepsAsideWhereShort(lineExpected = false)
+}
+
+/**
+ * D42's positive control (Sorrel's review of PR #500, item 1.1): the S22's normal window at font 1.5, where the evening line is on the
+ * navigation card before the route card opens and the route card needs its room. So the line is there first, is gone with the card
+ * open at 3 and 6 stops, peek and expanded, and is back when the card closes. Chosen by a probe of nine windows (run 42470512923): at
+ * 823 x 384 the line shows with no card from font 1.15 to 1.75, stays with the card open (the room is there) at 1.15 and 1.3, and steps
+ * aside at 1.5 and 1.75; 1.75 cuts the expanded card's leg row, so 1.5. The windows the review suggested do not show it: 823 x 384 at
+ * font 2.0 has the line off before the card opens (above), and 640 x 360 at font 1.3 keeps it with the card open.
+ */
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 1.5f)
+class RouteCardSundownStepsAsideFont15Test : RouteCardSundownStepsAsideTests() {
+    @Test
+    fun `evening, 823 x 384, font 1_5 - D42, the line is on the card, steps aside while the route card is open, and comes back`() = assertStepsAsideWhereShort(lineExpected = true)
 }
 
 /**
@@ -166,5 +192,5 @@ class RouteCardSundownStepsAsideFont20Test : RouteCardSundownStepsAsideTests() {
 @Config(sdk = [36], qualifiers = "w640dp-h360dp-land-xxhdpi", fontScale = 2.0f)
 class RouteCardSundownStepsAsideShortAfterSunsetTest : RouteCardSundownStepsAsideTests(clock = ROUTE_CARD_AFTER_SUNSET_CLOCK) {
     @Test
-    fun `just after sunset, 640 x 360, font 2_0, the S22's insets - the line steps aside, the card is whole and its rows show`() = assertStepsAsideWhereShort(lineExpected = true)
+    fun `just after sunset, 640 x 360, font 2_0, the S22's insets - J6, the line is already off before the card opens - the card is whole and its rows show`() = assertStepsAsideWhereShort(lineExpected = false)
 }

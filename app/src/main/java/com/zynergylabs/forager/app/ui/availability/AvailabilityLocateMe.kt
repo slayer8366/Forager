@@ -29,7 +29,8 @@ internal class AvailabilityLocateMe(
      */
     fun locateMe() {
         scope().launch {
-            updateState { it.copy(locateMeStatus = LocateMeStatus.Loading) }
+            // Dispatch 2026-11-07-01 Amendment 1: the fix held so far stays the camera's target while this one is fetched.
+            updateState { it.copy(locateMeStatus = LocateMeStatus.Loading(previous = it.locateMeStatus.lastLocateFix())) }
             val status = when (val result = locationProvider.getCurrentLocation()) {
                 // RECORD -1525: tagged with the search it arrived under, read now (see LocateMeStatus.Located).
                 is LocationResult.Success ->

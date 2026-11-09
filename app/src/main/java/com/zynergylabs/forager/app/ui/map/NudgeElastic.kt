@@ -95,7 +95,8 @@ fun nudgePadding(topPaddingPx: Double, offset: NudgeOffset, side: NavigationSide
     side.leftPx + 2.0 * max(offset.dxPx, 0f),
     topPaddingPx + 2.0 * max(offset.dyPx, 0f),
     side.rightPx + 2.0 * max(-offset.dxPx, 0f),
-    2.0 * max(-offset.dyPx, 0f),
+    // J8 (RECORD -2183): the bottom the view keeps above the landscape card, if any, with the give added on top of it.
+    side.bottomPx + 2.0 * max(-offset.dyPx, 0f),
 )
 
 /**

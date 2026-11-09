@@ -17,6 +17,7 @@ import com.zynergylabs.forager.app.domain.routing.TrailRouteResult
 import com.zynergylabs.forager.app.domain.wayhome.WayHome
 import com.zynergylabs.forager.app.domain.wayhome.WayHomePart
 import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
+import java.io.File
 
 /**
  * The way from the walker to a waypoint along trails, or why it is today's straight line (dispatch 2026-10-26-10, step 6
@@ -73,6 +74,12 @@ class FindWayToWaypointUseCase(
      * default, so the tests of other steps need not say. [ErrorLog] has only a warning level.
      */
     private val info: (tag: String, message: String) -> Unit = { _, _ -> },
+    /**
+     * Told of every trail route this finds, with the route data it was found on (dispatch 2026-11-06-01, Phase 2a): the
+     * next turn's M1 line (`domain/nextturn/RouteTurnsLog`) in production, nothing by default. Called once per search
+     * that returns [WayToWaypointResult.AlongTrails], just before it returns; never for the straight line.
+     */
+    private val trailRouteFound: (way: WayHome, routeData: File) -> Unit = { _, _ -> },
 ) {
 
     /** [accuracyMeters] is the accuracy [from]'s fix reports, null when it reports none (A2: the pick-up needs a good fix). */
@@ -112,16 +119,16 @@ class FindWayToWaypointUseCase(
         }
         val nearWalker = route.points.first()
         val nearWaypoint = route.points.last()
-        return WayToWaypointResult.AlongTrails(
-            WayHome(
-                trackBack = WayHomePart(WayHomePartKind.STRAIGHT, listOf(from, nearWalker), GeoDistance.metersBetween(from, nearWalker)),
-                trail = WayHomePart(WayHomePartKind.TRAIL, route.points, route.lengthMetres.toDouble()),
-                trackToStart = WayHomePart(WayHomePartKind.STRAIGHT, listOf(nearWaypoint, waypoint), GeoDistance.metersBetween(nearWaypoint, waypoint)),
-                // The straight legs are their own parts here, so the trail part has no joints inside it.
-                trailJointMeters = 0.0,
-                regionId = routes.regionId,
-            ),
+        val way = WayHome(
+            trackBack = WayHomePart(WayHomePartKind.STRAIGHT, listOf(from, nearWalker), GeoDistance.metersBetween(from, nearWalker)),
+            trail = WayHomePart(WayHomePartKind.TRAIL, route.points, route.lengthMetres.toDouble()),
+            trackToStart = WayHomePart(WayHomePartKind.STRAIGHT, listOf(nearWaypoint, waypoint), GeoDistance.metersBetween(nearWaypoint, waypoint)),
+            // The straight legs are their own parts here, so the trail part has no joints inside it.
+            trailJointMeters = 0.0,
+            regionId = routes.regionId,
         )
+        trailRouteFound(way, routes.folder)
+        return WayToWaypointResult.AlongTrails(way, routeData = routes.folder)
     }
 
     /**

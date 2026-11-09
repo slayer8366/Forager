@@ -2,6 +2,7 @@ package com.zynergylabs.forager.app.domain.wayto
 
 import com.zynergylabs.forager.app.domain.wayhome.WayHome
 import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
+import java.io.File
 
 /**
  * What [FindWayToWaypointUseCase] found (dispatch 2026-10-26-10, step 6 PR 2; the rulings are RECORD -1652 and -1653).
@@ -20,7 +21,14 @@ sealed interface WayToWaypointResult {
      * slot names read oddly here ("trackToStart" holding the final leg); that is naming debt the report chose over a
      * second line type and copies of the four functions that read one.
      */
-    data class AlongTrails(val way: WayHome) : WayToWaypointResult
+    data class AlongTrails(
+        val way: WayHome,
+        /**
+         * The route data folder the way was found on (dispatch 2026-11-06-01, Amendment 1, H4), for the next turn's
+         * junctions; `null` only where a result is built without one, in tests, and then the junctions are unread.
+         */
+        val routeData: File? = null,
+    ) : WayToWaypointResult
 
     /** No trail route: today's straight line to the waypoint, with [note] saying why. */
     data class StraightLine(val note: WayToWaypointNote) : WayToWaypointResult

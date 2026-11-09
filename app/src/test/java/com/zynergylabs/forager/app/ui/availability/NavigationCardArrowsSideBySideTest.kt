@@ -39,6 +39,10 @@ import org.robolectric.annotation.GraphicsMode
 import kotlin.math.abs
 
 /**
+ * Dispatch 2026-11-05-10, Amendment 1, H1 (RECORD -2181) changed this class's claim: the north arrow is the strip's, so in every state
+ * below the card draws its needle alone (see the claim and the old one in [assertArrowsSideBySide]). The rest of this doc describes the
+ * claim as it was.
+ *
  * Dispatch 2026-10-12-06. The owner, RECORD -932: "Have the altitude and the north compass switch sides so both arrows can be
  * side by side"; and on 2026-10-12, relayed by the planner: "The big part is to arrange it so both arrows are side by side."
  *
@@ -125,38 +129,35 @@ class NavigationCardArrowsSideBySideTest {
             composeRule.runOnIdle { case = c }
             composeRule.mainClock.advanceTimeBy(2_000)
             composeRule.waitForIdle()
-            val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG).single()
-            val arrow = bounds(NAVIGATION_HUD_NORTH_ARROW_TAG).single()
-            val dividers = bounds(NAVIGATION_HUD_DIVIDER_TAG)
+            val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG)
+            val arrow = bounds(NAVIGATION_HUD_NORTH_ARROW_TAG)
+            val heading = bounds(NAVIGATION_HUD_HEADING_TAG)
             println(
                 "ARROWS|$width|${c.name}|turn=${textOrNone(NAVIGATION_HUD_TARGET_TAG)}|kind=${textOrNone(NAVIGATION_HUD_DISTANCE_KIND_TAG)}" +
-                    "|needle=$needle|arrow=$arrow|dividers=$dividers",
+                    "|needle=$needle|arrow=$arrow|heading=$heading",
             )
-            val needleMid = (needle.top + needle.bottom) / 2
-            val arrowMid = (arrow.top + arrow.bottom) / 2
-            assertTrue("${c.name} at $width: the two arrows share a line (centres $needleMid and $arrowMid)", abs((needleMid - arrowMid).value) <= 2f)
-            assertTrue("${c.name} at $width: the needle $needle is left of the compass arrow $arrow", needle.right <= arrow.left)
-            // Dispatch 2026-10-12-08 (RECORD -950, the owner: "The arrows being side by side is a compass visual"; the drawing's
-            // "ahead 1° ▲ ▲ 134° SE"): the two arrows are neighbours on one line, nothing between them but the line's own gap.
-            // Was (dispatch 2026-10-12-06's three columns): one divider between them, `assertEquals(1, between.size)`, and 13 dp
-            // apart, the divider and its gaps.
-            val between = dividers.filter { it.left >= needle.right - 0.5.dp && it.right <= arrow.left + 0.5.dp }
-            assertEquals("${c.name} at $width: no divider between the arrows, $dividers", 0, between.size)
-            assertEquals("${c.name} at $width: the arrows are neighbours, the line's 4 dp gap apart", 4f, (arrow.left - needle.right).value, 1f)
+            // Dispatch 2026-11-05-10, Amendment 1, H1, the owner: "Keep the compass strip the exact same when in navigation mode as out;
+            // so keep the north compass out of the navigation panel." In every state the card draws its needle, and no north arrow, no
+            // crossed-out compass and no heading: those are the strip's. Was (RECORD -950, "The arrows being side by side is a compass
+            // visual"): the needle and the north arrow on one line, centres within 2 dp, `assertTrue("… the needle … is left of the
+            // compass arrow …", needle.right <= arrow.left)`, no divider between them and the line's 4 dp gap apart.
+            assertEquals("${c.name} at $width: the needle is drawn", 1, needle.size)
+            assertEquals("${c.name} at $width: no north arrow or crossed-out compass in the card, $arrow", 0, arrow.size)
+            assertEquals("${c.name} at $width: no heading in the card, ${textOrNone(NAVIGATION_HUD_HEADING_TAG)}", 0, heading.size)
             sampled++
         }
         assertEquals("every state was measured", cases.size, sampled)
     }
 
     @Test @Config(qualifiers = "w360dp-h780dp-xxhdpi")
-    fun `at 360 dp, font 1,0, the needle and the compass arrow sit side by side in every state`() = assertArrowsSideBySide("360/1.0")
+    fun `at 360 dp, font 1,0, the needle stands alone, the north arrow off the card, in every state`() = assertArrowsSideBySide("360/1.0")
 
     @Test @Config(qualifiers = "w360dp-h780dp-xxhdpi", fontScale = 1.3f)
-    fun `at 360 dp, font 1,3, the needle and the compass arrow sit side by side in every state`() = assertArrowsSideBySide("360/1.3")
+    fun `at 360 dp, font 1,3, the needle stands alone, the north arrow off the card, in every state`() = assertArrowsSideBySide("360/1.3")
 
     @Test @Config(qualifiers = "w412dp-h915dp-xxhdpi")
-    fun `at 412 dp, font 1,0, the needle and the compass arrow sit side by side in every state`() = assertArrowsSideBySide("412/1.0")
+    fun `at 412 dp, font 1,0, the needle stands alone, the north arrow off the card, in every state`() = assertArrowsSideBySide("412/1.0")
 
     @Test @Config(qualifiers = "w412dp-h915dp-xxhdpi", fontScale = 1.3f)
-    fun `at 412 dp, font 1,3, the needle and the compass arrow sit side by side in every state`() = assertArrowsSideBySide("412/1.3")
+    fun `at 412 dp, font 1,3, the needle stands alone, the north arrow off the card, in every state`() = assertArrowsSideBySide("412/1.3")
 }

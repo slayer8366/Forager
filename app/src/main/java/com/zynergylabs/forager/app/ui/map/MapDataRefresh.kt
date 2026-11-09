@@ -131,10 +131,16 @@ internal fun MapDataRefresh(
             val cameraTarget = focusOverride?.let { MapLibreLatLng(it.lat, it.lng) } ?: center
             // A new search region or a locate-me result: the user's ask (dispatch 2026-10-27-07 Amendment 1, S1).
             state.cameraMoveClassifier.markUserAskedMove()
-            map.cameraPosition = CameraPosition.Builder()
-                .target(cameraTarget)
-                .zoom(zoomForRadiusKm(region.radiusKm))
-                .build()
+            // Dispatch 2026-11-07-01 Amendment 1: a locate-me pan alone glides there at the user's zoom (LocateGlide.kt).
+            val locatePan = focusOverride?.takeIf { isLocatePanOnly(target, state.lastAppliedCameraTarget) }
+            if (locatePan != null) {
+                glideToLocate(map, locatePan)
+            } else {
+                map.cameraPosition = CameraPosition.Builder()
+                    .target(cameraTarget)
+                    .zoom(zoomForRadiusKm(region.radiusKm))
+                    .build()
+            }
             state.lastAppliedCameraTarget = target
         } else {
             // Dispatch 2026-10-19-36: while following, the target is taken as applied (cameraTargetTakenAsApplied), so a

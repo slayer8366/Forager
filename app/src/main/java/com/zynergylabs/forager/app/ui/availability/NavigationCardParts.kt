@@ -14,8 +14,9 @@ import androidx.compose.foundation.layout.size
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_LIGHT
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_STACK_BORDER_COLOR_DARK
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ExploreOff
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.Icon
 import androidx.compose.material3.LocalContentColor
@@ -26,16 +27,17 @@ import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
  * The left part, the full-height divider and the right part (dispatch 2026-10-12-08). The right part is as wide as the widest
- * evening piece ([NavigationInfoFit.rightPx]); the left takes the rest, and the divider is measured last, at the taller part's
- * height, so it always runs the parts' full height (RECORD -945).
+ * evening piece ([NavigationInfoFit.rightPx]), and since Amendment 1, H2 and H5, never narrower than the evening line's widest on the
+ * phone's clock, evening line or none; the left takes the rest, and the divider is measured last, at the taller part's height, so it
+ * always runs the parts' full height (RECORD -945; H2: "the divider runs its full height").
  */
 @Composable
 internal fun InfoParts(
@@ -46,16 +48,25 @@ internal fun InfoParts(
     backByLine: String?,
     sundownVisibility: MutableTransitionState<Boolean>,
     backByVisibility: MutableTransitionState<Boolean>,
-    /** Whether the right part keeps its width: an evening line shown, or one still leaving. */
-    reserveRight: Boolean,
+    /** H5: whether the evening line breaks at the owner's ▪︎ ([CardEvening.breaks]). */
+    eveningBreaks: Boolean,
+    /** Whether an evening line is shown, or one is still leaving. */
+    eveningHeld: Boolean,
+    /** H8: whether the status words are in the right part; `false` where they have their own line under the parts. */
+    statusInRight: Boolean,
+    /** Dispatch 2026-11-06-01, J2 and J3: the next turn's space, and where it goes for this window, font and evening line. */
+    nextTurn: NextTurnSpaceShown,
+    nextTurnPlace: NextTurnPlace,
+    distanceUnit: DistanceUnit,
     onLeftHeight: (Float) -> Unit,
+    onStatusHeight: (Float) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val dividerColor = if (LocalForagerDarkTheme.current) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT
     Layout(
         modifier = modifier,
         contents = listOf(
-            { LeftPart(readout, fit, Modifier.onGloballyPositioned { onLeftHeight(it.size.height.toFloat()) }) },
+            { LeftPart(readout, fit, nextTurn, nextTurnPlace, distanceUnit, Modifier.onGloballyPositioned { onLeftHeight(it.size.height.toFloat()) }) },
             {
                 Box(
                     modifier = Modifier
@@ -65,15 +76,22 @@ internal fun InfoParts(
                         .testTag(NAVIGATION_HUD_DIVIDER_TAG),
                 )
             },
-            { EveningStack(sundownLine, backByLine, sundownVisibility, backByVisibility) },
+            {
+                RightPart(
+                    readout, sundownLine, backByLine, sundownVisibility, backByVisibility, eveningBreaks, eveningHeld, statusInRight, onStatusHeight,
+                    // J3 step 2: landscape at font 2.0 with no evening line, the next turn where the evening line goes.
+                    nextTurn = nextTurn.takeIf { nextTurnPlace == NextTurnPlace.RIGHT_PART },
+                    distanceUnit = distanceUnit,
+                )
+            },
         ),
     ) { (left, divider, right), constraints ->
         val total = constraints.maxWidth
-        // The right part keeps the widest piece's width; where even that leaves the left part short (an overflow the fit
-        // reports), the left part stays whole and the pieces wrap in what is left, never cut (RECORD -941).
-        val wantRight = if (reserveRight) fit.rightPx else 0
-        val rightWidth = if (fit.overflows) minOf(wantRight, maxOf(0, total - metrics.dividerPx - fit.leftPx)) else wantRight
-        val leftWidth = maxOf(0, total - metrics.dividerPx - rightWidth)
+        // The right part keeps its width; where even that leaves the left part short (an overflow the fit reports), the left part
+        // stays whole and the right part's lines wrap in what is left, never cut (RECORD -941). One function with the top line's fit,
+        // so the kind is placed on the width drawn here (dispatch 2026-11-05-10).
+        val leftWidth = leftPartWidthPx(total, metrics.dividerPx, fit)
+        val rightWidth = maxOf(0, total - metrics.dividerPx - leftWidth)
         val leftPlaceable = left.single().measure(constraints.copy(minWidth = leftWidth, maxWidth = leftWidth, minHeight = 0))
         val rightPlaceable = right.single().measure(constraints.copy(minWidth = rightWidth, maxWidth = rightWidth, minHeight = 0))
         val height = maxOf(leftPlaceable.height, rightPlaceable.height)
@@ -89,109 +107,83 @@ internal fun InfoParts(
 }
 
 /**
- * The left part, each line centred (RECORD -945): the distance; the turn words, the needle, the north arrow and the heading on one
- * line, the two arrows neighbours (RECORD -950); the kind word, only when there is one.
+ * The left part: the distance and its kind on the top line ([CardTopLine]; dispatch 2026-11-05-10, RECORD -2181: "move the "by
+ * trail" from the bottom to the top right half, on the same line as 2.2 mi"); under it the turn line ([CardTurnLine]). Under the turn
+ * line, only where it does not fit beside the needle, the next turn's own line (dispatch 2026-11-06-01, J2, [NextTurnPlace.OWN_LINE]).
+ * Was (RECORD -945) the distance, the turn line and the kind word ("by trail under figure"), each centred.
  */
 @Composable
-private fun LeftPart(readout: NavigationHudReadout, fit: NavigationInfoFit, modifier: Modifier = Modifier) {
-    val small = MaterialTheme.typography.labelMedium
+private fun LeftPart(
+    readout: NavigationHudReadout,
+    fit: NavigationInfoFit,
+    nextTurn: NextTurnSpaceShown,
+    nextTurnPlace: NextTurnPlace,
+    distanceUnit: DistanceUnit,
+    modifier: Modifier = Modifier,
+) {
     val distanceColor = if (readout.distanceDeEmphasised) LocalContentColor.current.copy(alpha = 0.5f) else LocalContentColor.current
     Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        WordSwap(text = columnFigure(readout, fit.figureShort)) { shown ->
-            Text(
-                text = shown,
-                style = cardFigureStyle(),
-                color = distanceColor,
-                maxLines = 1,
-                softWrap = false,
-                // The route message's own tag is on its line when it moves there; the dash here is the left part's.
-                modifier = if (readout.distanceText == ROUTE_UNAVAILABLE_TEXT) Modifier else Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
-            )
-        }
-        Row(
-            modifier = Modifier.heightIn(min = COMPASS_ICON_SIZE),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            // Always composed, empty when there is no turn to word (the approach, no compass, no aim), as before. Its gap is its
-            // own end padding, there only with words, so an empty slot adds no gap (what [navigationInfoFit] measures).
-            WordSwap(text = fit.turnText, contentAlignment = Alignment.CenterEnd) { shown ->
+        CardTopLine(readout, fit, distanceColor)
+        CardTurnLine(readout, fit, nextTurn.takeIf { nextTurnPlace == NextTurnPlace.BESIDE_NEEDLE }, distanceUnit)
+        // J2, "Own line where needed": its own line, the card one line taller; blank (E1 to E3), it keeps the line, empty.
+        if (nextTurnPlace == NextTurnPlace.OWN_LINE) NextTurnSpace(nextTurn, distanceUnit)
+    }
+}
+
+/**
+ * The turn line, centred in the left part, Amendment 1 (RECORD -2181):
+ * - G2, the owner: "Drop the words, keep the degrees (Recommended)": "109°", never "right 109°";
+ * - G3, "The turn line": "The degrees, the needle, the north arrow and the heading each sit in a fixed space, so the compass never
+ *   jumps": the degrees are centred in a space as wide as the widest degrees ([NavigationInfoFit.turnSpacePx]), held empty where there
+ *   are none (the approach, no compass, no aim), so the needle stays where it is. A word in their place ("Target" with no fix, "No
+ *   target"; the planner's reading of Q5: not turn words, so they stay) is centred on the same space; since E18 ("Never moves") the
+ *   space is sized for those words too ([widestTurnSpacePx]), so they fit it and the needle keeps its place in every state;
+ * - H1, the owner: "Keep the compass strip the exact same when in navigation mode as out; so keep the north compass out of the
+ *   navigation panel": the north arrow and the heading are the strip's. Was (RECORD -950): the turn words, the needle, then the north
+ *   arrow and the heading, "The arrows being side by side is a compass visual"; and the crossed-out compass for a compass status
+ *   that did not fit (RECORD -934).
+ * - Dispatch 2026-11-06-01, A1 ("Beside the needle (Recommended)": "The degrees and needle keep their fixed spaces, and the next turn
+ *   gets its own fixed space beside them") with J2: where [besideNeedle] is given, the next turn's own space ([NextTurnSpace]) a gap
+ *   right of the needle, and the whole line centred; held blank where there is no turn to show, so nothing on the line moves.
+ */
+@Composable
+private fun CardTurnLine(readout: NavigationHudReadout, fit: NavigationInfoFit, besideNeedle: NextTurnSpaceShown?, distanceUnit: DistanceUnit) {
+    val small = MaterialTheme.typography.labelMedium
+    val turnSpace = with(LocalDensity.current) { fit.turnSpacePx.toDp() }
+    Row(
+        modifier = Modifier.heightIn(min = COMPASS_ICON_SIZE),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Box(modifier = Modifier.width(turnSpace), contentAlignment = Alignment.Center) {
+            WordSwap(text = fit.turnText, modifier = Modifier.wrapContentWidth(unbounded = true), contentAlignment = Alignment.Center) { shown ->
                 Text(
                     text = shown,
                     style = small,
                     maxLines = 1,
                     softWrap = false,
-                    modifier = Modifier.padding(end = if (shown.isEmpty()) 0.dp else Spacing.xs).testTag(NAVIGATION_HUD_TARGET_TAG),
+                    modifier = Modifier.testTag(NAVIGATION_HUD_TARGET_TAG),
                 )
-            }
-            // The needle stays whatever the words beside it do (T11 fixes), dimmed when there is nothing to point at. Its tag is
-            // on the unrotated square it is laid out in, so its bounds are where it sits, not its rotated drawing's box.
-            Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NEEDLE_TAG)) {
-                Icon(
-                    imageVector = Icons.Filled.Navigation,
-                    contentDescription = null,
-                    tint = if (readout.targetArrowDegrees != null) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.3f),
-                    modifier = Modifier.size(COMPASS_ICON_SIZE).rotate(readout.targetArrowDegrees ?: 0f),
-                )
-            }
-            // The two arrows neighbours (RECORD -950: "The arrows being side by side is a compass visual"): one small gap.
-            Spacer(Modifier.width(NAVIGATION_ARROWS_GAP))
-            if (fit.headingAsIcon) {
-                // RECORD -934: a compass status whose words do not fit takes RECORD -735's crossed-out compass, its words kept as
-                // the icon's description for a screen reader.
-                Icon(
-                    imageVector = Icons.Filled.ExploreOff,
-                    contentDescription = readout.headingText,
-                    modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NORTH_ARROW_TAG),
-                )
-            } else {
-                // The north compass, right after the needle (RECORD -950): rotated by minus the heading, as before.
-                Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NORTH_ARROW_TAG)) {
-                    Icon(
-                        imageVector = Icons.Filled.Navigation,
-                        contentDescription = null,
-                        modifier = Modifier.size(COMPASS_ICON_SIZE).rotate(readout.northArrowDegrees ?: 0f),
-                    )
-                }
-                // Motion Part 2, item 6 (RECORD -651: "Numbers instant, words fade"). With no fix and only the dash to say, the
-                // heading is not drawn (NavigationHudReadout.secondRowShown).
-                if (readout.secondRowShown) {
-                    Spacer(Modifier.width(Spacing.xs))
-                    WordSwap(text = readout.headingText) { shown ->
-                        Text(
-                            text = shown,
-                            style = small.copy(fontFeatureSettings = "tnum"),
-                            maxLines = 1,
-                            softWrap = false,
-                            modifier = Modifier.testTag(NAVIGATION_HUD_HEADING_TAG),
-                        )
-                    }
-                }
             }
         }
-        // RECORD -945 ("by trail under figure"): the kind word, a small line of its own under the turn line, only when there is one.
-        readout.distanceKindText?.let { kind -> DistanceKindText(kind, distanceColor) }
-    }
-}
-
-/** What the large figure measures, "by trail" or "straight", in the status line's type (dispatch -677; RECORD -713). */
-@Composable
-private fun DistanceKindText(kind: String, color: Color, modifier: Modifier = Modifier) {
-    WordSwap(text = kind, modifier = modifier) { shown ->
-        Text(
-            text = shown,
-            style = MaterialTheme.typography.labelMedium,
-            color = color,
-            maxLines = 1,
-            softWrap = false,
-            modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_KIND_TAG),
-        )
+        Spacer(Modifier.width(Spacing.xs))
+        // The needle stays whatever the degrees beside it do (T11 fixes), dimmed when there is nothing to point at. Its tag is on the
+        // unrotated square it is laid out in, so its bounds are where it sits, not its rotated drawing's box.
+        Box(modifier = Modifier.size(COMPASS_ICON_SIZE).testTag(NAVIGATION_HUD_NEEDLE_TAG)) {
+            Icon(
+                imageVector = Icons.Filled.Navigation,
+                contentDescription = null,
+                tint = if (readout.targetArrowDegrees != null) LocalContentColor.current else LocalContentColor.current.copy(alpha = 0.3f),
+                modifier = Modifier.size(COMPASS_ICON_SIZE).rotate(readout.targetArrowDegrees ?: 0f),
+            )
+        }
+        if (besideNeedle != null) {
+            Spacer(Modifier.width(Spacing.xs))
+            NextTurnSpace(besideNeedle, distanceUnit)
+        }
     }
 }
 
 internal val COMPASS_ICON_SIZE = 22.dp
-
-/** Dispatch 2026-10-12-08: the gap between the turn needle and the north arrow, neighbours on one line (RECORD -950). */
-private val NAVIGATION_ARROWS_GAP = Spacing.xs
 
 /** Dispatch 2026-10-12-06: the card's column dividers, thin lines with this gap either side (6 dp, RECORD -936's tighter spacing). */
 internal val CARD_DIVIDER_WIDTH = 1.dp
