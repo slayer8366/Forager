@@ -1448,12 +1448,13 @@ it draws, `RouteCardFace.kt`). So a tucked card still hid the "i" across the who
 19. **Landscape navigating.** A route open on the navigation card: tuck it; the "i" stays hidden (the navigation card covers its
     corner); nothing else moves, as step 17.
 
-# Sorrel's review items, fixed (part done; item 1.1 stopped on a question)
+# Sorrel's review items, fixed
 
 Review: `prompts/preserved/2026-11-08-sorrel-review-507.md` (records-after-173). Dispatched: item 1.1 and note 3.2 (RECORD -2190);
 added by the planner mid-task: item 2.2 with the owner's answer (RECORD -2187): "Option 1, but remove the tap highlight since it
-spills out the zone". Built on route-card 50ae42c64. Pushed to the throwaway ref `hazel-rail-fix` only, not to route-card, so #507
-stays green while 1.1 waits: its re-claimed tests are committed and red.
+spills out the zone". Built on route-card 50ae42c64 in two parts by two Hazel sessions: the first built 2.2 and 3.2 and stopped on
+where -967 reaches for 1.1 (ref `hazel-rail-fix`, a698fc483); the owner answered (RECORD -2187, 2026-11-08T22:50:26Z): **"(c) All
+three (Recommended)"**, and the second built 1.1 on top. The whole series is fast-forwarded onto route-card.
 
 - **Note 3.2, built.** "Navigated from the card" is cleared when the waypoint navigation is not running
   (`RoutePlottingViewModel.onWaypointNavigationOver`, told by `RoutePlottingBackHandler` in `CompactMapRoutePlotting.kt`). Nothing
@@ -1466,46 +1467,96 @@ stays green while 1.1 waits: its re-claimed tests are committed and red.
   touch area's edge compared pixel for pixel with the screen before the press, then lifting must bring the card back. Red 42527186082
   (13,370 of 13,370 band pixels changed, #FEF7FF to #B1ACB2); revert 42529006236 failed it and no other new test; green 42527216431
   (0 changed).
-- **Item 1.1, not built: a question.** The re-claimed `RouteCardOutlineOnNavigationCardTest` (7 cases, below) is red on today's code
-  (42525146220: 1 px in reads #ABA298 by day, #787878 at night, the ruled line, where the card's own fill is expected) and still red
-  on the fix ref, as it must be with no fix yet.
+- **Item 1.1, built to the owner's (c).** Wherever the landscape route card or its tucked strip meets the side bar (resting on the
+  navigation card while navigating, the plotting card in that card's spot, and the strip's edge, navigating and plotting) the card
+  draws no line of its own on that edge; the side bar's is the one line (RECORD -967). The decision is the navigation card's own
+  rule, not a copy: that card's call to `landscapeColumnOutlineSides` moved into `landscapeNavigationCardOutlineSides`
+  (new `RouteCardRailSide.kt`), which the navigation card now calls and the route card reads through `routeCardBareSide`. So the side
+  is bare while the side bar shows; in fullscreen it is lined where a system bar is left on that side and bare where nothing is, as
+  the navigation card's is. A card in the far corner (icon bar on the side bar's side, C20) touches no side bar and keeps every line.
+  Drawing: `RouteCardFace.kt` clips a band one line wide off the stroke along that side of the card's bounds (`routeCardBareBand`);
+  the band starts below the top line and stops above a bottom line, so the top and the plotting card's bottom run to the edge, and
+  runs on down into the corner wedge where the card rests on the navigation card. The tucked strip's cut edge is that same bounds side,
+  so one band covers the resting card and the strip. `RouteCard` takes the side as `bareSideOnLeft: Boolean?` (its signature is
+  public, and the first green run, 42532670714, failed to compile with an internal `ScreenEdge` there).
+  - Red: 42532668314 (tests only, on the code before the fix): 21 failures, each "not bare (a second line beside the side bar's):
+    1 px in reads #ABA298 [day] / #787878 [night]", the ruled line where the card's own fill is expected. The four navigating strip
+    cases also failed on their bottom, a test error (below), fixed in 02f87374d.
+  - Revert: 42536206321, the route card told no bare side (`bareSideOnLeft = null`, one line in `CompactMapRoutePlotting.kt`). The
+    compile step passed with no `e:` lines in the log; 29 failures, every one carrying "not bare (a second line beside the side bar's)"
+    and no other message; no other test changed. Each is a case this revert can fail: the line put back on the side bar's side. The
+    revert was built from a saved copy into a separate commit with its own index; the working tree was never edited, and the forward
+    line was confirmed present (byte compare with the saved copy) before and after.
+  - Green: 42536203917 on 046b2e168, every job green.
+
+## Tests whose claims changed (1.1)
+
+- `RouteCardOutlineOnNavigationCardTest` (re-claimed by the first session, 7 cases): the side against the side bar bare, not lined.
+- `RouteCardOutlineLandscapeTest`: its two cases claimed the ruled line on every side, the "right side" (the side bar's) included;
+  now that side is bare, the top, bottom and map side lined. Renamed ("... as its other sides do" to "... and its side against the
+  side bar has none of its own"). Added: the plotting card at both rotations, day and night (4), and the far-corner control (1).
+- `RouteCardTabOutlineLandscapeTest`: its two cases claimed the ruled line on the "side on its screen edge"; now that edge, the side
+  bar's, is bare. Renamed ("... all the way round" to "... and none of its own against the side bar"). Added: the strip while plotting
+  and while navigating, both rotations, day and night (8). While navigating its bottom is read bare, where it meets the navigation
+  card (A1). The portrait tab cases are unchanged.
+- `RouteCardMeetsNavigationCardTests` (8 cases, names unchanged): claimed the ruled line down both sides into the corner wedges; now
+  the side bar's side reads bare over the same rows, the map side lined as before. Not named in the dispatch: the fix failed these 8
+  on the side bar's side only (42534637801), which is the ruling's own edge.
+
+## By name against 42521097620
+
+6,936 tests there, 6,957 in 42536203917, 0 failing in either. 7 old names gone, all re-claims above renamed (3 in
+`RouteCardOutlineOnNavigationCardTest`, 2 each in the two landscape outline classes); 28 new names (the re-claimed and added cases,
+plus `RouteCardNavigatedFromCardEndsTest` 2, `RouteCardStripPressTest` 1, `RoutePlottingViewModelTest` 1). Every other test has the
+same outcome in both runs.
 
 ## Confirmed vs inferred
 
-- Confirmed: each revert ran (the compile step passed: 6,944 tests completed in each run, no compile errors in the logs) and failed
-  only its own new tests plus the 5 unbuilt 1.1 cases; the reverts were built from copies of the committed files, never the working
-  tree, and the forward changes are at the fix ref's head (e9ce2e3bf).
-- Confirmed: by name against 42521097620, fix run 42527216431 changes no shared test's outcome: 3 tests renamed in the re-claim, 11
-  new, 5 of them the unbuilt 1.1 cases failing.
-- Confirmed from CI output (RouteCardTabOutlineLandscapeTest, the strip at 719..743 dp on an 823 dp screen with the 80 dp rail): in
-  landscape plotting the route card and its strip sit flush against the side bar too. That is the question below.
+- Confirmed: each revert ran (no compile errors in its log; 6,957 tests reported for 1.1's) and failed only on what its own edit
+  can cause; the forward changes are at route-card's head.
+- Confirmed from CI output: in landscape plotting the card and its strip sit against the side bar (the strip at 719..743 dp on an
+  823 dp screen with the 80 dp rail); the tests now assert that as a precondition.
 - Inferred: the app's real ripple spills on the phone as the owner saw; under Robolectric it is not drawn (below).
+- Inferred, from reading: the side bar draws its own line on its inner edge, so the shared line still shows there. Not read in pixels
+  by these tests, which read the card's side only.
 
 ## Could not determine
 
-- Whether a press highlight still shows on a phone: the test reads Compose's default indication with the app's theme left out,
-  because Material's ripple is drawn by a platform view Robolectric does not render. The first version of the test, under the app's
-  theme, read 0 changed pixels on the code with the highlight (42525146220), so it could not fail, and was replaced. For the S22.
+- Whether a press highlight still shows on a phone: the 2.2 test reads Compose's default indication with the app's theme left out,
+  because Material's ripple is drawn by a platform view Robolectric does not render. The first version, under the app's theme, read 0
+  changed pixels on the code with the highlight (42525146220), so it could not fail, and was replaced. For the S22.
+- How the card's top line and the side bar's line meet at the corner on a phone: the band leaves the top line running to the card's
+  edge, and the resting card's rounded top corner on that side still curves to it. Robolectric reports zero insets, and the corner
+  pixels are not asserted. For the S22.
 
 ## Premises that were wrong
 
-- "In landscape navigation" names one of the places the card meets the side bar. Landscape plotting puts the card, and its tucked
-  strip, against the side bar as well, and both draw the ruled line there today, pinned by `RouteCardOutlineLandscapeTest`'s
-  "right side" and `RouteCardTabOutlineLandscapeTest`'s "side on its screen edge".
+- "In landscape navigation" named one of the places the card meets the side bar; landscape plotting puts the card and its strip
+  there too. The owner's (c) covers all three.
+- The dispatch named two existing tests to re-claim; a third, `RouteCardMeetsNavigationCardTests`, also claimed the side bar's line
+  (down into the corner) and is re-claimed above.
 
 ## Decided beyond scope
 
-- None built. The fullscreen case with no system bar on that side expects the side bare, matching the navigation card's rule
-  (`landscapeColumnOutlineSides`: unlined where nothing is left between it and the screen's edge); on the S22 there is a navigation
-  bar, so the line shows there.
+- The fullscreen case with no system bar on that side leaves the side bare, by the navigation card's rule, though Amendment 5 lined a
+  side flush to the screen's edge. That follows "where that rule leaves the rail side lined the route card matches"; on the S22 there
+  is a navigation bar, so the line shows there.
+- The navigation card's outline call was moved into a shared function so the two cards read one rule; it draws exactly as before
+  (same arguments, and every navigation card outline test passes unchanged).
 
-## Questions (stopped here)
+## Questions
 
-- -967 at the side bar: (a) only the card resting on the navigation card (the dispatch's wording); (b) also the landscape plotting
-  card against the side bar; (c) also the tucked strip's edge against the side bar, navigating and plotting, which the owner's tab
-  ruling "Same as the card" (plain line all the way round) currently covers.
+- None open for 1.1.
 
-## S22 step
+## S22 steps
 
 20. **Strip press.** A saved route open, tucked to its strip. Press and hold on the map just beside the strip (within a finger's width
     of it): no grey highlight appears anywhere; lift: the card slides back.
+21. **One line at the side bar (landscape).** Recording, plot a route in landscape with the icon bar on the left: the card sits by the
+    side bar at the bottom right. Where the card meets the side bar, one faint line only (the side bar's), none of the card's beside
+    it; the card's top, bottom and left keep their faint line. Tuck the card (swipe it toward the side bar): the strip's edge against
+    the side bar has no line of its own, its other three sides do. Bring it back, tap Navigate: the card resting on the navigation
+    card has the same single line at the side bar, and the two cards agree there. Turn the phone the other way round: the same. Tap
+    Fullscreen: the side bar slides away and the card's side there now shows its own faint line (a navigation bar is left on that
+    side), as the navigation card's does. Move the icon bar to the right side: the card moves to the bottom left and keeps its line on
+    every side.
