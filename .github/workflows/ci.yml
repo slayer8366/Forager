@@ -699,11 +699,18 @@ jobs:
 
       - name: Compile and package the release variant without signing
         # The log goes under app/build (gitignored), so it cannot mark the checkout dirty for resolveBuildIdentity.
+        # Gradle daemon heap 4 GB for this job only, over gradle.properties' 2 GB (RECORD -2191): run 42504332419
+        # ran out of heap in packageReleaseBundle and packageRelease, whose bundletool and APK-packaging work runs
+        # inside the daemon (no-isolation workers), not in a separate process. The whole value is replaced, so the
+        # file encoding from gradle.properties is repeated. ubuntu-24.04 on a public repo has 16 GB.
         run: |
           set -euo pipefail
           mkdir -p app/build
           log=app/build/release-compile-gradle.log
-          ./gradlew --stacktrace --console=plain packageRelease packageReleaseBundle 2>&1 | tee "$log"
+          ./gradlew --stacktrace --console=plain "-Dorg.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8" \
+            packageRelease packageReleaseBundle 2>&1 | tee "$log"
+          # The daemon is still alive here; its own arguments show whether the heap setting reached it.
+          echo "Gradle daemon heap: $(jps -lv | grep GradleDaemon | grep -o -- '-Xmx[0-9]*[mMgG]' || echo 'not found')"
 
           # A green Gradle exit is only evidence if the release compile actually ran in this invocation, and the
           # outputs it claims exist. Each check below names what it guards against.
