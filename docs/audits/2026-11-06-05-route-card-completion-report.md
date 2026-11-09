@@ -1730,3 +1730,102 @@ on the combined tree here.
 23. **Beside the side bar's bottom corner.** The same card, not navigating: zoom on its bottom-right, where the side bar's corner
     curves away. The card's right edge carries a faint line there, straight down from the side bar's line to the card's bottom line,
     no map between them, no step. Tuck the card: the strip's edge the same. By night, and turned the other way.
+
+---
+
+# S22 check of combined build 5054 (2026-11-09): two findings (Hazel, Opus)
+
+Base: `origin/route-card` at `7db90fe50`. Evidence read off git (the S22 run's dumps and changes log); nothing from it is copied here
+beyond the app's own on-screen words.
+
+## Finding 1, the deleted-stop reason never showed: working as ruled; the S22 step ran while navigating
+
+**Cause.** A navigation was running the whole time. The changes log has "navigation started from Test route S card (portrait)" at
+12:36:20, and nothing stops it before the delete at 12:40:43 or the card reopenings after; it was still running at the end ("Look
+state: ... navigating"). Every dump of the Sdel card (49, before the delete; 55 and 56, after) carries "Stop navigating" and has no
+Navigate and no Directions, before the delete as after it. Amendment 5 (RECORD -2187; the owner: "They should hide. If they don't now,
+they need to.") hides the buttons and the reason while navigating: `RouteCardSavedButtons` returns at once on `content.navigating`
+(`ui/route/RouteCardStops.kt:104`). So the reason could not show in that order, and its absence says nothing about the delete.
+
+**What the code does with the delete, read from source.** The map's waypoints are `trackUiState.visibleWaypoints`
+(`MainActivity.kt:721`), which drops a waypoint as soon as its delete is pending (the Undo snackbar), so the stop's waypoint is gone
+from the map's list at once. `navigateTargetOf` (`domain/route/RouteStopNavigateTarget.kt:24`) takes the stop's link only while its
+waypoint is in that list, then falls back to a waypoint with exactly the stop's name at exactly its spot (none here: one Test wp S2,
+deleted), else null; null greys Navigate and sets `stopLeadsNowhere` (`ui/availability/CompactMapRoutePlotting.kt:158`). The first stop
+is selected by default (`selectedStop` 0). The link column is cleared on the next routes read (`PlannedTripRouteDao.loadAll`), but the
+card does not depend on that: a dangling link already reads as nowhere. The stop's name stays listed by design ("the stop stays").
+
+**What the user sees, and when.** While a navigation runs: the card lists the deleted stop by name, no buttons, no reason. When the
+navigation ends (the navigation card's X or Back): Navigate comes back greyed, Directions beside it, and "This stop's waypoint was moved
+or deleted" on its own line under them, with the first stop selected. The S22 step should end the navigation (or start none) before
+reopening the card.
+
+**Reproduced.** New `RouteCardStopDeletedWhileNavigatingTest` on the real compact Maps tab, the S22 order: the linked route opened by a
+real touch on its marker, a navigation to another waypoint started through the view model's own start, the first stop's waypoint
+removed from the map's waypoint list (what the Journal swipe does to `visibleWaypoints`), then the navigation ended by a real touch
+on the navigation card's X. Asserts the stop's name stays, no Navigate and no reason while navigating, then Navigate not enabled and
+the reason's exact text once navigation ends.
+
+- Forward: first run 42588686503 failed in this test at the stop-name lookup ("could not find any node ... 'route-card-stop-name-0'"): my own premise was wrong, the card collapsed lists no stops. The S22 card was expanded (its dumps list the stops), so the test now expands it by a real touch on the handle first (`d62e04f52`). Green run 42591776170 (`d62e04f52`): every job passed. By name against 42568457346: 7,007 results here, 7,006 there; no name only in the base, no status changed; the one name only here is the new test (pass); 6,983 pass and 24 skipped here, 6,982 and 24 there.
+- Revert (the link taken without checking its waypoint is still on the phone, `RouteStopNavigateTarget.kt:26`): run 42591779438 on `0015c7ff1`, filtered to this class and `RouteStopNavigateTargetTest`. Compile log checked first: the debug APK built, no `e:` or `error:` lines. The new test fails at "Failed to assert the following: (is not enabled)" on `route-card-navigate`, the deleted stop's Navigate left live, which is the failure this revert makes; `RouteStopNavigateTargetTest`'s gone-link case fails with "expected Waypoint(id=wp-creek) but was Waypoint(id=wp-gone)", the same edit's. The full-suite job without the Street map also fails both `RouteCardNavigateReasonLineTest` cases, which need a reason that this revert takes away (it runs every test regardless of the filter). Restored from a copy saved before the edit; the forward branch was confirmed byte-equal to it and clean. (An earlier revert, 42588689545, ran before the expand fix and is not cited for the new test.)
+
+No fix: nothing is wrong.
+
+## Finding 2, a waypoint's bubble draws under the expanded route card: pre-main behaviour, not new with #507
+
+**Cause.** Stacking in the Maps tab's Box is composition order. The bubble (`CompactMapBubble`) is composed right after the map and
+before every other piece of chrome: the crowded list, the icon cluster, the chips, the top strip, the route card, the landscape
+navigation card and the bottom chrome. pre-main `3cfa59d61`, `ui/availability/AvailabilityCompactMapUi.kt`: bubble at :552, route
+card at :661. route-card `7db90fe50`: bubble at :561, route card at :670. Same order, so the card draws over a bubble on pre-main
+too. #507 adds no `zIndex` between siblings of that Box (its two `zIndex` calls are inside the card's own Box,
+`RouteCard.kt:274`, `RouteCardEdges.kt:36`), and its only change in `MapBubbleLayer.kt` is the stop's link when plotting starts.
+
+**Why it is so on pre-main.** `CompactMapBubble.kt:49-54` (pre-main) records it for the top strip: the strip is composed after the
+bubble "so its own controls win any overlap", and the bubble is clamped below the strip (`minY`) so its taps are not lost under it.
+The bubble's clamp box also stops short of the rail and the L. Nothing clamps it above the route card or the bottom chrome, so a
+waypoint near or under the expanded card opens a bubble partly or wholly under the card.
+
+**The rulings.** No ruling on a bubble against the route card was found in RECORD.md on `records-after-173` (searched for bubble with
+card, chrome, under, over, behind, above). The S22 session 8 outcome lists "the bubble against the navigation and route cards (step 5)"
+as not tried. The map-chrome rule (80%, nothing fully obstructs the map) is about fills, not order.
+
+**Not changed.** Which should win is a behaviour choice for the owner, for example: (a) the bubble above the card (compose it after
+the card; its taps then win over the card's where they overlap); (b) the bubble clamped above the card's top, as it is below the
+strip; (c) as now.
+
+## Confirmed vs inferred
+
+- Confirmed from the dumps: "Stop navigating" in 49, 55 and 56; no Navigate or Directions in any of the three; "Test wp S2" listed in
+  all three.
+- Confirmed from the changes log: navigation started 12:36:20, no stop logged before the end.
+- Confirmed from source: the hide on navigating, the fallback, the default selection, `visibleWaypoints` as the map's list, the
+  composition order on both refs.
+- Inferred: that the navigation in the dumps is the one started at 12:36 (the log names no other start after it).
+
+## Could not determine
+
+- The bubble screenshot named in the dispatch was not among the evidence files; finding 2 is diagnosed from source only.
+- The Journal swipe itself was not driven in the test: the delete enters as the map's list losing the waypoint, which is what
+  `visibleWaypoints` does from the swipe's pending delete (read, not run).
+- Not checked on a phone: the reason appearing after the navigation ends.
+
+## Premises that were wrong
+
+- My own, in the reproduction's first run: that the stops are listed with the card collapsed (they are not; fixed by expanding).
+- "The deleted-stop reason never showed" as a defect: the reason is hidden by Amendment 5 while navigating, and a navigation was
+  running at every reopening.
+
+## Decided beyond scope
+
+- The new test is kept as the reproduction of the S22 order (a delete while navigating, then the end of the navigation).
+
+## Questions
+
+- Finding 2: (a) bubble above the card, (b) bubble clamped above the card, or (c) as now?
+
+## S22 steps
+
+24. **The deleted stop's reason.** With no navigation running (end it with the navigation card's X first), delete the first stop's
+    waypoint of a saved route in Journal › Records › Waypoints, then open that route's card: the stop is still listed, Navigate greyed
+    beside Directions, and "This stop's waypoint was moved or deleted" on its own line under them. Start a navigation to another
+    waypoint: the buttons and the reason hide; end it: they come back.
