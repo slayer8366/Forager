@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import android.app.Application
+import android.content.ComponentName
+import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
@@ -7,9 +10,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.junit4.createEmptyComposeRule
+import androidx.test.core.app.ActivityScenario
+import androidx.test.core.app.ApplicationProvider
 import androidx.lifecycle.Lifecycle
 import com.zynergylabs.forager.app.domain.FixProvider
 import com.zynergylabs.forager.app.domain.LocationFix
@@ -25,12 +32,14 @@ import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.After
+import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.RuntimeEnvironment
+import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
@@ -42,8 +51,11 @@ import org.robolectric.annotation.Config
  * broken" for good.
  *
  * Driven through the real Maps tab ([MapLayersTestScreen] over the real `AvailabilityScreen`) and a real
- * `ActivityScenario.recreate()`, at the font the recreation brings. The route plotting ViewModel and the screen's ViewModel are
- * made outside the activity, so they survive the recreation as the real ViewModels do.
+ * `ActivityScenario.recreate()`, at the font the recreation brings. The screen is set in the activity's `onCreate`
+ * ([KeepFollowHostActivity]), as MainActivity sets its own, so the recreated activity restores saved state as the app does; a
+ * first version that set the content again after the recreation restored none (probe run 42563641078: a saveable counter set to
+ * 7 came back 0), so every recreation here first checks that a saveable value in the same screen survived. The route plotting
+ * ViewModel and the screen's ViewModel are made outside the activity, so they survive the recreation as the real ViewModels do.
  *
  * A real MapView cannot run under Robolectric, so the map here is [FollowingMapSlot]: it applies the screen's camera requests
  * with the production rules MapDataRefresh uses (`cameraRequestStopsFollowing` and `shouldApplyCameraRequest` against
@@ -52,10 +64,32 @@ import org.robolectric.annotation.Config
  */
 abstract class KeepFollowOnRecreateTests(private val recreatedFontScale: Float) {
 
-    private val composeRule = createAndroidComposeRule<ComponentActivity>()
-
     @get:Rule
-    val rules: RuleChain = RuleChain.outerRule(hostActivity()).around(composeRule)
+    val composeRule = createEmptyComposeRule()
+
+    private var scenario: ActivityScenario<KeepFollowHostActivity>? = null
+
+    /** A saveable value in the same screen, set before each recreation: if it does not come back, nothing saveable did. */
+    private var harnessProbe: androidx.compose.runtime.MutableIntState? = null
+
+    @Before
+    fun declareHost() {
+        val app = ApplicationProvider.getApplicationContext<Application>()
+        Shadows.shadowOf(app.packageManager).addActivityIfNotPresent(ComponentName(app, KeepFollowHostActivity::class.java))
+        KeepFollowHostActivity.content = { Screen() }
+    }
+
+    @After
+    fun closeHost() {
+        scenario?.close()
+        KeepFollowHostActivity.content = null
+    }
+
+    private fun activity(): ComponentActivity {
+        var current: ComponentActivity? = null
+        scenario!!.onActivity { current = it }
+        return current!!
+    }
 
     private val map = FollowingMapSlot()
 
@@ -92,6 +126,7 @@ abstract class KeepFollowOnRecreateTests(private val recreatedFontScale: Float) 
     @Composable
     private fun Screen() {
         val state by plotting.uiState.collectAsState()
+        harnessProbe = rememberSaveable { mutableIntStateOf(0) }
         MapLayersTestScreen(
             viewModel = viewModel,
             mapSlot = map.slot,
@@ -111,25 +146,29 @@ abstract class KeepFollowOnRecreateTests(private val recreatedFontScale: Float) 
     }
 
     private fun open(trip: PlannedTrip) {
-        composeRule.runOnUiThread { plotting.onOpenSavedRoute(trip, fromTripPlanner = false) }
+        plotting.onOpenSavedRoute(trip, fromTripPlanner = false)
         settle()
     }
 
     /** A font change (to [recreatedFontScale]) or a night-mode change: the activity is recreated and sets the same screen again. */
     private fun recreate() {
         val mapsBefore = map.mapsComposed
-        RuntimeEnvironment.setFontScale(recreatedFontScale)
-        composeRule.activityRule.scenario.recreate()
-        composeRule.runOnUiThread { composeRule.activity.setContent { Screen() } }
+        val activityBefore = activity()
+        harnessProbe!!.intValue = HARNESS_PROBE_VALUE
         settle()
-        assertEquals("precondition: the recreation reached the new activity", Lifecycle.State.RESUMED, composeRule.activityRule.scenario.state)
-        assertEquals("precondition: the recreated activity's font scale", recreatedFontScale, composeRule.activity.resources.configuration.fontScale, 0.001f)
+        RuntimeEnvironment.setFontScale(recreatedFontScale)
+        scenario!!.recreate()
+        settle()
+        assertEquals("precondition: the recreation reached the new activity", Lifecycle.State.RESUMED, scenario!!.state)
+        assertTrue("precondition: a new activity", activity() !== activityBefore)
+        assertEquals("precondition: the screen's saved state came back (a saveable value in the same screen)", HARNESS_PROBE_VALUE, harnessProbe!!.intValue)
+        assertEquals("precondition: the recreated activity's font scale", recreatedFontScale, activity().resources.configuration.fontScale, 0.001f)
         assertTrue("precondition: the recreated activity composed a new map (${map.mapsComposed} after $mapsBefore)", map.mapsComposed > mapsBefore)
     }
 
     /** Navigating, a saved route opened (its fit applied, which ends following), and the user re-centred, so the map follows. */
     private fun navigatingWithTheRouteOpenAndFollowing(): String {
-        composeRule.setContent { Screen() }
+        scenario = ActivityScenario.launch(KeepFollowHostActivity::class.java)
         settle()
         open(firstTrip)
         val fit = map.renderMode?.cameraRequest
@@ -165,6 +204,21 @@ abstract class KeepFollowOnRecreateTests(private val recreatedFontScale: Float) 
         assertTrue("the request is the new route's fit: $newFit", newFit!!.startsWith("saved-route-${secondTrip.id}-"))
         assertEquals("the new route's fit applied, after the first route's only fit", listOf(fitId, newFit), map.applied)
         assertEquals("opening the new route ended following, as opening a route does", 2, map.followingStops)
+    }
+}
+
+private const val HARNESS_PROBE_VALUE = 7
+
+/** Sets [content] in `onCreate`, as MainActivity sets its screen, so a recreation restores saved state as the app's does. */
+class KeepFollowHostActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        val screen = content ?: error("KeepFollowHostActivity: no content set")
+        setContent { screen() }
+    }
+
+    companion object {
+        var content: (@Composable () -> Unit)? = null
     }
 }
 
