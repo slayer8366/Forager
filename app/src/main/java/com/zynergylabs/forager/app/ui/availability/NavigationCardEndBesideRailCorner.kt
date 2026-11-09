@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
+import com.zynergylabs.forager.app.ui.route.routeCardRailCornerRows
 
 /**
  * Dispatch 2026-11-05-10, Amendment 1, E20 (RECORD -2181). The owner's marked screenshot puts the missing line at the bottom of the
@@ -54,7 +55,7 @@ internal fun Modifier.navigationCardEndBesideRailCorner(
     drawWithContent {
         drawContent()
         val strokePx = stroke.width.toPx()
-        val band = railCornerBand(size.height, bottomGap.toPx(), railCornerRadius.toPx()) ?: return@drawWithContent
+        val band = routeCardRailCornerRows(size.height, bottomGap.toPx(), railCornerRadius.toPx()) ?: return@drawWithContent
         val x = if (railPortEdge == ScreenEdge.Left) -strokePx / 2f else size.width + strokePx / 2f
         drawLine(stroke.brush, Offset(x, band.start), Offset(x, band.endInclusive), strokeWidth = strokePx)
     }
@@ -62,8 +63,10 @@ internal fun Modifier.navigationCardEndBesideRailCorner(
 
 /**
  * E21: the card's display clipped to its bounds, as before ([clipToBounds]), except, while the side bar is shown, one stroke beyond its
- * side-bar edge over [railCornerBand], where [navigationCardEndBesideRailCorner]'s line lies. Nothing else the card draws reaches there
- * (it casts no shadow, RECORD -2154, and its bottom corners are square on the screen's edge), so only that line is let through.
+ * side-bar edge over the rows where the side bar's bottom corner curves away beside the card ([routeCardRailCornerRows], the one rule
+ * the route card beside the side bar reads too, `RouteCardRailEdge.kt`), where [navigationCardEndBesideRailCorner]'s line lies. Nothing
+ * else the card draws reaches there (it casts no shadow, RECORD -2154, and its bottom corners are square on the screen's edge), so only
+ * that line is let through.
  */
 internal fun Modifier.clipToBoundsOpenBesideRailCorner(
     strokeWidth: Dp,
@@ -73,14 +76,6 @@ internal fun Modifier.clipToBoundsOpenBesideRailCorner(
     railCornerRadius: Dp = MAP_CARD_CORNER_RADIUS,
 ): Modifier = if (!railShown) clipToBounds() else clip(BoundsOpenBesideRailCorner(strokeWidth, railPortEdge, bottomGap, railCornerRadius))
 
-/** The rows, in the card's own px, over which the side bar's bottom corner curves away beside the card; `null` where none do. */
-private fun railCornerBand(heightPx: Float, bottomGapPx: Float, radiusPx: Float): ClosedFloatingPointRange<Float>? {
-    val railBottom = heightPx + bottomGapPx
-    val from = (railBottom - radiusPx).coerceAtLeast(0f)
-    val to = minOf(heightPx, railBottom)
-    return if (from < to) from..to else null
-}
-
 private data class BoundsOpenBesideRailCorner(
     private val strokeWidth: Dp,
     private val railPortEdge: ScreenEdge,
@@ -89,7 +84,8 @@ private data class BoundsOpenBesideRailCorner(
 ) : Shape {
     override fun createOutline(size: Size, layoutDirection: LayoutDirection, density: Density): Outline {
         val bounds = Rect(0f, 0f, size.width, size.height)
-        val band = with(density) { railCornerBand(size.height, bottomGap.toPx(), railCornerRadius.toPx()) } ?: return Outline.Rectangle(bounds)
+        val band = with(density) { routeCardRailCornerRows(size.height, bottomGap.toPx(), railCornerRadius.toPx()) }
+            ?: return Outline.Rectangle(bounds)
         val strokePx = with(density) { strokeWidth.toPx() }
         val column = if (railPortEdge == ScreenEdge.Left) {
             Rect(-strokePx, band.start, 0f, band.endInclusive)

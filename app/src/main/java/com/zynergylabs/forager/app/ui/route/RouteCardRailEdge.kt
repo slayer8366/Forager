@@ -75,8 +75,8 @@ internal fun routeCardRunOutLineClip(filled: Path, runOut: Path, size: Size, str
 /**
  * (2) The rows, in the card's own px, over which the side bar's rounded bottom corner curves away beside a card [heightPx] tall whose
  * bottom sits [railBelowPx] above the side bar's: from the corner's top ([railCornerPx] up from the side bar's bottom) down to the card's
- * bottom. `null` where the corner lies wholly below the card (resting on the navigation card, for one). The navigation card's rule
- * (E20, `railCornerBand` on PR #500).
+ * bottom. `null` where the corner lies wholly below the card (resting on the navigation card, for one). The navigation card reads the
+ * same rule for its end line and clip (E21, `NavigationCardEndBesideRailCorner.kt`), so the two cards' bands are one function.
  */
 internal fun routeCardRailCornerRows(heightPx: Float, railBelowPx: Float, railCornerPx: Float): ClosedFloatingPointRange<Float>? {
     val railBottom = heightPx + railBelowPx
