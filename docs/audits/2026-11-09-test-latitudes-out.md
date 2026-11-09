@@ -27,8 +27,12 @@ every relative position in the files where points are drawn against each other.
 
 - Scanner, `git diff origin/main HEAD`: TOTAL 0 in every category (it read 8 lat at `origin/pre-main`).
 - Scanner, `git diff origin/pre-main HEAD`: TOTAL 0.
-- CI on the code commit and the by-name comparison against pre-main's latest green run: see the PR and the
-  coder's hand-back (filled in below once the run finished).
+- CI run 42661633867 on the code commit `7e8c06253`: success, all eight jobs.
+- By-name comparison of its JUnit XML (`unit-test-report`) against pre-main's latest green run, 42654949241
+  at `f485f0d8d` (the only commit after it on pre-main, `26fddf005`, changes `docs/process/known-bugs.md`
+  only): 7,531 test cases in each, 7,507 passed and 24 skipped in each, none present in one and missing from
+  the other, 0 changed outcome. The 69 cases in the touched classes (including the two subclasses of the
+  landscape route-card tests) all pass.
 
 ## Confirmed vs inferred
 
