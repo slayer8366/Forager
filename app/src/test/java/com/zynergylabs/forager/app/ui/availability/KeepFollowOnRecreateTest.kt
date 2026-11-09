@@ -5,15 +5,11 @@ import android.content.ComponentName
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.junit4.createEmptyComposeRule
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
@@ -23,10 +19,6 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.route.PlottedRoute
-import com.zynergylabs.forager.app.ui.map.MapRenderMode
-import com.zynergylabs.forager.app.ui.map.MapSlot
-import com.zynergylabs.forager.app.ui.map.cameraRequestStopsFollowing
-import com.zynergylabs.forager.app.ui.map.shouldApplyCameraRequest
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
 import org.junit.Assert.assertEquals
@@ -57,10 +49,12 @@ import org.robolectric.annotation.Config
  * 7 came back 0), so every recreation here first checks that a saveable value in the same screen survived. The route plotting
  * ViewModel and the screen's ViewModel are made outside the activity, so they survive the recreation as the real ViewModels do.
  *
- * A real MapView cannot run under Robolectric, so the map here is [FollowingMapSlot]: it applies the screen's camera requests
- * with the production rules MapDataRefresh uses (`cameraRequestStopsFollowing` and `shouldApplyCameraRequest` against
- * `MapCameraMemory.appliedCameraRequestId`, else the map's own id; MapDataRefresh.kt:109-125 at 3cfa59d61). What MapLibre
- * then does with a frame, and the navigation view's listener, are the S22's to show.
+ * A real MapView cannot run under Robolectric, so the map here is [RecreationMapStandIn], which applies the screen's search
+ * frames and camera requests, and restores the saved camera, with the production rules SightingsMap uses (its doc comment). What
+ * MapLibre then does with a frame, and the navigation view's listener, are the S22's to show.
+ *
+ * RECORD -2192 under -2190: after a search in the same session, the search frame's applied id is also kept, so the recreation
+ * does not frame the search again and end following.
  */
 abstract class KeepFollowOnRecreateTests(private val recreatedFontScale: Float) {
 
@@ -91,7 +85,7 @@ abstract class KeepFollowOnRecreateTests(private val recreatedFontScale: Float) 
         return current!!
     }
 
-    private val map = FollowingMapSlot()
+    private val map = RecreationMapStandIn()
 
     private val stops = listOf(
         CREEK,
@@ -193,6 +187,33 @@ abstract class KeepFollowOnRecreateTests(private val recreatedFontScale: Float) 
     }
 
     @Test
+    fun `after a search then a recreation the map carries on following and the search is not framed again`() {
+        scenario = ActivityScenario.launch(KeepFollowHostActivity::class.java)
+        settle()
+        viewModel.onManualLatChanged("45.40")
+        viewModel.onManualLngChanged("-121.70")
+        viewModel.searchManualCoordinates()
+        settle()
+        val serial = viewModel.uiState.value.searchFrameSerial
+        assertTrue("precondition: the search asked for a frame ($serial)", serial > 0)
+        assertEquals("precondition: the search's frame applied", serial, map.searchFramesApplied.lastOrNull())
+        val framesBefore = map.searchFramesApplied.toList()
+        open(firstTrip)
+        val fitId = map.renderMode?.cameraRequest?.id
+        assertNotNull("precondition: the open route asked the map to fit it", fitId)
+        assertEquals("precondition: the route's fit applied once on opening", listOf(fitId), map.applied)
+        map.recenter()
+        val stopsBefore = map.followingStops
+
+        recreate()
+
+        assertEquals("the search's frame was not applied again after the recreation", framesBefore, map.searchFramesApplied)
+        assertEquals("the saved route's fit was not applied again after the recreation", listOf(fitId), map.applied)
+        assertEquals("following was not ended by the recreation", stopsBefore, map.followingStops)
+        assertTrue("the recreated map is still following", map.following)
+    }
+
+    @Test
     fun `a new route opened after a recreation still frames`() {
         val fitId = navigatingWithTheRouteOpenAndFollowing()
         recreate()
@@ -231,50 +252,3 @@ class KeepFollowOnRecreateTest : KeepFollowOnRecreateTests(recreatedFontScale = 
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 1.0f)
 class KeepFollowOnRecreateFontTwoTest : KeepFollowOnRecreateTests(recreatedFontScale = 2.0f)
-
-/**
- * The map, standing in for SightingsMap's request handling (MapDataRefresh.kt:109-125 at 3cfa59d61) with the same production
- * rules: a request that stops following ends following once per id, and a request applies when not following and not already
- * applied. "Already applied" is the screen's `MapCameraMemory.appliedCameraRequestId`, else this map's own id, as there. Each
- * map starts following, as a fresh map in the navigation view does while "follow broken" is not saved (NavigationView.kt).
- */
-private class FollowingMapSlot {
-    /** Every request id applied, in order, across every map this slot drew. */
-    val applied = mutableListOf<String>()
-    var followingStops = 0
-    var mapsComposed = 0
-    var renderMode: MapRenderMode? = null
-    private var currentFollowing: BooleanArray = booleanArrayOf(true)
-
-    val following: Boolean get() = currentFollowing[0]
-
-    /** The user's Re-center: the current map follows again. */
-    fun recenter() {
-        currentFollowing[0] = true
-    }
-
-    val slot: MapSlot = { _, _, renderMode, _, _, _, _, _, modifier ->
-        this.renderMode = renderMode
-        val ownApplied = remember { arrayOfNulls<String>(1) }
-        val followingNow = remember { booleanArrayOf(true) }
-        LaunchedEffect(Unit) {
-            mapsComposed++
-            currentFollowing = followingNow
-        }
-        val request = renderMode.cameraRequest
-        LaunchedEffect(request) {
-            val memory = renderMode.cameraMemory
-            val appliedId = memory?.appliedCameraRequestId ?: ownApplied[0]
-            if (cameraRequestStopsFollowing(followingNow[0], request, appliedId)) {
-                followingNow[0] = false
-                followingStops++
-            }
-            if (request != null && shouldApplyCameraRequest(followingNow[0], request, appliedId)) {
-                applied += request.id
-                ownApplied[0] = request.id
-                memory?.appliedCameraRequestId = request.id
-            }
-        }
-        Box(modifier.testTag("map-slot"))
-    }
-}
