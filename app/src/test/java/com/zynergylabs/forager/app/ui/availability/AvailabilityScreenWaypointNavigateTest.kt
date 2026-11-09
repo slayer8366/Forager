@@ -113,7 +113,7 @@ class AvailabilityScreenWaypointNavigateTest {
 
     private val t = 1_700_000_000_000L
     private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
-    private val oak = Waypoint("wp-2", 45.35, -121.66, null, "Big oak", "", 2_000L)
+    private val oak = Waypoint("wp-2", 44.35, -121.66, null, "Big oak", "", 2_000L)
     private val origin = Waypoint("origin", 45.36, -121.6959, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     /** A fix [metersSouth] metres due south of the creek pin, with the S22's constant 3.79 m accuracy. */

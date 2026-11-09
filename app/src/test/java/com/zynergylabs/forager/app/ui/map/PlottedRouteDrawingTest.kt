@@ -17,10 +17,10 @@ import org.junit.Test
 /** How a plotted route is drawn and fitted (dispatch 2026-10-30-08, step 3): headless, the parts the map layers are fed. */
 class PlottedRouteDrawingTest {
 
-    private val a = LatLng(45.20, -122.50)
-    private val t1 = LatLng(45.21, -122.51)
-    private val t2 = LatLng(45.22, -122.52)
-    private val b = LatLng(45.23, -122.53)
+    private val a = LatLng(44.20, -122.50)
+    private val t1 = LatLng(44.21, -122.51)
+    private val t2 = LatLng(44.22, -122.52)
+    private val b = LatLng(44.23, -122.53)
 
     @Test
     fun `a trail leg is drawn as a dashed join, its trail part solid, and a dashed join`() {
@@ -54,11 +54,11 @@ class PlottedRouteDrawingTest {
     fun `a saved route is fitted to every point of its legs, with the card's height below`() {
         val route = PlottedRoute(
             listOf(RouteStop("A", a), RouteStop("B", b)),
-            listOf(RouteLeg.Trail(listOf(a, LatLng(45.30, -122.40), b), 500.0, trailFrom = 0, trailTo = 2)),
+            listOf(RouteLeg.Trail(listOf(a, LatLng(44.30, -122.40), b), 500.0, trailFrom = 0, trailTo = 2)),
         )
 
         assertEquals(
-            EntryMapFrame.FitInsets(GeoBoundingBox(north = 45.30, south = 45.20, east = -122.40, west = -122.53), topDp = 48, bottomDp = 200, leftDp = 48, rightDp = 48),
+            EntryMapFrame.FitInsets(GeoBoundingBox(north = 44.30, south = 44.20, east = -122.40, west = -122.53), topDp = 48, bottomDp = 200, leftDp = 48, rightDp = 48),
             routeFrame(route, sideDp = 48, bottomDp = 200),
         )
     }
