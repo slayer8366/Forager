@@ -269,8 +269,9 @@ fun AvailabilityScreen(
     val mapIconClusterPosition = rememberPersistedMapIconClusterPosition(uiState, onMapIconClusterPlacementChanged)
     // Part 1 layout fixes, item 4 (planner message 2026-09-28-98, under CLAUDE.md's UX defaults): the
     // camera the user left on the Maps tab, held here for the same reason, since the map and its camera
-    // leave composition with the tab. See MapCameraMemory. Session only, except the last camera request applied, which RECORD -2192
-    // keeps across an activity recreation so a font or night-mode change does not fit an open route again (rememberMapCameraMemory).
+    // leave composition with the tab. See MapCameraMemory. Session only, except the camera and the last search frame and camera
+    // request applied, which RECORD -2192 keeps across an activity recreation (a font or night-mode change), so the map reopens
+    // exactly as it was left and does not frame a route or a search again (rememberMapCameraMemory).
     val mapCameraMemory = rememberMapCameraMemory()
     // Dispatch 2026-09-29-57, item 8 (amendments -256 and -262): the return request "Open in Journal" leaves, held here for the
     // same reason as the camera. Session only, like the camera: a recreation forgets it and Back does what it did before.
