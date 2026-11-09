@@ -1631,3 +1631,54 @@ Sorrel's review of #500 at 961ff2a16 (`prompts/preserved/2026-11-08-sorrel-revie
 ### Clean-up
 - Throwaway refs `hazel-j8r-revert-1` and `hazel-j8r-revert-2` deleted from origin after the runs; the runs stay readable by number.
 - PR #500 stays ready for review, not merged.
+
+## The S22's "layout loop" at font 2.0, and the map left at whole-world view (Hazel, 2026-11-08)
+
+Dispatched by Rowan after the S22 check of the combined build 5032 (tools/s22-combined 528de307b; RECORD -2192). Diagnosis only: **no file under `app/src` changed** on this branch. Marks: [observed] run or file read, [read] source read, [inferred] reasoned and not run.
+
+### Base [observed]
+- `origin/next-turn` d17245f2c at the start and at this commit. Worktree `~/.cache/forager-wt/next-turn-loop` (on /mnt/work). Probe commit d1580e0d6 (one test file, never on next-turn) on throwaway ref `hazel-loop-probe1`.
+
+### 1. "navigation info overflows at 1020 px" about 30 times a second: not a layout loop
+- **Reproduced on next-turn alone** [observed, run 42553484423, filtered to the probe class; test-job log has 0 ` e: ` lines; 2 tests, both ran]. The probe composes the real Maps tab through `RouteCardBarRig` at `w823dp-h384dp-land-600dpi` (3.75 px/dp, the S22's), font 2.0, ROTATION_90, insets 25/48 dp, navigating, with a rotation-vector sensor added so the real `AndroidCompassProvider` and `rememberTrueHeading` run. Each scenario ran 300 frames on a paused clock, reading the divider, the card and the `NavigationCard` log lines every frame. It was run twice: once with no compass readings, and once with one reading per frame (the phone's sensor runs at about 16 Hz).
+  - Evening, no route card and with one: **with no readings, 0 log lines, and 1 distinct divider and card rectangle across 300 frames. With a reading each frame, exactly 2 log lines per frame (600 in 300 frames), rightPx alternating 772, 447, 772, 447, and still 1 distinct divider and card rectangle.**
+  - Noon, the same: with readings, 2 lines per frame, both rightPx 447, and nothing moved.
+- **Cause** [read]. One composition logs twice, and the log is not drawn widths. `NavigationInfo` reads the heading at its top (`val reading by heading`, NavigationInfo.kt:108), so every compass reading recomposes it. Each composition computes two fits: `withEveningFit` (NavigationInfo.kt:152, laid out as with the evening line, H12) and `heldFit` (NavigationInfo.kt:209, as drawn). Both go through `measuredNavigationInfoFit`, which writes the warning whenever the fit overflows (NavigationInfo.kt:339). In the evening with the line off for room, the first carries the evening piece's width (the S22's 874, the probe's 772) and the second the right floor (`rightFloorPx`; the S22's 431, the probe's 447). Two warnings per reading at about 16 Hz is the "about 30 a second", alternating in exactly the S22's pattern. It stops at font 1.0 because nothing overflows there. The drawn right part is `total - divider - leftPartWidthPx(...)` (NavigationCardParts.kt:93-94), and that did not change in any frame.
+- **Which branch** [read]. Pre-main has the same warning but one fit per composition (`git show origin/pre-main:…/NavigationInfo.kt`, line 159), so there it logs once per compass reading. The second call, and so the doubled, alternating line, comes with next-turn's H12 code. The overflow itself is real: at font 2.0 the left part's 575 px need plus the right part does not fit 1020 px. RECORD -950 says such an overflow is reported, not trimmed further.
+- **Not fixed**: with no loop there is no red test to write (widths moving frame to frame after settling), so nothing in the dispatch's fix plan applies. What remains is log volume, a warning repeated on every compass reading. Logging it once per change of (width, fit) would keep the report the CLAUDE.md rule asks for without the repeat. That is a change to what is logged, not to what is drawn, and it was not asked for, so it is left to the planner.
+
+### 2. The map left at whole-world view after a font change with the route card open: from pre-main's saved-route fit, not from #500, #507 or #508
+- **Mechanism** [read]:
+  - MainActivity does not handle `fontScale` or `uiMode` itself (AndroidManifest.xml, `.MainActivity`: `orientation|screenSize|screenLayout|keyboardHidden`), so a font change recreates the activity, and so does a night-mode change.
+  - What survives the recreation: the route plotting ViewModel (its `Showing` mode and serial), and the navigation view's saveable flags (`rememberNavigationViewRequests`: follow-broken, the start zoom already applied).
+  - What does not survive: `MapCameraMemory` is a plain `remember` (AvailabilityScreen.kt:273), and so is the map's own `lastAppliedCameraRequestId` (SightingsMap.kt:527). So after the recreation neither the saved camera nor "this route's fit was applied" exists.
+  - So the saved route's fit (`savedRouteCameraRequest`, CompactMapRoutePlotting.kt:122, id `saved-route-<trip>-<serial>`) counts as new on the new map, once the card reports a height. `MapDataRefresh` (lines 109-121) then stops following (`cameraMode = NONE`, since `stopsFollowing`) and applies the fit (`applyCameraFrame`, FitInsets).
+  - The mode change is not the app's (`byTheApp`), so the navigation listener reports a move away (NavigationView.kt:414-423). Follow-broken is set and saved, and `MapNavigationView` returns at `if (!view.following)` from then on. That is why nothing brings the view back. Locate then keeps the zoom it finds (#508), so it glides at world zoom.
+- **Seen on the phone** [observed, private screenshots read, not copied]. At 18:24 a night-mode change with the route card open at font 1.0 also recreated the activity. Afterwards the map was flat, not following, and framed on the route (05-gesture-L3-night.png). That is this re-fit at a size where it fits. At 18:28, after the font change with no route card, the map was in the navigation view (13-rec.png): no request, no re-fit. At 18:30, after a font change to 2.0 with the route card open (16-routecard-f2-later.png): world view, the dot near the top, not following.
+- **Why world rather than the route** [inferred, two candidates, neither run]:
+  - (a) The fit's insets exceed the map at font 2.0. They are 48 dp top and `cardHeightDp + 48` dp bottom, and the route card resting on the navigation card in landscape is tall at font 2.0, while the map is about 384 dp. MapLibre's `getCameraForLatLngBounds` then gives its minimum zoom.
+  - (b) The fit lands before the new map is laid out.
+  - Either way the trigger is the re-applied fit. A real MapView cannot run under Robolectric, so telling (a) from (b) needs the phone: the `ForagerNavView` lines, and the camera log after a font change with the route card open.
+- **Whether pre-main has it** [read]: yes. `remember { MapCameraMemory() }`, `savedRouteCameraRequest` with `stopsFollowing`, and `cameraRequestStopsFollowing` in MapDataRefresh are all on `origin/pre-main` 3cfa59d61 (route plotting, dispatch 2026-10-30-08, Amendment 5 S-1 kept the applied id in `MapCameraMemory` for a tab change, which does not survive a recreation). Main does not have saved routes. #508 makes locate keep the zoom, which turns a recoverable world view into a slow glide, but it did not cause it.
+- **Not fixed**, per the dispatch: not a regression in #500, #507 or #508. Fixing it means choosing what a recreated map does with a route that is already open (keep the applied id across recreation, for instance with `rememberSaveable`, or never re-fit while navigating). That is a behaviour choice for the planner and owner.
+
+### Confirmed and inferred
+- [observed] Run 42553484423's probe output: 0 lines and no movement without compass readings; 2 lines per reading, alternating 772/447 in the evening and 447/447 at noon, with 1 distinct divider and card rectangle in every scenario. The S22 log's 874/431 alternation at 1020 px and the four screenshots named above. The privacy scan totals 0 before the push.
+- [read] Every file:line above, at d17245f2c and on `origin/pre-main` 3cfa59d61.
+- [inferred] That the S22's two warnings per reading are the same pair. The widths differ from the probe's (874/431 at 1020 px against 772/447 at 1023 px) because the evening words and the insets differ; the pattern and the rate match.
+
+### Could not determine
+- Whether the probe's route card was actually open in its "route card" frames: it called `plotTo(6)` and tapped the handle, but asserted neither. The navigation card's rectangle did not move, as expected with the evening line already off for room.
+- The S22's exact window and insets during the run (gesture navigation then). The probe's parts width came to 1023 px at noon against the phone's 1020.
+- Problem 2's zoom value: (a) or (b) above.
+- The combined branch was not probed. next-turn alone shows the S22's pattern, and the mechanism (two fits, one warning each) is in NavigationInfo.kt, a file #507 does not touch.
+
+### Premises that were wrong
+- "With the navigation card's right part alternating between 431 and 874 px wide": those are the `rightPx` fields of two different fits logged in one composition, not a drawn width. The drawn right part did not change in any of 1,200 probe frames with compass readings.
+- "A layout loop": nothing is re-laid out. The repeat comes from recomposition at the compass's rate, which every navigating composition has.
+
+### Decided beyond scope (open to the owner)
+- Nothing was built. The log-once option for problem 1 and the recreation choice for problem 2 are left to the planner.
+
+### Clean-up
+- Throwaway ref `hazel-loop-probe1` deleted from origin after the run; run 42553484423 and its artifact stay readable by number, and the probe source is commit d1580e0d6.
