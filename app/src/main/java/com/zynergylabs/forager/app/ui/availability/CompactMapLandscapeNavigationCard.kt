@@ -185,22 +185,12 @@ internal fun BoxScope.CompactMapNavigationDisplay(
     // J4 (RECORD -2183, the owner: "Round and outline"): once moved up off the screen's bottom edge, its bottom corners round and its
     // outline goes all round. J5: read from where it is drawn, so gliding back down it keeps them until it is on the edge again.
     val bottomRoundedAndOutlined = drawnLiftPx > 0.5f
-    // Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outline: its top and rounded top corners and its side facing the
-    // map; its rail side once the rail has slid away, unless that side is then on the screen's edge; its bottom is the screen's.
-    val cardLayoutDirection = LocalLayoutDirection.current
-    val cardOutlineSides = landscapeColumnOutlineSides(
-        railPortEdge = railPortEdge,
-        railShown = !isFullscreen,
-        railSideInset = if (railPortEdge == ScreenEdge.Left) {
-            controlsPadding.calculateLeftPadding(cardLayoutDirection)
-        } else {
-            controlsPadding.calculateRightPadding(cardLayoutDirection)
-        },
-        innerSideDrawn = true,
-        top = true,
-        // J4 (RECORD -2183, the owner: "Round and outline"): once moved up off the screen's bottom edge, the outline goes all round.
-        bottom = bottomRoundedAndOutlined,
-    )
+    // Dispatch 2026-10-13-02 (RECORD -966, -967): the card's outline (RouteCardRailSide.kt, where the route card resting on this card
+    // reads the same rule for its side by the rail; Sorrel's review of PR #507, item 1.1). J4 (RECORD -2183, the owner: "Round and
+    // outline"): once moved up off the screen's bottom edge, the outline goes all round, so the bottom is this card's own, on top of the
+    // shared rule, which leaves its rail side, top and map side as they were.
+    val cardOutlineSides = landscapeNavigationCardOutlineSides(railPortEdge, isFullscreen, controlsPadding, LocalLayoutDirection.current)
+        .copy(bottom = bottomRoundedAndOutlined)
     val (sundownLine, backByLine) = compactMapEveningLines(uiState, currentTime, recordingSundownLine, quickSettings, sundownClock)
     // RECORD -953: the L is not told the card's edge, so it does not slide (see this function's doc).
     // J8 (RECORD -2183): no resting place once navigation ends, so the dot is kept above nothing.

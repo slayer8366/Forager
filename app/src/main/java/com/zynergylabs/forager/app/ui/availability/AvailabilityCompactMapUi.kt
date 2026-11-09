@@ -294,6 +294,8 @@ internal fun CompactMapTab(
     var routeCardHeightDp by remember { mutableIntStateOf(0) }
     var routeCardSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
     var routeCardBoundsInRoot by remember { mutableStateOf<Rect?>(null) }
+    // Amendment 6, the credit (RECORD -2187): what of the card is drawn, its strip once tucked, which is all the "i" hides under.
+    var routeCardCoverInRoot by remember { mutableStateOf<Rect?>(null) }
     // The credit strip's size, for Re-center beside the L to keep clear of it (D17, reCenterClearanceBesideTheL). The size's setter is
     // remembered, so the render mode compares equal across recompositions.
     var mapCreditSizePx by remember { mutableStateOf(IntSize.Zero) }
@@ -494,7 +496,7 @@ internal fun CompactMapTab(
                         // by the cards' measured bounds; this replaces Amendment 9's rise above the route card.
                         .copy(
                             attributionHideUnder = attributionCoversInMapPx(
-                                listOfNotNull(routeCardBoundsInRoot, cluster.navigationCardBoundsInRoot?.takeIf { navigation.isNavigating && cluster.landscape }),
+                                listOfNotNull(routeCardCoverInRoot, cluster.navigationCardBoundsInRoot?.takeIf { navigation.isNavigating && cluster.landscape }),
                                 cluster.mapContentBoxLeftInRootPx,
                                 cluster.mapContentBoxTopInRootPx,
                             ),
@@ -682,6 +684,7 @@ internal fun CompactMapTab(
                     onCardHeightDp = { routeCardHeightDp = it },
                     onCardSpanPx = { routeCardSpanPx = it },
                     onCardBoundsInRoot = { routeCardBoundsInRoot = it },
+                    onCardCoverInRoot = { routeCardCoverInRoot = it },
                     sources = bubbleSources,
                     isFullscreen = isFullscreen,
                     isNavigating = navigation.isNavigating,

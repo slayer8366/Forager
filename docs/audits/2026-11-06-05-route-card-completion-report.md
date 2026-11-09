@@ -1098,3 +1098,465 @@ briefed; `origin/pre-main` was `82d4a091a` and already in it. Mid-task, on the p
 13. **No buttons while navigating.** Open a saved route, tap Navigate: Navigate and Directions disappear (the card gets shorter). Press
     Back: they come back. Navigate again, then tap the navigation card's ✕: they come back. Walk to the waypoint: at "Arrived" they stay
     hidden (as built) until Back or ✕. With a deleted stop selected, the reason line hides the same way while navigating elsewhere.
+
+# Amendment 5, the tab, built: the tucked card's tab takes the card's outline
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC. The "Added (2026-11-08T05:05:18Z, -2187)" bullet of Amendment 5, read on `origin/records-after-173`
+(`prompts/preserved/2026-11-06-05-amendment-5.md`); the owner, of the tab: **"Same as the card"**; build go **"Build it"**. Branch
+`route-card` at `69afc0c26` as briefed; `origin/pre-main` at `82d4a091a`, already in it.
+
+## What was built
+
+- **The tab's outline** (`ui/route/RouteCardEdges.kt`, `96a7be8d5`). `RouteCardTabOutline` draws `mapChromeOutline()` (1 dp, Bark at 40%
+  by day, white at 40% at night) in the tab's shape, all the way round, as `RouteCardOutline` does for the card. Gone: step 6's solid
+  1 dp `onSurface` line, the box that reached 2 dp past the tab's screen edge so the tab's clip cut that side off, and the `RouteCardEdge`
+  enum that chose that side (it had no other user). `RouteCardTuck.kt` calls it without the side and its comment says so. Nothing else
+  about the tab changed: its size, place, fill, grip and touch area are the same code.
+- **Tests** (`5217280b0`, `7bf77ce75`): `RouteCardTabOutlineTests.kt`, one abstract class and two subclasses on the real Maps tab
+  (`RouteCardBarRig`), the card tucked by a real sideways swipe on it, the tab read from drawn pixels with Amendment 5's
+  `whyNotRuledLine` (the ruled colours written out, expected over the tab's own pixel 4 dp in). `RouteCardTabOutlineTest` (portrait):
+  a saved route's tab with the icon bar where it starts (the tab on the left edge) and moved across (the right edge), and the tab while
+  plotting, each by day and at night (6). `RouteCardTabOutlineLandscapeTest`: the tab while plotting, recording, by day and at night (2).
+  The sides are read along the tab's middle row, the top and bottom down the column 4 dp in from its edge side, where they are straight
+  (the 16 dp round corners take the part nearest the map).
+
+## Tests whose claims changed
+
+- None. No existing test read the tab's line: `RouteCardTuckCloseTest` reads the tab's size, place and touches only, and it passed in
+  the red, revert and full runs alike.
+
+## Verified, and how
+
+- **Red** (`hazel-rctab-red` at `7bf77ce75`, tests only, run **42450188876**, filtered to the two new classes and
+  `RouteCardTuckCloseTest`): the build job's log has **0 compile errors** (`compileDebugUnitTestKotlin` ran), "18 tests completed, 8
+  failed", matching the JUnit XML. All 8 new cases failed for the reason predicted: top, bottom and the side facing the map read the old
+  solid line, `#3B2E24` by day and `#EDE3D0` at night, where the ruled line over the tab is `#ABA398` over `#F5F1E6` and `#797979` over
+  `#1F1F1F`; the side on the screen edge read bare (`#F5F1E6` / `#1F1F1F` all through). Measured places: portrait 0..24 dp (left) and
+  360..384 dp (right), 655..711 dp down; landscape 719..743 dp, 328..384 dp down. (An earlier push of the same tests, run
+  **42449599501**, did not compile: "'protected' property exposes its 'internal' type 'RouteCardBarRig'"; its results were not read.)
+- **Revert** (`hazel-rctab-rev`, run **42451761388**): in `RouteCardEdges.kt`, the tab's `.border(mapChromeOutline(), shape)` changed
+  to a solid 1 dp `onSurface` `BorderStroke` (the card's line untouched). Build log: **0 compile errors**, "20 tests completed, 8
+  failed", matching the XML: the 8 tab cases, each on all four sides, the screen-edge side now reading the solid colour too (`#3B2E24` /
+  `#EDE3D0`), which this revert produces and the red run's bare edge did not, so these are this build's results.
+  `RouteCardOutlineLandscapeTest` (the card) and `RouteCardTuckCloseTest` passed. The revert was made in a separate worktree; the file
+  was restored there from the copy saved before the edit, `cmp`-matched `origin/route-card`'s, and the forward change is present on
+  `origin/route-card` (`96a7be8d5`).
+- **Full CI** at `96a7be8d5` (PR #507), run **42451729839**: **every job success**, including the suite with the Street map deleted.
+  Measured: the ruled line `#ABA298` by day over `#F5F1E6` on all four sides of the tab, the screen-edge side included.
+- **By name against pre-main's latest run** (**42337576510** at `1f6901a11`; `82d4a091a` is one `[skip ci]` commit past it), both runs'
+  JUnit XML: 6846 vs 6941 test cases (6822 passed and 24 skipped vs 6917 and 24); **no outcome changed** on any name in both; 18 gone
+  (the same 18 as Amendment 5's comparison) and 113 new, all passing (Amendment 5's 105 and these 8). Against Amendment 5's green
+  (**42447645450** at `eaa91e8ee`): 6933 vs 6941, **no outcome changed**, none gone, 8 new: the eight tab cases, all passing.
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, native graphics, the real Maps tab): the ruled line on all four sides of the tucked card's tab, by day
+  and at night, in portrait against either edge (a saved route) and while plotting, and in landscape while plotting.
+- Inferred, not run: the same on the phone. Colours are read over this test map's plain ground. The tab while navigating in landscape
+  (the card resting on the navigation card) was not read; it is the same composable with the same call, so it draws the same line.
+
+## Could not determine
+
+- **The tab's side against the side bar in landscape.** The landscape tab sits at 719..743 dp on an 823 dp screen, against the side
+  bar rather than the screen's own edge; its edge side now carries the 40% line, and the side bar draws its own line along its inner
+  edge, so two lines may sit side by side or overlap there, as the report above notes for the card. Not measured; for the S22 check.
+
+## Premises that were wrong
+
+- None found. `route-card` was at `69afc0c26` as briefed, and the tab's code was as the brief described (solid `onSurface`, open on
+  its screen edge).
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- `RouteCardEdge` (the enum naming the open side) removed with its only use, rather than left unused.
+- The landscape tab's "screen edge" side is its side against the side bar (where it sits); it takes the line there too, read as
+  "all the way round".
+
+## S22 step (nothing was run on a phone)
+
+14. **The tab's line.** Open a saved route in portrait and swipe the card sideways: the tab left at the edge has the same thin, soft
+    line as the card, all the way round, including along the screen edge; no darker line. Move the icon bar to the other side and do it
+    again (the tab on the other edge). Night Mode: a faint pale line. While plotting a route, tuck the card: the same. In landscape,
+    tuck the card: the same, and look at the tab's side against the side bar for a doubled line.
+
+# Amendment 6, built: the cards meet (A1), and the tuck slides the card (A2)
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC. Amendment 6 read on `origin/records-after-173`
+(`prompts/preserved/2026-11-06-05-amendment-6.md`, RECORD -2187), with its "Added (2026-11-08T09:30:13Z)" section: the owner's
+"(2) Card fills corner", "Fade (Recommended)", "Stays aside (Recommended)", "Stays under (Recommended)", build go **"Build it"**. Parts
+A1 then A2 (coder A); B (the fan) is coder B's, on `route-card-fan`, and none of its files were touched. Branch `route-card`, from
+`c511e430e` as briefed; `origin/pre-main` `82d4a091a`, already in it. No navigation card file changed (`CompactMapLandscapeNavigationCard.kt`,
+`NavigationHud.kt`, `RoundedMapCard.kt` are read, not edited).
+
+## The previous coder's findings, checked from source at `c511e430e`
+
+All confirmed: the navigation card's top corners round 16 dp (`MapCardCorners.TOP`, `RoundedMapCard.kt:94`, drawn by `mapCardSurface`);
+the route card's landscape shape is square at the bottom (`RouteCardPlacement.kt:84`); `ROUTE_CARD_NAVIGATION_TUCK` 16 dp at `:128`
+put the card's bottom 16 dp behind the navigation card, kept empty by `contentBottomPadding` (`CompactMapRoutePlotting.kt:332`); a
+tucked card reported no height, span or bounds (`:206-215`), which fed `onNavigationCardNow` and so `routeCardSundownStepsAside`. One
+more found: the route card is composed before the navigation card (`AvailabilityCompactMapUi.kt:668`, `:686`), so the navigation card
+is drawn over it, which is why the 16 dp overlap showed through that card's 80% fill.
+
+## What was built
+
+- **A1** (`4e3e0ed9a`). `RouteCardPlacement.kt`: the card's bottom is the navigation card's top (the tuck is gone);
+  `RouteCardLandscapeRoom.cornerFill` (`ROUTE_CARD_NAVIGATION_CORNER_FILL` = the navigation card's `MAP_CARD_CORNER_RADIUS`) replaces
+  `tuck`, and `routeCardNavigationTopLimitPx` loses its tuck term (the card's lines lost the same 16 dp of padding, so D42's decision is
+  unchanged). New `ui/route/RouteCardFace.kt`: the card's fill and outline are drawn there, not by a Surface. The fill runs `cornerFill`
+  past the card's bottom, less a card as wide whose top corners round by that much (the navigation card's shape), so it fills the two
+  corner wedges and nothing else below; the outline is the card's shape over that taller box, stroked at twice its width and clipped to
+  the fill (as `Modifier.border` draws a shape), so the sides run straight down to the navigation card's curves and no line is drawn
+  along the meeting edge. `RouteCard.kt` loses `contentBottomPadding`; `RouteCardEdges.kt` loses Amendment 5's clipped `RouteCardOutline`.
+  Rejected: keeping the bounds 16 dp behind and cutting the drawing to the corners (it draws the same, but the bounds would still claim
+  the overlap).
+- **A2** (`1ae432e13`, `28d3d0203`, `8b7c2e388`). `RouteCardFace.kt`: `RouteCardTuckDraw` (slide, fade, edge, tucked); the drawn card
+  slides toward its edge by its width less 24 dp (`ROUTE_CARD_STRIP`), cut at its bounds' sides (so nothing is drawn under the side bar's
+  80% fill), the cut being a side of its outline, so the strip is outlined all round; its content is moved and faded in a layer, and
+  leaves the semantics tree while tucked; a 4 by 24 dp grip on the card's map-facing 24 dp fades in. `RouteCardTuck.kt`:
+  `rememberRouteCardTuckDraw` (the navigation view chrome's 750 ms, as the card's own motion; under reduced motion the card is at once
+  where it ends and only the content fades), and `RouteCardStripTouch` (48 dp from the edge at the card's height: tap, or drag away
+  past 48 dp, brings it back). Amendment 1's `RouteCardTab`, its tuck transitions and `RouteCardTabOutline` are gone.
+  `CompactMapRoutePlotting.kt`: tucked is no longer hidden; only a card leaving reports nothing, so height, span and bounds keep
+  reporting while tucked; the card's sideways swipe is not applied at all while tucked (`af9c2b408`): a disabled `draggable` still
+  counted as a touch target and kept long-presses anywhere over the card's bounds from the map (diagnostic run 42493712752, a grid of
+  45 real long-presses, none reaching the map). `8b7c2e388` had first replaced the card's Surface with a clipping Box on the wrong
+  reading that the Surface's catch-all took them; the grid ruled that out (the Surface's catch-all is inside its clip, the strip), and
+  `af9c2b408` put the Surface back.
+
+## Tests
+
+- New: `RouteCardMeetsNavigationCardTests.kt` (A1; 8 cases: the S22's landscape window and a 640 by 360 one, by day and at night, at
+  rotations 90 and 270). On the real Maps tab, recording and navigating, read from the drawn screen: down the cards' middle the
+  navigation card's top 6 dp read exactly as with no route card (nothing behind it); just above that top the route card reads bare (no
+  line of its own along the meeting edge); on both sides the ruled line (Amendment 5's colours, written out) from 4 dp above the top to
+  3 dp below it, inside the corner wedges; a pixel 2 dp in and 2 dp down in each wedge reads the route card's own fill.
+- New: `RouteCardStripSlideTests.kt` (A2; 4 cases: portrait saved route, portrait plotting, landscape plotting, landscape navigating on
+  the navigation card). Tucked by a real swipe, back by a real tap on the strip, the clock stepped by hand, a frame every 32 ms for
+  960 ms each way, each read against the same screen with no card: one run of drawn pixels from the edge and nothing else across the
+  card's resting width (no other bar); the column 12 dp in drawn from the resting top to the resting bottom (no size change); the fill
+  there as at rest (the card itself does not fade); the strongest ink on the card never rising while tucking or falling coming back,
+  through a frame part way, gone once tucked; tucked, the run 24 dp wide; back, the card's whole width.
+- New: `RouteCardTuckedStaysTest.kt` (2 cases). Landscape, evening, font 2.0, the S22's insets: tucked, the sundown line stays stepped
+  aside, the navigation card and the card's bounds do not move, the strip is the card's height at its edge, 24 dp wide; back, still
+  aside; closed, the line returns. Portrait, navigating, moved off the view: tucked, Re-center does not move and the strip's bottom is
+  the card's, over it; back, Re-center unmoved.
+
+## Tests whose claims changed
+
+- `RouteCardOutlineStopsAtNavigationCardTest` (3 cases), removed: "the route card's line stops at the navigation card's top" and "below
+  it, no line" are the reverse of A1. Its above-the-top and no-line-across claims are carried by `RouteCardMeetsNavigationCardTests`.
+- `RouteCardLandscapeBarTest`, `RouteCardLandscapeBar270Test`, `RouteCardShortLandscapeBarTest`: "navigating - the card rests on the
+  navigation card at its width, behind it, with Save above it" (bottom 16 dp below that card's top) became "... its bottom on that
+  card's top, with Save above it".
+- `RouteCardPlacementTest`: "a navigation card's top within the tuck of the box's bottom leaves the padding at 0 dp" became "a
+  navigation card's top 10 dp over the box's bottom puts the card's bottom there" (10 dp); "a taller navigation card lifts the card to
+  its top, less the tuck" (64 dp) became "... lifts the card's bottom to its top" (80 dp).
+- `RouteCardTuckCloseTest`: "a real sideways swipe on the card, either way, tucks it to its edge with the tab left there" (card off
+  the map, tab 24 by 56 dp) became "... slides it to its edge with a strip of it left there at its full height" (card still there,
+  strip 24 dp wide at the card's height and top; closed, both gone).
+- Not changed, and passing before and after, so not evidence of A2 on their own: `RouteCardReCenterUnderCardTest`'s "tucked or closed,
+  Re-center is where it is today" (Re-center sits at its own place in both designs; `RouteCardTuckedStaysUnderTest` adds the strip's
+  claim that the old code fails); `RouteCardTabOutlineTests` (8, the strip's outline all round, read where the tab was read).
+- No test asserted "tucking gives the evening line its room back"; that claim was untested before. `RouteCardTuckedStaysAsideTest`
+  claims the opposite, per the ruling.
+
+## Verified, and how
+
+Every run's build log was read for compile errors before its results; every count below is from that run's JUnit XML.
+- **A1 red**, tests alone at `34480d967` (`hazel-rc6a-red1`, run **42468111141**): 0 compile errors; the 8 new cases failed, but only
+  on the sides ("left side, 1.0 dp below the navigation card's top: 1 px in reads #F5F1E6, not the ruled line ... #ABA398"): the reading
+  behind the navigation card passed on the old code. The test map's ground (#FAF8F3) is so close to the card's fill (#F5F1E6) that an
+  80% navigation card over one or the other differs by 1 to 3 levels a channel, under the outline reading's 4-level tolerance. The
+  reading was made exact (`21f8ac623`) and run again on the old code (`hazel-rc6a-red1b`, run **42468898602**): 0 compile errors, all 8
+  fail, now also "middle, 0.0 dp below the navigation card's top: reads #AAA196 with the route card open, #ABA298 with the navigation
+  card alone (something drawn behind it)" (#797979 vs #787878 at night), 18 rows each, and the 14 bare side rows.
+- **A2 red**, tests alone at `c3b8297f5` (`hazel-rc6a-red2`, run **42468756909**): 0 compile errors, 6 of 16 fail. The two
+  `RouteCardTuckedStays` cases for the reasons predicted ("tucked: the sundown line stays stepped aside expected:<0> but was:<1>";
+  the card's node gone when tucked). The 4 slide cases failed before reading a frame (the card's node gone after the swipe), so the
+  frames were made to read against the bounds taken before the touch (`d4b99df3b`) and run again on the old code (`hazel-rc6a-red2b`,
+  run **42470557109**): 0 compile errors, all 4 fail on the frames: "the card's fill reads #FAF4FC, not #F5F0F9 as at rest (the card
+  itself fades)", "drawn at 66.0 dp from the edge, past the card's run of 0.0 dp", "drawn rows 1757..2132 12 dp in from the edge, not
+  the card's 1749..2132" (the 56 dp tab).
+- **Green**: full CI at `af9c2b408` (PR #507), run **42495058756**: every job success, 6952 test cases, 6928 passed, 24 skipped, none
+  failed, the Street-map-deleted suite included. Before it, full runs 42469749652 (`28d3d0203`) and 42491751151 (`8b7c2e388`) each
+  failed one case only, `RouteCardTuckCloseTest`'s "a long-press beside the tab, toward the map reaches the map", which `af9c2b408`
+  fixed (see A2 above); run 42468937051 (`21f8ac623`) did not compile its release variant ("'public' function exposes its 'internal'
+  parameter type 'RouteCardTuckDraw'", fixed in `28d3d0203`) and was not read as a result.
+- **A1 revert** (`hazel-rc6a-revA`, from `8b7c2e388`, whose A1 code is the final one): in `RouteCardPlacement.kt` the card's bottom put
+  16 dp back behind the navigation card (`... .toDp() - 16.dp).coerceAtLeast(0.dp)`). Run **42491821718**: 0 compile errors, 11 tests,
+  8 failed: all 8 A1 cases, each "middle, 0.0 dp below the navigation card's top: reads #AAA196 with the route card open, #ABA298 ...
+  (something drawn behind it)", which only a card behind the navigation card produces; `RouteCardOutlineOnNavigationCardTest` (3)
+  passed. Restored from the copy saved before the edit; `cmp` matches the forward file; the forward line is on `origin/route-card`.
+- **A2 revert** (`hazel-rc6a-revB2`, from `af9c2b408`): in `RouteCardTuck.kt`, `val slide = 0f` (the card no longer slides; its content
+  still fades). Run **42495094557**: 0 compile errors, 16 tests, 5 failed: the 4 slide cases, each "tucked: the strip is 247.7 dp wide,
+  not 24" (342.7 dp on the navigation card), and `RouteCardTuckCloseTest`'s long-press beside the strip (with no slide the card's
+  controls stay where they were, inside its clip, and take it); both are what this edit does. `RouteCardTuckedStays` (2) passed, as
+  they read bounds and reports, not the slide. Restored from the saved copy; `cmp` matches; the forward line is on `origin/route-card`.
+  (An earlier run of the same revert from `8b7c2e388`, **42491824110**, failed the same 5 the same way.)
+- **By name against pre-main's latest run** (**42337576510** at `1f6901a11`; pre-main is now `81cc37bda`, two `[skip ci]` docs commits
+  past it, not merged in): 6846 vs 6952 test cases; **no outcome changed** on any name in both; 23 gone (the 18 of Amendment 5's
+  comparison and the 5 renamed above in `RouteCardLandscapeBar*Test` and `RouteCardPlacementTest`), 129 new, all passing.
+  **Against 42451729839** (Amendment 5's tab, `96a7be8d5`): 6941 vs 6952, **no outcome changed**, 9 gone (the 3
+  `RouteCardOutlineStopsAtNavigationCardTest` cases and the 6 renamed), 20 new, all passing (the 14 new cases and the 6 renamed).
+
+## Confirmed vs inferred
+
+- Confirmed by CI (Robolectric, native graphics, the real Maps tab): A1's four claims at both corners, by day and at night, at both
+  rotations, in two window sizes; A2's frames both ways in portrait (saved route, plotting) and landscape (plotting, on the navigation
+  card), by day; the tucked card keeps the evening line stepped aside and Re-center under the strip; long-presses around the strip and
+  where the card was reach the map.
+- Inferred, not run: all of it on a phone. Robolectric has no real insets; the test map's ground is near the cards' fill, so the
+  overlap A1 removes reads by 1 to 3 levels here where the owner saw it plainly on real tiles. A2's frames were read by day only, and
+  the strip at night only through `RouteCardTabOutlineTests`.
+
+## Could not determine
+
+- **"Both sizes"** in the brief's A1 test list was read as both landscape window sizes (823 by 384 and 640 by 360); if it meant both
+  text sizes, font 2.0 is not covered by the A1 test.
+- **The tucked card's span and bounds.** The ruling says the tucked card keeps reporting its height; it was built to keep reporting its
+  span and bounds too, the resting ones, so nothing on the map moves when it tucks (Re-center beside the L, the "i" hidden under the
+  card, the walker's dot kept clear of it). One visible consequence: the "i" stays hidden where the card rests while only the strip
+  shows. For the owner to confirm or overrule (question below).
+
+## Premises that were wrong
+
+- None in the dispatch. Two of my own, found by counting: the first A1 red's reading behind the navigation card could not fail on
+  this test map (made exact), and `8b7c2e388`'s diagnosis of the long-press (the Surface) was wrong (the disabled draggable; diagnostic
+  grid run 42493712752).
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- The strip's touch target is 48 dp from the edge at the card's full height (the tab's was 48 by 56 dp), so the 24 dp beside the strip
+  brings the card back too.
+- The grip slides with the card (it sits on the card's map-facing 24 dp) and fades in as the content fades out.
+- Under reduced motion the card is at its end place at once and only the content fades (the card's other motion only fades there).
+- While tucked, the card's content leaves the semantics tree, as it did when the card left the screen before A2.
+- Span and bounds keep reporting while tucked (above).
+
+## Questions for the owner
+
+- While the route card is tucked, should the map's "i" (the credit button) come back where the card rested, or stay hidden as built
+  (the card keeps reporting where it rests, so nothing else moves)?
+
+## S22 steps (nothing was run on a phone)
+
+15. **The cards meet.** Landscape, navigating, a route open on the navigation card: no band of the route card shows through the
+    navigation card's top; the route card's side lines run straight down into the navigation card's rounded top corners, both corners
+    filled with the card's colour (no map in them), and the only line where the cards meet is the navigation card's own, curving down at
+    each end. Night Mode, and the phone turned the other way: the same.
+16. **The tuck.** Portrait, a saved route open: swipe the card sideways. The whole card slides to the screen edge in one movement, its
+    words and buttons fading as it goes, and stops with a strip about a fingertip wide left at its full height, with the card's colour,
+    its outline all round and a short grip; no separate bar appears and nothing changes height. Tap the strip: the card slides back out,
+    its words fading in. Drag the strip away from the edge: the same. Long-press the map just beside the strip: it reaches the map.
+17. **Tucked, nothing else moves.** Navigating in portrait, moved off the navigation view: tuck the card; Re-center stays where it is,
+    under the strip. Landscape in the evening (sundown line showing), open a route on the navigation card so the sundown line steps
+    aside, then tuck: the line stays aside and the strip stays where the card was; tap ✕ or Cancel (bring the card back first) and the
+    line returns. While plotting, and in landscape, tuck: the same slide.
+
+# Amendment 6, the credit, built: the "i" comes back while the card is tucked
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC. Read on `origin/records-after-173`, `prompts/preserved/2026-11-06-05-amendment-6.md`, section
+"Added (2026-11-08T16:58:24Z, -2187)": the owner, "Come back"; restated and confirmed: tucked, the spot where the card rested is clear,
+so the "i" shows there again; the card brought back out, the "i" hides under it as today. Base `19c766575` (the fan merge), whose CI run
+42501736298 finished green before anything was pushed.
+
+## What hid the "i", from source
+
+`AvailabilityCompactMapUi.kt` hands the map `attributionHideUnder`, the cards' bounds in the map's px, and `MapAttributionInsets`
+hides the "i" and the logo when any of them overlaps the "i"'s rectangle (`attributionHiddenUnder`, D28 with D30). The route card's
+entry was `routeCardBoundsInRoot`, which A2 keeps reporting while tucked (the resting bounds: the card's layout never moves, only what
+it draws, `RouteCardFace.kt`). So a tucked card still hid the "i" across the whole place it rested.
+
+## What changed
+
+- New `ui/availability/RouteCardAttributionCover.kt`: `routeCardDrawnBounds`, the card's bounds moved by the tuck's slide and cut at
+  those bounds (the same geometry `RouteCardFace.kt` draws), so the whole card at rest, its 24 dp strip once tucked, and the part still
+  over its place on the way; and `ReportRouteCardAttributionCover`, which reports that.
+- `CompactMapRoutePlotting.kt`: a new `onCardCoverInRoot` callback, fed from the card's measured bounds and its tuck; `null` when the
+  card leaves, as the other reports.
+- `AvailabilityCompactMapUi.kt`: the "i" is handed that cover in place of the card's bounds. Nothing else reads it: the evening line,
+  Re-center (`cardsInRoot`), the walker's dot (`navigationSideInsetsBesideCard`), the card's height and span all keep the resting
+  bounds, so nothing else moves (Amendment 6's "Stays aside" and "Stays under" stand).
+- `RouteCardTuck.kt`: one sentence of its header comment, saying the "i" is the one exception.
+- Test rig `RouteCardBarRig.applyInsets`: an optional bottom navigation bar inset (default 0, so its other callers are unchanged).
+
+## Verified, and how
+
+- New `AttributionWhileTuckedTest.kt` on the real Maps tab (`RouteCardBarRig`), the card tucked by a real swipe and brought back by a
+  real tap on the strip. It asserts the map is handed exactly what is drawn (the card's node out, the strip's node tucked), and that the
+  "i" is hidden exactly while something drawn covers it, against the "i"'s rectangle worked out from the margins the map is handed:
+  - landscape, not navigating, the L left, 1 and 3 stops, peek and expanded: card out, hidden; tucked, shown (the strip at
+    2157-2229 px clears the "i" at 2001-2073); brought back, hidden; the "i"'s corner never moves;
+  - portrait, fullscreen with a 48 dp bottom navigation bar delivered (Robolectric reports none; without it the portrait card rests
+    above the "i" and never covers it, as AttributionUnderCardPortraitTest records), the bar left, 1 and 3 stops, peek and expanded: the
+    same, hidden, shown, hidden;
+  - landscape navigating, on the navigation card, 3 stops, peek and expanded: tucked, the route card counts only as its strip, and the
+    "i" stays hidden, because it is the navigation card that covers it there (premise below).
+- Red, run 42503341832 (throwaway ref `hazel-rcc-red`, the test commit `9de7f63b6` alone, filtered to these classes and
+  AttributionUnderCard*): 3 of 8 failed, each on its first tucked check, for this reason: "landscape, the L left, 1 stops, peek,
+  tucked: the map is handed the route card's strip as drawn, Rect.fromLTRB(2157.0, 768.0, 2229.0, 1152.0) (handed
+  [Rect.fromLTRB(1635.0, 768.0, 2229.0, 1152.0)])", the same in portrait (strip 1080-1152 px, handed 558-1152) and navigating (strip
+  2157-2229, handed 1887-2229 with the navigation card). The same run's full-suite job (Street map deleted) had 6903 tests, 3 failed,
+  the same three.
+- Fix `26811090431` pushed to route-card; run 42504864619 green on every job.
+- Revert, run 42504873440 (ref `hazel-rcc-rev`, commit `a1477d611`): the one line handing the "i" `routeCardCoverInRoot` set back to
+  `routeCardBoundsInRoot`. Compile log checked first: no `e:` lines, no compile task failed; the JUnit XML timestamps are that run's
+  (17:30 UTC). The same three failed with the same messages as the red, each one this revert causes (the resting bounds handed while
+  tucked); the full-suite job, 6903 tests, those 3 failed. The file was restored from a copy saved before the edit, never from git, and
+  the forward line confirmed present afterwards (`git status` clean against `26811090431`).
+- By name, run 42504864619 against route-card's latest green 42501736298 (the fan merge): 6906 pass / 24 skipped before, 6909 pass /
+  24 skipped after; no test only before, the 3 new tests only after, no test changed status.
+
+## Confirmed vs inferred
+
+- Confirmed (source and the tests' prints): what hid the "i"; that the tucked strip clears the "i" in every case tested; that in
+  landscape navigation the navigation card, not the route card, covers the "i".
+- Inferred: that MapLibre then shows the button and the logo again; the map is a stub under Robolectric, as in AttributionUnderCardTest.
+  The "i"'s margins are the S22 run record's, as there.
+
+## Could not determine
+
+- Portrait outside fullscreen: under Robolectric the card never covers the "i" there, so the portrait case is tested only in fullscreen
+  with a delivered 48 dp navigation bar. Whether the S22's real bar puts the card over the "i" is device-only.
+- The moment of the switch during the slide: the cover follows the drawn card frame by frame, so the "i" should appear as the sliding card
+  uncovers it and hide as it slides back over it; no frame-by-frame test was written for that.
+
+## Premises that were wrong
+
+- The dispatch's test list asked for the "i" present while tucked in landscape "resting on the navigation card too". There the "i" is
+  under the navigation card, not the route card (the route card ends at the navigation card's top, 924 px, above the "i" at 1068-1140
+  px; the same in AttributionUnderCardTest's prints before this change), so by D28 it stays hidden while the route card is tucked. The
+  ruling ("the spot where the card rested is clear") does not reach it; built as D28 has it, and asked below.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- The tucked card still counts as its 24 dp strip, not as nothing, so the "i" would stay hidden wherever the strip itself covered it
+  (D28). In every case tested the strip clears the "i", so this shows no difference today.
+- The cover follows the slide, not the tucked flag, so the "i" does not appear under a card still sliding over it.
+
+## Questions for the owner
+
+- Landscape, navigating, a route open on the navigation card: the "i" is under the navigation card, so it stays hidden while the route
+  card is tucked. Should it stay that way (as today, D28), or is something else wanted there?
+
+## S22 steps (nothing was run on a phone)
+
+18. **The "i" comes back while tucked.** Landscape, not navigating, the icon bar dragged to the left, a route open (its card in the
+    bottom-right corner): the "i" and the MapLibre logo are not showing. Swipe the card to its strip: as the card slides away the "i" and
+    the logo appear in the bottom-right corner, in their usual place. Tap the strip: as the card slides back over them they disappear.
+    Portrait in fullscreen with the icon bar on the left, a route open: the same.
+19. **Landscape navigating.** A route open on the navigation card: tuck it; the "i" stays hidden (the navigation card covers its
+    corner); nothing else moves, as step 17.
+
+# Sorrel's review items, fixed
+
+Review: `prompts/preserved/2026-11-08-sorrel-review-507.md` (records-after-173). Dispatched: item 1.1 and note 3.2 (RECORD -2190);
+added by the planner mid-task: item 2.2 with the owner's answer (RECORD -2187): "Option 1, but remove the tap highlight since it
+spills out the zone". Built on route-card 50ae42c64 in two parts by two Hazel sessions: the first built 2.2 and 3.2 and stopped on
+where -967 reaches for 1.1 (ref `hazel-rail-fix`, a698fc483); the owner answered (RECORD -2187, 2026-11-08T22:50:26Z): **"(c) All
+three (Recommended)"**, and the second built 1.1 on top. The whole series is fast-forwarded onto route-card.
+
+- **Note 3.2, built.** "Navigated from the card" is cleared when the waypoint navigation is not running
+  (`RoutePlottingViewModel.onWaypointNavigationOver`, told by `RoutePlottingBackHandler` in `CompactMapRoutePlotting.kt`). Nothing
+  visible changes. Tests: `RouteCardNavigatedFromCardEndsTest` (2, the real screen: the card's Navigate by real touch, ended by Back
+  and by the navigation card's ✕, then a navigation started the way a bubble starts it is not the card's) and one
+  `RoutePlottingViewModelTest` case. Red 42525146220 ("the card's navigation ended by Back: none is the card's now", the same for the
+  ✕); revert 42529011439 (the screen's one line removed) failed the same 2 and no other new test; green 42527216431.
+- **Item 2.2, built.** The strip's touch area keeps 48 dp and draws no press highlight (`RouteCardTuck.kt`, `indication = null`).
+  Test: `RouteCardStripPressTest`, a real touch held in the touch area beside the 24 dp strip, the band between the strip and the
+  touch area's edge compared pixel for pixel with the screen before the press, then lifting must bring the card back. Red 42527186082
+  (13,370 of 13,370 band pixels changed, #FEF7FF to #B1ACB2); revert 42529006236 failed it and no other new test; green 42527216431
+  (0 changed).
+- **Item 1.1, built to the owner's (c).** Wherever the landscape route card or its tucked strip meets the side bar (resting on the
+  navigation card while navigating, the plotting card in that card's spot, and the strip's edge, navigating and plotting) the card
+  draws no line of its own on that edge; the side bar's is the one line (RECORD -967). The decision is the navigation card's own
+  rule, not a copy: that card's call to `landscapeColumnOutlineSides` moved into `landscapeNavigationCardOutlineSides`
+  (new `RouteCardRailSide.kt`), which the navigation card now calls and the route card reads through `routeCardBareSide`. So the side
+  is bare while the side bar shows; in fullscreen it is lined where a system bar is left on that side and bare where nothing is, as
+  the navigation card's is. A card in the far corner (icon bar on the side bar's side, C20) touches no side bar and keeps every line.
+  Drawing: `RouteCardFace.kt` clips a band one line wide off the stroke along that side of the card's bounds (`routeCardBareBand`);
+  the band starts below the top line and stops above a bottom line, so the top and the plotting card's bottom run to the edge, and
+  runs on down into the corner wedge where the card rests on the navigation card. The tucked strip's cut edge is that same bounds side,
+  so one band covers the resting card and the strip. `RouteCard` takes the side as `bareSideOnLeft: Boolean?` (its signature is
+  public, and the first green run, 42532670714, failed to compile with an internal `ScreenEdge` there).
+  - Red: 42532668314 (tests only, on the code before the fix): 21 failures, each "not bare (a second line beside the side bar's):
+    1 px in reads #ABA298 [day] / #787878 [night]", the ruled line where the card's own fill is expected. The four navigating strip
+    cases also failed on their bottom, a test error (below), fixed in 02f87374d.
+  - Revert: 42536206321, the route card told no bare side (`bareSideOnLeft = null`, one line in `CompactMapRoutePlotting.kt`). The
+    compile step passed with no `e:` lines in the log; 29 failures, every one carrying "not bare (a second line beside the side bar's)"
+    and no other message; no other test changed. Each is a case this revert can fail: the line put back on the side bar's side. The
+    revert was built from a saved copy into a separate commit with its own index; the working tree was never edited, and the forward
+    line was confirmed present (byte compare with the saved copy) before and after.
+  - Green: 42536203917 on 046b2e168, every job green.
+
+## Tests whose claims changed (1.1)
+
+- `RouteCardOutlineOnNavigationCardTest` (re-claimed by the first session, 7 cases): the side against the side bar bare, not lined.
+- `RouteCardOutlineLandscapeTest`: its two cases claimed the ruled line on every side, the "right side" (the side bar's) included;
+  now that side is bare, the top, bottom and map side lined. Renamed ("... as its other sides do" to "... and its side against the
+  side bar has none of its own"). Added: the plotting card at both rotations, day and night (4), and the far-corner control (1).
+- `RouteCardTabOutlineLandscapeTest`: its two cases claimed the ruled line on the "side on its screen edge"; now that edge, the side
+  bar's, is bare. Renamed ("... all the way round" to "... and none of its own against the side bar"). Added: the strip while plotting
+  and while navigating, both rotations, day and night (8). While navigating its bottom is read bare, where it meets the navigation
+  card (A1). The portrait tab cases are unchanged.
+- `RouteCardMeetsNavigationCardTests` (8 cases, names unchanged): claimed the ruled line down both sides into the corner wedges; now
+  the side bar's side reads bare over the same rows, the map side lined as before. Not named in the dispatch: the fix failed these 8
+  on the side bar's side only (42534637801), which is the ruling's own edge.
+
+## By name against 42521097620
+
+6,936 tests there, 6,957 in 42536203917, 0 failing in either. 7 old names gone, all re-claims above renamed (3 in
+`RouteCardOutlineOnNavigationCardTest`, 2 each in the two landscape outline classes); 28 new names (the re-claimed and added cases,
+plus `RouteCardNavigatedFromCardEndsTest` 2, `RouteCardStripPressTest` 1, `RoutePlottingViewModelTest` 1). Every other test has the
+same outcome in both runs.
+
+## Confirmed vs inferred
+
+- Confirmed: each revert ran (no compile errors in its log; 6,957 tests reported for 1.1's) and failed only on what its own edit
+  can cause; the forward changes are at route-card's head.
+- Confirmed from CI output: in landscape plotting the card and its strip sit against the side bar (the strip at 719..743 dp on an
+  823 dp screen with the 80 dp rail); the tests now assert that as a precondition.
+- Inferred: the app's real ripple spills on the phone as the owner saw; under Robolectric it is not drawn (below).
+- Inferred, from reading: the side bar draws its own line on its inner edge, so the shared line still shows there. Not read in pixels
+  by these tests, which read the card's side only.
+
+## Could not determine
+
+- Whether a press highlight still shows on a phone: the 2.2 test reads Compose's default indication with the app's theme left out,
+  because Material's ripple is drawn by a platform view Robolectric does not render. The first version, under the app's theme, read 0
+  changed pixels on the code with the highlight (42525146220), so it could not fail, and was replaced. For the S22.
+- How the card's top line and the side bar's line meet at the corner on a phone: the band leaves the top line running to the card's
+  edge, and the resting card's rounded top corner on that side still curves to it. Robolectric reports zero insets, and the corner
+  pixels are not asserted. For the S22.
+
+## Premises that were wrong
+
+- "In landscape navigation" named one of the places the card meets the side bar; landscape plotting puts the card and its strip
+  there too. The owner's (c) covers all three.
+- The dispatch named two existing tests to re-claim; a third, `RouteCardMeetsNavigationCardTests`, also claimed the side bar's line
+  (down into the corner) and is re-claimed above.
+
+## Decided beyond scope
+
+- The fullscreen case with no system bar on that side leaves the side bare, by the navigation card's rule, though Amendment 5 lined a
+  side flush to the screen's edge. That follows "where that rule leaves the rail side lined the route card matches"; on the S22 there
+  is a navigation bar, so the line shows there.
+- The navigation card's outline call was moved into a shared function so the two cards read one rule; it draws exactly as before
+  (same arguments, and every navigation card outline test passes unchanged).
+
+## Questions
+
+- None open for 1.1.
+
+## S22 steps
+
+20. **Strip press.** A saved route open, tucked to its strip. Press and hold on the map just beside the strip (within a finger's width
+    of it): no grey highlight appears anywhere; lift: the card slides back.
+21. **One line at the side bar (landscape).** Recording, plot a route in landscape with the icon bar on the left: the card sits by the
+    side bar at the bottom right. Where the card meets the side bar, one faint line only (the side bar's), none of the card's beside
+    it; the card's top, bottom and left keep their faint line. Tuck the card (swipe it toward the side bar): the strip's edge against
+    the side bar has no line of its own, its other three sides do. Bring it back, tap Navigate: the card resting on the navigation
+    card has the same single line at the side bar, and the two cards agree there. Turn the phone the other way round: the same. Tap
+    Fullscreen: the side bar slides away and the card's side there now shows its own faint line (a navigation bar is left on that
+    side), as the navigation card's does. Move the icon bar to the right side: the card moves to the bottom left and keeps its line on
+    every side.

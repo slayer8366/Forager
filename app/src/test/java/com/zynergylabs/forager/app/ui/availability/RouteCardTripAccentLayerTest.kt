@@ -102,7 +102,7 @@ class RouteCardTripAccentLayerTest {
         composeRule.onNodeWithTag(glyphTag(routeTrip.id)).performTouchInput { click(center) }
         settle()
         assertTrue("the route opened", plotting.uiState.value.mode is RoutePlotMode.Showing)
-        val flag = SelectedStopMarker(saddle.location, trip = true)
+        val flag = SelectedStopMarker(saddle.location, trip = true, featureId = saddle.id)
         assertEquals("precondition: the accent flag at the first stop, a trip", flag, map.content?.plottedRoute?.selected)
         assertEquals("precondition: the Planned Trips layer is on", true, tripsLayerOn())
 

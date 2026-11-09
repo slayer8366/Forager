@@ -333,6 +333,25 @@ class RoutePlottingViewModelTest {
         assertEquals("one line logged for the failed leg, was $logged", 1, logged.count { "removed" in it })
     }
 
+    /**
+     * Sorrel's review of PR #507, note 3.2: "navigated from the card" is cleared when that navigation is over, so a later navigation not
+     * started from the card (nothing tells the card of it) is not counted as the card's; the open card and its stop stay as they were.
+     * The later navigation itself, on the real screen, is [com.zynergylabs.forager.app.ui.availability.RouteCardNavigatedFromCardEndsTest]'s.
+     */
+    @Test
+    fun `the card's navigation ending clears navigated from the card, so a later navigation is not counted as the card's`() = runTest(dispatcher) {
+        val vm = viewModel()
+        vm.onOpenSavedRoute(savedTrip(), fromTripPlanner = false)
+        vm.onSelectStop(1)
+        vm.onNavigatedFromCard(inFullscreen = false)
+        assertTrue("precondition: Navigate on the card counts its navigation as the card's", vm.uiState.value.navigatedFromCard)
+
+        vm.onWaypointNavigationOver()
+        assertFalse("the navigation over: none is the card's", vm.uiState.value.navigatedFromCard)
+        assertTrue("the card is still open", vm.uiState.value.mode is RoutePlotMode.Showing)
+        assertEquals("its selected stop is kept", 1, vm.uiState.value.selectedStop)
+    }
+
     private fun RoutePlottingViewModel.lastSavedRouteForTest(): PlottedRoute =
         PlottedRoute(listOf(creek, ridge), listOf(straight(creek.position, ridge.position)))
 }

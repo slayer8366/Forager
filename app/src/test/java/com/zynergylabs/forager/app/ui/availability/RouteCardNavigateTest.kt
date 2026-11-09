@@ -268,13 +268,13 @@ class RouteCardNavigateTest {
         setScreen()
         open(ROUTE_TRIP)
 
-        assertEquals("the first stop by default", SelectedStopMarker(LatLng(CREEK.lat, CREEK.lng), trip = false), map.content?.plottedRoute?.selected)
+        assertEquals("the first stop by default", SelectedStopMarker(LatLng(CREEK.lat, CREEK.lng), trip = false, featureId = CREEK.id), map.content?.plottedRoute?.selected)
 
         expand()
         touch(routeCardStopTag(1), 0.5f, 0.5f)
         settle()
 
-        assertEquals("the picked stop", SelectedStopMarker(LatLng(RIDGE.lat, RIDGE.lng), trip = false), map.content?.plottedRoute?.selected)
+        assertEquals("the picked stop", SelectedStopMarker(LatLng(RIDGE.lat, RIDGE.lng), trip = false, featureId = RIDGE.id), map.content?.plottedRoute?.selected)
     }
 
     private fun pressBackIfBubble() {

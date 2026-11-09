@@ -674,6 +674,7 @@ fun SightingsMap(
         returnMemory = returnMemory,
         chromeColour = chromeColour,
         resources = resources,
+        accent = plottedRoute?.selected?.fanKey, // Dispatch 2026-11-06-05, Amendment 6 B: the selected stop's accent goes into the fan.
     )
 
     // Colour-field cells (map layers L0b, B5): MapForecastCells.kt.

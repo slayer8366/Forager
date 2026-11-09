@@ -2,7 +2,9 @@ package com.zynergylabs.forager.app.ui.availability
 
 import android.util.Log
 import androidx.activity.compose.BackHandler
+import com.zynergylabs.forager.app.ui.log.ScreenEdge
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.heightIn
@@ -166,7 +168,8 @@ private fun routeCardContent(controls: RoutePlottingControls?, sources: MapRecor
  * One width from the first tap, the reference card's, within the room beside the bar (C16 with C19, RECORD -1946, -1953). In portrait
  * it slides in from the edge away from the bar (Amendment 15, RECORD -1929) and sits flush against it, square on that side (C17). In
  * landscape it rises from the bottom edge in the corner away from the L (C18 with C20, RECORD -1947, -1953), or, while navigating,
- * from behind the navigation card to rest on it at its width (C21 with C23, -1955, -1956). See `RouteCardPlacement.kt`. A card still leaving draws what it last showed, and takes no touch.
+ * from behind the navigation card to rest on it at its width, filling its rounded top corners (C21 with C23, -1955, -1956; Amendment 6,
+ * A1, -2187). See `RouteCardPlacement.kt`. A card still leaving draws what it last showed, and takes no touch.
  */
 @Composable
 internal fun BoxScope.CompactMapRouteCard(
@@ -183,6 +186,8 @@ internal fun BoxScope.CompactMapRouteCard(
     onCardSpanPx: (ClosedFloatingPointRange<Float>?) -> Unit = {},
     /** D28 (RECORD -1979, -1980): the card's bounds in the root while it shows, `null` as soon as it starts to leave, for the "i". */
     onCardBoundsInRoot: (androidx.compose.ui.geometry.Rect?) -> Unit = {},
+    /** Amendment 6, the credit (RECORD -2187): the part of the card drawn, its strip once tucked, for the "i" (RouteCardAttributionCover.kt). */
+    onCardCoverInRoot: (androidx.compose.ui.geometry.Rect?) -> Unit = {},
     today: () -> LocalDate = LocalDate::now,
     /** Dispatch 2026-11-06-05, Amendment 2: the records and the navigation Navigate and the selection read; `null` offers no Navigate. */
     sources: MapRecordSources? = null,
@@ -203,31 +208,24 @@ internal fun BoxScope.CompactMapRouteCard(
     val shownContent = rememberLastShown(content)
     val shownActions = rememberLastShown(actions)
     val leaving = content == null
-    // Dispatch 2026-11-06-05, Amendment 1, step 2 (RECORD -2187): tucked, the card is off at its edge with its tab left, and reports
-    // nothing, as a card leaving does, so Re-center and the navigation card's evening line have their room back (RouteCardTuck.kt).
+    // Dispatch 2026-11-06-05, Amendment 1, step 2 (RECORD -2187): tucked, the card is slid to its edge with a strip of it left showing.
+    // Since Amendment 6, A2, it keeps reporting its height, span and bounds as when it shows ("Stays aside", "Stays under"), so nothing
+    // else moves; only a card leaving reports nothing (RouteCardTuck.kt).
     val tucked = !leaving && state?.tucked == true
-    val hidden = leaving || tucked
-    LaunchedEffect(hidden) {
-        if (hidden) {
+    LaunchedEffect(leaving) {
+        if (leaving) {
             onCardHeightDp(0)
             onCardSpanPx(null)
             onCardBoundsInRoot(null)
+            onCardCoverInRoot(null)
         }
     }
     val showing = state?.mode as? RoutePlotMode.Showing
     val barOnLeft = cluster.isOnLeftSide
     val portrait = !cluster.landscape
     val cardOnLeft = routeCardOnLeft(barOnLeft, landscapeRoom)
-    // Tucking and coming back slide sideways, to and from the card's edge; opening and closing keep their own motion.
-    // Once tucked, the card keeps the sideways motion until it leaves, so coming back slides out from the edge too.
-    var tuckedOnce by remember { mutableStateOf(false) }
-    val tuckMotion = tucked || tuckedOnce
-    SideEffect { if (leaving) tuckedOnce = false else if (tucked) tuckedOnce = true }
-    val (enter, exit) = when {
-        tuckMotion && !leaving -> routeCardTuckTransitions(cardOnLeft)
-        portrait -> routeCardPortraitTransitions(barOnLeft)
-        else -> navigationChromeFromBottomTransitions()
-    }
+    // Opening and closing keep their own motion; tucking moves the card inside it (A2, RouteCardTuck.kt).
+    val (enter, exit) = if (portrait) routeCardPortraitTransitions(barOnLeft) else navigationChromeFromBottomTransitions()
     val barColumn = routeCardBarColumn(with(density) { cluster.clusterWidthPx.toDp() })
     val sides = routeCardSides(barOnLeft = barOnLeft, barColumn = barColumn)
     // C21 with C23 (RECORD -1955, -1956): on the navigation card, its width, edge to edge, whatever C19's reference is; lines wrap.
@@ -237,11 +235,11 @@ internal fun BoxScope.CompactMapRouteCard(
     val referenceWidth = rememberRouteCardWidth(distanceUnit)
     // Dispatch 2026-11-06-05, Amendment 1, step 1 (RECORD -2187, the owner: "(b) Card leaves room"): in portrait while navigating, the
     // card sits higher by Re-center's height and a gap wherever Re-center shares its column, so Re-center is under it and the card never
-    // moves as Re-center appears or goes (RouteCardReCenterRoom.kt). The tab tucks at the card's bottom corner, so it keeps the same.
+    // moves as Re-center appears or goes (RouteCardReCenterRoom.kt). Tucked, the card's strip keeps the card's place, so it keeps the same.
     var reCenterWordSize by remember { mutableStateOf(IntSize.Zero) }
     if (portrait) ReturnToRouteWordProbe { reCenterWordSize = it }
     val reCenterRoom = routeCardReCenterRoomFor(cluster, controlsPadding, isNavigating, portrait, cardOnLeft, barColumn, referenceWidth, reCenterWordSize)
-    // C21 (RECORD -1955): on the navigation card while navigating in landscape, its lower edge tucked behind that card's top.
+    // C21 (RECORD -1955): on the navigation card while navigating in landscape, its bottom on that card's top (A1, RECORD -2187).
     val bottomPadding = landscapeRoom?.bottom ?: (bottomInset + LEGEND_ATTRIBUTION_CLEARANCE + reCenterRoom)
     // D37 (RECORD -2006, the owner: "Cover the top bar (Recommended)"): where the peek lines fill the cap, the expanded card's cap rises
     // over the strip; collapsing brings the cap, and so the strip, back at once (the planner accepted that, -2008).
@@ -256,7 +254,7 @@ internal fun BoxScope.CompactMapRouteCard(
     // the navigation card's sundown line out only where it would take the room. Its cap's top is fixed by the strip (or, raised, by the
     // controls), whatever the navigation card's height: the cap's bottom and height move together.
     var naturalHeights by remember { mutableStateOf<com.zynergylabs.forager.app.ui.route.RouteCardNaturalHeights?>(null) }
-    val onNavigationCardNow = landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp && !hidden
+    val onNavigationCardNow = landscapeRoom != null && landscapeRoom.onNavigationCard > 0.dp && !leaving
     val navigationTopLimit = naturalHeights?.takeIf { onNavigationCardNow }?.let { heights ->
         with(density) {
             val room = landscapeRoom!!
@@ -267,7 +265,6 @@ internal fun BoxScope.CompactMapRouteCard(
                 hasRows = hasRows,
                 capTopPx = boxBottom - (room.bottom + room.maxHeight).toPx(),
                 raisedCapTopPx = boxBottom - (room.bottom + room.overStripMaxHeight).toPx(),
-                tuckPx = room.tuck.toPx(),
             )
         }
     }
@@ -298,19 +295,24 @@ internal fun BoxScope.CompactMapRouteCard(
         routeCardPeekLeavesElevationOut(heights, with(density) { landscapeRoom.maxHeight.toPx() })
     } == true
     val hideElevation = hideElevationOpen || hideElevationPeek
-    NoTouchTargetExpansion(active = hidden) {
+    NoTouchTargetExpansion(active = leaving) {
         AnimatedVisibility(
-            visible = !hidden && (portrait || landscapeRoom != null),
+            visible = !leaving && (portrait || landscapeRoom != null),
             enter = enter,
             exit = exit,
             modifier = Modifier
                 .align(if (cardOnLeft) Alignment.BottomStart else Alignment.BottomEnd)
                 .padding(controlsPadding)
                 .padding(bottom = bottomPadding)
-                .leavingTakesNoTouches(leaving = hidden),
+                .leavingTakesNoTouches(leaving = leaving),
         ) {
             if (shownContent != null && shownActions != null) {
                 val card: @Composable (Dp) -> Unit = { width ->
+                    // A2: a card leaving while tucked stays where it was in its tuck as it goes.
+                    val tuck = rememberRouteCardTuckDraw(rememberLastShown(if (leaving) null else tucked) ?: false, cardOnLeft)
+                    var cardInRoot by remember { mutableStateOf<Rect?>(null) }
+                    ReportRouteCardAttributionCover(cardInRoot, tuck, leaving, onCardCoverInRoot)
+                    Box {
                     RouteCard(
                         content = shownContent,
                         expanded = state?.expanded == true,
@@ -329,16 +331,21 @@ internal fun BoxScope.CompactMapRouteCard(
                         ),
                         expandedMaxHeight = expandedMaxHeight,
                         shape = shape,
-                        contentBottomPadding = landscapeRoom?.tuck ?: 0.dp,
+                        cornerFill = landscapeRoom?.cornerFill ?: 0.dp,
                         onLinesHeightPx = { linesPx = it },
                         hideElevation = hideElevation,
                         onNaturalHeightsPx = { naturalHeights = it },
+                        tuck = tuck,
+                        // Sorrel's review of PR #507, item 1.1 (RECORD -2187, "(c) All three"; -967): no line of its own against the side bar.
+                        bareSideOnLeft = routeCardBareSide(landscapeRoom, cardOnLeft, isFullscreen, controlsPadding, layoutDirection)?.let { it == ScreenEdge.Left },
                         modifier = Modifier
-                            .routeCardTuckSwipe { shownActions.onSetTucked(true) }
+                            // Not there at all while tucked: a disabled draggable still counts as a touch target, so the card's
+                            // whole bounds kept long-presses from the map (run 42493712752's grid; RouteCardTuckCloseTest).
+                            .then(if (tucked) Modifier else Modifier.routeCardTuckSwipe { shownActions.onSetTucked(true) })
                             .width(width)
                             .then(if (cardMaxHeight != null) Modifier.heightIn(max = cardMaxHeight) else Modifier)
                             .onGloballyPositioned {
-                                if (!hidden) {
+                                if (!leaving) {
                                     // What rises above the card, and the map's fit, clear it wherever it sits, so a card resting on the
                                     // navigation card counts from the map's bottom edge (C21, as C11 did).
                                     // Step 1: in portrait, Re-center's room under it too, so the legend chip and the route's fit clear it.
@@ -346,16 +353,16 @@ internal fun BoxScope.CompactMapRouteCard(
                                     val left = it.positionInRoot().x
                                     onCardSpanPx(left..left + it.size.width)
                                     onCardBoundsInRoot(it.boundsInRoot())
+                                    cardInRoot = it.boundsInRoot()
                                 }
                             },
                     )
+                    if (tucked) RouteCardStripTouch(cardOnLeft = cardOnLeft, onBringBack = { shownActions.onSetTucked(false) })
+                    }
                 }
                 if (onNavigationCard != null) card(onNavigationCard) else RouteCardWithin(referenceWidth, sides, card)
             }
         }
-    }
-    if (tucked && actions != null && (portrait || landscapeRoom != null)) {
-        RouteCardTab(cardOnLeft = cardOnLeft, controlsPadding = controlsPadding, bottomPadding = bottomPadding, onBringBack = { actions.onSetTucked(false) })
     }
     if (content == null || state == null || actions == null) return
     val plotting = state.mode as? RoutePlotMode.Plotting
@@ -413,6 +420,9 @@ internal fun RoutePlottingBackHandler(
     // Amendment 3: Back undoes whichever came last of Navigate and fullscreen (RouteCardBackOrder.kt). Leaving fullscreen, by any
     // route, clears the order; the screen's fullscreen step and its waypoint-navigation step take the presses this tier stands aside for.
     LaunchedEffect(isFullscreen) { if (!isFullscreen) controls?.actions?.onFullscreenLeft() }
+    // Sorrel's review of PR #507, note 3.2: when the waypoint navigation is not running, none is the card's, so a later one started
+    // elsewhere (a bubble, the Records list) is not taken for it. Keyed on the navigation only: Navigate tells the card before it starts.
+    LaunchedEffect(navigatingToWaypoint) { if (!navigatingToWaypoint) controls?.actions?.onWaypointNavigationOver() }
     val step = controls?.state?.backOrder?.step(isFullscreen, navigationFromCard)
     val takes = when (step) {
         RouteCardBackStep.CLOSE_CARD -> true

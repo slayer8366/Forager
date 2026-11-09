@@ -84,9 +84,10 @@ class RouteCardPlacementTest {
         assertEquals(0f, routeCardLeaveRoomPx(besideLeftPx = 336f, iconPx = 144f, gapPx = 24f, naturalCardLeftPx = 615f), 0.01f)
     }
 
+    /** Amendment 6, A1 (RECORD -2187): with no tuck, a card's top 10 dp over the box's bottom puts the card there. Before A1: 0 dp. */
     @Test
-    fun `a navigation card's top within the tuck of the box's bottom leaves the padding at 0 dp`() {
-        assertEquals(0f, bottomWith(10.dp).value, 0.01f)
+    fun `a navigation card's top 10 dp over the box's bottom puts the card's bottom there`() {
+        assertEquals(10f, bottomWith(10.dp).value, 0.01f)
     }
 
     @Test
@@ -94,9 +95,10 @@ class RouteCardPlacementTest {
         assertEquals(0f, bottomWith(0.dp).value, 0.01f)
     }
 
+    /** Amendment 6, A1 (RECORD -2187): the card's bottom on the navigation card's top. Before A1: that top less the 16 dp tuck (64 dp). */
     @Test
-    fun `a taller navigation card lifts the card to its top, less the tuck`() {
-        assertEquals(64f, bottomWith(80.dp).value, 0.01f)
+    fun `a taller navigation card lifts the card's bottom to its top`() {
+        assertEquals(80f, bottomWith(80.dp).value, 0.01f)
     }
 
     /** Sorrel's N-4: a bar minimised before it was first measured reports 0 dp; the column still takes its touch target. */

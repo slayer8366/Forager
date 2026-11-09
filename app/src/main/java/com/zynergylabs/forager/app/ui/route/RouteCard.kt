@@ -35,6 +35,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.layout.onSizeChanged
@@ -52,6 +53,7 @@ import com.zynergylabs.forager.app.domain.route.RouteStop
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 
@@ -164,11 +166,15 @@ fun RouteCard(
     modifier: Modifier = Modifier,
     /** Its outline: square on a screen edge it sits against, round facing the map (C17, C18; `RouteCardPlacement.kt`). */
     shape: Shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-    /** Kept empty under the buttons: the part of the card tucked behind the landscape navigation card (C11, restored by C21, RECORD -1955). */
-    contentBottomPadding: Dp = 0.dp,
+    /**
+     * Resting on the landscape navigation card (C21, RECORD -1955), how far past its bottom the card's fill and side lines run down into
+     * that card's rounded top corners, its corner radius; 0 dp everywhere else (dispatch 2026-11-06-05, Amendment 6, A1, the owner:
+     * "(2) Card fills corner"; `RouteCardFace.kt`). It replaced C11's 16 dp tuck behind that card, kept empty under the buttons.
+     */
+    cornerFill: Dp = 0.dp,
     /**
      * D37 (dispatch 2026-10-30-08, RECORD -2006): told the height of the card's lines other than the rows (the handle, the name, the
-     * total line, the buttons and [contentBottomPadding]), in px, whenever it changes: what the rows leave of the card's height.
+     * total line and the buttons), in px, whenever it changes: what the rows leave of the card's height.
      */
     onLinesHeightPx: (Int) -> Unit = {},
     /**
@@ -178,11 +184,18 @@ fun RouteCard(
     hideElevation: Boolean = false,
     /**
      * D42 (RECORD -2021): told the card's natural heights in px, whatever the cap squeezes them to: its lines (the handle, the name,
-     * the total line with its elevation line counted even while D40 leaves it out, the buttons and [contentBottomPadding]), the total
+     * the total line with its elevation line counted even while D40 leaves it out, and the buttons), the total
      * line's elevation line, and the first leg row (0 while no row is composed). Intrinsic heights at the card's width, so they do not
      * depend on the room the card is given.
      */
     onNaturalHeightsPx: (RouteCardNaturalHeights) -> Unit = {},
+    /** Amendment 6, A2 (RECORD -2187): where the card is in its tuck, slid toward its edge with its content faded (`RouteCardFace.kt`). */
+    tuck: RouteCardTuckDraw = RouteCardTuckDraw.RESTING,
+    /**
+     * Sorrel's review of PR #507, item 1.1 (RECORD -2187, -967): the side that meets the side bar and draws no line of its own, true
+     * for the left, false for the right, null for none (`RouteCardRailSide.kt`).
+     */
+    bareSideOnLeft: Boolean? = null,
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -190,9 +203,11 @@ fun RouteCard(
         modifier = modifier
             .fillMaxWidth()
             .testTag(ROUTE_CARD_TAG)
-            .mapChromeContainerColor(fill),
-        shape = shape,
-        color = fill,
+            .mapChromeContainerColor(fill)
+            // Amendment 5's outline and A1's corners (RouteCardFace.kt): the fill and the line are drawn here, the Surface only clips.
+            .routeCardFace(shape, fill, mapChromeOutline(), cornerFill, tuck, bareSideOnLeft),
+        shape = if (tuck.slide == 0f) shape else RouteCardSlidShape(shape, tuck),
+        color = Color.Transparent,
         contentColor = contentColour,
     ) {
         val density = androidx.compose.ui.platform.LocalDensity.current
@@ -210,13 +225,13 @@ fun RouteCard(
         var firstRowNatural by remember { mutableIntStateOf(0) }
         val currentOnNatural by rememberUpdatedState(onNaturalHeightsPx)
         val handlePx = with(density) { HANDLE_LAYOUT_HEIGHT.roundToPx() }
-        val bottomPx = with(density) { contentBottomPadding.roundToPx() }
-        val linesNatural = handlePx + nameNatural + totalNatural + elevationLeftOut + buttonsNatural + bottomPx
+        val linesNatural = handlePx + nameNatural + totalNatural + elevationLeftOut + buttonsNatural
         // Amendment 5: while navigating a saved route's buttons are hidden, so their 0 height is a measurement, not one still to come.
         val buttonsHidden = (content as? RouteCardContent.Saved)?.navigating == true
         LaunchedEffect(linesNatural, elevationPx, firstRowNatural) { if (totalNatural > 0 && (buttonsNatural > 0 || buttonsHidden)) currentOnNatural(RouteCardNaturalHeights(linesNatural, elevationPx, firstRowNatural)) }
         Box {
-        Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING, bottom = contentBottomPadding).onSizeChanged { columnPx = it.height + with(density) { contentBottomPadding.roundToPx() } }) {
+        Box(Modifier.fillMaxWidth().routeCardTuckContent(tuck)) {
+        Column(Modifier.mapChromeContentColor(LocalContentColor.current).padding(start = ROUTE_CARD_SIDE_PADDING, end = ROUTE_CARD_SIDE_PADDING).onSizeChanged { columnPx = it.height }) {
             RouteCardHandle(expanded, reveal, callbacks.onToggleExpanded)
             if (content is RouteCardContent.Saved) {
                 DisposableEffect(Unit) { onDispose { nameNatural = 0 } }
@@ -237,8 +252,8 @@ fun RouteCard(
             Box(Modifier.naturalHeight { buttonsNatural = it }) { RouteCardButtons(content, callbacks) }
         }
         if (content is RouteCardContent.Saved) RouteCardCloseButton(callbacks.onClose)
-        // Amendment 5 (RECORD -2187): the map chrome's outline all round; the part tucked behind the navigation card carries none of it.
-        RouteCardOutline(shape, coveredBottom = contentBottomPadding)
+        }
+        RouteCardStripGrip(tuck)
         }
     }
 }

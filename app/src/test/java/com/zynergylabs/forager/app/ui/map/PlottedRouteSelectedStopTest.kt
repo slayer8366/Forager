@@ -5,6 +5,7 @@ import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.StraightReason
 import com.zynergylabs.forager.app.ui.theme.MapPalette
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.maplibre.geojson.Point
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -14,7 +15,8 @@ import org.robolectric.annotation.Config
 /**
  * Dispatch 2026-11-06-05, Amendment 2, item 4 (RECORD -2187): what the map's selected-stop source is fed, headless. One point, where
  * the selected stop's waypoint (or trip) stands, naming the accent pin (or flag) it is drawn with; nothing for none. The accent itself
- * is cream #EDE3D0 by day and rust #A2612C at night, as hex, so another colour fails (the pixels are `MarkerGlyphsTest`'s).
+ * is the dimmer cream #E3D3B5 by day (Amendment 6, "a dimmer cream by day"; #EDE3D0 before) and rust #A2612C at night, as hex, so another
+ * colour fails (the pixels are `MarkerGlyphsTest`'s).
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36])
@@ -28,7 +30,7 @@ class PlottedRouteSelectedStopTest {
 
     @Test
     fun `a selected waypoint is one point at its spot, drawn with the accent pin`() {
-        val features = selectedFeatures(PlottedRouteOnMap(legs, listOf(a, b), selected = SelectedStopMarker(b, trip = false)))
+        val features = selectedFeatures(PlottedRouteOnMap(legs, listOf(a, b), selected = SelectedStopMarker(b, trip = false, featureId = "wp-b")))
 
         assertEquals(1, features.size)
         val point = features.single().geometry() as Point
@@ -39,7 +41,7 @@ class PlottedRouteSelectedStopTest {
 
     @Test
     fun `a selected trip is drawn with the accent flag`() {
-        val features = selectedFeatures(PlottedRouteOnMap(legs, listOf(a, b), selected = SelectedStopMarker(a, trip = true)))
+        val features = selectedFeatures(PlottedRouteOnMap(legs, listOf(a, b), selected = SelectedStopMarker(a, trip = true, featureId = "trip-a")))
 
         assertEquals(MarkerIcon.PLANNED_TRIP_ROUTE_SELECTED.imageId, features.single().getStringProperty(PlottedRouteIds.SELECTED_ICON_PROPERTY))
     }
@@ -52,7 +54,9 @@ class PlottedRouteSelectedStopTest {
 
     @Test
     fun `the accent is cream by day and rust red at night`() {
-        assertEquals(0xFFEDE3D0.toInt(), routeStopSelectedColour(MapPalette.DAY))
-        assertEquals(0xFFA2612C.toInt(), routeStopSelectedColour(MapPalette.NIGHT))
+        assertEquals("the day accent is the dimmer cream", 0xFFE3D3B5.toInt(), routeStopSelectedColour(MapPalette.DAY))
+        assertEquals("the night accent is rust, unchanged", 0xFFA2612C.toInt(), routeStopSelectedColour(MapPalette.NIGHT))
+        assertNotEquals("the day accent differs from the plain pin", MapPalette.DAY.waypoint, routeStopSelectedColour(MapPalette.DAY))
+        assertNotEquals("the day accent differs from the plain flag", MapPalette.DAY.plannedTrip, routeStopSelectedColour(MapPalette.DAY))
     }
 }
