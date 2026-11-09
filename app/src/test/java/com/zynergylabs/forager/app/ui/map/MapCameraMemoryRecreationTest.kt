@@ -59,6 +59,17 @@ class MapCameraMemoryRecreationTest {
     }
 
     @Test
+    fun `a recreation in the same process brings back the camera's padding`() {
+        val saver = mapCameraMemorySaver("this-process")
+        val padded = camera.copy(padding = listOf(0.0, 270.0, 1544.0, 0.0))
+        val value = saved(saver, memory(snapshot = padded))!!
+        val bytes = ByteArrayOutputStream().also { out -> ObjectOutputStream(out).use { it.writeObject(value) } }.toByteArray()
+        val back = ObjectInputStream(ByteArrayInputStream(bytes)).use { it.readObject() } as SavedMapCameraMemory
+
+        assertEquals(listOf(0.0, 270.0, 1544.0, 0.0), saver.restore(back)?.saved?.padding)
+    }
+
+    @Test
     fun `a camera with no applied target comes back with none`() {
         val saver = mapCameraMemorySaver("this-process")
         val plain = camera.copy(following = true, appliedTarget = null)
