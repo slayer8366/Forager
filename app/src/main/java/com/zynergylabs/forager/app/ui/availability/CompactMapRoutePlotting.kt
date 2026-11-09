@@ -212,8 +212,11 @@ internal fun BoxScope.CompactMapRouteCard(
     // Since Amendment 6, A2, it keeps reporting its height, span and bounds as when it shows ("Stays aside", "Stays under"), so nothing
     // else moves; only a card leaving reports nothing (RouteCardTuck.kt).
     val tucked = !leaving && state?.tucked == true
+    // J8 (RECORD -2183, "(b) Above top card"): the card's laid-out height, for its resting top (RouteCardRestingTop.kt).
+    var cardHeightPx by remember { mutableStateOf<Int?>(null) }
     LaunchedEffect(leaving) {
         if (leaving) {
+            cardHeightPx = null
             onCardHeightDp(0)
             onCardSpanPx(null)
             onCardBoundsInRoot(null)
@@ -295,6 +298,9 @@ internal fun BoxScope.CompactMapRouteCard(
         routeCardPeekLeavesElevationOut(heights, with(density) { landscapeRoom.maxHeight.toPx() })
     } == true
     val hideElevation = hideElevationOpen || hideElevationPeek
+    // J8 (RECORD -2183, the owner: "(b) Above top card (Recommended)"): resting at peek on the navigation card, the walker's dot is kept
+    // above this card's top; expanded (D29's sideways move), tucked, leaving or elsewhere, above the navigation card's.
+    ReportRouteCardRestingTop(cluster, onNavigationCardNow && isNavigating && !tucked && state?.expanded != true, cardHeightPx, cardMaxHeight, controlsPadding)
     NoTouchTargetExpansion(active = leaving) {
         AnimatedVisibility(
             visible = !leaving && (portrait || landscapeRoom != null),
@@ -357,6 +363,7 @@ internal fun BoxScope.CompactMapRouteCard(
                                     onCardSpanPx(left..left + it.size.width)
                                     onCardBoundsInRoot(it.boundsInRoot())
                                     cardInRoot = it.boundsInRoot()
+                                    cardHeightPx = it.size.height
                                 }
                             },
                     )

@@ -24,7 +24,8 @@ import com.zynergylabs.forager.app.ui.map.MapChromeOutlineSides
 /**
  * The landscape navigation card's outlined sides (dispatch 2026-10-13-02, RECORD -966, -967): its top and rounded top corners and its
  * side facing the map; its rail side once the rail has slid away, unless that side is then on the screen's edge; its bottom is the
- * screen's. Read by that card (`CompactMapLandscapeNavigationCard.kt`) and by [routeCardBareSide], so both read one rule.
+ * screen's, here (that card adds its own bottom once it moves up off the screen's edge, J4, RECORD -2183). Read by that card
+ * (`CompactMapLandscapeNavigationCard.kt`) and by [routeCardBareSide], so both read one rule.
  */
 internal fun landscapeNavigationCardOutlineSides(
     railPortEdge: ScreenEdge,

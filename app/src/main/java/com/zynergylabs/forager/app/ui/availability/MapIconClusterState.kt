@@ -173,7 +173,7 @@ internal class MapIconClusterState(
     /**
      * J8 (RECORD -2183, the owner: "(b) Above top card (Recommended)"): the resting top, in the root, of whatever rests on the landscape
      * navigation card (the route card), for the dot to be kept above it instead; null while nothing does, when the navigation card's
-     * own resting top is used. Written by the route card (on its own branch, #507); nothing writes it here yet.
+     * own resting top is used. Written by the route card while it rests there at peek (RouteCardRestingTop.kt, #507).
      */
     var navigationRestingOnCardTopInRootPx: Float? by mutableStateOf(null)
 
