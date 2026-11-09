@@ -17,6 +17,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.route.NAVIGATE_UNAVAILABLE_REASON
+import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_HANDLE_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_NAVIGATE_REASON_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_NAVIGATE_TAG
 import com.zynergylabs.forager.app.ui.route.RoutePlotMode
@@ -102,6 +103,10 @@ class RouteCardStopDeletedWhileNavigatingTest {
         settle()
         assertEquals("the route opened", ROUTE_TRIP.id, (plotting.uiState.value.mode as? RoutePlotMode.Showing)?.trip?.id)
         assertEquals("the first stop is selected by default", 0, plotting.uiState.value.selectedStop)
+        // Expanded, as on the S22 (its dumps list the stops); collapsed, the card shows no stop rows.
+        composeRule.onNodeWithTag(ROUTE_CARD_HANDLE_TAG).performTouchInput { click(center) }
+        settle()
+        assertEquals("the card expanded", true, plotting.uiState.value.expanded)
         assertEquals("before the delete, not navigating: Navigate shows", 1, count(ROUTE_CARD_NAVIGATE_TAG))
         assertEquals("before the delete, not navigating: no reason", 0, count(ROUTE_CARD_NAVIGATE_REASON_TAG))
 
