@@ -1,0 +1,91 @@
+name: Discard a Play internal draft
+
+# The owner, 2026-11-09: "Undo the upload and have me test it", then "Delete it yourself". Removes one draft release,
+# found by its versionCode, from Play's internal track. It never touches a release that is not a draft, and fails
+# without changing anything if no draft holds that versionCode. The uploaded bundle itself stays in Play's library
+# (Play never deletes an uploaded bundle), so the owner can still download it from App bundle explorer and, if it
+# passes, add it back to a release from the library.
+#
+# A separate file from play-release.yml on purpose: release N is play-release.yml's run #N (owner's absolute rule,
+# 2026-11-09), so nothing but a release may ever be dispatched there.
+#
+# Same gate as the release: the `release` environment (main only, the owner approves every run) holds the Play key.
+
+on:
+  workflow_dispatch:
+    inputs:
+      version_code:
+        description: "versionCode of the internal draft to discard"
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  PACKAGE_NAME: com.zynergylabs.forager.app
+
+jobs:
+  discard:
+    name: Discard the internal draft
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    environment: release
+
+    steps:
+      - name: Refuse anything but main
+        run: |
+          if [ "$GITHUB_REF" != "refs/heads/main" ]; then
+            echo "::error::Runs only from main; this run is on $GITHUB_REF."
+            exit 1
+          fi
+
+      - name: Install the Play API client (pinned)
+        run: python3 -m pip install --quiet google-api-python-client==2.100.0 google-auth==2.23.0
+
+      - name: Discard the draft
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key="$RUNNER_TEMP/play-key.json"
+          trap 'rm -f "$key"' EXIT
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > "$key"
+          KEY_FILE="$key" python3 - <<'PY'
+          import json, os, sys
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+
+          pkg = os.environ["PACKAGE_NAME"]
+          code = os.environ["VERSION_CODE"].strip()
+          creds = service_account.Credentials.from_service_account_file(
+              os.environ["KEY_FILE"], scopes=["https://www.googleapis.com/auth/androidpublisher"])
+          edits = build("androidpublisher", "v3", credentials=creds, cache_discovery=False).edits()
+          edit_id = edits.insert(packageName=pkg, body={}).execute()["id"]
+          track = edits.tracks().get(packageName=pkg, editId=edit_id, track="internal").execute()
+          releases = track.get("releases", [])
+          for r in releases:
+              print(f"before: status={r.get('status')} versionCodes={r.get('versionCodes')} name={r.get('name')}")
+          keep = [r for r in releases if not (r.get("status") == "draft" and code in r.get("versionCodes", []))]
+          if len(keep) == len(releases):
+              edits.delete(packageName=pkg, editId=edit_id).execute()
+              print(f"::error::No draft on the internal track holds versionCode {code}; nothing changed.")
+              sys.exit(1)
+          edits.tracks().update(packageName=pkg, editId=edit_id, track="internal",
+                                body={"track": "internal", "releases": keep}).execute()
+          edits.commit(packageName=pkg, editId=edit_id).execute()
+          check_id = edits.insert(packageName=pkg, body={}).execute()["id"]
+          after = edits.tracks().get(packageName=pkg, editId=check_id, track="internal").execute().get("releases", [])
+          edits.delete(packageName=pkg, editId=check_id).execute()
+          for r in after:
+              print(f"after: status={r.get('status')} versionCodes={r.get('versionCodes')} name={r.get('name')}")
+          if any(r.get("status") == "draft" and code in r.get("versionCodes", []) for r in after):
+              print(f"::error::The draft with versionCode {code} is still on the internal track.")
+              sys.exit(1)
+          print(f"Discarded the internal draft holding versionCode {code}. The bundle stays in Play's library.")
+          PY
