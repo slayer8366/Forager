@@ -40,7 +40,7 @@ private val BEFORE_SEARCH_SIGHTING = Sighting(
     scientificName = "Cantharellus formosus",
     commonName = "Golden chanterelle",
     lat = 45.52,
-    lng = -121.72,
+    lng = -122.62,
     observedOn = LocalDate.of(2026, 9, 1),
     photoUrl = null,
 )

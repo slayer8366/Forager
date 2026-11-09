@@ -98,7 +98,7 @@ class LandscapeLargeFontTest {
         composeRule.setContent {
             rotationSeen = LocalView.current.display?.rotation
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
+                uiState = AvailabilityUiState(liveFix = fix),
                 recording = AvailabilityScreenRecording(
                     isRecording = navigating,
                 ),

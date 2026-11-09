@@ -1,7 +1,4 @@
 
-
-_Measured on the original tile sample, removed on 2026-11-06 on the owner's word (dispatch 2026-11-05-11); the figures stay as measured. The folder's tiles are now a rebuilt sample over downtown Asheville, North Carolina; see the note at the end of `docs/audits/2026-09-30-topo-night-completion-report.md`._
-
 ### day
 
 | tile z | map zoom shown | mean | ground (median) | labels | roads |

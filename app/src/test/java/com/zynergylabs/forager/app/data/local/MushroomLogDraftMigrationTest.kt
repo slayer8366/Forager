@@ -67,7 +67,7 @@ class MushroomLogDraftMigrationTest {
     fun `a pre-existing entry survives the 8 to 9 migration intact and is marked committed, never draft`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
-        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -121.6), date = LocalDate.of(2026, 8, 1))
+        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -122.6), date = LocalDate.of(2026, 8, 1))
             .copy(notes = "found under the big fir", isDraft = true, draftOfEntryId = "leaked-parent-id")
 
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV8::class.java, dbFile.absolutePath).build()
@@ -103,7 +103,7 @@ class MushroomLogDraftMigrationTest {
             // is actually load-bearing (queryable, not just present) after the rebuild, the same
             // "new tables/columns actually work" bar every other migration test in this package
             // holds itself to.
-            val newDraft = MushroomLogEntry.draft(id = "post-migration-draft", location = LatLng(46.0, -122.0), date = LocalDate.of(2026, 8, 20))
+            val newDraft = MushroomLogEntry.draft(id = "post-migration-draft", location = LatLng(46.0, -123.0), date = LocalDate.of(2026, 8, 20))
             repository.save(newDraft).getOrThrow()
             val reloadedDraft = repository.getAll().getOrThrow().single { it.id == newDraft.id }
             assertEquals(newDraft, reloadedDraft)

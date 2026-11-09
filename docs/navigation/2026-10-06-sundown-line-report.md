@@ -44,15 +44,15 @@ did not verify it. It matters only for whether anything of the first session's w
 App paths are relative to `app/src/main/java/com/zynergylabs/forager/app/`.
 
 - **While recording**, the map's top strip has a second line under the compass readout:
-  - "Sunset h:mm PM · start back by h:mm" when the walk back is known.
-  - "Sunset h:mm PM · in 1 h 12 min · dark h:mm" when it is not.
-  - "Sunset h:mm PM · start back was h:mm" once that time has passed.
-  - "Sun set h:mm PM · dark in 21 min" after sunset.
-  - "Dark since h:mm PM" after dark, including a recording started after dark. It never counts down to tomorrow.
+  - "Sunset 6:42 PM · start back by 5:32" when the walk back is known.
+  - "Sunset 6:42 PM · in 1 h 12 min · dark 7:13" when it is not.
+  - "Sunset 6:42 PM · start back was 5:32" once that time has passed.
+  - "Sun set 6:42 PM · dark in 21 min" after sunset.
+  - "Dark since 7:13 PM" after dark, including a recording started after dark. It never counts down to tomorrow.
 - **Hidden** until 2 h 30 min before sunset, or until the start-back time is less than 1 hour away, whichever comes first (-595).
 - **Hidden** with no position (-596). "Sunset: finding your position…" never shows.
 - **Return or Navigate tapped**: the strip goes, as it already did, and the line is the HUD's last row.
-- **Navigating to a waypoint with no recording**: the HUD shows "Sunset h:mm PM · in 1 h 12 min · dark h:mm". It is computed on screen and never has a start-back time (-593).
+- **Navigating to a waypoint with no recording**: the HUD shows "Sunset 6:42 PM · in 1 h 12 min · dark 7:13". It is computed on screen and never has a start-back time (-593).
 - **Settings > Sundown**:
   - A "Sundown alerts" checkbox row, on by default. Off stops the notifications only; the line stays.
   - "Dark under trees" with "Woods get dark before sunset. Alerts allow this much extra.", and radio rows for 30 min / 45 min / 1 h (default) / 1 h 30.
@@ -202,8 +202,8 @@ edit. Notes follow the table where the link is not obvious.
 | # | Behaviour | Revert | Failed (test: message) |
 |---|---|---|---|
 | rA | Touches on the line reach the map | `.pointerInput(Unit) { detectTapGestures(onLongPress = {}) }` on the strip's line | 3: the portrait, fullscreen and landscape touch tests, "a long-press at (16.0.dp, 71.0.dp), line DpRect(left=8.0.dp, top=63.0.dp, right=376.0.dp, bottom=79.0.dp), must reach the map expected:<1> but was:<0>" (fullscreen at y 26 dp; landscape at (527.0.dp, 26.0.dp)) |
-| rB | Window: 2 h 30 min before sunset | `SUNDOWN_LINE_SUNSET_WINDOW_MILLIS` 150 → 240 min (the owner's first 4 h) | 7: "the two thresholds are the owner's numbers" (expected:<9000000> but was:<14400000>); "hidden at 2 h 31 min …" in the domain, text ("expected null, but was:<Sunset h:mm PM · in 2 h 31 min>"), screen, HUD and ViewModel tests; "shown early when the start-back time is 59 min away, hidden at 61 min …" (the 61-min case now inside 4 h) |
-| rC | Window: start-back under 1 h | the start-back clause of `isShown` replaced by `false` | 4: "hidden outside both windows, written once either opens" (expected:<Sunset h:mm PM · start back by h:mm> but was:<null>); "a start-back time already passed shows …"; "shown early when the start-back time is 59 min away …" (domain, and screen: assertExists) |
+| rB | Window: 2 h 30 min before sunset | `SUNDOWN_LINE_SUNSET_WINDOW_MILLIS` 150 → 240 min (the owner's first 4 h) | 7: "the two thresholds are the owner's numbers" (expected:<9000000> but was:<14400000>); "hidden at 2 h 31 min …" in the domain, text ("expected null, but was:<Sunset 6:42 PM · in 2 h 31 min>"), screen, HUD and ViewModel tests; "shown early when the start-back time is 59 min away, hidden at 61 min …" (the 61-min case now inside 4 h) |
+| rC | Window: start-back under 1 h | the start-back clause of `isShown` replaced by `false` | 4: "hidden outside both windows, written once either opens" (expected:<Sunset 6:42 PM · start back by 2:42> but was:<null>); "a start-back time already passed shows …"; "shown early when the start-back time is 59 min away …" (domain, and screen: assertExists) |
 | rD | -596: no position, no line | `FindingPosition` shown, with "Sunset: finding your position…" restored as its words | 4: "no position has no line …" (expected null, but was:<Sunset: finding your position…>); "no position, and polar day, are hidden" (expected:<false> but was:<true>); both screen "… finding your position never renders" tests |
 | rE | Margin re-derives the line at once (watch) | `onMarginChanged` keeps the last tick's turnaround | 2: watch "a margin changed in Settings moves the start-back time at once …" ("thirty minutes later, at once, with no tick expected:<1791075260741> but was:<1791073460741>"), and ViewModel "… on screen at once" (expected:<1789234324737> but was:<1789232524737>), each 30 min apart |
 | rF | Margin re-derives the line at once (wiring) | Settings' ViewModel does not tell the watch once the margin is stored | 2: the ViewModel end-to-end test (the same 30 min message), and `SundownSettingsTest` "real touches across each row …" timing out at its wait for the watch to be told 45 (`SundownSettingsTest.kt:201`, "Condition still not satisfied after 5000 ms") |
@@ -221,7 +221,7 @@ edit. Notes follow the table where the link is not obvious.
 | rR | 24-hour clock | the later time always "h:mm" | 1: "the phone's clock, 24-hour, gives both times in 24-hour": expected:<[18]:42> but was:<[6]:42> |
 | rS | After sunset or dark: no countdown to tomorrow | the backward search skipped (`position != null && false && sunIsDown(…)`, so the smart cast stands and it compiles) | 5: "between sunset and dark with the countdown on tomorrow's sunset …", "after dark with the countdown on tomorrow's sunset …", "in the small hours, still dark since the evening's dusk …", "a recording started after dark says dark since today's dusk" (ClassCastException, `BeforeSunset` is not `AfterSunset`/`DarkSince`), and the arrived test (see notes) |
 | rT | The line laid out whole (positive control) | a 60 dp width cap placed **after** `fillMaxWidth` | 1: landscape only, "not ellipsized: … visible end 8 of 36, ellipsized true". **Not a valid control for portrait and fullscreen**, see notes |
-| rT2 | same, the cap placed before `fillMaxWidth` | `.widthIn(max = 60.dp)` before the fill | 3: portrait "recording, the strip shows the line", fullscreen and landscape: "not ellipsized: Sunset h:mm AM · start back by h:mm: 1 line(s), visible end 8 of 36, ellipsized true, size 180 x 48" |
+| rT2 | same, the cap placed before `fillMaxWidth` | `.widthIn(max = 60.dp)` before the fill | 3: portrait "recording, the strip shows the line", fullscreen and landscape: "not ellipsized: Sunset 1:46 AM · start back by 12:36: 1 line(s), visible end 8 of 36, ellipsized true, size 180 x 48" |
 | rU | "start back was" once the time has passed | the "by" branch taken always | 2: "start back was, once it has passed, and at the moment itself" and "each state of the owner's path reads as confirmed in the strip": expected:<… start back [was] …> but was:<… start back [by] …> |
 | rV | Stopping the recording takes the line away at once | `sundownLine = null` dropped from the stop's state update | 1: "stopping the recording takes the line away at once": expected null, but was:<DarkSince(…)> |
 | rW | Another recording's line is not this screen's | the track-id match dropped from `copySundownLine` | 1: "another recording's line is not this screen's": expected null, but was:<DarkSince(…)> |
@@ -392,5 +392,3 @@ written after the run started. Same count as `494a1754`, as expected for a chang
 - The labels and defaults of the Sundown section, and the polar cases, have no revert check.
 - `ee5c44c9` changes two existing tests; see Full suite for the alternative.
 - Two points still need the owner's word (polar night's words, checkbox not switch); see "Owner rulings".
-
-_Clock times taken at the owner's home are shown as h:mm (dispatch 2026-11-05-11, removed 2026-11-06)._

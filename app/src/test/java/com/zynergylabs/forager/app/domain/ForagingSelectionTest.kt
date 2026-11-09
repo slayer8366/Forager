@@ -42,7 +42,7 @@ class ForagingSelectionTest {
     @Test
     fun `a recent search rebuilds the selection with its stored group, and an old or lichens one has none`() {
         val flyAgaric = TaxonFilter.SpecificTaxon(taxonId = 48715, label = "Fly Agaric")
-        val region = com.zynergylabs.forager.app.domain.model.Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+        val region = com.zynergylabs.forager.app.domain.model.Region(lat = 45.326, lng = -122.634, radiusKm = 15)
         fun summary(filter: TaxonFilter, group: String?) =
             CachedSearchSummary(region = region, month = 10, filter = filter, cachedAtEpochMillis = 0L, speciesIconicTaxonName = group)
 

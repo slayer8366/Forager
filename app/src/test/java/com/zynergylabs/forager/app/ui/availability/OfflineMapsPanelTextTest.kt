@@ -19,10 +19,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
 import androidx.test.core.app.ApplicationProvider
-import com.zynergylabs.forager.app.domain.OfflineMapRepository
-import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.ui.log.RecordsSubTab
 import com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag
 import com.zynergylabs.forager.app.ui.map.PanRecordingMapSlot
@@ -145,35 +142,11 @@ abstract class OfflineMapsPanelTextTests(private val landscape: Boolean) {
         assertTrue("and its second half", absent("overlapping regions share tiles"))
     }
 
-    /**
-     * T1 (dispatch 2026-10-26-21 Amendment 1, RECORD -1703): with one 24 km Trail Map v3 area downloaded, whose MapLibre count
-     * (10240) holds the official-trails band's tiles beside the basemap's, the budget line reads the area's estimate (5120,
-     * the 24 km literal at 49.60 N in AvailabilityViewModelOfflineMapsTest), and the picker's warning counts what is left
-     * from that same figure: 880, not the -4240 MapLibre's count would leave.
-     */
-    @Test
-    fun `the budget line and the picker's warning count a v3 area by its estimate`() {
-        uiState.value = uiState.value.copy(
-            offlineMapRadiusKm = 24,
-            offlineRegions = listOf(
-                OfflineRegionSummary(
-                    id = 9L, name = "North edge", region = Region(lat = 49.60, lng = -121.903875, radiusKm = 24),
-                    minZoom = OfflineMapRepository.MIN_ZOOM, maxZoom = OfflineMapRepository.MAX_ZOOM,
-                    tileCount = 10_240, sizeBytes = 90_000_000L, createdAtEpochMillis = 1_755_000_000_000L,
-                ),
-            ),
-        )
-        setScreen()
-        assertTrue("the budget line counts the area by its estimate", !absent("Tile budget: 5120 / 6000", substring = false))
-        assertTrue("the picker's warning counts what is left from the same figure", !absent("exceeds your remaining budget of 880"))
-        assertTrue("and MapLibre's count shows nowhere", absent("10240"))
-    }
-
     @Test
     fun `the continental-US note is the last line, under the downloaded-maps section`() {
         setScreen()
         val note = textBounds(US_NOTE)
-        val emptyState = textBounds("No maps downloaded yet. Pan the map to an area and tap Download Maps.")
+        val emptyState = textBounds("No regions downloaded yet.")
         val budget = composeRule.onNode(hasText("Tile budget:", substring = true), useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue("the note $note is under the downloaded-maps section's last line $emptyState", note.top >= emptyState.bottom - 0.5.dp)
         assertTrue("and under the budget line $budget", note.top >= budget.bottom - 0.5.dp)

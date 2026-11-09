@@ -141,13 +141,7 @@ jobs:
           set -euo pipefail
           mkdir -p app/build
           log=app/build/release-gradle.log
-          # Gradle daemon heap 4 GB, over gradle.properties' 2 GB (RECORD -2191): ci.yml's release-compile job ran out
-          # of heap in packageReleaseBundle, which bundleRelease also runs, inside the daemon. Whole value replaced,
-          # so the file encoding is repeated.
-          ./gradlew --stacktrace --console=plain --no-configuration-cache "-Dorg.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8" \
-            bundleRelease 2>&1 | tee "$log"
-          # The daemon is still alive here; only its -Xmx token is printed, to show the heap setting reached it.
-          echo "Gradle daemon heap: $(jps -lv | grep GradleDaemon | grep -o -- '-Xmx[0-9]*[mMgG]' || echo 'not found')"
+          ./gradlew --stacktrace --console=plain --no-configuration-cache bundleRelease 2>&1 | tee "$log"
           failed=0
           for task in verifyReleaseNeverSignsWithDebugKeystore verifyReleaseHasRoutingAppKey bundleRelease; do
             if ! grep -q "^> Task :app:$task\b" "$log"; then

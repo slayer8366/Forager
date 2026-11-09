@@ -138,8 +138,6 @@ data class NavigationViewRequest(
     val zoomOnStart: Boolean = false,
     /** The map reports the start zoom applied, so it is not applied again in this navigation. */
     val onStartZoomApplied: () -> Unit = {},
-    /** D29 (RECORD -1979, -1980): the side padding that keeps the walker's dot in the open map beside an expanded route card. */
-    val sideInsetsPx: NavigationSideInsets = NavigationSideInsets.NONE,
 )
 
 /**
@@ -163,11 +161,11 @@ const val NAVIGATION_VIEW_ZOOM = 18.0
 fun navigationMaxZoom(
     basemap: Basemap,
     navigating: Boolean,
-    /** Whether Trail Map draws in this process (`OwnTrailFallback`, RECORD -1513); a parameter so a test can drive both. */
-    ownTrail: Boolean = true,
+    /** Whether Trail Map draws in this process (`OwnStreetFallback`, RECORD -1513); a parameter so a test can drive both. */
+    ownStreet: Boolean = true,
 ): Double {
     // The operating limit: Trail Map 18, OpenStreetMap 19, Topographical 17 ([operatingMaxZoom]).
-    val limit = operatingMaxZoom(basemap, ownTrail).toDouble()
+    val limit = operatingMaxZoom(basemap, ownStreet).toDouble()
     return if (navigating) maxOf(limit, NAVIGATION_VIEW_ZOOM) else limit
 }
 
@@ -356,30 +354,6 @@ class NavigationModeChange {
     var active = false
         private set
 
-    /**
-     * RECORD -2192, Sorrel's review of PR #511: a recreated or returned map whose first style restored the navigation view's
-     * camera (its padding, tilt and bearing) while panned away holds that view without [applyView] having run on it, so it is
-     * marked as holding it here and navigation's end takes it off ([leaveNavigation]), as on a map that applied it itself.
-     */
-    fun holdRestoredView() {
-        active = true
-    }
-
-    /**
-     * dot-lift-after-recreate (RECORD -2183, -2192; the S22 on build 4990): the view's tilt and padding, when MapLibre refused them
-     * at once because the location component's own transition was running (a recreated map's restore of following,
-     * setLiveLocationCameraMode); applied again by [onLocationTransitionEnded]. `null` when nothing is waiting.
-     */
-    private var refusedView: (() -> Unit)? = null
-
-    /** The location component's own transition has ended (setLiveLocationCameraMode): a view refused during it is applied now. */
-    fun onLocationTransitionEnded() {
-        val retry = refusedView ?: return
-        refusedView = null
-        Log.i(NAVIGATION_VIEW_LOG_TAG, "the location component's transition ended: applying the view's tilt and padding again")
-        retry()
-    }
-
     private val startZoomGate = StartZoomGate()
     private var onStartZoomAppliedHeld: () -> Unit = {}
 
@@ -463,14 +437,7 @@ class NavigationModeChange {
      * The listener is called at the transition's end, or at once when there is none, so the tilt and
      * padding land either way.
      */
-    fun applyView(
-        map: MapLibreMap,
-        facing: NavigationFacing,
-        topPaddingPx: Double,
-        startZoom: Double? = null,
-        onStartZoomApplied: () -> Unit = {},
-        sideInsetsPx: () -> NavigationSideInsets = { NavigationSideInsets.NONE },
-    ) {
+    fun applyView(map: MapLibreMap, facing: NavigationFacing, topPaddingPx: Double, startZoom: Double? = null, onStartZoomApplied: () -> Unit = {}) {
         val mode = when (facing) {
             NavigationFacing.FACING_UP -> CameraMode.TRACKING_COMPASS
             NavigationFacing.CALIBRATING -> CameraMode.TRACKING
@@ -485,7 +452,6 @@ class NavigationModeChange {
         }
         expected = mode
         active = true
-        refusedView = null
         val component = map.locationComponent
         val then = object : OnLocationCameraTransitionListener {
             override fun onLocationCameraTransitionFinished(cameraMode: Int) {
@@ -519,7 +485,23 @@ class NavigationModeChange {
                         },
                     )
                 }
-                landViewPadding(map, facing, mode, topPaddingPx, sideInsetsPx)
+                val paddingToken = ++paddingAnimationToken
+                paddingAnimationInFlight = paddingToken
+                component.paddingWhileTracking(
+                    doubleArrayOf(0.0, topPaddingPx, 0.0, 0.0),
+                    NAVIGATION_VIEW_TRANSITION_MILLIS,
+                    object : MapLibreMap.CancelableCallback {
+                        override fun onFinish() {
+                            if (paddingAnimationInFlight == paddingToken) paddingAnimationInFlight = null
+                            logCamera(map, "view applied, $facing")
+                        }
+
+                        override fun onCancel() {
+                            if (paddingAnimationInFlight == paddingToken) paddingAnimationInFlight = null
+                            logCamera(map, "view applied, $facing, the padding cancelled")
+                        }
+                    },
+                )
             }
 
             override fun onLocationCameraTransitionCanceled(cameraMode: Int) = startZoomGate.cancelled(generation)
@@ -527,82 +509,9 @@ class NavigationModeChange {
         byTheApp { component.setCameraMode(mode, NAVIGATION_VIEW_TRANSITION_MILLIS, null, null, NAVIGATION_VIEW_TILT_DEGREES, then) }
     }
 
-    /**
-     * The view's padding, from [applyView]'s listener. D29: the side padding as it is when the padding lands, read then rather than
-     * at the call ([sideInsetsPx]). J8: its bottom too, which keeps the dot above the landscape card on top
-     * (NavigationSideInsets.bottomPx). dot-lift-after-recreate: refused at once (MapLibre calls the callback's onCancel inside the
-     * call when the location component's own transition is running), the tilt and the padding wait for that transition's end
-     * ([onLocationTransitionEnded]), still for [mode], with the side padding as it is then.
-     */
-    private fun landViewPadding(map: MapLibreMap, facing: NavigationFacing, mode: Int, topPaddingPx: Double, sideInsetsPx: () -> NavigationSideInsets) {
-        val component = map.locationComponent
-        val paddingToken = ++paddingAnimationToken
-        paddingAnimationInFlight = paddingToken
-        val side = sideInsetsPx()
-        var asking = true
-        component.paddingWhileTracking(
-            doubleArrayOf(side.leftPx, topPaddingPx, side.rightPx, side.bottomPx),
-            NAVIGATION_VIEW_TRANSITION_MILLIS,
-            object : MapLibreMap.CancelableCallback {
-                override fun onFinish() {
-                    if (paddingAnimationInFlight == paddingToken) paddingAnimationInFlight = null
-                    logCamera(map, "view applied, $facing")
-                }
-
-                override fun onCancel() {
-                    if (paddingAnimationInFlight == paddingToken) paddingAnimationInFlight = null
-                    if (!asking) {
-                        logCamera(map, "view applied, $facing, the padding cancelled")
-                        return
-                    }
-                    Log.i(NAVIGATION_VIEW_LOG_TAG, "view $facing: the tilt and padding refused at once; applied again when the location component's transition ends")
-                    refusedView = {
-                        if (expected == mode) {
-                            component.tiltWhileTracking(NAVIGATION_VIEW_TILT_DEGREES, NAVIGATION_VIEW_TRANSITION_MILLIS)
-                            landViewPadding(map, facing, mode, topPaddingPx, sideInsetsPx)
-                        } else {
-                            Log.i(NAVIGATION_VIEW_LOG_TAG, "view $facing: not applied again, the view has changed or been left since (expected=$expected)")
-                        }
-                    }
-                }
-            },
-        )
-        asking = false
-    }
-
-    /**
-     * D29 (RECORD -1979, -1980): the view's padding moved to [padding] while following, over [durationMillis] (MapLibre animates
-     * padding linearly; 0 under Reduce Motion), for the walker's dot to move beside an expanded route card and back. Not while a
-     * mode transition runs, which ignores padding: its own listener lands the side padding as it is then (applyView). `false`
-     * when it was not applied, so the caller can log it.
-     */
-    fun shiftPadding(map: MapLibreMap, padding: DoubleArray, durationMillis: Long): Boolean {
-        val component = map.locationComponent
-        if (expected == null || transitioning || !component.isLocationComponentActivated || component.cameraMode == CameraMode.NONE) return false
-        val paddingToken = ++paddingAnimationToken
-        paddingAnimationInFlight = paddingToken
-        component.paddingWhileTracking(
-            padding,
-            durationMillis,
-            object : MapLibreMap.CancelableCallback {
-                override fun onFinish() {
-                    if (paddingAnimationInFlight == paddingToken) paddingAnimationInFlight = null
-                    logCamera(map, "side padding applied")
-                }
-
-                override fun onCancel() {
-                    if (paddingAnimationInFlight == paddingToken) paddingAnimationInFlight = null
-                    logCamera(map, "side padding cancelled")
-                }
-            },
-        )
-        return true
-    }
-
     /** "Reset orientation" while navigating (ruling D): north-up, still following. The caller reports the move away. */
     fun northUpKeepingFollow(map: MapLibreMap) {
         expected = null
-        refusedView = null
         byTheApp { map.locationComponent.setCameraMode(CameraMode.TRACKING_GPS_NORTH, NAVIGATION_VIEW_TRANSITION_MILLIS, null, null, null, null) }
     }
 
@@ -620,7 +529,6 @@ class NavigationModeChange {
      */
     fun leaveNavigation(map: MapLibreMap, maxZoom: Double) {
         expected = null
-        refusedView = null
         active = false
         startZoomGate.reset()
         val component = map.locationComponent

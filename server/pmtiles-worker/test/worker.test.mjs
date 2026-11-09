@@ -525,13 +525,9 @@ test("street-v3 and offline.json are frozen: the Worker's copies byte for byte w
   assert.equal(sha256("../src/offline-style.json"), "357e2603d1d72e4bf0e9431ecfb06292e91fca4333782ca3fd7e06713879b294");
 });
 
-test("street-v4 is held to I8's v4, updated in place twice since d88db1799 (dispatch 2026-11-02-coder-13; I8 of 2026-11-06-01)", () => {
-  // The owner: "Update v4 in place", for the first zooms and again for I8 (dispatch 2026-11-06-01 Amendment 1, RECORD -2183),
-  // which moved only the Forest Service trail number up among the labels (map-style/tools/check-trail-night.mjs check 10).
-  // In place only because Trail Map has not been released yet (the owner: "Nobody is using Trail maps so updating in place
-  // is permitted. Only when we release it do we need to do it properly"); after release a style change ships as a new
-  // version. street-v4 and trail-v4 change together and stay one style (the trail-v4 test above).
-  assert.equal(sha256("../src/street-style-v4.json"), "8032de2c14725ef5d819eb229d1358146d5493e608ac2227e2bb79b9365e9f5c");
+test("street-v4 is held to the first zooms' v4, updated in place once since d88db1799 (dispatch 2026-11-02-coder-13)", () => {
+  // The owner: "Update v4 in place". street-v4 and trail-v4 change together and stay one style (the trail-v4 test above).
+  assert.equal(sha256("../src/street-style-v4.json"), "d27d42d163baf8a9576e2ad0407625f48aabf41713809fb61689b794d0f94e40");
 });
 
 test("v2 is frozen: the Worker's copy byte for byte what pre-main c91f34c49 held", () => {

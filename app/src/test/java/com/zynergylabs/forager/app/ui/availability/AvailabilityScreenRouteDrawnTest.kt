@@ -100,7 +100,7 @@ class AvailabilityScreenRouteDrawnTest {
     private fun setScreen() {
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
+                uiState = AvailabilityUiState(liveFix = fix),
                 recording = AvailabilityScreenRecording(
                     isRecording = true,
                 ),

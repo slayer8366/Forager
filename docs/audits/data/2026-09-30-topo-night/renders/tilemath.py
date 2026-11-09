@@ -1,5 +1,5 @@
 import math, os
-LAT, LON = 35.59556, -82.55194  # downtown Asheville, NC (rebuilt 2026-11-06; renders not re-run)
+LAT, LON = 45.36, -122.6
 V = 256.0   # viewport, dp (square, centred on the point)
 def tile_xy(z):
     n = 2 ** z

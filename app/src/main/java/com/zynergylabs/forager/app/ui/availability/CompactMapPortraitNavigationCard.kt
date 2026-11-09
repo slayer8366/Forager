@@ -54,8 +54,7 @@ internal fun compactMapEveningLines(
     sundownClock: SundownClock,
 ): Pair<String?, String?> {
     val sundown = (recordingSundownLine ?: rememberScreenSundownLine(uiState.headingFix?.let { com.zynergylabs.forager.app.domain.model.LatLng(it.lat, it.lng) }, currentTime))
-        // Dispatch 2026-11-05-10, Amendment 1, H5: before sunset, "Sunset: 4:52 PM ▪︎ Dark: 5:23 PM", the countdown off the card.
-        .let { cardSundownLineText(it, sundownClock) }
+        .let { sundownLineText(it, sundownClock) }
     return sundown to backByLineText(quickSettings?.backBy, sundownClock)
 }
 
@@ -120,9 +119,8 @@ internal fun CompactMapPortraitNavigationInfo(
                 currentTime = currentTime,
                 showDecimalDegrees = showDecimalDegrees,
                 onExit = navigation.onToggleReturning,
-                // Dispatch -502: the straight-line display (decision D2) for a chosen waypoint, until step 6 PR 3 (dispatch 2026-10-26-11):
-                // the way to it along trails when there is one, "by trail", or the straight line with its note (WaypointRouteShown).
-                route = if (navigation.isNavigatingToWaypoint) uiState.waypointRoute?.hud else navigation.returnRoute,
+                // Dispatch -502: no route to a chosen waypoint, so the straight-line display (decision D2).
+                route = if (navigation.isNavigatingToWaypoint) null else navigation.returnRoute,
                 onRetryRoute = navigation.onRetryRoute,
                 facing = navigationFacing,
                 approximateFix = uiState.approximateFix,
@@ -131,8 +129,6 @@ internal fun CompactMapPortraitNavigationInfo(
                 backByLine = backByLine,
                 // RECORD -845: "Arrived", held, after a return ended on arrival.
                 arrivalHeld = navigation.isArrivalHeld,
-                // Dispatch 2026-10-28-13: the strip's own height, so the card cannot read another.
-                heightMeters = uiState.liveAltitudeMeters,
             )
         }
     }

@@ -49,11 +49,23 @@ internal const val MAP_CREDIT_CAPTION_TAG = "map-credit-caption"
  * gravity is `BOTTOM or END`).
  */
 /**
+ * RECORD -954: MapLibre's attribution margins for its button at the bottom START, beside the map credit strip: the start margin is
+ * the strip's width plus [gapPx] (MapLibre's own start default replaced, since the strip itself starts at the map's edge), and the
+ * bottom margin is the strip's own bottom inset, so the two share a bottom edge. Top and end keep MapLibre's defaults. The pure
+ * half, so the arithmetic is a unit test (`AttributionBesideCreditTest`); what MapLibre draws there is device-only.
+ */
+internal fun attributionBesideCreditMarginsPx(defaults: IntArray, creditWidthPx: Int, gapPx: Int, creditBottomPx: Int, isRtl: Boolean): IntArray {
+    val (left, top, right, _) = defaults
+    val start = creditWidthPx + gapPx
+    return if (isRtl) intArrayOf(left, top, start, creditBottomPx) else intArrayOf(start, top, right, creditBottomPx)
+}
+
+/**
  * Where MapLibre's logo goes, as a gravity and `[left, top, right, bottom]` px margins for `UiSettings.setLogoGravity` and
  * `setLogoMargins` (dispatch 2026-10-18-07, RECORD -1309 and -1315, the owner's option 1): in a row with the attribution button
  * ("i"), just past it on the side away from the map's edge. Same gravity as the button, same margins except on that side, where
  * [offsetPx] (the button's side plus the gap, [ATTRIBUTION_BUTTON_DP] + [LOGO_ATTRIBUTION_GAP_DP]) is added. Which index that is
- * follows the convention [attributionMarginsPx] used for the button (and the removed RECORD -954 placement used): at the bottom
+ * follows the convention [attributionMarginsPx] and [attributionBesideCreditMarginsPx] already use for the button: at the bottom
  * end, the right (index 2) in a left-to-right layout and the left (0) in a right-to-left one; at the bottom start (RECORD -954,
  * the short landscape window), the left (0), or the right (2) in right-to-left. Bottoms are shared, so the logo (88 x 23 dp in
  * MapLibre 13.5.0) and the button (21 dp) sit on one line. The pure half, so it is a unit test (`LogoBesideAttributionTest`);
@@ -72,6 +84,9 @@ internal class LogoPlacement(val gravity: Int, val margins: IntArray)
 
 /** The gap between the attribution button's assumed square ([ATTRIBUTION_BUTTON_DP]) and the logo beside it, in dp. */
 internal const val LOGO_ATTRIBUTION_GAP_DP = 4f
+
+/** RECORD -954: the gap between the map credit strip's end and the attribution button beside it. */
+internal const val ATTRIBUTION_BESIDE_CREDIT_GAP_DP = 4f
 
 internal fun attributionMarginsPx(defaults: IntArray, bottomInsetPx: Int, endInsetPx: Int, isRtl: Boolean): IntArray {
     val (left, top, right, bottom) = defaults

@@ -58,8 +58,8 @@ class LogPhotoMigrationTest {
     fun `an existing entry-photo relationship survives as a cross-reference, and a new photo can be shared between two entries`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
-        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -121.6), date = LocalDate.of(2026, 8, 1))
-        val secondEntry = MushroomLogEntry.draft(id = "entry-2", location = LatLng(45.6, -121.5), date = LocalDate.of(2026, 8, 2))
+        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -122.6), date = LocalDate.of(2026, 8, 1))
+        val secondEntry = MushroomLogEntry.draft(id = "entry-2", location = LatLng(45.6, -122.5), date = LocalDate.of(2026, 8, 2))
 
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV7::class.java, dbFile.absolutePath).build()
         try {

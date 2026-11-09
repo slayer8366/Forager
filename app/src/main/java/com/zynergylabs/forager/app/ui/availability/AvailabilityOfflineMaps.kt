@@ -1,17 +1,13 @@
 package com.zynergylabs.forager.app.ui.availability
 
-import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
-import com.zynergylabs.forager.app.domain.mapdata.NoTrailMapDetail
-import com.zynergylabs.forager.app.domain.mapdata.TrailMapDetail
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
-import com.zynergylabs.forager.app.domain.watchEntryReferenceCounts
 import com.zynergylabs.forager.app.ui.availability.AvailabilityViewModel.Companion.TAG
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -36,16 +32,11 @@ internal class AvailabilityOfflineMaps(
     private val offlineMapRepository: OfflineMapRepository,
     private val mapPreferencesRepository: MapPreferencesRepository,
     private val locationProvider: LocationProvider,
-    private val entryReferenceCounts: EntryReferenceCountSource,
+    private val getOfflineRegionReferenceCount: suspend (Long) -> Int,
     private val errorLog: ErrorLog,
     /** Told of each finished download, so a route fetch that failed with it shows "Try again" (dispatch 2026-10-23-03). */
     private val onDownloaded: (OfflineRegionSummary) -> Unit = {},
-    /** Known bug 14 (dispatch 2026-11-02-02): what the picker's [detail] check asks. */
-    trailMapDetail: TrailMapDetail = NoTrailMapDetail,
 ) {
-
-    /** The picker's detail check (known bug 14), built here so `AvailabilityViewModel.kt` stays under 800 lines (RECORD -2150). */
-    val detail = AvailabilityOfflineDetail(updateState, scope, trailMapDetail, errorLog)
 
     fun onOfflineMapLatChanged(text: String) {
         updateState { it.copy(offlineMapLatText = text) }
@@ -117,17 +108,6 @@ internal class AvailabilityOfflineMaps(
      * failure gets. The prior list is kept on a failed refresh rather than cleared, so a transient
      * read error doesn't make regions that are still on disk disappear.
      */
-    /**
-     * Keeps [AvailabilityUiState.offlineRegionEntryReferenceCounts] live for the ViewModel's life, so a journal
-     * entry saved or deleted changes a region's delete message at once (dispatch 2026-10-28-08, RECORD -1781).
-     * Until then [loadOfflineRegions] read the counts once per load. Called once, from the ViewModel's `init`.
-     */
-    fun watchReferenceCounts() {
-        watchEntryReferenceCounts(scope(), entryReferenceCounts.offlineRegionCounts(), errorLog, "offline region") { counts ->
-            updateState { it.copy(offlineRegionEntryReferenceCounts = counts) }
-        }
-    }
-
     fun loadOfflineRegions(): Job {
         return scope().launch {
             offlineMapRepository.listRegions().fold(
@@ -142,8 +122,11 @@ internal class AvailabilityOfflineMaps(
                         emptyList()
                     }
                     val regions = downloaded + restored
-                    // The counts are not read here: [watchReferenceCounts] keeps them live (dispatch 2026-10-28-08).
                     updateState { it.copy(offlineRegions = regions, offlineRegionsErrorMessage = partialMessage) }
+                    // One query per region — see TrackRecordingViewModel.loadWaypoints' identical
+                    // choice for why this scale doesn't need a batched read.
+                    val counts = regions.associate { it.id to getOfflineRegionReferenceCount(it.id) }
+                    updateState { it.copy(offlineRegionEntryReferenceCounts = counts) }
                 },
                 onFailure = { error ->
                     errorLog.w(TAG, "Couldn't read offline regions.", error)
@@ -246,8 +229,6 @@ internal class AvailabilityOfflineMaps(
                             offlineMapLatText = "",
                             offlineMapLngText = "",
                             offlineMapNameText = "",
-                            // Dispatch 2026-11-05-08 (A2): a trip's area downloaded is not forgotten on leaving; this clearing stands.
-                            offlineMapsTripOpening = null,
                         )
                     }
                     loadOfflineRegions()

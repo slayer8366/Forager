@@ -4,9 +4,7 @@ package com.zynergylabs.forager.app.ui.map
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -85,12 +83,6 @@ internal fun MapBarIconButton(
      * under the finger when the tap starts or stops a recording.
      */
     highlight: MapBarHighlight = MapBarHighlight.ROUNDED_SQUARE,
-    /**
-     * A ring drawn on the badge's circle ([MAP_ICON_BAR_FILL_DIAMETER], 36 dp, centred), inside the row: the locate row's
-     * (dispatch 2026-11-06-04 Amendment 1, the owner: "(b) Ring it on both maps"). Drawn, not hit-tested, so the touch area
-     * is the full 48 x 48 box as before; it dips with the icon on a press. `null` (no ring) for every other row.
-     */
-    ring: BorderStroke? = null,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val reduceMotion = LocalReduceMotion.current
@@ -137,9 +129,6 @@ internal fun MapBarIconButton(
                         }
                         .background(color = fillColor, shape = CircleShape),
                 )
-            }
-            if (ring != null) {
-                Box(modifier = Modifier.size(MAP_ICON_BAR_FILL_DIAMETER).border(ring, CircleShape))
             }
             IconSwap(targetState = icon) { shown ->
                 Icon(imageVector = shown, contentDescription = null, tint = tint)

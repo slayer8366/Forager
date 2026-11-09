@@ -27,7 +27,7 @@ class MapReturnMemoryTest {
     private val warnings = mutableListOf<String>()
     private val memory = MapReturnMemory(warn = { warnings += it })
     private val anchor = Offset(200f, 300f)
-    private val findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -121.71)), RecordPoint("find-2", LatLng(45.6, -121.8)))
+    private val findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -122.61)), RecordPoint("find-2", LatLng(45.6, -122.7)))
     private val keys = listOf(FanKey(MapLayerIds.FINDS, "find-1"), FanKey(MapLayerIds.PHOTOS, "ph-1"))
 
     @Test
@@ -40,7 +40,7 @@ class MapReturnMemoryTest {
         assertEquals(keys, memory.pendingFanKeys)
         val bubble = memory.takeBubble(findMarkers)
         assertNotNull(bubble)
-        assertEquals(MapBubbleTarget.FeatureTarget(MapBubbleKind.FIND, MapLayerIds.FINDS, "find-1", LatLng(45.51, -121.71)), bubble!!.target)
+        assertEquals(MapBubbleTarget.FeatureTarget(MapBubbleKind.FIND, MapLayerIds.FINDS, "find-1", LatLng(45.51, -122.61)), bubble!!.target)
         assertEquals(anchor, bubble.anchorPx)
         assertEquals(30f, bubble.bearingDeg, 0f)
         assertEquals(keys, memory.takeFanKeys())
@@ -115,7 +115,7 @@ class MapReturnMemoryTest {
 
     // The way back from a journal entry opened from a bubble's "kept in" line (dispatch 2026-09-28-387, Part B).
 
-    private fun bubbleOf(kind: MapBubbleKind, layerId: String, featureId: String, at: LatLng = LatLng(45.0, -121.1)) =
+    private fun bubbleOf(kind: MapBubbleKind, layerId: String, featureId: String, at: LatLng = LatLng(45.0, -122.0)) =
         TappedMapThing(MapBubbleTarget.FeatureTarget(kind, layerId, featureId, at), anchor, 30f)
 
     private val findBubble = bubbleOf(MapBubbleKind.FIND, MapLayerIds.FINDS, BUBBLE_FIND.id)

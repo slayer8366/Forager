@@ -200,7 +200,7 @@ internal data class NightImageOutcome(
     val refused: List<String> = emptyList(),
 ) {
     fun logLine(): String =
-        "Trail night: $added night images added, $switched image references switched, " +
+        "Street night: $added night images added, $switched image references switched, " +
             "${refused.size} refused by MapLibre" + (if (refused.isEmpty()) "" else ": $refused") +
             ", ${left.size} left in day images" +
             (if (left.isEmpty()) "" else ": $left") +

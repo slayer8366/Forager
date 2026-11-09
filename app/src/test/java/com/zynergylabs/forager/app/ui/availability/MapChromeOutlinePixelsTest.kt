@@ -109,7 +109,7 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         composeRule.setContent {
             ForagerTheme(darkTheme = dark) {
                 AvailabilityScreen(
-                    uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
+                    uiState = AvailabilityUiState(liveFix = fix),
                     recording = AvailabilityScreenRecording(
                         isRecording = navigating,
                     ),
@@ -413,32 +413,9 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
      * so no stretch shows the map, or a fill, where a line should be. The runs cross: the pill's and the strip's bottoms and tops
      * between their corners, the rail's inner edge from below its top corner to above its bottom corner, and the rail's top
      * and bottom out to the screen's edge.
-     *
-     * Dispatch 2026-11-05-06 (RECORD -2160, the owner: "Allow it (Recommended)"): where a corner's arc lies outside both fills, in
-     * the corner gap over the map, the line there is the outline over the map, so [map], a bare map pixel, is a third reference
-     * beside the two fills, with the same [isLine] window and its 0.12 measured from that pixel. The strip's end against the rail
-     * passed before only because the strip's shadow, gone since that dispatch, darkened the map at its corner (run 42122210303).
-     *
-     * RECORD -2164 as corrected (K-2a): the runs whose index is in [mapSideOnly], the arc squares in the corner gap, count a pixel as
-     * line only if it lies on the line's side of [map] by more than half the gap between [map] and the outline over it. Read from
-     * the capture: by day darker than the map, at night lighter. The fills do not count there: by day a blend of a fill and the map
-     * lies inside the fill-based window, and with the arc not drawn (revert r5, run 42129142994) such blends held 60 and 59 of the 62
-     * arc squares, so the walk could not see a missing arc by day.
      */
-    private fun assertWalkFindsLine(
-        what: String,
-        runs: List<List<Pair<Int, Int>>>,
-        fillA: Color,
-        fillB: Color,
-        map: Color? = null,
-        mapSideOnly: Set<Int> = emptySet(),
-    ) {
-        val gap = map?.let { lum(lineOver(it)) - lum(it) }
-        fun onLineSide(p: Color) = map != null && gap != null && (lum(p) - lum(map)) * kotlin.math.sign(gap) > abs(gap) / 2f
-        val broken = runs.filterIndexed { i, run ->
-            if (i in mapSideOnly) run.none { (x, y) -> onLineSide(at(x, y)) }
-            else run.none { (x, y) -> isLine(at(x, y), fillA) || isLine(at(x, y), fillB) || (map != null && isLine(at(x, y), map)) }
-        }
+    private fun assertWalkFindsLine(what: String, runs: List<List<Pair<Int, Int>>>, fillA: Color, fillB: Color) {
+        val broken = runs.filter { run -> run.none { (x, y) -> isLine(at(x, y), fillA) || isLine(at(x, y), fillB) } }
         println("MEASURED $orientation $theme walk $what: ${runs.size} runs, ${broken.size} without a line")
         assertTrue("$what: every run across the outline holds a line pixel; ${broken.size} of ${runs.size} do not, first at ${broken.firstOrNull()?.firstOrNull()}", broken.isEmpty())
     }
@@ -488,13 +465,7 @@ abstract class MapChromeOutlinePixelsTests(private val dark: Boolean, private va
         assertWalkFindsLine("the pill's outer end", (px(pill.top + r)..px(pill.bottom - r)).map { down(it, px(pill.left) + 1) }, pillFill, pillFill)
         // The stretch the owner located the gap in ("It's on the right part of the telemetry pill"): the strip's end against the
         // rail, its full height, walked across and followed down.
-        // Dispatch 2026-11-05-06 (RECORD -2160): the bare map near that corner, outside every piece, 24 dp left of the rail and below the strip.
-        val mapNearCorner = at(rail.left - 24.dp, strip.bottom + 24.dp)
-        // RECORD -2164 (K-2a): the arc squares from 15 to 69 degrees of each corner, in the corner gap over the map, by the map-side
-        // rule; the arc's ends, where it joins the rail's line and the strip's top and bottom, keep the rule above. roundedEndRuns lists
-        // each corner's 31 angles, 0 to 90 by 3, top corner first, then the straight stretch.
-        val gapSquares = (0 until 62).filter { (it % 31) * 3 in 15..69 }.toSet()
-        assertWalkFindsLine("the strip's end against the rail", roundedEndRuns(strip), stripFill, railFill, mapNearCorner, gapSquares)
+        assertWalkFindsLine("the strip's end against the rail", roundedEndRuns(strip), stripFill, railFill)
         assertEndOutlineContinuous("the strip's end against the rail", strip, rail.left, stripFill, strip.top + 6.dp, strip.bottom - 6.dp)
     }
 

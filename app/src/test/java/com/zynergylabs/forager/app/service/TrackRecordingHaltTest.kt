@@ -12,7 +12,6 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.AppContainer
 import com.zynergylabs.forager.app.ForagerApplication
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.RecordingHalt
 import com.zynergylabs.forager.app.domain.RecordingHaltReason
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
@@ -154,7 +153,6 @@ class TrackRecordingHaltTest {
                         alreadyRecordingMessage = "already recording",
                         abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
                         recordingHalts = container.recordingHalts.latest,
-                        entryReferenceCounts = NoEntryReferenceCounts,
                     ).also(created::add)
                 }
             },

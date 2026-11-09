@@ -1,6 +1,6 @@
 // Trail Map's character (dispatch 2026-10-22-03 and its Amendment 1, RECORD -1561): the owner's round-three rulings
-// 1 to 7 and their night colours, as further edits to the Trail Map design (overrides/forager-trail.mjs), applied after
-// it by generate-trail.mjs. Style v2 (street-v2.json) carries them; v1 stays as it was.
+// 1 to 7 and their night colours, as further edits to the Street design (overrides/forager-street.mjs), applied after
+// it by generate-street.mjs. Style v2 (street-v2.json) carries them; v1 stays as it was.
 //
 // The rulings are recorded in slayer8366/Forager-cartography on main:
 //   docs/design/2026-10-21-character-rulings.md   rulings 1-7, day values, layer ids, zooms and filters, and the
@@ -11,8 +11,8 @@
 //
 // Night is the app's (-1288: inversion, with named exceptions). This file only records the day colours and the night
 // exceptions the app must draw; the app holds its own copies (NightColour.kt, NightPattern.kt), checked equal to these
-// through the style's metadata, and tools/check-trail-night.mjs holds the ruled limits.
-import { COLOURS } from "./forager-trail.mjs";
+// through the style's metadata, and tools/check-street-night.mjs holds the ruled limits.
+import { COLOURS } from "./forager-street.mjs";
 
 /** Day colours and the ruled night colours of the character layers. */
 export const CHARACTER_COLOURS = {
@@ -72,7 +72,7 @@ export const NIGHT_PATTERN_COLOURS = { [TREE_PATTERN]: CHARACTER_COLOURS.nightTr
 
 /**
  * The night checker's limits (the owner: "Rules from your colours"; the numbers are the planner's, night record, "The
- * planner's call: the checker numbers"). Every other layer keeps its floor in tools/check-trail-night.mjs.
+ * planner's call: the checker numbers"). Every other layer keeps its floor in tools/check-street-night.mjs.
  */
 export const NIGHT_LIMITS = {
   waterLuminanceMax: 0.05, // relative luminance of every night water fill and line
@@ -82,7 +82,7 @@ export const NIGHT_LIMITS = {
 };
 
 /** Ruling 2's stream widths by zoom (sage-03 2(a): z13 0.6, z14 1, z15 1.5; z18 2.5). */
-export const TRAIL_STREAM_MIN_ZOOM = 13;
+export const STREET_STREAM_MIN_ZOOM = 13;
 const STREAM_WIDTH = ["interpolate", ["linear"], ["zoom"], 13, 0.6, 14, 1, 15, 1.5, 18, 2.5];
 /** Ruling 1 and 5: where the patterns start. */
 export const TREE_GLYPH_MIN_ZOOM = 12;
@@ -147,11 +147,11 @@ export function applyCharacter(layers) {
 
   // --- Ruling 2: streams from z13, the label from the line's zoom ------------------------------
   const stream = byId(layers, "water_stream");
-  stream.minzoom = TRAIL_STREAM_MIN_ZOOM;
+  stream.minzoom = STREET_STREAM_MIN_ZOOM;
   stream.paint["line-color"] = CHARACTER_COLOURS.stream;
   stream.paint["line-width"] = STREAM_WIDTH;
   const streamLabel = byId(layers, "water_waterway_label");
-  if (streamLabel.minzoom !== TRAIL_STREAM_MIN_ZOOM) {
+  if (streamLabel.minzoom !== STREET_STREAM_MIN_ZOOM) {
     throw new Error(`forager-character: water_waterway_label starts at z${streamLabel.minzoom}, not the stream line's z13`);
   }
 

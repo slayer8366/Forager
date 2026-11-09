@@ -169,7 +169,7 @@ class AvailabilityScreenOfflineCacheTest {
         composeRule.onNodeWithText("Recent searches").performClick()
 
         composeRule.onNodeWithText("Fungi · ${monthName(8)}").assertIsDisplayed()
-        composeRule.onNodeWithText("45.3736, -121.6959 · 15 km").assertIsDisplayed()
+        composeRule.onNodeWithText("45.3260, -122.6340 · 15 km").assertIsDisplayed()
         composeRule.onNodeWithText("cached 3 hours ago").assertIsDisplayed()
         composeRule.onNodeWithText("Plants · ${monthName(10)}").assertIsDisplayed()
         composeRule.onNodeWithText("47.6060, -122.3320 · 25 km").assertIsDisplayed()
@@ -237,7 +237,7 @@ class AvailabilityScreenOfflineCacheTest {
         const val THREE_HOURS_MILLIS = 3 * 60 * MINUTE_MILLIS
         const val TWO_DAYS_MILLIS = 2 * 24 * 60 * MINUTE_MILLIS
 
-        val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+        val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 
         val FORECAST = AvailabilityForecast(
             region = REGION,

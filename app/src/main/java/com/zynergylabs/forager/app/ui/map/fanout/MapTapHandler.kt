@@ -1,13 +1,10 @@
 package com.zynergylabs.forager.app.ui.map.fanout
 
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerSpec
 import com.zynergylabs.forager.app.ui.map.layers.MapTapOutcome
-import com.zynergylabs.forager.app.ui.map.layers.REFERENCE_TRAIL_BLOCKER_LAYER_IDS
 import com.zynergylabs.forager.app.ui.map.layers.TapHit
 import com.zynergylabs.forager.app.ui.map.layers.mapTapOutcome
-import com.zynergylabs.forager.app.ui.map.layers.referenceAgencyOf
 import com.zynergylabs.forager.app.ui.map.layers.resolveTap
 import com.zynergylabs.forager.app.ui.map.layers.tappableLayerIds
 
@@ -35,20 +32,13 @@ interface MapProbe {
 
 /**
  * Where a tap goes once decided: the four outcomes the click listener always had ([MapTapOutcome]),
- * and since step 8c a tap on an official-trails band, with the tap's position in px. The host turns each into its own callback.
+ * with the tap's position in px. The host turns each into its own callback.
  */
 interface MapTapSinks {
     fun onPlainTap()
     fun onSightingTap(observationId: Long?, xPx: Float, yPx: Float)
     fun onFeatureTap(layerId: String, featureId: String, xPx: Float, yPx: Float, at: LatLng)
     fun onUnidentifiedFeature(layerId: String)
-
-    /**
-     * Step 8c (dispatch 2026-10-26-16): a tap on an official-trails band, [record] read from the tapped feature itself. It
-     * wins only where no marker or app line does ([resolveTap]: the bands are lines drawn below every app line), and never
-     * where the way home or the recording trail is under the finger (Amendment 2, [REFERENCE_TRAIL_BLOCKER_LAYER_IDS]).
-     */
-    fun onReferenceTrailTap(layerId: String, record: ReferenceTrailRecord, xPx: Float, yPx: Float, at: LatLng)
 
     /** A tap on a stack closes the bubble that is showing (dispatch 2026-09-28-387, Part A). Not the plain tap: that one also leaves fullscreen. */
     fun onCloseBubble()
@@ -82,20 +72,11 @@ class MapTapHandler(
     private val layerDrawn: (String) -> Boolean = { true },
     /** Where a fallback is reported, never silent: the host passes `Log.w`; a test passes its own. */
     private val warn: (String) -> Unit = {},
-    /**
-     * Dispatch 2026-10-27-07 (RECORD -1736): what a tapped stack whose fan does not fit does instead of fanning past the edge,
-     * the zoom ([CrowdedStackZoom]). `null` keeps the fan past the edge, as before, and logs it.
-     */
-    private val crowded: CrowdedStackZoom? = null,
 ) {
     fun onMapTap(at: LatLng, xPx: Float, yPx: Float) {
         val density = probe.density
         var holdFanForEmptyTap = false
         val bubbleWasUp = bubbleOpen()
-        // The crowded stack's list closes at a tap on the map, as a fan folds. While a row's bubble shows, the tap closes both
-        // (dispatch 2026-11-04-02, S3, RECORD -2040), no longer the bubble alone with the list coming back (-255's one layer at
-        // a time, which still holds for the fan); the bubble closes by the plain tap below.
-        crowded?.onMapTap()
         if (fan.isOpen) {
             val picked = fanMemberAt(liveMembers(), fan.progress, xPx / density, yPx / density)
             if (picked != null) {
@@ -109,22 +90,12 @@ class MapTapHandler(
         }
 
         val order = drawOrder()
-        // Step 8c: an official-trails band is asked about only while it is drawn. Until a style that carries the band has
-        // loaded (an area's v2 or v1 offline, Topographical, OSM), 8b's drawn state has it off, so the band's ids are never sent to
-        // the map's query and no tap can reach a band on a style without one (dispatch 2026-10-26-16: "On v2 ... nothing
-        // is tappable").
-        val tappable = tappableLayerIds(order).filter { referenceAgencyOf(it) == null || layerDrawn(it) }
-        val pointHits = probe.hitsAt(xPx, yPx, tappable)
-        val resolved = resolveTap(
-            pointHits = pointHits,
+        val tappable = tappableLayerIds(order)
+        val winner = resolveTap(
+            pointHits = probe.hitsAt(xPx, yPx, tappable),
             boxHits = { probe.hitsInBox(xPx, yPx, TAP_BOX_HALF_DP * density, tappable) },
             drawOrder = order,
         )
-        // A band the way home or the recording trail stops falls through (Amendment 3, Sorrel's #419 review): the tap is
-        // resolved again as before bands took taps, with no band tappable, so a kept track in the box or a cell under the
-        // finger still takes it, and only where nothing else is there is it a plain tap.
-        val bandWon = resolved != null && referenceAgencyOf(resolved.layerId) != null
-        val winner = if (bandWon && bandStopped(pointHits, xPx, yPx)) resolveWithoutBands(tappable, order, xPx, yPx) else resolved
         if (holdFanForEmptyTap && winner != null) fan.fold()
         if (winner != null && openStackAround(winner, order, xPx, yPx)) {
             // A tap on a stack closes a bubble that is showing, as the fan opens (the owner, dispatch 2026-09-28-387, Part A: "1 yes"). By the bubble's
@@ -164,12 +135,6 @@ class MapTapHandler(
      */
     fun onCameraMoveStarted(cause: CameraMoveCause = CameraMoveCause.UNKNOWN) {
         if (cause == CameraMoveCause.LOCATION_FOLLOW) return
-        // The crowded-stack zoom's own move opens a fan as it lands; it must not fold it (dispatch 2026-10-27-07, step 5).
-        if (cause == CameraMoveCause.APP_STACK_ZOOM) return
-        if (cause == CameraMoveCause.USER_GESTURE) crowded?.onUserPan()
-        // A move the user asked for with a control (Locate, a search result, Return to Route) counts as their own pan
-        // (Amendment 1, S1; RECORD -1753). The crowded stack's own camera return is marked plain, so it does not.
-        if (cause == CameraMoveCause.APP_USER_ASKED) crowded?.onUserAskedMove()
         fan.fold()
     }
 
@@ -224,52 +189,12 @@ class MapTapHandler(
         val stack = stackOf(self, nearby, density)
         if (stack.size < 2) return false
 
-        // Settings > Map > "Crowded icons" = List (dispatch 2026-10-27-14): every stack opens the list, fits or not.
-        if (crowded?.listNow(stack, self.key) == true) return true
-        val plan = fanPlan(stack, order)
-        if (plan.fits) {
-            fan.open(plan.members)
-            return true
-        }
-        // Dispatch 2026-10-27-07: a fan that does not fit zooms the map in to the stack instead, when this map can.
-        val zoom = crowded
-        if (zoom == null) {
-            openOverflowing(plan)
-            return true
-        }
-        zoom.onStackDoesNotFit(
-            stack = stack,
-            tapped = self.key,
-            density = density,
-            locate = { keys -> probe.markersOf(keys) },
-            plan = { now -> fanPlan(now, order) },
-            open = { fanned -> fan.open(fanned.members) },
-            overflow = { rest -> openOverflowing(fanPlan(rest, order)) },
-        )
+        openFan(stack, order)
         return true
     }
 
-    /** Fans [stack] (at least two markers), top layer first, from where they are on screen now, whether or not it fits (logged when not). */
+    /** Fans [stack] (at least two markers), top layer first, from where they are on screen now. */
     private fun openFan(stack: List<ProbedMarker>, order: List<MapLayerSpec>) {
-        val plan = fanPlan(stack, order)
-        if (plan.fits) fan.open(plan.members) else openOverflowing(plan)
-    }
-
-    /**
-     * The fallback the spiral report found unlogged (FanPlacement.kt's `allOnScreen = false`, read by nothing; dispatch
-     * 2026-10-27-07, item 6): a fan that does not fit is opened as it is, past the edge or over a control, and said so.
-     */
-    private fun openOverflowing(plan: FanPlan) {
-        val p = plan.placement
-        warn(
-            "A fan of ${plan.members.size} markers does not fit: allOnScreen=${p.allOnScreen}, controls cleared ${p.controlsCleared} of " +
-                "${p.controlsTotal}; it is opened as it is.",
-        )
-        fan.open(plan.members)
-    }
-
-    /** [stack]'s fan, top layer first, from where its markers are on screen now: worked out, not opened. */
-    private fun fanPlan(stack: List<ProbedMarker>, order: List<MapLayerSpec>): FanPlan {
         val density = probe.density
         val heightOf = order.withIndex().associate { it.value.id to it.index }
         val topFirst = stack.sortedWith(compareByDescending<ProbedMarker> { heightOf.getValue(it.key.layerId) }.thenBy { it.key.featureId })
@@ -286,37 +211,15 @@ class MapTapHandler(
             bounds = space.boundsPx()?.let { it.scaled(1f / density) },
             keepOuts = space.keepOutsPx().map { it.scaled(1f / density) },
         )
-        val members = topFirst.mapIndexed { i, m ->
-            val (trueX, trueY) = trueDp[i]
-            val offset = FanOffset(
-                centreX + ring[i].xDp + placement.shift.xDp - trueX,
-                centreY + ring[i].yDp + placement.shift.yDp - trueY,
-            )
-            FanMember(m.key, m.lat, m.lng, trueX, trueY, offset)
-        }
-        return FanPlan(members, placement)
-    }
-
-    /**
-     * Whether the way home or the recording trail under the finger stops a band that won the tap (dispatch 2026-10-26-16
-     * Amendment 2; RECORD -1688): the band then does not take the tap, which resolves as before bands took taps
-     * (Amendment 3). The stoppers are judged as an app line over the band would be ([resolveTap]): one exactly under the
-     * finger stops it; one only within the finger's box stops it only when the band too was only within the box
-     * ([pointHits] holds no band), so a band exactly under the finger is not lost to a route beside it.
-     */
-    private fun bandStopped(pointHits: List<TapHit>, xPx: Float, yPx: Float): Boolean {
-        if (probe.hitsAt(xPx, yPx, REFERENCE_TRAIL_BLOCKER_LAYER_IDS).isNotEmpty()) return true
-        val bandUnderFinger = pointHits.any { referenceAgencyOf(it.layerId) != null }
-        return !bandUnderFinger && probe.hitsInBox(xPx, yPx, TAP_BOX_HALF_DP * probe.density, REFERENCE_TRAIL_BLOCKER_LAYER_IDS).isNotEmpty()
-    }
-
-    /** [resolveTap] over [tappable] with every band's id removed: the tap as it resolved before 8c. */
-    private fun resolveWithoutBands(tappable: List<String>, order: List<MapLayerSpec>, xPx: Float, yPx: Float): TapHit? {
-        val withoutBands = tappable.filter { referenceAgencyOf(it) == null }
-        return resolveTap(
-            pointHits = probe.hitsAt(xPx, yPx, withoutBands),
-            boxHits = { probe.hitsInBox(xPx, yPx, TAP_BOX_HALF_DP * probe.density, withoutBands) },
-            drawOrder = order,
+        fan.open(
+            topFirst.mapIndexed { i, m ->
+                val (trueX, trueY) = trueDp[i]
+                val offset = FanOffset(
+                    centreX + ring[i].xDp + placement.shift.xDp - trueX,
+                    centreY + ring[i].yDp + placement.shift.yDp - trueY,
+                )
+                FanMember(m.key, m.lat, m.lng, trueX, trueY, offset)
+            },
         )
     }
 
@@ -327,7 +230,6 @@ class MapTapHandler(
             is MapTapOutcome.UnidentifiedFeature -> {
                 sinks.onUnidentifiedFeature(outcome.layerId)
             }
-            is MapTapOutcome.OnReferenceTrail -> sinks.onReferenceTrailTap(outcome.layerId, outcome.record, xPx, yPx, at)
             MapTapOutcome.Plain -> sinks.onPlainTap()
         }
     }

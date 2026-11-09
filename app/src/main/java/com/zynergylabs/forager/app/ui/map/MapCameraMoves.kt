@@ -112,14 +112,6 @@ internal fun shouldApplyCameraRequest(
 ): Boolean = !isGpsTracking && request != null && request.id != lastAppliedRequestId
 
 /**
- * Dispatch 2026-10-30-08 (the planner accepted "leaving GPS-follow when a route opens"): a request that [MapCameraRequest.stopsFollowing]
- * ends GPS following before it is applied, once per id, as a search's frame does; [shouldApplyCameraRequest] would otherwise refuse
- * it while following, and the route the user opened would silently not be shown.
- */
-internal fun cameraRequestStopsFollowing(isGpsTracking: Boolean, request: MapCameraRequest?, lastAppliedRequestId: String?): Boolean =
-    isGpsTracking && request != null && request.stopsFollowing && request.id != lastAppliedRequestId
-
-/**
  * What a map restores from a [MapCameraSnapshot] (Part 1 layout fixes, item 4): the camera, the region
  * target taken as already applied, and the location component's camera mode.
  */
@@ -131,8 +123,6 @@ internal data class MapCameraRestore(
     val appliedTarget: Pair<Region, LatLng?>?,
     /** A [CameraMode] constant: [CameraMode.TRACKING] if the snapshot was following, [CameraMode.NONE] if not. */
     val cameraMode: Int,
-    /** The padding to restore with the camera, in px (left, top, right, bottom); null leaves the map's own (see [cameraRestoreFor]). */
-    val padding: List<Double>? = null,
 )
 
 /**
@@ -141,15 +131,8 @@ internal data class MapCameraRestore(
  * own yet ([previousCameraMode] `null`, a new `MapView`). A style swap on a live map keeps its own
  * camera and mode, as before. Following restores [CameraMode.TRACKING] and panned away
  * [CameraMode.NONE]; either is non-null, so the first activation's zoom-in does not run.
- *
- * RECORD -2192 ("Exactly as I left it"; the S22 on build 5054): while [navigating], the saved padding comes back with the camera.
- * The navigation view's padding (the top quarter, the D29 side insets) stays on when the user pans away, and the saved target is
- * the centre of that padded view; restored on a new map, whose padding is none, the same target landed about 770 px right and
- * 240 px up in landscape after a font change. Not navigating, the map's own padding is kept, as before: a padding saved while
- * navigating would otherwise outlast a navigation that ended while the map was away, since only a map that applied the view
- * takes it off again (`NavigationModeChange.leaveNavigation`).
  */
-internal fun cameraRestoreFor(saved: MapCameraSnapshot?, previousCameraMode: Int?, navigating: Boolean = false): MapCameraRestore? {
+internal fun cameraRestoreFor(saved: MapCameraSnapshot?, previousCameraMode: Int?): MapCameraRestore? {
     if (saved == null || previousCameraMode != null) return null
     return MapCameraRestore(
         target = saved.target,
@@ -158,47 +141,17 @@ internal fun cameraRestoreFor(saved: MapCameraSnapshot?, previousCameraMode: Int
         tilt = saved.tilt,
         appliedTarget = saved.appliedTarget,
         cameraMode = if (saved.following) CameraMode.TRACKING else CameraMode.NONE,
-        padding = if (navigating) saved.padding else null,
     )
 }
 
-/** Moves [map]'s camera to [restore]'s, at once, as the region move does; its padding too when it has one. */
+/** Moves [map]'s camera to [restore]'s, at once, as the region move does. */
 internal fun applyCameraRestore(map: MapLibreMap, restore: MapCameraRestore) {
     map.cameraPosition = CameraPosition.Builder()
         .target(MapLibreLatLng(restore.target.lat, restore.target.lng))
         .zoom(restore.zoom)
         .bearing(restore.bearing)
         .tilt(restore.tilt)
-        .apply { restore.padding?.let { padding(it.toDoubleArray()) } }
         .build()
-}
-
-/**
- * The first style load's restore (MapStyleReload.kt): [applyCameraRestore], and when it carried the navigation view's padding
- * (only while navigating, [cameraRestoreFor]) the map is marked as holding that view, so stopping navigation on it clears the
- * padding, tilt and bearing (RECORD -2192, Sorrel's review of PR #511).
- */
-internal fun applyFirstStyleCameraRestore(map: MapLibreMap, restore: MapCameraRestore, navigationModeChange: NavigationModeChange) {
-    applyCameraRestore(map, restore)
-    if (restore.padding != null) navigationModeChange.holdRestoredView()
-}
-
-/**
- * The camera [map] has settled on, for [MapCameraMemory.saved] (the camera idle listener, MapListeners.kt), or null before it has
- * a target: where it looks, how close, turned and tilted how far, whether the puck leads it, [appliedTarget], and its padding.
- */
-internal fun cameraSnapshotOf(map: MapLibreMap, appliedTarget: Pair<Region, LatLng?>?): MapCameraSnapshot? {
-    val camera = map.cameraPosition
-    val target = camera.target ?: return null
-    return MapCameraSnapshot(
-        target = LatLng(target.latitude, target.longitude),
-        zoom = camera.zoom,
-        bearing = camera.bearing,
-        tilt = camera.tilt,
-        following = map.locationComponent.isLocationComponentActivated && map.locationComponent.cameraMode != CameraMode.NONE,
-        appliedTarget = appliedTarget,
-        padding = camera.padding?.toList(),
-    )
 }
 
 /** The zoom a fitted frame opens at: [fittedZoom], capped at [maxZoom]. */
@@ -227,21 +180,6 @@ internal fun applyCameraFrame(map: MapLibreMap, frame: EntryMapFrame, density: F
             }
             val paddingPx = (frame.paddingDp * density).roundToInt()
             val fitted = map.getCameraForLatLngBounds(bounds, intArrayOf(paddingPx, paddingPx, paddingPx, paddingPx))
-            if (fitted == null) {
-                Log.w(SIGHTINGS_MAP_TAG, "No camera for bounds ${frame.bounds}; falling back to the region move.")
-                return false
-            }
-            CameraPosition.Builder(fitted).zoom(cappedFrameZoom(fitted.zoom, frame.maxZoom)).build()
-        }
-        is EntryMapFrame.FitInsets -> {
-            val bounds = try {
-                LatLngBounds.from(frame.bounds.north, frame.bounds.east, frame.bounds.south, frame.bounds.west)
-            } catch (e: IllegalArgumentException) {
-                Log.w(SIGHTINGS_MAP_TAG, "Camera frame bounds ${frame.bounds} rejected; falling back to the region move.", e)
-                return false
-            }
-            fun px(dp: Int) = (dp * density).roundToInt()
-            val fitted = map.getCameraForLatLngBounds(bounds, intArrayOf(px(frame.leftDp), px(frame.topDp), px(frame.rightDp), px(frame.bottomDp)))
             if (fitted == null) {
                 Log.w(SIGHTINGS_MAP_TAG, "No camera for bounds ${frame.bounds}; falling back to the region move.")
                 return false

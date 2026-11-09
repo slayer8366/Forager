@@ -6,7 +6,6 @@ import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.FixProvider
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -108,9 +107,6 @@ class AvailabilityViewModelLiveFixTest {
             unitSystemPreferenceRepository = LiveFixStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = LiveFixStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(LiveFixStubTripPlanningWeatherProvider),
-            entryReferenceCounts = NoEntryReferenceCounts,
-            // Dispatch 2026-10-28-13: sea level 21.6 m above the raw height, so the strip's reader reads 71.6 for a 50 m fix.
-            seaLevelConverter = FixedOffsetSeaLevelConverter(21.6),
         ).also {
             // Live-fix collection is no longer started from the ViewModel's init -- it is acquired
             // on the hosting Activity's ON_START and released on ON_STOP, so the OS listener does
@@ -142,10 +138,9 @@ class AvailabilityViewModelLiveFixTest {
         val state = vm.uiState.value
         assertEquals(12.5f, state.liveFix?.accuracyMeters)
         assertEquals(1_700_000_000_000L, state.liveFix?.timestampEpochMillis)
-        // The pre-existing consumers' values: the compass strip reads these. The height is above sea level since
-        // dispatch 2026-10-28-13 (50 m raw + 21.6), no longer the fix's own.
+        // The pre-existing consumers' values, unchanged in meaning: the compass strip reads these.
         assertEquals(LatLng(45.52, -122.68), state.liveLocation)
-        assertEquals(71.6, state.liveAltitudeMeters!!, 1e-9)
+        assertEquals(50.0, state.liveAltitudeMeters)
     }
 
     @Test
@@ -252,7 +247,7 @@ class AvailabilityViewModelLiveFixTest {
 
         assertEquals(2, tracker.collectionsStarted)
         assertEquals(LatLng(45.52, -122.68), vm.uiState.value.liveLocation)
-        assertEquals(71.6, vm.uiState.value.liveAltitudeMeters!!, 1e-9)
+        assertEquals(50.0, vm.uiState.value.liveAltitudeMeters)
         assertEquals(12.5f, vm.uiState.value.liveFix?.accuracyMeters)
     }
 

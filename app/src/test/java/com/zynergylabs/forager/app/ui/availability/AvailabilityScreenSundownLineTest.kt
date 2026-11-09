@@ -94,8 +94,8 @@ class AvailabilityScreenSundownLineTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private val minute = 60_000L
-    private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
-    private val origin = Waypoint("origin", 45.36, -121.6959, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    private val creek = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
+    private val origin = Waypoint("origin", 45.31, -122.634, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
     private val morning = 1_791_010_800_000L // 2026-10-03T07:00:00Z
     private val sunset = (ComputeSundownCountdownUseCase()(morning, LatLng(creek.lat, creek.lng), morning, 0L) as SundownCountdown.Known).sunsetAtEpochMillis
     private val dusk = (ComputeSundownCountdownUseCase()(morning, LatLng(creek.lat, creek.lng), morning, 0L) as SundownCountdown.Known).civilDuskAtEpochMillis!!
@@ -171,7 +171,7 @@ class AvailabilityScreenSundownLineTest {
                         isReturning = returning,
                         onToggleReturning = { returning = !returning },
                         navigationTarget = if (recording) origin else null,
-                        returnRoute = ReturnRoute.Ahead(LatLng(45.37, -121.6959), 1_800.0),
+                        returnRoute = ReturnRoute.Ahead(LatLng(45.32, -122.634), 1_800.0),
                         onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
                         onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
                     ),
@@ -262,9 +262,7 @@ class AvailabilityScreenSundownLineTest {
 
         val words = text(NAVIGATION_HUD_SUNDOWN_LINE_TAG)
         // The fix is 550 m south of the creek, which moves sunset by seconds, so the minute is matched loosely.
-        // Dispatch 2026-11-05-10, Amendment 1, H5 (the owner: "Shorten to Sunset: 4:52 PM ▪︎ Dark: 5:23 PM"): the navigation card's
-        // before-sunset line, the countdown gone. Was `Regex("Sunset \\d{1,2}:\\d{2} (AM|PM) · in 1 h (9|10) min · dark \\d{1,2}:\\d{2}")`.
-        assertTrue(words, Regex("Sunset: \\d{1,2}:\\d{2} (AM|PM) \u25AA\uFE0E Dark: \\d{1,2}:\\d{2} (AM|PM)").matches(words))
+        assertTrue(words, Regex("Sunset \\d{1,2}:\\d{2} (AM|PM) · in 1 h (9|10) min · dark \\d{1,2}:\\d{2}").matches(words))
         assertFalse("never a start-back time without a recording: $words", words.contains("start back"))
     }
 

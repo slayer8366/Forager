@@ -61,7 +61,7 @@ import org.maplibre.geojson.Point
  */
 class SightingsMapOverlayDataTest {
 
-    private val region = Region(lat = 45.3736, lng = -120.28965, radiusKm = 15)
+    private val region = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 
     private val sightings = listOf(
         Sighting(
@@ -69,8 +69,8 @@ class SightingsMapOverlayDataTest {
             taxonId = 47348L,
             scientificName = "Cantharellus formosus",
             commonName = "Chanterelle",
-            lat = 45.38,
-            lng = -120.29375,
+            lat = 45.33,
+            lng = -122.64,
             observedOn = LocalDate.of(2024, 8, 1),
             photoUrl = null,
         ),
@@ -79,8 +79,8 @@ class SightingsMapOverlayDataTest {
             taxonId = 48522L,
             scientificName = "Morchella americana",
             commonName = null,
-            lat = 45.39,
-            lng = -120.30375,
+            lat = 45.34,
+            lng = -122.65,
             observedOn = null,
             photoUrl = null,
         ),
@@ -90,7 +90,7 @@ class SightingsMapOverlayDataTest {
         PlannedTrip(
             id = "trip-1",
             name = "Trip 1",
-            location = LatLng(45.40, -120.31375),
+            location = LatLng(45.35, -122.66),
             date = LocalDate.of(2026, 9, 1),
         ),
     )
@@ -340,14 +340,6 @@ class SightingsMapOverlayDataTest {
         assertEquals(plannedTrips[0].date.toString(), feature.getStringProperty("snippet"))
     }
 
-    // Schema 23 (dispatch 2026-10-30-02): an undated trip's feature carries no snippet rather than the word "null".
-    @Test
-    fun `an undated planned trip's feature has no snippet`() {
-        val feature = plannedTripsFeatureCollection(listOf(plannedTrips[0].copy(date = null))).features()!!.single()
-
-        assertEquals(false, feature.hasProperty("snippet"))
-    }
-
     /**
      * The data-shaping functions above take no [Basemap] parameter at all — the structural half of
      * "a basemap swap leaves overlays untouched" this test can actually establish. See this class's
@@ -389,9 +381,9 @@ class SightingsMapOverlayDataTest {
     }
 
     private val breadcrumbPoints = listOf(
-        LatLng(45.3736, -120.28965),
-        LatLng(45.3776, -120.29565),
-        LatLng(45.3826, -120.30065),
+        LatLng(45.326, -122.634),
+        LatLng(45.330, -122.640),
+        LatLng(45.335, -122.645),
     )
 
     @Test
@@ -420,8 +412,8 @@ class SightingsMapOverlayDataTest {
     }
 
     private val waypoints = listOf(
-        Waypoint(id = "w1", lat = 45.40, lng = -121.29375, altitude = null, name = "Trailhead", note = "Gravel lot", createdAtEpochMillis = 1_000L),
-        Waypoint(id = "w2", lat = 45.41, lng = -121.30375, altitude = 812.0, name = "Big oak", note = "", createdAtEpochMillis = 2_000L),
+        Waypoint(id = "w1", lat = 45.40, lng = -122.70, altitude = null, name = "Trailhead", note = "Gravel lot", createdAtEpochMillis = 1_000L),
+        Waypoint(id = "w2", lat = 45.41, lng = -122.71, altitude = 812.0, name = "Big oak", note = "", createdAtEpochMillis = 2_000L),
     )
 
     @Test
@@ -454,8 +446,8 @@ class SightingsMapOverlayDataTest {
     // Journal Stage 2d: the Cartography entry map's own feature builders — pure GeoJSON, same
     // reasoning as the rest of this file for why these are testable off a device at all.
 
-    private val trackOne = RecordPolyline("track-1", listOf(LatLng(45.20, -121.09375), LatLng(45.21, -121.10375), LatLng(45.22, -121.11375)))
-    private val trackTwo = RecordPolyline("track-2", listOf(LatLng(46.00, -121.59375), LatLng(46.01, -121.60375)))
+    private val trackOne = RecordPolyline("track-1", listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51), LatLng(45.22, -122.52)))
+    private val trackTwo = RecordPolyline("track-2", listOf(LatLng(46.00, -123.00), LatLng(46.01, -123.01)))
 
     @Test
     fun `two kept tracks become two separate LineStrings, not one joined trail`() {
@@ -471,7 +463,7 @@ class SightingsMapOverlayDataTest {
 
     @Test
     fun `a track with fewer than two points produces no LineString`() {
-        val features = keptTracksFeatureCollection(listOf(trackOne, RecordPolyline("one-point", listOf(LatLng(45.0, -120.59375))), RecordPolyline("empty", emptyList()))).features()!!
+        val features = keptTracksFeatureCollection(listOf(trackOne, RecordPolyline("one-point", listOf(LatLng(45.0, -122.0))), RecordPolyline("empty", emptyList()))).features()!!
         assertEquals(
             "Only trackOne has two or more points -- the single-point and empty tracks must be silently dropped, not error.",
             1,
@@ -486,7 +478,7 @@ class SightingsMapOverlayDataTest {
 
     @Test
     fun `pointsFeatureCollection places one point feature per marker at its own coordinates`() {
-        val markers = listOf(LatLng(45.5, -121.09375), LatLng(45.6, -121.19375))
+        val markers = listOf(LatLng(45.5, -122.5), LatLng(45.6, -122.6))
         val features = pointsFeatureCollection(markers.mapIndexed { i, at -> RecordPoint("find-$i", at) }).features()!!
         assertEquals(2, features.size)
 
@@ -504,7 +496,7 @@ class SightingsMapOverlayDataTest {
 
     @Test
     fun `each offline region becomes a closed polygon ring centred on its own coordinates`() {
-        val region = Region(lat = 45.5, lng = -121.09375, radiusKm = 5)
+        val region = Region(lat = 45.5, lng = -122.5, radiusKm = 5)
         val feature = offlineRegionCirclesFeatureCollection(listOf(RecordRegion("1", region))).features()!!.single()
         val polygon = feature.geometry() as org.maplibre.geojson.Polygon
         val ring = polygon.coordinates().single()

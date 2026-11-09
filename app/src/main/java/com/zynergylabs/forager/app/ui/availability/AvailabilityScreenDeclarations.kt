@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Moved from AvailabilityScreen.kt unchanged (UI split Phase 1, PR 10g, dispatch 2026-10-19-24).
 
-import com.zynergylabs.forager.app.domain.NavigationTargetKind
 import com.zynergylabs.forager.app.ui.log.JournalTopTab
 import com.zynergylabs.forager.app.ui.log.RecordsSubTab
 
@@ -36,12 +35,3 @@ internal data class ToolsOfflineMapsReturn(
  * was deleted, meanwhile or while the app was closed. Provisional words, accepted by the planner.
  */
 internal const val WAYPOINT_NAVIGATION_GONE_TEXT = "Stopped navigating: that waypoint was deleted."
-
-/** Dispatch 2026-11-05-05, Amendment 1, A8 (RECORD -2148): the same for a planned trip, in its words. */
-internal const val TRIP_NAVIGATION_GONE_TEXT = "Stopped navigating: that trip was deleted."
-
-/** What the walker is told when the target of [kind] went away; a waypoint's words for a navigation with no kind, as before. */
-internal fun navigationGoneText(kind: NavigationTargetKind?): String = when (kind) {
-    NavigationTargetKind.TRIP -> TRIP_NAVIGATION_GONE_TEXT
-    NavigationTargetKind.WAYPOINT, null -> WAYPOINT_NAVIGATION_GONE_TEXT
-}

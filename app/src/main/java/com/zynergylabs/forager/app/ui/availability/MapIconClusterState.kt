@@ -103,9 +103,6 @@ internal class MapIconClusterState(
     /** The map pane's left in the root, written with the top above; with [clusterBoundsInRoot] it gives the cluster's rectangle in the map's own pixels (attribution clearance, dispatch 2026-09-29-57, item 1). */
     var mapContentBoxLeftInRootPx by mutableFloatStateOf(0f)
 
-    /** The map pane's width, written with its left (D18, RECORD -1958: where the portrait route card rests, against the credit). */
-    var mapContentBoxWidthPx by mutableFloatStateOf(0f)
-
     /** The cluster container's measured bounds in the root, written by the container only; null until first measured. */
     var clusterBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 
@@ -132,25 +129,6 @@ internal class MapIconClusterState(
     var navigationCardBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 
     /**
-     * Dispatch 2026-11-06-04, Amendment 3 (RECORD -2186): whether Re-center's word at bottom centre covers no card
-     * ([reCenterWordFitsAtBottomCentre]), written by the bottom chrome, which measures the word; read by the icon cluster, whose
-     * locate row carries the ring only where it does not fit.
-     */
-    var reCenterWordFitsAtBottomCentre: Boolean by mutableStateOf(false)
-
-    /**
-     * D42 (RECORD -2021, the owner: "Only where room is short"): the landscape navigation card's evening lines step aside for the route
-     * card resting on it, which would not otherwise fit; written by the route card, read by the navigation card.
-     */
-    var navigationEveningStepsAside: Boolean by mutableStateOf(false)
-
-    /** D42: whether the landscape navigation card shows its evening lines, written by that card. */
-    var navigationEveningShown: Boolean by mutableStateOf(false)
-
-    /** D42: the tallest the landscape navigation card has been in px with its evening lines, this navigation; null before it has shown them. */
-    var navigationCardHeightWithEveningPx: Float? by mutableStateOf(null)
-
-    /**
      * T11 fixes: where the L's top would be in the root at a drag offset of 0, at its current height. Measured with the cluster
      * (its top less the offset it was placed at), so the slide's floor is a plain difference and does not move as the bar does.
      */
@@ -162,20 +140,6 @@ internal class MapIconClusterState(
      * overlap within the Fullscreen row ([eveningLineFits]).
      */
     var navigationLowestBarTopInRootPx: Float? by mutableStateOf(null)
-
-    /**
-     * J8 (dispatch 2026-11-06-01 Amendment 1, RECORD -2183): the landscape navigation card's bounds in the root where it rests, not
-     * where it is drawn mid-glide or mid-slide: its columns, its top and bottom at its place ([NavigationCardLift]); written by the
-     * card while navigating, null otherwise. What the walker's dot is kept above ([navigationDotAboveCardBottomPx]).
-     */
-    var navigationCardRestingBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
-
-    /**
-     * J8 (RECORD -2183, the owner: "(b) Above top card (Recommended)"): the resting top, in the root, of whatever rests on the landscape
-     * navigation card (the route card), for the dot to be kept above it instead; null while nothing does, when the navigation card's
-     * own resting top is used. Written by the route card while it rests there at peek (RouteCardRestingTop.kt, #507).
-     */
-    var navigationRestingOnCardTopInRootPx: Float? by mutableStateOf(null)
 
     val sideAlignment: Alignment get() = if (isOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
 

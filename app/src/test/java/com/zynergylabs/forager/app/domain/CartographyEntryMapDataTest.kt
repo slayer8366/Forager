@@ -20,7 +20,7 @@ import org.junit.Test
  */
 class CartographyEntryMapDataTest {
 
-    private val region = Region(lat = 45.6, lng = -121.19375, radiusKm = 10)
+    private val region = Region(lat = 45.6, lng = -122.6, radiusKm = 10)
 
     private fun data(
         trackPolylines: List<List<LatLng>> = emptyList(),
@@ -53,15 +53,15 @@ class CartographyEntryMapDataTest {
 
     @Test
     fun `one resolved point of any kind is content`() {
-        assertFalse(data(trackPolylines = listOf(listOf(LatLng(45.5, -121.09375)))).isEmpty)
-        assertFalse(data(findMarkers = listOf(LatLng(45.5, -121.09375))).isEmpty)
-        assertFalse(data(waypointMarkers = listOf(LatLng(45.5, -121.09375))).isEmpty)
-        assertFalse(data(photoMarkers = listOf(LatLng(45.5, -121.09375))).isEmpty)
+        assertFalse(data(trackPolylines = listOf(listOf(LatLng(45.5, -122.5)))).isEmpty)
+        assertFalse(data(findMarkers = listOf(LatLng(45.5, -122.5))).isEmpty)
+        assertFalse(data(waypointMarkers = listOf(LatLng(45.5, -122.5))).isEmpty)
+        assertFalse(data(photoMarkers = listOf(LatLng(45.5, -122.5))).isEmpty)
     }
 
     @Test
     fun `drawable points exclude region centres, while the camera's own point set still includes them`() {
-        val waypoint = LatLng(45.5, -121.09375)
+        val waypoint = LatLng(45.5, -122.5)
         val data = data(waypointMarkers = listOf(waypoint), offlineRegionCircles = listOf(region))
 
         assertEquals(listOf(waypoint), data.drawablePoints)

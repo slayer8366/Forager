@@ -5,7 +5,6 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -106,7 +105,6 @@ class AvailabilityViewModelDistanceUnitTest {
             unitSystemPreferenceRepository = distanceUnitPreferenceRepository,
             appThemePreferenceRepository = DistanceUnitStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(DistanceUnitStubTripPlanningWeatherProvider),
-            entryReferenceCounts = NoEntryReferenceCounts,
         )
     }
 

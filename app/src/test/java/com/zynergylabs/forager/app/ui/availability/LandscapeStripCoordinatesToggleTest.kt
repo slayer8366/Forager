@@ -70,7 +70,7 @@ abstract class LandscapeStripCoordinatesToggleTests(private val name: String) {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
+                uiState = AvailabilityUiState(liveFix = fix),
                 recording = AvailabilityScreenRecording(
                     isRecording = navigating,
                 ),

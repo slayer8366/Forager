@@ -95,23 +95,23 @@ class LandscapeEntryReportTest {
         isDraft = false,
         text = "A wet morning on the ridge.",
         findDecisions = listOf(FindDecision("find-1", L2_DAY, "Golden chanterelle", hasPhotos = false, kept = true)),
-        waypointDecisions = listOf(WaypointDecision("wp-1", "Old gate", 45.4, -121.6, kept = true)),
+        waypointDecisions = listOf(WaypointDecision("wp-1", "Old gate", 45.4, -122.5, kept = true)),
     )
     private val mapData = CartographyEntryMapData(
         trackPolylines = emptyList(),
-        findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -121.71))),
-        waypointMarkers = listOf(RecordPoint("wp-1", LatLng(45.4, -121.6))),
+        findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -122.61))),
+        waypointMarkers = listOf(RecordPoint("wp-1", LatLng(45.4, -122.5))),
         photoMarkers = emptyList(),
         offlineRegionCircles = emptyList(),
     )
     private val region = OfflineRegionSummary(
-        id = 7L, name = "Ridge", region = Region(45.45, -121.65, 10), minZoom = 0.0, maxZoom = 15.0,
+        id = 7L, name = "Ridge", region = Region(45.45, -122.55, 10), minZoom = 0.0, maxZoom = 15.0,
         tileCount = 100, sizeBytes = 1_000_000L, createdAtEpochMillis = 0L,
     )
     private var editing by mutableStateOf<CartographyEntry?>(entry)
     private var closes = 0
 
-    private val bubbles = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", 60.dp, 60.dp, LatLng(45.4, -121.6))))
+    private val bubbles = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", 60.dp, 60.dp, LatLng(45.4, -122.5))))
     private val requests = mutableListOf<MapCameraRequest?>()
     private val recordingSlot: MapSlot = { region, content, renderMode, focusOverride, onLongPress, onTap, onSightingTap, onCameraIdle, modifier ->
         requests += renderMode.cameraRequest

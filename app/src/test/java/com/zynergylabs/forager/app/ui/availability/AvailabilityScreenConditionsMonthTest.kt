@@ -22,7 +22,6 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -155,7 +154,6 @@ class AvailabilityScreenConditionsMonthTest {
             unitSystemPreferenceRepository = FakeUnitSystemPreferenceRepository,
             appThemePreferenceRepository = FakeAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(tripPlanningWeatherProvider),
-            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             // Wired exactly as MainActivity wires it, so these are the real entry points.
@@ -227,8 +225,8 @@ class AvailabilityScreenConditionsMonthTest {
     /** Types coordinates into the dropdown and searches, exactly as a user would. */
     private fun searchAReferenceRegion() {
         openSearchDropdownToManualCoordinates()
-        composeRule.onNodeWithText("Latitude").performTextReplacement("45.3736")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
         // "Search coordinates", under the fields (RECORD -700), runs the typed-coordinates search.
         // performScrollTo() kept: harmless where it is already in view, and the tap would otherwise
         // land on off-screen bounds if it ever is not.

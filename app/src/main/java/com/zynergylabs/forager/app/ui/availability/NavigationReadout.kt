@@ -19,8 +19,6 @@ import com.zynergylabs.forager.app.domain.model.formatDistanceWithAccuracy
 import com.zynergylabs.forager.app.domain.relativeBearingDegrees
 import com.zynergylabs.forager.app.domain.DistanceKind
 import com.zynergylabs.forager.app.domain.turnText
-import com.zynergylabs.forager.app.domain.wayhome.OffTrailState
-import com.zynergylabs.forager.app.domain.wayto.textFor
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.map.COMPASS_NORTH_UP_TEXT
 import com.zynergylabs.forager.app.ui.map.COMPASS_CALIBRATING_TEXT
@@ -36,8 +34,6 @@ internal fun navigationReadout(
     showDecimalDegrees: Boolean = false,
     route: ReturnRoute? = null,
     facing: NavigationFacing = NavigationFacing.FACING_UP,
-    /** The live height above sea level, the strip's own ([AvailabilityUiState.liveAltitudeMeters]); `null`, none to show. */
-    heightMeters: Double? = null,
 ): NavigationHudReadout {
     val headingDegrees = (heading as? TrueHeadingReading.Available)?.degrees
     val headingText = when (heading) {
@@ -64,30 +60,20 @@ internal fun navigationReadout(
     val headingIsReading = facing == NavigationFacing.FACING_UP &&
         (heading is TrueHeadingReading.Available || heading == TrueHeadingReading.NeedsFix)
     val compassUnreliable = heading is TrueHeadingReading.Unreliable
-    // Amendment 1, H3: the facing notice, for the card's status space ("In the status space (Recommended)").
-    val compassNotice = when (facing) {
-        NavigationFacing.FACING_UP -> null
-        NavigationFacing.CALIBRATING -> COMPASS_CALIBRATING_TEXT
-        // Amendment 1, H9, the owner: "Shorten to "No compass" (Recommended)", "One short line, like "Off trail". The map turning
-        // north-up already shows what it means." Was COMPASS_NORTH_UP_TEXT, "Compass unavailable · north up".
-        NavigationFacing.NORTH_UP -> CARD_NO_COMPASS_TEXT
-    }
     val northArrowDegrees = headingDegrees?.let { -it }
-    // Dispatch 2026-10-28-13: the strip's height, not the fix's raw one, so the two cannot disagree.
-    val elevationText = liveFix?.let { heightMeters?.let { formatWholeLength(it, UnitSystem.forDistanceUnit(distanceUnit)) } ?: ELEVATION_UNAVAILABLE_TEXT }
+    val elevationText = liveFix?.let { fix -> fix.altitude?.let { formatWholeLength(it, UnitSystem.forDistanceUnit(distanceUnit)) } ?: ELEVATION_UNAVAILABLE_TEXT }
     val coordinatesText = liveFix?.let { coordinatesStripText(LatLng(it.lat, it.lng), showDecimalDegrees) }
 
     if (liveFix == null) {
         return NavigationHudReadout(
-            headingText, northArrowDegrees, TURN_LINE_LOST_WORD, null, "—", false, NO_FIX_MESSAGE, null, null, headingIsReading = headingIsReading,
+            headingText, northArrowDegrees, "Target", null, "—", false, NO_FIX_MESSAGE, null, null, headingIsReading = headingIsReading,
             statusFallbacks = listOf(NO_FIX_SHORT_TEXT), statusFallbacksFor = NO_FIX_MESSAGE, statusIsPositionStatus = true,
-            compassNoticeText = compassNotice,
         )
     }
     if (target == null) {
         return NavigationHudReadout(
-            headingText, northArrowDegrees, TURN_LINE_NO_TARGET_WORD, null, "—", false, NO_ORIGIN_TEXT, elevationText, coordinatesText, headingIsReading = headingIsReading,
-            statusFallbacks = listOf(NO_ORIGIN_SHORT_TEXT), statusFallbacksFor = NO_ORIGIN_TEXT, compassNoticeText = compassNotice,
+            headingText, northArrowDegrees, "No target", null, "—", false, NO_ORIGIN_TEXT, elevationText, coordinatesText, headingIsReading = headingIsReading,
+            statusFallbacks = listOf(NO_ORIGIN_SHORT_TEXT), statusFallbacksFor = NO_ORIGIN_TEXT,
         )
     }
 
@@ -97,8 +83,7 @@ internal fun navigationReadout(
     // itself with no route given. A route that is pending or withheld has nothing to aim at, so
     // there is no needle (decision D5: never a straight line standing in for the route).
     val aim = when (route) {
-        // Step 6 PR 3: no trail route to a waypoint is today's straight line, aimed at the waypoint as with no route.
-        null, is ReturnRoute.Straight -> there
+        null -> there
         is ReturnRoute.Ahead -> route.lookahead
         ReturnRoute.Pending, is ReturnRoute.Unavailable -> null
     }
@@ -124,7 +109,7 @@ internal fun navigationReadout(
         // and the map's ring read the one rule and agree. There is no arrival flag: until -502 this
         // branch was gated on a route being given.
         arrivedAtStart(liveFix, target, nowEpochMillis) -> ARRIVED_TEXT
-        route == null || route is ReturnRoute.Straight -> straightLineText
+        route == null -> straightLineText
         route is ReturnRoute.Ahead -> formatDistanceMeters(route.routeMeters, distanceUnit)
         route is ReturnRoute.Unavailable -> ROUTE_UNAVAILABLE_TEXT
         else -> "—"
@@ -134,7 +119,7 @@ internal fun navigationReadout(
     val insideFixCircle = liveFix.accuracyMeters?.let { distanceMeters <= it } == true
     val distanceKind = when {
         freshness == FixFreshness.LOST || arrived -> null
-        route == null || route is ReturnRoute.Straight -> DistanceKind.STRAIGHT.takeIf { !insideFixCircle }
+        route == null -> DistanceKind.STRAIGHT.takeIf { !insideFixCircle }
         route is ReturnRoute.Ahead -> DistanceKind.BY_TRAIL
         else -> null
     }
@@ -154,7 +139,7 @@ internal fun navigationReadout(
     // It is not a failure of the compass or the fix, so it ranks below all four.
     val targetArrowDegrees = if (headingDegrees != null && freshness != FixFreshness.LOST && !compassUnreliable && !withinFixError && bearing != null) relativeBearingDegrees(bearing, headingDegrees) else null
     val targetText = when {
-        freshness == FixFreshness.LOST -> TURN_LINE_LOST_WORD
+        freshness == FixFreshness.LOST -> "Target"
         // Same rendering as the approach case below, and for the same reason the owner recorded
         // there: an absolute bearing you cannot orient to is a number without a use. Unreliable
         // leaves the user in that position.
@@ -194,20 +179,6 @@ internal fun navigationReadout(
             // route and with the route withheld the large slot holds a dash or the route message, so nothing else says how far
             // the start is, and the note stays there, as it was.
             route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> "$straightLineText ${DistanceKind.STRAIGHT.words}"
-            // Dispatch 2026-10-24-10: why the way home is the walker's track, where the line is empty otherwise.
-            route is ReturnRoute.Ahead && route.note != null -> route.note.text
-            // Plan step 7 PR 3 (RECORD -1631, -1676): the quiet off-trail state, where the line is empty otherwise.
-            // Amendment 1, H4, the owner: "Shorten the lines to just Off trail since it's obvious what to do from there." So the way to a
-            // waypoint's notice reads its short form, "Off trail", whole and short alike. Was WAYPOINT_OFF_TRAIL_TEXT, "Off trail · Head
-            // back to the line". The way home's keeps its words (the planner's reading: H4 names the waypoint's line).
-            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> if (route.toWaypoint) WAYPOINT_OFF_TRAIL_SHORT_TEXT else OFF_TRAIL_TEXT
-            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.BACK_ON -> BACK_ON_TRAIL_TEXT
-            // Step 6 PR 3 (RECORD -1652 Q4): why the way to a waypoint is the straight line.
-            // Dispatch 2026-11-05-05 (A8): in the trip's words when a trip is navigated to.
-            // Dispatch 2026-11-05-10 (Amendment 1, F2): only the two notes that ask something; the rest leave the line empty.
-            // H4, the planner's reading: the two that stay lose "· straight line" on the card, as F's "the straight line is the
-            // explanation" has it, and wrap where they do not fit ("Trail routes not" / "downloaded"). Was `route.note.textFor(route.kind)`.
-            route is ReturnRoute.Straight -> if (route.note in WAY_TO_NOTES_ON_CARD) wayToWaypointNoteShortText(route.note, route.kind) else ""
             else -> ""
         }
     }
@@ -220,12 +191,6 @@ internal fun navigationReadout(
             arrived -> emptyList()
             approaching -> listOf("")
             route is ReturnRoute.Pending || route is ReturnRoute.Unavailable -> listOf(straightLineText, "")
-            // The note's short form, and no empty form: a note is never dropped silently.
-            route is ReturnRoute.Ahead && route.note != null -> listOf(wayHomeNoteShortText(route.note))
-            // The notice's short form, and no empty form, as a note's; "Back on trail" has none shorter.
-            route is ReturnRoute.Ahead && route.offTrail == OffTrailState.OFF -> if (route.toWaypoint) emptyList() else listOf(OFF_TRAIL_SHORT_TEXT)
-            // H4: the note is already its short form; it has none shorter, and is never dropped, so it wraps.
-            route is ReturnRoute.Straight -> emptyList()
             else -> emptyList()
         }
     }
@@ -247,8 +212,6 @@ internal fun navigationReadout(
         statusFallbacks = statusFallbacks,
         statusFallbacksFor = statusText,
         statusIsStraightNote = statusIsStraightNote,
-        compassNoticeText = compassNotice,
-        statusIsFixAge = freshness != FixFreshness.FRESH,
     )
 }
 

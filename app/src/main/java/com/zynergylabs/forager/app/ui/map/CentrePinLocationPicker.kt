@@ -350,8 +350,6 @@ internal fun CentrePinLocationPickerPopUp(
     bottomInset: Dp = 0.dp,
     rowPadding: PaddingValues = PaddingValues(0.dp),
     night: Boolean = false,
-    /** The row's outlined sides (dispatch 2026-11-05-06, RECORD -2155): see [CENTRE_PIN_ROW_OUTLINE_SIDES]. */
-    rowOutlineSides: MapChromeOutlineSides = CENTRE_PIN_ROW_OUTLINE_SIDES,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
         MapPopUp(visible = visible, pivot = PopUpPivot.Centre, modifier = Modifier.fillMaxSize()) {
@@ -368,43 +366,27 @@ internal fun CentrePinLocationPickerPopUp(
                 .padding(rowPadding)
                 .fillMaxWidth(),
         ) {
-            CentrePinConfirmSurface(onConfirm = onConfirm, onCancel = onCancel, modifier = Modifier.fillMaxWidth(), outlineSides = rowOutlineSides)
+            CentrePinConfirmSurface(onConfirm = onConfirm, onCancel = onCancel, modifier = Modifier.fillMaxWidth())
         }
     }
 }
 
 /**
- * Dispatch 2026-11-05-06 (RECORD -2155, the owner: "Top and both sides (Recommended)", whose option read "As the bottom bar under it
- * has had since your -989: 'give the side of the bottom navigation strip the outline too. All the way down'. Its bottom shares the
- * bar's line"): the OK/Cancel row's outlined sides. Its top faces the map and both its sides carry the line, though they lie on the
- * screen's edges. Its bottom carries none: it sits on the bottom bar, whose own top line is the one line between them, and in
- * fullscreen on the system navigation bar. In the rail layout the side against the rail is the rail's line instead
- * (`centrePinRowOutlineSides` in CompactMapPickers.kt).
- */
-internal val CENTRE_PIN_ROW_OUTLINE_SIDES = MapChromeOutlineSides(left = true, top = true, right = true, bottom = false)
-
-/**
  * The OK/Cancel row's surface, at the map chrome's alpha: this sits only inside a map's own Box, so it is always over a map.
  * Its content colour is pinned to the fill's own role (`contentColorFor` matches a colour-scheme role exactly; see
- * `mapChromeFill`'s doc, MapChrome.kt:103-109). [modifier] places it. No shadow, and the map-chrome hairline along [outlineSides]
- * (dispatch 2026-11-05-06, RECORD -2154, -2155): its 4 dp shadow showed as a band inside its 0.8 fill's edges.
+ * `MapLayersSheet`). [modifier] places it.
  */
 @Composable
-private fun CentrePinConfirmSurface(
-    onConfirm: () -> Unit,
-    onCancel: () -> Unit,
-    modifier: Modifier,
-    outlineSides: MapChromeOutlineSides = CENTRE_PIN_ROW_OUTLINE_SIDES,
-) {
+private fun CentrePinConfirmSurface(onConfirm: () -> Unit, onCancel: () -> Unit, modifier: Modifier) {
     val rowColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val rowContentColor = contentColorFor(navigationBarContainerColor())
     Surface(
         modifier = modifier
             .testTag(CENTRE_PIN_CONFIRM_ROW_TAG)
-            .mapChromeContainerColor(rowColor)
-            .mapChromeEdgesReported(mapChromeOutline(), 0.dp, 0.dp, 0.dp, 0.dp, outlineSides),
+            .mapChromeContainerColor(rowColor),
         color = rowColor,
         contentColor = rowContentColor,
+        shadowElevation = 4.dp,
     ) {
         CentrePinConfirmRow(
             selectedText = null,

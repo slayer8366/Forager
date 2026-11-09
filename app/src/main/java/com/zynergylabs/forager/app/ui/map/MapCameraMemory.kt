@@ -1,8 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
-import android.util.Log
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import com.zynergylabs.forager.app.domain.model.Region
 
 /**
@@ -21,12 +19,6 @@ data class MapCameraSnapshot(
     /** Whether live-location tracking owned the camera (the user had not panned away from it). */
     val following: Boolean,
     val appliedTarget: Pair<Region, LatLng?>?,
-    /**
-     * The camera's padding in px (left, top, right, bottom) when it settled, null when not read. The target is the centre of the
-     * padded view, so a map restoring [target] at another padding shows it at another place on screen; the navigation view's
-     * padding stays on when the user pans away while navigating (RECORD -2192, the S22 on build 5054).
-     */
-    val padding: List<Double>? = null,
 )
 
 /**
@@ -50,14 +42,6 @@ class MapCameraMemory {
     var appliedSearchFrameId: Int = 0
 
     /**
-     * Dispatch 2026-10-30-08, Amendment 5, S-1 (the owner: "Fix: keep my view (Recommended)"): the last
-     * [MapRenderMode.cameraRequest] id a map applied, kept here for the reason [appliedSearchFrameId] is. A saved route's fit
-     * keeps its id while the route shows, so the map that comes back after a tab change would otherwise fit it again over the
-     * camera the user has moved since, and end the following the user turned back on. `null` until a map applies one.
-     */
-    var appliedCameraRequestId: String? = null
-
-    /**
      * RECORD -761: the picture a leaving map took of itself, for the map that comes back to draw over its own first frames
      * ([MapReturnCover.kt]). One at a time: [keepCover] recycles the one it replaces; the returning map takes it with
      * [takeCover], which leaves none here.
@@ -78,10 +62,4 @@ class MapCameraMemory {
      * the camera, so a return to Maps shows it until the compass reports again rather than "—" ([rememberTrueHeading]).
      */
     val heading: HeadingMemory = HeadingMemory()
-
-    /**
-     * Dispatch 2026-10-27-07 Amendment 1, S2 (RECORD -1753): a crowded stack's list and the cameras Back returns to, kept above
-     * the tab like the camera, so a tab change ("Open in Journal", then Back) leaves Back's steps as they were. Session only.
-     */
-    val crowdedStacks: CrowdedStackHost = CrowdedStackHost(warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) })
 }

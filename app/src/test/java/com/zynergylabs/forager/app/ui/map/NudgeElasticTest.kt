@@ -84,15 +84,6 @@ class NudgeElasticTest {
         assertArrayEquals("no give is the view's own padding", doubleArrayOf(0.0, 200.0, 0.0, 0.0), nudgePadding(200.0, NudgeOffset.ZERO), 1e-9)
     }
 
-    /** D29 (RECORD -1979, -1980): beside an expanded route card the view's own padding has sides, and a give is added on top of them. */
-    @Test
-    fun `a give is added on top of the navigation view's side padding, which no give leaves as it is`() {
-        val side = NavigationSideInsets(leftPx = 300.0, rightPx = 700.0)
-        assertArrayEquals(doubleArrayOf(320.0, 230.0, 700.0, 0.0), nudgePadding(200.0, NudgeOffset(10f, 15f), side), 1e-9)
-        assertArrayEquals(doubleArrayOf(300.0, 200.0, 720.0, 30.0), nudgePadding(200.0, NudgeOffset(-10f, -15f), side), 1e-9)
-        assertArrayEquals("no give is the view's own padding, sides kept", doubleArrayOf(300.0, 200.0, 700.0, 0.0), nudgePadding(200.0, NudgeOffset.ZERO, side), 1e-9)
-    }
-
     @Test
     fun `the spring starts at the give, passes rest by about 13 percent, and ends exactly at rest`() {
         val from = NudgeOffset(20f, -10f)

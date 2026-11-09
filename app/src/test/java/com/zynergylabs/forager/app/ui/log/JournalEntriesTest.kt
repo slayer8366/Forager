@@ -147,7 +147,7 @@ class JournalEntriesTest {
                 onOpenCameraForAlbum = { albumCameraOpens++ },
                 onOpenCameraForCartographyEntry = {},
                 mapSlot = ENTRIES_STUB_MAP,
-                pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
+                pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
                 basemap = Basemap.DEFAULT,
                 onOpenEntry = { id -> logState = logState.copy(editingEntry = logState.entries.first { it.id == id }) },
                 onCloseEntry = { logState = logState.copy(editingEntry = null) },

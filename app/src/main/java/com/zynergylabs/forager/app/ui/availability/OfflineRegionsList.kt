@@ -75,7 +75,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
 @Composable
 internal fun OfflineRegionsSection(
     regions: List<OfflineRegionSummary>,
-    tilesUsed: Long,
+    tilesUsed: Int,
     errorMessage: String?,
     staleThresholdDays: Int,
     distanceUnit: DistanceUnit,
@@ -131,8 +131,7 @@ internal fun OfflineRegionsSection(
         }
 
         if (rows.isEmpty()) {
-            // Dispatch 2026-10-28-08, Amendment 1 (RECORD -1781), the owner's words; was "No regions downloaded yet.".
-            Text("No maps downloaded yet. Pan the map to an area and tap Download Maps.", style = MaterialTheme.typography.bodySmall)
+            Text("No regions downloaded yet.", style = MaterialTheme.typography.bodySmall)
         } else {
             rows.forEach { row ->
                 key(row.key) { ListRowMotion(row) { region ->
@@ -145,23 +144,20 @@ internal fun OfflineRegionsSection(
                         onDelete = { onDeleteOfflineRegion(region.id) },
                         onEdit = null,
                     ) {
-                        // Dispatch 2026-10-29-10 (RECORD -1817, -1818): a visible trash button beside the row, calling the swipe's own delete.
-                        OfflineRegionRowWithDelete(region = region, onDelete = { onDeleteOfflineRegion(region.id) }) {
-                            OfflineRegionRow(
-                                region = region,
-                                isStale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays),
-                                distanceUnit = distanceUnit,
-                                nowEpochMillis = nowEpochMillis,
-                                onClick = onOpenRegionDetails?.let { open -> { open(region.id) } },
-                                onDownloadAgain = { onDownloadAgain(region.id) },
-                                routeLine = if (region.isDownloaded) {
-                                    offlineRouteLine(region.routeData, region.id in routeFetchingIds, region.id in routeFailedIds, noSignal)
-                                } else {
-                                    null
-                                },
-                                onTryAgainRoutes = { routeActions.onTryAgain(region.id) },
-                            )
-                        }
+                        OfflineRegionRow(
+                            region = region,
+                            isStale = isOfflineRegionStale(region.createdAtEpochMillis, nowEpochMillis, staleThresholdDays),
+                            distanceUnit = distanceUnit,
+                            nowEpochMillis = nowEpochMillis,
+                            onClick = onOpenRegionDetails?.let { open -> { open(region.id) } },
+                            onDownloadAgain = { onDownloadAgain(region.id) },
+                            routeLine = if (region.isDownloaded) {
+                                offlineRouteLine(region.routeData, region.id in routeFetchingIds, region.id in routeFailedIds, noSignal)
+                            } else {
+                                null
+                            },
+                            onTryAgainRoutes = { routeActions.onTryAgain(region.id) },
+                        )
                     }
                 } }
             }
@@ -187,8 +183,7 @@ internal fun OfflineRegionsSection(
  * parts without the dots.
  *
  * No delete control of its own since journal redesign J4 (the text "Delete" button is gone): its
- * callers wrap it in a [TwoStageSwipeRow] (J4b L6). Since dispatch 2026-10-29-10 they also put a visible trash button
- * beside it ([OfflineRegionRowWithDelete]), outside this row, so the row itself is unchanged.
+ * callers wrap it in a [TwoStageSwipeRow] (J4b L6).
  *
  * [onClick] (journal redesign J5c) is what a tap on the row opens, the region's details sheet, or
  * `null` for no row tap. The All logbook passes `null` and puts the tap on its badged row instead,

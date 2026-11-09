@@ -81,7 +81,7 @@ class HudLandscapeT11TurnTest {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_0)
         composeRule.setContent {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
+                uiState = AvailabilityUiState(liveFix = fix),
                 recording = AvailabilityScreenRecording(
                     isRecording = true,
                 ),

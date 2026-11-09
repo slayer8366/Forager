@@ -141,10 +141,11 @@ internal fun JournalTab(
     night: Boolean = false,
     /**
      * Map layers L0b (owner's ruling 4, "Same sheet"): the layer choices the Maps tab and the entry map
-     * share. Threaded through to `CartographyEntryReportScreen`
+     * share, and the entry map's Layers-sheet switch. Threaded through to `CartographyEntryReportScreen`
      * only; nothing here reads them. Defaulted so other callers and tests are unchanged.
      */
     mapLayers: MapLayersState = MapLayersState.DEFAULT,
+    onMapLayerVisibilityChanged: (layerId: String, visible: Boolean) -> Unit = { _, _ -> },
     onOpenEntry: (String) -> Unit,
     onCloseEntry: () -> Unit,
     onStartEntry: (LatLng?, LocalDate) -> Unit,
@@ -605,7 +606,6 @@ internal fun JournalTab(
             newFindInHeader = if (inRecords && isLandscapeJournal()) findsLogShownInRecords else null,
             modifier = Modifier.weight(1f),
             loadErrorMessage = uiState.loadErrorMessage,
-            draftsLoadErrorMessage = uiState.draftsLoadErrorMessage,
             // J4b L1: a tile's long-press menu. Delete is the report's own pending delete (J4);
             // Edit opens the find straight into its edit form.
             onDeleteEntry = onDeleteEntry,
@@ -751,6 +751,7 @@ internal fun JournalTab(
                 night = night,
                 initialMapMode = MapMode.forBasemap(basemap),
                 mapLayers = mapLayers,
+                onMapLayerVisibilityChanged = onMapLayerVisibilityChanged,
                 getMapData = getCartographyEntryMapData,
                 getCoveringOfflineRegion = getCartographyEntryOfflineRegion,
                 getCurrentLocation = getCartographyEntryCurrentLocation,

@@ -8,7 +8,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.State
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.ui.graphics.asImageBitmap
 import kotlinx.coroutines.delay
 import androidx.compose.runtime.derivedStateOf
@@ -41,7 +40,6 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.map.initializeMapLibre
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveClassifier
-import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutBackHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutHost
@@ -177,8 +175,6 @@ fun SightingsMap(
     breadcrumbPoints: List<LatLng> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapSlot]'s doc comment on this same parameter. */
     waypoints: List<Waypoint> = emptyList(),
-    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.waypointNames]'s own doc comment. */
-    waypointNames: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.resumeTrackingRequestId]'s own doc comment. */
     resumeTrackingRequestId: Int = 0,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.searchFrameRequestId]'s own doc comment. */
@@ -203,8 +199,6 @@ fun SightingsMap(
     offlineRegionCircles: List<RecordRegion> = emptyList(),
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.bottomInset]'s own doc comment. */
     bottomInset: Dp = 0.dp,
-    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onCreditSizeChanged]'s own doc comment. */
-    onCreditSizeChanged: (androidx.compose.ui.unit.IntSize) -> Unit = {},
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onUserCameraGesture]'s own doc comment. */
     onUserCameraGesture: () -> Unit = {},
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.layers]'s own doc comment. */
@@ -223,8 +217,6 @@ fun SightingsMap(
     journalHighlights: JournalEntryHighlights = JournalEntryHighlights.NONE,
     /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.route]'s own doc comment. */
     route: RouteOnMap? = null,
-    /** See [com.zynergylabs.forager.app.ui.map.MapOverlayContent.plottedRoute]'s own doc comment. */
-    plottedRoute: PlottedRouteOnMap? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.cameraMemory]'s own doc comment. */
     cameraMemory: MapCameraMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.leavingTab]'s own doc comment. */
@@ -235,8 +227,8 @@ fun SightingsMap(
     attributionBottomInset: Dp? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionKeepClear]'s own doc comment. */
     attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
-    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionHideUnder]'s own doc comment. */
-    attributionHideUnder: List<androidx.compose.ui.geometry.Rect> = emptyList(),
+    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.attributionBesideCredit]'s own doc comment. */
+    attributionBesideCredit: Boolean = false,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.returnMemory]'s own doc comment. */
     returnMemory: MapReturnMemory? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.backEnabled]'s own doc comment. */
@@ -247,10 +239,6 @@ fun SightingsMap(
     trueHeading: State<TrueHeadingReading>? = null,
     /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.nudgeSpringBack]'s own doc comment. */
     nudgeSpringBack: Boolean = false,
-    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.onReferenceTrailsShown]'s own doc comment. */
-    onReferenceTrailsShown: (Boolean) -> Unit = {},
-    /** See [com.zynergylabs.forager.app.ui.map.MapRenderMode.crowdedStacks]'s own doc comment. */
-    crowdedStacks: CrowdedStackHost? = null,
 ) {
     val context = LocalContext.current
     // Resources through LocalResources, which Compose re-reads on a configuration change, rather than
@@ -318,16 +306,9 @@ fun SightingsMap(
     // feed (the Cartography entry map, the centre-pin pickers, any map in a release build, whose store
     // never has data) never draws, credits or hit-tests a colour field, whatever the stored choice
     // says; the stored choice is not changed.
-    // Step 8b (dispatch 2026-10-26-15 Amendment 2): whether the loaded style draws the official-trails band, set on each style
-    // load (MapStyleReload.kt). Until one does, the band's layers are hidden in the drawn state, so no caption credit and no tap.
-    val referenceTrailsLoaded = remember { mutableStateOf(false) }
-    val chosenLayersState = rememberUpdatedState(layersState)
-    val drawnLayersState = remember(layersState, forecast?.groupsByLayer, referenceTrailsLoaded.value) {
-        withReferenceTrailsHiddenUnlessLoaded(withUnavailableColourFieldsHidden(layersState, MAP_LAYER_REGISTRY, forecast?.groupsByLayer?.keys.orEmpty()), referenceTrailsLoaded.value)
+    val drawnLayersState = remember(layersState, forecast?.groupsByLayer) {
+        withUnavailableColourFieldsHidden(layersState, MAP_LAYER_REGISTRY, forecast?.groupsByLayer?.keys.orEmpty())
     }
-    // ...and the host is told, for Tools > Map Layers' Trails row (MapRenderMode.onReferenceTrailsShown).
-    val currentOnReferenceTrailsShown by rememberUpdatedState(onReferenceTrailsShown)
-    LaunchedEffect(referenceTrailsLoaded.value) { currentOnReferenceTrailsShown(referenceTrailsLoaded.value) }
     val currentLayersStateState = rememberUpdatedState(drawnLayersState)
     // The map chrome's colour (the navigation bar's), read here because it follows the app's theme.
     val chromeColour = navigationBarContainerColor().toArgb()
@@ -337,7 +318,7 @@ fun SightingsMap(
     val fanCircleColour = remember { arrayOfNulls<Int>(1) }
     // Which camera moves are the location follower's and which are the user's or the app's own (dispatch 2026-09-28-380): MapLibre reports every
     // programmatic move with one reason, so each camera move this file makes marks itself here first, and the camera-idle listener clears the mark.
-    val cameraMoveClassifier = remember { CameraMoveClassifier({ task -> Handler(Looper.getMainLooper()).post(task) }, warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) }) }
+    val cameraMoveClassifier = remember { CameraMoveClassifier { task -> Handler(Looper.getMainLooper()).post(task) } }
     val currentForecastState = rememberUpdatedState(forecast)
     // Counts camera idles (map layers L0b, B5): the colour fields' cell feed (MapForecastCells.kt) is keyed on it, so
     // the store is asked for the blocks in view each time the camera goes idle.
@@ -405,7 +386,6 @@ fun SightingsMap(
             },
             thresholdPx = nudgeThresholdPx,
             viewTopPaddingPx = { navigationViewTopPaddingPx(navigationMapHeightPx) },
-            viewSideInsetsPx = { currentNavigationView?.sideInsetsPx ?: NavigationSideInsets.NONE },
         )
     }
     DisposableEffect(nudgeElastic) { onDispose { nudgeElastic.cancel() } }
@@ -538,6 +518,10 @@ fun SightingsMap(
     // read by the attribution placement (MapAttributionInsets.kt). Declared here, with the holder's other states, since UI split Phase 2.2 (dispatch 2026-10-19-29);
     // it was declared in the attribution block until then. A plain remember with a constant start, not an observer.
     val mapSizePxState = remember { mutableStateOf(androidx.compose.ui.unit.IntSize.Zero) }
+    // RECORD -954: the credit strip's laid-out width, written by the layout (SightingsMapLayout.kt) and read by the attribution
+    // placement (MapAttributionInsets.kt).
+    // Moved up here for the same reason as mapSizePx.
+    val creditWidthPxState = remember { mutableIntStateOf(0) }
 
     // UI split Phase 2.2 (dispatch 2026-10-19-29): the map's state holder, over the very State objects remembered above, so
     // the effect groups can move to their own files and take it. Nothing is copied into it: each read is a getter and each
@@ -577,6 +561,7 @@ fun SightingsMap(
             cameraIdleCountState = cameraIdleCountState,
             navigationMapHeightPxState = navigationMapHeightPxState,
             mapSizePxState = mapSizePxState,
+            creditWidthPxState = creditWidthPxState,
             appliedPositionLook = appliedPositionLook,
             navigationModeChange = navigationModeChange,
             fanCircleColour = fanCircleColour,
@@ -601,7 +586,7 @@ fun SightingsMap(
     // Every MapLibre listener, registered once in the map-ready callback: MapListeners.kt.
     MapListeners(state = sightingsMapState, resources = resources, fanSpace = fanSpace)
 
-    // Street or Topo with no signal draws Trail Map from the downloads (NoSignalTrailMap.kt, dispatch 2026-10-22-01).
+    // OSM or Topo with no signal draws Trail Map from the downloads (NoSignalTrailMap.kt, dispatch 2026-10-22-01).
     val drawFromDownloads = rememberDrawsFromDownloads(useOfflineTiles, basemap)
 
     // Style swap (Stage 2e-ii, colour build C1): MapStyleReload.kt.
@@ -616,8 +601,6 @@ fun SightingsMap(
         resources = resources,
         appCompassEngine = appCompassEngine,
         appLocationEngine = appLocationEngine,
-        referenceTrailsLoaded = referenceTrailsLoaded,
-        chosenLayers = chosenLayersState,
     )
 
     // The way home (dispatch -497) and the data + camera refresh: MapDataRefresh.kt.
@@ -642,24 +625,6 @@ fun SightingsMap(
         resources = resources,
     )
 
-    // A plotted route (dispatch 2026-10-30-08): pushed whenever it or the style changes (a new style starts empty).
-    val routeStopAccent = mapPlottedRoute(sightingsMapState.loadedStyle, plottedRoute) // and its selected stop's highlight, fading and pulsing (Amendment 7): MapRouteStopAccent.kt.
-
-    // Waypoint names and the route's stops' names (dispatch 2026-11-02-04): pushed whenever they, the setting, the
-    // Waypoints switch, the night look or the style change (a new style starts with no images and empty sources).
-    val nameTypeface = remember(context) { nameLabelTypeface(context) }
-    val nameImages = remember { NameImageRegistry() }
-    val namesDrawn = waypointNamesDrawn(waypointNames, drawnLayersState)
-    LaunchedEffect(sightingsMapState.loadedStyle, waypoints, namesDrawn, plottedRoute?.stopNames, nightMode, resources.displayMetrics.density) {
-        nameLabelsOnCurrentStyle(
-            sightingsMapState.loadedStyle,
-            waypointNameLabels(waypoints, namesDrawn),
-            routeStopNameLabels(plottedRoute?.stopNames.orEmpty()),
-            NameLabelPainter(nameTypeface, resources.displayMetrics.density, MapPalette.forMode(nightMode)),
-            nameImages,
-        )
-    }
-
     // The marker fan's effects on the loaded style (dispatch 2026-09-28-197 and its follow-ups): MapFan.kt.
     MapFan(
         state = sightingsMapState,
@@ -674,7 +639,6 @@ fun SightingsMap(
         returnMemory = returnMemory,
         chromeColour = chromeColour,
         resources = resources,
-        accentFrame = routeStopAccent, // Dispatch 2026-11-06-05, Amendment 6 B: the selected stop's accent goes into the fan (and Amendment 7: fades and pulses there).
     )
 
     // Colour-field cells (map layers L0b, B5): MapForecastCells.kt.
@@ -708,7 +672,7 @@ fun SightingsMap(
         bottomInset = bottomInset,
         attributionEndInset = attributionEndInset,
         attributionKeepClear = attributionKeepClear,
-        attributionHideUnder = attributionHideUnder,
+        attributionBesideCredit = attributionBesideCredit,
     )
 
     // The map icon bar's orientation-reset control — MapLibre's own native compass view is
@@ -721,7 +685,7 @@ fun SightingsMap(
     val lastResetOrientationRequestId = remember { intArrayOf(resetOrientationRequestId) }
     LaunchedEffect(resetOrientationRequestId) {
         val map = mapLibreMap ?: return@LaunchedEffect
-        cameraMoveClassifier.markUserAskedMove()
+        cameraMoveClassifier.markAppMove()
         val tapped = resetOrientationRequestId != lastResetOrientationRequestId[0]
         lastResetOrientationRequestId[0] = resetOrientationRequestId
         val view = currentNavigationView
@@ -733,11 +697,6 @@ fun SightingsMap(
         map.easeCamera(CameraUpdateFactory.bearingTo(0.0))
     }
 
-    // Dispatch 2026-10-27-07: the tab's crowded-stack host, read by the tap handler at each tap, and told of this map's fan.
-    SideEffect {
-        tapHandlerRef.crowdedHost = crowdedStacks
-        crowdedStacks?.fan = fanOut
-    }
     // The fan's clock, and Back closing it before anything else Back would close.
     MarkerFanOutHost(fanOut)
     MarkerFanOutBackHandler(fanOut, bubbleOpen = focusedObservationId != null || focusedFeature != null, backEnabled = backEnabled)
@@ -786,7 +745,6 @@ fun SightingsMap(
         drawnLayersState = drawnLayersState,
         nightMode = nightMode,
         bottomInset = bottomInset,
-        onCreditSizeChanged = onCreditSizeChanged,
         fanSpace = fanSpace,
     )
 }

@@ -29,9 +29,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
@@ -160,10 +158,8 @@ internal fun Modifier.swipeRevealTouchWatcher(group: SwipeRevealGroup): Modifier
  *   not reach the content (an overlay takes that tap), so a revealed card does not open its entry;
  *   a swipe back closes it; opening another row of the same [group] closes this one; a touch
  *   elsewhere on the list closes it ([swipeRevealTouchWatcher]).
- * - **The actions are composed only while the row is off zero**, so a row at rest carries no text
- *   Edit or Delete control. An offline-map row does show a trash icon at rest since dispatch
- *   2026-10-29-10 (`OfflineRegionRowWithDelete`), beside the row rather than one of these actions:
- *   J4b L5's test pins no "Delete" text and exactly one clickable delete, that trash button.
+ * - **The actions are composed only while the row is off zero**, so a row at rest carries no Edit
+ *   or Delete control of its own (what J4b L5's test pins for the region row).
  * - **Accessibility.** The row carries custom accessibility actions, "Edit" (when [onEdit] is set)
  *   and "Delete", making the same calls as the buttons, so TalkBack reaches both without the gesture
  *   (J4's "Delete" action, kept, with "Edit" beside it).
@@ -308,7 +304,7 @@ internal fun TwoStageSwipeRow(
                 .offset { IntOffset(offset.roundToInt(), 0) }
                 .background(MaterialTheme.colorScheme.surface),
         ) {
-            CompositionLocalProvider(LocalTwoStageSwipeRowOpen provides (offset < 0f)) { content() }
+            content()
             if (state.settledValue == SwipeRevealValue.Open || state.targetValue == SwipeRevealValue.Open) {
                 // A tap on the revealed row's own body closes it and goes no further. Its press is drawn in the row's own
                 // shape ([highlightShape]); the tap box is the whole row, as before.
@@ -346,13 +342,6 @@ private fun SwipeActionButton(
         }
     }
 }
-
-/**
- * True while the [TwoStageSwipeRow] around this content is off zero, so its revealed actions are showing. Content that has
- * a control of its own for one of those actions hides it then, so only the revealed one shows (dispatch 2026-10-29-10
- * Amendment 3, RECORD -1828; the owner: "Hide trash while open (Recommended)"). False outside any swipe row.
- */
-internal val LocalTwoStageSwipeRowOpen = compositionLocalOf { false }
 
 /** One revealed action's width; two of them (Edit and Delete) are how far a short swipe opens a row. */
 private val SWIPE_ACTION_WIDTH = 72.dp

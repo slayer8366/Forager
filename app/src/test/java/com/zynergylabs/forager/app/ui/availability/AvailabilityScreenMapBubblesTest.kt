@@ -175,26 +175,26 @@ private fun hostActivityRule() = object : ExternalResource() {
 // The records every test draws.
 
 internal val BUBBLE_DAY: LocalDate = LocalDate.of(2026, 9, 12)
-internal val BUBBLE_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.51, -121.71), date = BUBBLE_DAY)
+internal val BUBBLE_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.51, -122.61), date = BUBBLE_DAY)
     .copy(isDraft = false, ownIdentification = "Golden chanterelle")
-internal val BUBBLE_PHOTO = GalleryPhoto(LogPhoto("ph-1", "photos/ph-1.jpg", 1_700_000_000_000L, 45.53, -121.73), referencingEntryIds = listOf("find-1"))
-internal val BUBBLE_WAYPOINT = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
-internal val BUBBLE_TRIP = PlannedTrip("trip-1", "Saddle loop", LatLng(45.56, -121.76), LocalDate.of(2026, 10, 3))
+internal val BUBBLE_PHOTO = GalleryPhoto(LogPhoto("ph-1", "photos/ph-1.jpg", 1_700_000_000_000L, 45.53, -122.63), referencingEntryIds = listOf("find-1"))
+internal val BUBBLE_WAYPOINT = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
+internal val BUBBLE_TRIP = PlannedTrip("trip-1", "Saddle loop", LatLng(45.56, -122.66), LocalDate.of(2026, 10, 3))
 internal val BUBBLE_TRACK = Track(
     id = "trk-1",
     name = "Morning loop",
     startedAtEpochMillis = 1_700_000_000_000L,
     endedAtEpochMillis = 1_700_003_600_000L,
-    points = listOf(TrackPoint(45.50, -121.70, null, 5f, 1_700_000_000_000L), TrackPoint(45.51, -121.70, null, 5f, 1_700_003_600_000L)),
+    points = listOf(TrackPoint(45.50, -122.60, null, 5f, 1_700_000_000_000L), TrackPoint(45.51, -122.60, null, 5f, 1_700_003_600_000L)),
 )
 internal val BUBBLE_REGION = OfflineRegionSummary(
-    7L, "Forest Park", Region(45.57, -121.77, 5), 0.0, 15.0, 1200, 12_300_000L,
+    7L, "Forest Park", Region(45.57, -122.67, 5), 0.0, 15.0, 1200, 12_300_000L,
     createdAtEpochMillis = System.currentTimeMillis() - TimeUnit.DAYS.toMillis(90),
 )
 internal val BUBBLE_CELL = ForecastCell(
     group = "chanterelles",
     week = MAP_LAYERS_TEST_WEEK,
-    centre = LatLng(45.5, -121.7),
+    centre = LatLng(45.5, -122.6),
     chance = 0.37,
     uncertaintyLow = 0.21,
     uncertaintyHigh = 0.58,
@@ -217,13 +217,13 @@ internal class OneCellStore : ForecastCellStore {
 
 /** Every kind at its own spot, clear of the chrome: the left half of the map, below the compass strip. */
 private fun glyphsAt(xDp: Dp, firstYDp: Dp): List<StubGlyph> = listOf(
-    StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", xDp, firstYDp, LatLng(45.3736, -121.6959)),
-    StubGlyph(MapLayerIds.FINDS, "find-1", xDp, firstYDp + 40.dp, LatLng(45.51, -121.71)),
-    StubGlyph(MapLayerIds.PHOTOS, "ph-1", xDp, firstYDp + 80.dp, LatLng(45.53, -121.73)),
-    StubGlyph(MapLayerIds.KEPT_TRACKS, "trk-1", xDp, firstYDp + 120.dp, LatLng(45.505, -121.7)),
-    StubGlyph(MapLayerIds.PLANNED_TRIPS, "trip-1", xDp, firstYDp + 160.dp, LatLng(45.56, -121.76)),
-    StubGlyph(MapLayerIds.OFFLINE_REGION_OUTLINE, "7", xDp, firstYDp + 200.dp, LatLng(45.6, -121.77)),
-    StubGlyph(MapLayerIds.FORECAST_CHANTERELLES, "45.5,-121.7", xDp + 60.dp, firstYDp + 200.dp, LatLng(45.47, -121.72)),
+    StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", xDp, firstYDp, LatLng(45.326, -122.634)),
+    StubGlyph(MapLayerIds.FINDS, "find-1", xDp, firstYDp + 40.dp, LatLng(45.51, -122.61)),
+    StubGlyph(MapLayerIds.PHOTOS, "ph-1", xDp, firstYDp + 80.dp, LatLng(45.53, -122.63)),
+    StubGlyph(MapLayerIds.KEPT_TRACKS, "trk-1", xDp, firstYDp + 120.dp, LatLng(45.505, -122.6)),
+    StubGlyph(MapLayerIds.PLANNED_TRIPS, "trip-1", xDp, firstYDp + 160.dp, LatLng(45.56, -122.66)),
+    StubGlyph(MapLayerIds.OFFLINE_REGION_OUTLINE, "7", xDp, firstYDp + 200.dp, LatLng(45.6, -122.67)),
+    StubGlyph(MapLayerIds.FORECAST_CHANTERELLES, "45.5,-122.6", xDp + 60.dp, firstYDp + 200.dp, LatLng(45.47, -122.62)),
 )
 
 private fun BubblesRule.touchAt(xDp: Dp, yDp: Dp) {
@@ -386,35 +386,31 @@ class AvailabilityScreenMapBubblesTest {
         composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).assertCountEqualsZero()
     }
 
-    // Dispatch 2026-10-29-09 (RECORD -1819): was `a waypoint's Directions hands the waypoint to a navigation app`; Navigate replaces it.
     @Test
-    fun `a waypoint's bubble offers no Directions`() {
+    fun `a waypoint's Directions hands the waypoint to a navigation app`() {
         setScreen()
+        composeRule.registerGeoHandler()
         tapGlyph("wp-1")
 
-        composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
-        composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertDoesNotExist()
+        composeRule.touchCentreOf(MAP_BUBBLE_DIRECTIONS_TAG)
+
+        val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
+        assertEquals(Intent.ACTION_VIEW, started?.action)
+        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
     }
 
-    // Dispatch 2026-11-05-05 (A1, A4; RECORD -2140, the owner: "Remove the directions from the bubble add Navigate, Plot Route
-    // Details. Remove the long/lat coordinates from the Trip icon"): was `a planned trip's bubble shows its row's lines and its
-    // Directions`, which asserted no Details and a touch on Directions starting "geo:0,0?q=45.56,-121.76(Saddle%20loop)". Now
-    // no coordinates line and no Directions, and Details opens the trip's card. This screen wires no navigation and no
-    // plotting, so Navigate and Plot route are TripBubbleActionsTest's.
     @Test
-    fun `a planned trip's bubble shows its name, date and MGRS, no coordinates and no Directions, and its Details opens its card`() {
+    fun `a planned trip's bubble shows its row's lines and its Directions`() {
         setScreen()
+        composeRule.registerGeoHandler()
         tapGlyph("trip-1")
 
         composeRule.onNodeWithText("Saddle loop", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("Oct 3, 2026", useUnmergedTree = true).assertIsDisplayed()
-        composeRule.onAllNodesWithText("45.5600, -121.7600", useUnmergedTree = true).assertCountEqualsZero()
-        composeRule.onAllNodesWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertCountEqualsZero()
-        composeRule.touchCentreOf(MAP_BUBBLE_DETAILS_TAG)
+        composeRule.onAllNodesWithTag(MAP_BUBBLE_DETAILS_TAG).assertCountEqualsZero()
+        composeRule.touchCentreOf(MAP_BUBBLE_DIRECTIONS_TAG)
 
-        composeRule.onNodeWithTag(RECORD_DETAILS_SHEET_TAG).assertIsDisplayed()
-        composeRule.onNodeWithTag(RECORD_DETAILS_TITLE_TAG).assertTextEquals("Saddle loop")
-        composeRule.onAllNodesWithTag(MAP_BUBBLE_TAG).assertCountEqualsZero()
+        assertEquals("geo:0,0?q=45.56,-122.66(Saddle%20loop)", Shadows.shadowOf(composeRule.activity).nextStartedActivity?.data.toString())
     }
 
     @Test
@@ -434,7 +430,7 @@ class AvailabilityScreenMapBubblesTest {
      */
     @Test
     fun `from a track's Details, a waypoint dropped on the walk opens its own details, and Back returns to the walk's`() {
-        val dropped = Waypoint("wp-walk", 45.505, -121.70, null, "Bolete log", "", 1_700_001_000_000L, trackId = "trk-1")
+        val dropped = Waypoint("wp-walk", 45.505, -122.60, null, "Bolete log", "", 1_700_001_000_000L, trackId = "trk-1")
         setScreen(waypoints = listOf(BUBBLE_WAYPOINT, dropped))
         tapGlyph("trk-1")
         composeRule.touchCentreOf(MAP_BUBBLE_DETAILS_TAG)
@@ -483,10 +479,10 @@ class AvailabilityScreenMapBubblesTest {
         setScreen()
         val readsBefore = store.reads
 
-        tapGlyph("45.5,-121.7")
+        tapGlyph("45.5,-122.6")
 
         composeRule.onNodeWithTag(MAP_BUBBLE_TAG).assertIsDisplayed()
-        composeRule.onNodeWithText("Test Forecast: Chanterelles (Synthetic Data)", useUnmergedTree = true).assertIsDisplayed()
+        composeRule.onNodeWithText("Test forecast: chanterelles (synthetic data)", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithTag(MAP_BUBBLE_CHANCE_TAG, useUnmergedTree = true).assertTextIs("37%")
         composeRule.onNodeWithText("Uncertainty 21% to 58%", useUnmergedTree = true).assertIsDisplayed()
         composeRule.onNodeWithText("rain, last 14 days: 62 mm", useUnmergedTree = true).assertIsDisplayed()
@@ -611,12 +607,12 @@ class CartographyEntryMapBubblesTest {
         text = "A wet morning on the ridge.",
         findDecisions = listOf(FindDecision("find-1", BUBBLE_DAY, "Golden chanterelle", hasPhotos = false, kept = true)),
         // A kept waypoint no longer in Records: the entry map still names it from the snapshot.
-        waypointDecisions = listOf(WaypointDecision("wp-gone", "Old gate", 45.4, -121.6, kept = true)),
+        waypointDecisions = listOf(WaypointDecision("wp-gone", "Old gate", 45.4, -122.5, kept = true)),
     )
     private val mapData = CartographyEntryMapData(
         trackPolylines = emptyList(),
-        findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -121.71))),
-        waypointMarkers = listOf(RecordPoint("wp-gone", LatLng(45.4, -121.6))),
+        findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -122.61))),
+        waypointMarkers = listOf(RecordPoint("wp-gone", LatLng(45.4, -122.5))),
         photoMarkers = emptyList(),
         offlineRegionCircles = emptyList(),
     )
@@ -643,7 +639,7 @@ class CartographyEntryMapBubblesTest {
 
     @Test
     fun `on the entry map a kept waypoint's bubble names it from the entry, with no details for a waypoint gone from Records`() {
-        val entryMap = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.WAYPOINTS, "wp-gone", 60.dp, 120.dp, LatLng(45.4, -121.6))))
+        val entryMap = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.WAYPOINTS, "wp-gone", 60.dp, 120.dp, LatLng(45.4, -122.5))))
         setScreen(entryMap)
         composeRule.onNodeWithText("A wet morning on the ridge.").assertExists()
 
@@ -655,10 +651,7 @@ class CartographyEntryMapBubblesTest {
             useUnmergedTree = true,
         ).assertIsDisplayed()
         composeRule.onAllNodesWithTag(MAP_BUBBLE_DETAILS_TAG).assertCountEqualsZero()
-        // Dispatch 2026-10-29-09: Navigate cannot reach it, so it keeps Directions (the owner, RECORD -1819), which still hands it on.
-        composeRule.registerGeoHandler()
-        composeRule.touchCentreOf(MAP_BUBBLE_DIRECTIONS_TAG)
-        assertEquals("geo:0,0?q=45.4,-121.6(Old%20gate)", Shadows.shadowOf(composeRule.activity).nextStartedActivity?.data.toString())
+        composeRule.onNodeWithTag(MAP_BUBBLE_DIRECTIONS_TAG).assertExists()
     }
 
     // F3 (dispatch 2026-09-28-195, item 5): the bubble for a tapped track line, mirroring the waypoint case
@@ -668,7 +661,7 @@ class CartographyEntryMapBubblesTest {
     fun `on the entry map a kept track's bubble names it from the entry, with no details, for a track gone from Records`() {
         val keptTrack = TrackDecision("trk-gone", "Old ridge", 1234.0, 3_660_000L, 5, kept = true)
         val withTrack = entry.copy(trackDecisions = listOf(keptTrack))
-        val entryMap = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.KEPT_TRACKS, "trk-gone", 60.dp, 120.dp, LatLng(45.4, -121.6))))
+        val entryMap = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.KEPT_TRACKS, "trk-gone", 60.dp, 120.dp, LatLng(45.4, -122.5))))
         setScreen(entryMap, withTrack)
         composeRule.onNodeWithText("A wet morning on the ridge.").assertExists()
 
@@ -727,7 +720,7 @@ class CartographyEntryMapOpeningFrameTest {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(hostActivityRule()).around(composeRule)
 
-    private val map = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.FINDS, "find-1", 60.dp, 120.dp, LatLng(45.51, -121.71))))
+    private val map = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.FINDS, "find-1", 60.dp, 120.dp, LatLng(45.51, -122.61))))
     private val received = mutableListOf<com.zynergylabs.forager.app.ui.map.MapCameraRequest?>()
     private val recordingSlot: MapSlot = { region, content, renderMode, focusOverride, onLongPress, onTap, onSightingTap, onCameraIdle, modifier ->
         received += renderMode.cameraRequest
@@ -739,12 +732,12 @@ class CartographyEntryMapOpeningFrameTest {
         isDraft = false,
         text = "A wet morning on the ridge.",
         findDecisions = listOf(FindDecision("find-1", BUBBLE_DAY, "Golden chanterelle", hasPhotos = false, kept = true)),
-        waypointDecisions = listOf(WaypointDecision("wp-gone", "Old gate", 45.4, -121.6, kept = true)),
+        waypointDecisions = listOf(WaypointDecision("wp-gone", "Old gate", 45.4, -122.5, kept = true)),
     )
     private val mapData = CartographyEntryMapData(
         trackPolylines = emptyList(),
-        findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -121.71))),
-        waypointMarkers = listOf(RecordPoint("wp-gone", LatLng(45.4, -121.6))),
+        findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -122.61))),
+        waypointMarkers = listOf(RecordPoint("wp-gone", LatLng(45.4, -122.5))),
         photoMarkers = emptyList(),
         offlineRegionCircles = emptyList(),
     )
@@ -777,7 +770,7 @@ class CartographyEntryMapOpeningFrameTest {
         val request = requests.single()
         assertEquals(
             com.zynergylabs.forager.app.domain.EntryMapFrame.Fit(
-                com.zynergylabs.forager.app.domain.model.GeoBoundingBox(north = 45.51, south = 45.4, east = -121.6, west = -121.71),
+                com.zynergylabs.forager.app.domain.model.GeoBoundingBox(north = 45.51, south = 45.4, east = -122.5, west = -122.61),
                 paddingDp = 48,
                 maxZoom = 17.0,
             ),

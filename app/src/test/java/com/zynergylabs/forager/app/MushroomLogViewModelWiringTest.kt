@@ -55,22 +55,6 @@ class MushroomLogViewModelWiringTest {
         throw AssertionError("timed out waiting for: $what")
     }
 
-    /**
-     * [awaitUntil] without the throw, for the delete tests' last wait (dispatch 2026-10-26-09, Amendment 1): the hook
-     * edits the snapshot in the Journal's coroutine once the delete returns, which reaches the main looper a moment
-     * after the database shows the row gone, so a single drain could assert before it ran (about 1 run in 100, both
-     * tests). It waits on the snapshot itself and then returns either way, so a hook that is not wired still fails on
-     * the test's own assertion and its own message, after the 10 s wait, instead of on a timeout.
-     */
-    private fun idleUntil(condition: () -> Boolean) {
-        val deadline = System.currentTimeMillis() + 10_000
-        while (System.currentTimeMillis() < deadline) {
-            shadowOf(Looper.getMainLooper()).idle()
-            if (condition()) return
-            Thread.sleep(20)
-        }
-    }
-
     private fun rig(): Pair<AvailabilityViewModel, MushroomLogViewModel> {
         val container = app.container
         val availability = mapLayersViewModel(getMapRecords = { container.getMapRecordsUseCase() })
@@ -80,7 +64,7 @@ class MushroomLogViewModelWiringTest {
 
     @Test
     fun `a find deleted through the Journal's ViewModel leaves the Maps tab's records`() {
-        val find = MushroomLogEntry.draft(id = "wired-find", location = LatLng(45.4, -121.6), date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
+        val find = MushroomLogEntry.draft(id = "wired-find", location = LatLng(45.3, -122.6), date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
         runBlocking { app.container.mushroomLogRepository.save(find).getOrThrow() }
         val (availability, log) = rig()
         availability.onMapShown()
@@ -91,14 +75,14 @@ class MushroomLogViewModelWiringTest {
         awaitUntil("the find is pending") { log.uiState.value.pendingDelete?.item?.id == find.id }
         log.commitDeleteEntry(find.id)
         awaitUntil("the delete finished") { runBlocking { app.container.mushroomLogRepository.getAll().getOrThrow() }.none { it.id == find.id } }
-        idleUntil { availability.uiState.value.mapRecords.findMarkers.none { it.recordId == find.id } }
+        shadowOf(Looper.getMainLooper()).idle()
 
         assertEquals("the snapshot still holds the deleted find: onFindDeleted is not wired", emptyList<String>(), availability.uiState.value.mapRecords.findMarkers.map { it.recordId })
     }
 
     @Test
     fun `an album photo deleted through the Journal's ViewModel leaves the Maps tab's records`() {
-        val photo = LogPhoto(id = "wired-photo", relativePath = "photos/wired-photo.jpg", createdAtEpochMillis = 1L, latitude = 45.4, longitude = -121.6)
+        val photo = LogPhoto(id = "wired-photo", relativePath = "photos/wired-photo.jpg", createdAtEpochMillis = 1L, latitude = 45.3, longitude = -122.6)
         runBlocking { app.container.mushroomLogRepository.addPhotoToGallery(photo).getOrThrow() }
         val (availability, log) = rig()
         availability.onMapShown()
@@ -109,7 +93,7 @@ class MushroomLogViewModelWiringTest {
         awaitUntil("the photo is pending") { log.uiState.value.pendingPhotoDelete?.item?.photo?.id == photo.id }
         log.commitDeleteGalleryPhoto(photo.id)
         awaitUntil("the delete finished") { runBlocking { app.container.mushroomLogRepository.getAllPhotos().getOrThrow() }.none { it.photo.id == photo.id } }
-        idleUntil { availability.uiState.value.mapRecords.photoMarkers.none { it.recordId == photo.id } }
+        shadowOf(Looper.getMainLooper()).idle()
 
         assertEquals("the snapshot still holds the deleted photo: onPhotoDeleted is not wired", emptyList<String>(), availability.uiState.value.mapRecords.photoMarkers.map { it.recordId })
     }
@@ -128,7 +112,7 @@ class MushroomLogViewModelWiringTest {
         val log = createMushroomLogViewModel(app.container, availability, ErrorLog { _, _, _ -> })
         val now = System.currentTimeMillis() / 1_000L * 1_000L
         val fix = LocationFix.Update(
-            lat = 45.62, lng = -121.68, altitude = null, accuracyMeters = 15f,
+            lat = 45.52, lng = -122.68, altitude = null, accuracyMeters = 15f,
             timestampEpochMillis = if (provider == FixProvider.NETWORK) now + 123 else now, provider = provider,
         )
         fixes.tryEmit(fix)
@@ -152,6 +136,6 @@ class MushroomLogViewModelWiringTest {
     /** The control: the same fix from GPS is the find's location, as today. */
     @Test
     fun `a find started with a 15 m GPS fix in hand takes its location`() {
-        assertEquals(LatLng(45.62, -121.68), startFindWith(FixProvider.GPS))
+        assertEquals(LatLng(45.52, -122.68), startFindWith(FixProvider.GPS))
     }
 }

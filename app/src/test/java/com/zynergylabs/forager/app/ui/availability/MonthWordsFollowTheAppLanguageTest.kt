@@ -196,7 +196,7 @@ class MonthWordsFollowTheAppLanguageTest {
 
         const val NOW = 1_700_000_000_000L
 
-        val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+        val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 
         val FORECAST = AvailabilityForecast(
             region = REGION,

@@ -5,9 +5,6 @@ import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
-import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
-import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -86,7 +83,7 @@ import org.junit.Test
  * `com.zynergylabs.forager.app.map.MapLibreOfflineMapRepository`'s own concern rather than this ViewModel's.
  * This file covers the loading → success/failure state machine the UI actually renders from.
  */
-private val REFERENCE_REGION = Region(lat = 45.3736, lng = -118.8834, radiusKm = 15)
+private val REFERENCE_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 
 private val REFERENCE_REGION_SUMMARY = OfflineRegionSummary(
     id = 1L,
@@ -238,7 +235,7 @@ class AvailabilityViewModelOfflineMapsTest {
     private fun viewModel(
         offlineMapRepository: OfflineMapRepository,
         mapPreferencesRepository: MapPreferencesRepository = OfflineMapsStubMapPreferencesRepository,
-        entryReferenceCounts: EntryReferenceCountSource = NoEntryReferenceCounts,
+        getOfflineRegionReferenceCount: suspend (Long) -> Int = { 0 },
         pendingDeleteCommitScope: CoroutineScope? = null,
     ): AvailabilityViewModel = AvailabilityViewModel(
         locationProvider = OfflineMapsUnusedLocationProvider,
@@ -262,7 +259,7 @@ class AvailabilityViewModelOfflineMapsTest {
         unitSystemPreferenceRepository = OfflineMapsStubUnitSystemPreferenceRepository,
         appThemePreferenceRepository = OfflineMapsStubAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(OfflineMapsStubTripPlanningWeatherProvider),
-        entryReferenceCounts = entryReferenceCounts,
+        getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
         pendingDeleteCommitScope = pendingDeleteCommitScope ?: com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope,
     )
 
@@ -331,7 +328,7 @@ class AvailabilityViewModelOfflineMapsTest {
         advanceUntilIdle()
 
         vm.onOfflineMapLatChanged("not a number")
-        vm.onOfflineMapLngChanged("-118.8834")
+        vm.onOfflineMapLngChanged("-122.634")
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
@@ -348,7 +345,7 @@ class AvailabilityViewModelOfflineMapsTest {
         advanceUntilIdle()
 
         vm.onOfflineMapLatChanged("120")
-        vm.onOfflineMapLngChanged("-118.8834")
+        vm.onOfflineMapLngChanged("-122.634")
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
@@ -483,14 +480,14 @@ class AvailabilityViewModelOfflineMapsTest {
         val vm = viewModel(repository)
         advanceUntilIdle()
         vm.onOfflineMapLatChanged("49.60")
-        vm.onOfflineMapLngChanged("-119.091375")
+        vm.onOfflineMapLngChanged("-122.607")
         vm.onOfflineMapRadiusChanged(OfflineMapRepository.MAX_RADIUS_KM)
 
         vm.onDownloadOfflineMaps()
         advanceUntilIdle()
 
         assertTrue("expected the pre-flight gate to let a ${OfflineMapRepository.MAX_RADIUS_KM} km region through to the repository", repository.downloadCalled)
-        assertEquals(Region(lat = 49.60, lng = -119.091375, radiusKm = 24), repository.lastRegion)
+        assertEquals(Region(lat = 49.60, lng = -122.607, radiusKm = 24), repository.lastRegion)
         assertTrue(vm.uiState.value.offlineDownloadStatus !is OfflineMapStatus.Failed)
     }
 
@@ -533,7 +530,7 @@ class AvailabilityViewModelOfflineMapsTest {
     @Test
     fun `a last-picked radius from before the ceiling shrank is restored at the ceiling`() = runTest(dispatcher) {
         val fiftyKmLastPicked = object : MapPreferencesRepository by OfflineMapsStubMapPreferencesRepository {
-            override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(Region(lat = 45.357, lng = -119.091375, radiusKm = 50))
+            override suspend fun getLastPickedRegion(): Result<Region?> = Result.success(Region(lat = 45.357, lng = -122.607, radiusKm = 50))
         }
         val vm = viewModel(RecordingOfflineMapRepository(), mapPreferencesRepository = fiftyKmLastPicked)
         advanceUntilIdle()
@@ -568,7 +565,7 @@ class AvailabilityViewModelOfflineMapsTest {
     @Test
     fun `a requested region delete is pending, hidden from visibleOfflineRegions, and the tile delete is not called`() = runTest(dispatcher) {
         val repository = twoRegions()
-        val vm = viewModel(repository, entryReferenceCounts = FakeEntryReferenceCountSource(offlineRegions = mapOf(1L to 3)))
+        val vm = viewModel(repository, getOfflineRegionReferenceCount = { id -> if (id == 1L) 3 else 0 })
         advanceUntilIdle()
 
         vm.requestDeleteOfflineRegion(1L)
@@ -657,7 +654,7 @@ class AvailabilityViewModelOfflineMapsTest {
     // ---- restored regions (dispatch 2026-09-28-137, item 1, owner "1 B") ---------------------------------
 
     private val restoredRegion = REFERENCE_REGION_SUMMARY.copy(
-        id = 5L, name = "Cedar Creek", region = Region(lat = 45.5, lng = -119.7875, radiusKm = 8),
+        id = 5L, name = "Cedar Creek", region = Region(lat = 45.5, lng = -122.6, radiusKm = 8),
         tileCount = 0, sizeBytes = 0L, isDownloaded = false,
     )
 
@@ -685,7 +682,7 @@ class AvailabilityViewModelOfflineMapsTest {
         vm.onDownloadAgain(5L)
         advanceUntilIdle()
 
-        assertEquals("the stored centre and radius", Region(lat = 45.5, lng = -119.7875, radiusKm = 8), repository.lastRegion)
+        assertEquals("the stored centre and radius", Region(lat = 45.5, lng = -122.6, radiusKm = 8), repository.lastRegion)
         assertEquals("the stored name", "Cedar Creek", repository.lastName)
         assertEquals("the old row now stands for the new region, and its references follow", listOf(5L to 42L), repository.replaced)
         assertEquals(listOf(42L), vm.uiState.value.offlineRegions.map { it.id })
@@ -695,7 +692,7 @@ class AvailabilityViewModelOfflineMapsTest {
     @Test
     fun `Download again is held to the same tile budget as any download`() = runTest(dispatcher) {
         val repository = RecordingOfflineMapRepository()
-        repository.notDownloaded = listOf(restoredRegion.copy(region = Region(lat = 45.5, lng = -119.7875, radiusKm = 400)))
+        repository.notDownloaded = listOf(restoredRegion.copy(region = Region(lat = 45.5, lng = -122.6, radiusKm = 400)))
         val vm = viewModel(repository)
         advanceUntilIdle()
 
@@ -735,49 +732,5 @@ class AvailabilityViewModelOfflineMapsTest {
         vm.reloadAfterRestore()
 
         assertEquals(listOf(1L, 5L), vm.uiState.value.offlineRegions.map { it.id })
-    }
-
-    // ---- T1 (dispatch 2026-10-26-21 Amendment 1, RECORD -1703): each area counts by its own estimate ----
-
-    /** A 24 km Trail Map v3 area: estimate 5120 (the literal above), MapLibre's count double that with the band's tiles. */
-    private val v3Area = REFERENCE_REGION_SUMMARY.copy(id = 9L, region = Region(lat = 49.60, lng = -119.091375, radiusKm = 24), tileCount = 10_240)
-
-    @Test
-    fun `after one 24 km v3 area the next download is gated on its estimate, so a second 24 km one is refused and a small one goes`() = runTest(dispatcher) {
-        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(v3Area)))
-        repository.downloadResult = Result.success(REFERENCE_REGION_SUMMARY)
-        val vm = viewModel(repository)
-        advanceUntilIdle()
-        vm.onOfflineMapLatChanged("49.60")
-        vm.onOfflineMapLngChanged("-119.091375")
-        vm.onOfflineMapRadiusChanged(24)
-        vm.onDownloadOfflineMaps()
-        advanceUntilIdle()
-        assertTrue("a second 24 km area does not fit beside the first", !repository.downloadCalled)
-        assertEquals(
-            OfflineMapStatus.Failed("This region needs about 5120 tiles, but only 880 remain in your 6000-tile budget. Delete a region or pick a smaller radius."),
-            vm.uiState.value.offlineDownloadStatus,
-        )
-
-        vm.onOfflineMapLatChanged("45.5")
-        vm.onOfflineMapLngChanged("-119.7875")
-        vm.onOfflineMapRadiusChanged(1)
-        vm.onDownloadOfflineMaps()
-        advanceUntilIdle()
-        assertEquals("a 1 km area (19 tiles) fits in the 880 left", Region(lat = 45.5, lng = -119.7875, radiusKm = 1), repository.lastRegion)
-    }
-
-    @Test
-    fun `Download again beside a 24 km v3 area is gated on the area's estimate too`() = runTest(dispatcher) {
-        val repository = RecordingOfflineMapRepository(listRegionsResult = Result.success(listOf(v3Area)))
-        repository.notDownloaded = listOf(restoredRegion)
-        repository.downloadResult = Result.success(REFERENCE_REGION_SUMMARY.copy(id = 42L, region = restoredRegion.region))
-        val vm = viewModel(repository)
-        advanceUntilIdle()
-
-        vm.onDownloadAgain(5L)
-        advanceUntilIdle()
-
-        assertEquals("the 8 km area (577 tiles) fits in the 880 left", restoredRegion.region, repository.lastRegion)
     }
 }

@@ -22,6 +22,4 @@ data class AvailabilityScreenOfflineMaps(
     val onDownloadAgain: (Long) -> Unit = {},
     /** Try again on a region's trail routes, and signal returning while the list is on screen (dispatch 2026-10-23-03). */
     val routeActions: OfflineRouteActions = OfflineRouteActions(),
-    /** A Trip Planner trip's Download Maps (dispatch 2026-11-05-08). `null`, the default, draws no maps icon on the trips. */
-    val tripDownloadMaps: TripDownloadMapsActions? = null,
 )

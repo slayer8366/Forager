@@ -25,7 +25,6 @@ package com.zynergylabs.forager.app.ui.availability
 // PHOTO_LOCATION_SETTING_EXPLANATION were removed with the gear panel's two rows, and ExplainedSettingsCheckbox, which drew
 // only those rows, with them (docs/archive/camera-portrait-lock.md).
 
-import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
 import com.zynergylabs.forager.app.ui.motion.PageSlide
 import com.zynergylabs.forager.app.ui.motion.PageSlideStyle
@@ -66,7 +65,6 @@ import com.zynergylabs.forager.app.BuildConfig
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.ui.backup.BackupControls
-import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
@@ -175,8 +173,7 @@ internal fun OfflineMapsEntryRow(onClick: () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Icon(Icons.Filled.Map, contentDescription = null)
-        // "Offline Maps", matching Map Layers' switch above it (dispatch 2026-10-28-02 Amendment 2, RECORD -1766: "Match: Offline Maps").
-        Text("Offline Maps", style = MaterialTheme.typography.titleSmall)
+        Text("Offline maps", style = MaterialTheme.typography.titleSmall)
     }
 }
 
@@ -193,11 +190,10 @@ internal const val TOOLS_OFFLINE_MAPS_ROW_TAG = "tools-offline-maps-row"
  * ambitious planner" — species search is gone from here for good, and the name should say so. Two
  * things live here now, none of them search:
  *
- * 1. **[SearchControls]** — Trip Planner, then Map Layers (dispatch 2026-10-28-02). Waypoints moved
- *    out (Journal restructure Stage 1) into the Journal's own Records tab. The **Sundown** section
- *    that sat under it from dispatch 2026-09-28-707 is gone (dispatch 2026-10-27-14 Amendment 1,
- *    RECORD -1751; the owner: "remove the Sundown and Dark Under Trees portion from the tools menu
- *    since it's redundant"): its rows are in the map's ⋮ quick settings ([MapQuickSettings]).
+ * 1. **[SearchControls]** — Trip Planner only. Waypoints moved
+ *    out (Journal restructure Stage 1) into the Journal's own Records tab. Since dispatch
+ *    2026-09-28-707 the **Sundown** section ([ToolsSundownSection]) sits under it, in the same
+ *    scroll, moved here from Settings so it is one tap away instead of two.
  * 1a. **Offline maps** ([OfflineMapsEntryRow], RECORD -868), a fixed row above Settings: the one
  *    entry here that leaves the drawer, a shortcut to Journal > Records on the Offline maps chip.
  * 2. **Settings** ([showSettings]) — new as of the map redesign's Dispatch B, per the owner's own
@@ -217,8 +213,6 @@ internal fun CompactToolsDrawerContent(
     onDeletePlannedTrip: (String) -> Unit,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
-    crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
-    waypointNames: WaypointNamesControls = WaypointNamesControls(),
     themeMode: AppThemeMode,
     onThemeModeChanged: (AppThemeMode) -> Unit,
     backup: BackupControls = BackupControls(),
@@ -226,20 +220,15 @@ internal fun CompactToolsDrawerContent(
     openSettingsRequest: Int = 0,
     /** Counts up when the settings-reset snackbar's "Settings" is tapped (RECORD -661): open Settings, at the top. */
     openSettingsOnlyRequest: Int = 0,
+    /** The Tools page's Sundown section (dispatch 2026-09-28-707), drawn by [ToolsSundownSection]. */
+    sundown: SundownSettings = SundownSettings(),
+    /** The "Off-track reminder", the last row of that section. */
+    offTrackReminder: OffTrackReminderSettings = OffTrackReminderSettings(),
     /**
      * RECORD -868: the "Offline maps" row's tap, which opens Journal > Records on the Offline maps chip. `null` (the
      * default) draws no row, for a caller with nowhere to send it.
      */
     onOpenOfflineMaps: (() -> Unit)? = null,
-    /** Dispatch 2026-10-28-02: Tools > Map Layers, under Trip Planner ([SearchControls]). */
-    mapLayers: MapLayersControls = MapLayersControls(),
-    mapLayersOpen: Boolean = false,
-    onMapLayersOpenChange: (Boolean) -> Unit = {},
-    /** Amendment 3 (RECORD -1770): Trip Planner's fold, held above the drawer as Map Layers' is. */
-    tripPlannerOpen: Boolean = false,
-    onTripPlannerOpenChange: (Boolean) -> Unit = {},
-    /** Dispatch 2026-10-30-08: a Trip Planner route row's tap. */
-    onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null,
 ) {
     // Own drill-in step — see this composable's own doc comment, item 2. Composed inside this drawer sheet (which the
     // ModalNavigationDrawer keeps mounted even while visually closed, same as CollapsibleSection's
@@ -273,8 +262,6 @@ internal fun CompactToolsDrawerContent(
             onDistanceUnitSelected = onDistanceUnitSelected,
             isNightMode = isNightMode,
             onNightModeMapsChanged = onNightModeMapsChanged,
-            crowdedIcons = crowdedIcons,
-            waypointNames = waypointNames,
             themeMode = themeMode,
             onThemeModeChanged = onThemeModeChanged,
             backup = backup,
@@ -289,12 +276,10 @@ internal fun CompactToolsDrawerContent(
             modifier = Modifier.weight(1f),
             uiState = uiState,
             onDeletePlannedTrip = onDeletePlannedTrip,
-            mapLayers = mapLayers,
-            mapLayersOpen = mapLayersOpen,
-            onMapLayersOpenChange = onMapLayersOpenChange,
-            tripPlannerOpen = tripPlannerOpen,
-            onTripPlannerOpenChange = onTripPlannerOpenChange,
-            onOpenPlannedRoute = onOpenPlannedRoute,
+            following = {
+                HorizontalDivider()
+                ToolsSundownSection(sundown = sundown, offTrackReminder = offTrackReminder)
+            },
         )
         onOpenOfflineMaps?.let { open -> OfflineMapsEntryRow(onClick = open) }
         SettingsEntryRow(onClick = { showSettings = true })

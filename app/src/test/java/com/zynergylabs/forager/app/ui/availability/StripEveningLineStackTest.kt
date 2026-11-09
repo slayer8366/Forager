@@ -50,7 +50,7 @@ class StripEveningLineStackTest {
                     heading = heading,
                     elevationMeters = 123.0,
                     unitSystem = UnitSystem.IMPERIAL,
-                    location = LatLng(45.38, -121.70),
+                    location = LatLng(45.33, -122.64),
                     showDecimalDegrees = false,
                     onToggleCoordinateFormat = {},
                     modifier = Modifier.fillMaxWidth(),

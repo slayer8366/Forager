@@ -11,7 +11,6 @@ import androidx.compose.runtime.State
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -20,10 +19,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.ForecastCell
-import com.zynergylabs.forager.app.domain.GroundHeight
-import com.zynergylabs.forager.app.domain.model.DistanceUnit
-import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.route.asRouteStop
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.ui.availability.ObservationBubble
@@ -57,10 +52,6 @@ internal fun MapBubbleLayer(
     backEnabled: Boolean = true,
     insetLeft: Dp = 0.dp,
     insetRight: Dp = 0.dp,
-    /** "Kept above the card" (RECORD -2187): the route card's top as the bubble's lower limit where they meet (BubbleFloor.kt). */
-    floor: BubbleFloor? = null,
-    /** Told whether the shown bubble fitted nowhere above [floor] and is placed over it (BubblePlacement.overFloor). */
-    onOverFloor: (Boolean) -> Unit = {},
     /**
      * Dispatch 2026-09-28-502, Amendment 1: a details sheet to open again, once, because Back ended the
      * waypoint navigation started from it ("Back to where you tapped Navigate"); [onReopenDetailsConsumed]
@@ -91,8 +82,6 @@ internal fun MapBubbleLayer(
     val resolved: ShownBubble? = tapped?.let { thing ->
         when (val target = thing.target) {
             is MapBubbleTarget.SightingTarget -> ShownBubble(thing, content = null)
-            // Step 8c: an official-trails band's bubble is its own record's two lines, never a lookup.
-            is MapBubbleTarget.ReferenceTrailTarget -> ShownBubble(thing, referenceTrailBubble(target.record))
             is MapBubbleTarget.FeatureTarget -> {
                 val content: MapBubbleContent? = if (target.kind == MapBubbleKind.FORECAST_CELL) {
                     when (val cell = rememberForecastCell(target, forecast).value) {
@@ -117,16 +106,6 @@ internal fun MapBubbleLayer(
                                 onDismiss()
                             }
                         }
-                    }?.let { found ->
-                        // Dispatch 2026-11-03-07 (B2): the bubble shows at once; its elevation line joins it when read. A trip's
-                        // too since dispatch 2026-11-05-05 (A1), by the same read at its spot.
-                        when (found) {
-                            is MapBubbleContent.WaypointContent ->
-                                found.copy(elevation = rememberWaypointElevationLine(found.waypoint.lat, found.waypoint.lng, sources.distanceUnit))
-                            is MapBubbleContent.Trip ->
-                                found.copy(elevation = rememberWaypointElevationLine(found.trip.location.lat, found.trip.location.lng, sources.distanceUnit))
-                            else -> found
-                        }
                     }
                 }
                 content?.let { ShownBubble(thing, it) }
@@ -141,7 +120,7 @@ internal fun MapBubbleLayer(
     ) {
         shown?.let { bubble ->
             when (val target = bubble.tapped.target) {
-                is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight, floor = floor, onOverFloor = onOverFloor) { tip ->
+                is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight) { tip ->
                     ObservationBubble(
                         sighting = target.sighting,
                         onViewOnINaturalist = { onViewSightingOnINaturalist(target.sighting) },
@@ -151,8 +130,8 @@ internal fun MapBubbleLayer(
                     )
                 }
 
-                is MapBubbleTarget.FeatureTarget, is MapBubbleTarget.ReferenceTrailTarget -> bubble.content?.let { content ->
-                    AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight, floor = floor, onOverFloor = onOverFloor) { tip ->
+                is MapBubbleTarget.FeatureTarget -> bubble.content?.let { content ->
+                    AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight) { tip ->
                         MapFeatureBubble(
                             content = content,
                             tipInBubble = tip,
@@ -170,21 +149,6 @@ internal fun MapBubbleLayer(
                                     navigate(WaypointNavigationOrigin.MapBubble(id, bubble.tapped.anchorPx, bubble.tapped.bearingDeg))
                                 }
                             },
-                            // Dispatch 2026-10-30-08: plotting starts from this waypoint, and the bubble closes.
-                            onPlotRoute = sources.routePlotting?.let { plotting ->
-                                { id: String ->
-                                    val waypoint = sources.waypoints.firstOrNull { it.id == id }
-                                    onDismiss()
-                                    if (waypoint != null) {
-                                        plotting.actions.onStartPlotting(waypoint.asRouteStop())
-                                    } else {
-                                        Log.w(MAP_BUBBLE_LOG_TAG, "Waypoint $id is gone; plotting did not start.")
-                                    }
-                                }
-                            },
-                            // Dispatch 2026-11-05-05: a trip's Navigate and Plot route (MapBubbleTripActions.kt).
-                            onNavigateToTrip = tripBubbleNavigate(sources, bubble.tapped, onDismiss),
-                            onPlotRouteFromTrip = tripBubblePlotRoute(sources, onDismiss),
                         )
                     }
                 }
@@ -215,9 +179,6 @@ internal fun MapBubbleLayer(
                     navigate(WaypointNavigationOrigin.MapDetails(id))
                 }
             },
-            // Dispatch 2026-11-05-05: a trip's card, from its bubble on the Maps tab (C1), and its Navigate.
-            plannedTrips = sources.plannedTrips,
-            onNavigateToTrip = tripCardNavigate(sources) { detailsTarget = null },
         )
     }
     viewerPhotoId?.let { id ->
@@ -251,16 +212,3 @@ private const val MAP_BUBBLE_LOG_TAG = "MapBubble"
 
 /** A tapped thing with what its bubble shows, resolved (motion Part 2, Amendment 1, item 6): `content` is null for a sighting. */
 private data class ShownBubble(val tapped: TappedMapThing, val content: MapBubbleContent?)
-
-/**
- * The elevation line for a waypoint at [lat], [lng] (dispatch 2026-11-03-07): `null` while [LocalGroundHeightSource] reads
- * it, off the main thread (B2), and when there is no height there (A2). Keyed on the spot, so another waypoint's bubble
- * never shows this one's height while its own is read.
- */
-@Composable
-private fun rememberWaypointElevationLine(lat: Double, lng: Double, distanceUnit: DistanceUnit): String? {
-    val source = LocalGroundHeightSource.current
-    var height by remember(source, lat, lng) { mutableStateOf<GroundHeight?>(null) }
-    LaunchedEffect(source, lat, lng) { height = source.groundHeightAt(LatLng(lat, lng)) }
-    return height?.let { waypointElevationLine(it, distanceUnit) }
-}

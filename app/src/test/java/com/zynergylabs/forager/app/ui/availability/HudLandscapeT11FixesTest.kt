@@ -47,7 +47,7 @@ import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.ui.map.MAP_ICON_BAR_TAG
-import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.NAVIGATION_VIEW_TOP_PADDING_FRACTION
@@ -167,7 +167,7 @@ abstract class HudLandscapeT11Fixes {
                 liveFix = LocationFix.Update(lat = here.lat, lng = here.lng, altitude = 3_000.0, accuracyMeters = 12.5f, timestampEpochMillis = fixAt, provider = FixProvider.GPS),
                 unitSystem = UnitSystem.IMPERIAL,
                 mapIconClusterPlacement = if (railSide) MapIconClusterPlacement.DEFAULT.copy(landscapeOnPortSide = true) else MapIconClusterPlacement.DEFAULT,
-            ).withFixHeight()
+            )
             CompositionLocalProvider(LocalSundownClock provides clock) {
                 // A fresh screen per generation: a touch that opens a popup (the Layers sheet) cannot be dismissed under
                 // Robolectric (NavigationHudButtonPlacementTest), so each sampled touch gets a screen of its own.
@@ -352,31 +352,10 @@ abstract class HudLandscapeT11Fixes {
     // RECORD -955, D (the owner: "D allow"): Try again may make the card taller. Was "… the display is no taller for it …",
     // `assertEquals((onRoute.bottom - onRoute.top), (hud.bottom - hud.top))` (RECORD -766). The new assertion: taller by no more than
     // Try again's own 48 dp row; its place beside the message and the five real touches across it stay as they were.
-    //
-    // Dispatch 2026-11-05-10 (RECORD -2181, the owner: "move the "by trail" from the bottom to the top right half, on the same line
-    // as 2.2 mi"): on the route the kind no longer takes a line of its own, so the display there is one line shorter than before
-    // the first route, which keeps its status line ("≈ … straight"), as the withheld route does. The row's bound is now measured
-    // from that state, the one with the same lines but the message and Try again, so it is the 48 dp this test had. Was
-    // `(hud.bottom - hud.top) <= (onRoute.bottom - onRoute.top) + 48.5.dp`, which held while the route's kind line stood in for the
-    // status line.
     @Test
     fun `item 2 Try again sits beside its message, the display grows by at most its row, and real touches across it retry`() {
         setScreen(Surface.ROTATION_90, clusterOnRailSide = false)
         val onRoute = tag(NAVIGATION_HUD_TAG)
-        assertEquals("positive control: on the route the status line is empty", "", textOf(NAVIGATION_HUD_STATUS_TAG).orEmpty())
-        composeRule.runOnIdle { route = ReturnRoute.Pending }
-        settle()
-        val pending = tag(NAVIGATION_HUD_TAG)
-        val status = tag(NAVIGATION_HUD_STATUS_TAG)
-        assertTrue("positive control: before the first route there is a status line <${textOf(NAVIGATION_HUD_STATUS_TAG)}>", !textOf(NAVIGATION_HUD_STATUS_TAG).isNullOrEmpty())
-        // Dispatch 2026-11-05-10, Amendment 1, H2: the status words sit in the right part, beside the left part's two lines, so before
-        // the first route the display is the route's height. Was `assertEquals("before the first route the display is the route's and
-        // its status line ($status): …", (onRoute.bottom - onRoute.top + (status.bottom - status.top)).value, …)`.
-        assertTrue("positive control: the status words are in the right part, right of the card's middle: $status in $pending", status.left > (pending.left + pending.right) / 2)
-        assertEquals(
-            "before the first route the display is the route's, its status words in the right part ($status): $onRoute then $pending",
-            (onRoute.bottom - onRoute.top).value, (pending.bottom - pending.top).value, 0.5f,
-        )
         composeRule.runOnIdle { route = ReturnRoute.Unavailable(canRetry = true) }
         settle()
         val hud = tag(NAVIGATION_HUD_TAG)
@@ -385,8 +364,8 @@ abstract class HudLandscapeT11Fixes {
         assertTrue("positive control: the message reads <${textOf(NAVIGATION_HUD_DISTANCE_TAG)}>", textOf(NAVIGATION_HUD_DISTANCE_TAG) in setOf(ROUTE_UNAVAILABLE_TEXT, ROUTE_UNAVAILABLE_SHORT_TEXT))
         assertTrue("beside: Try again $retry starts right of the message $message", retry.left >= message.right - 0.5.dp)
         assertTrue("beside: Try again $retry is level with the message $message", retry.top < message.bottom && message.top < retry.bottom)
-        println("MEASURED Try again: the display $onRoute on the route, $pending before the first route, then $hud")
-        assertTrue("the display grows by at most Try again's 48 dp row: $pending then $hud", (hud.bottom - hud.top) <= (pending.bottom - pending.top) + 48.5.dp)
+        println("MEASURED Try again: the display $onRoute on the route, then $hud")
+        assertTrue("the display grows by at most Try again's 48 dp row: $onRoute then $hud", (hud.bottom - hud.top) <= (onRoute.bottom - onRoute.top) + 48.5.dp)
         assertTrue("still at least 48 dp tall: $retry", retry.bottom - retry.top >= 47.5.dp)
         fractions().forEachIndexed { i, (fx, fy) ->
             composeRule.touchAt(retry.left + (retry.right - retry.left) * fx, retry.top + (retry.bottom - retry.top) * fy)
@@ -401,7 +380,7 @@ abstract class HudLandscapeT11Fixes {
      * [NAVIGATION_VIEW_TOP_PADDING_FRACTION] of the map's height as top padding (the walker an eighth below the centre).
      */
     @Test @Config(fontScale = 2.0f)
-    fun `item 2 at its tallest the card moves up with its evening lines rather than reach over the walker's dot, or they leave where it would pass the strip, and nothing covers the needle`() {
+    fun `item 2 at its tallest the evening lines leave rather than reach over the walker's dot, and nothing covers the needle`() {
         route = ReturnRoute.Unavailable(canRetry = true)
         line = recordingLine
         backBy = BackByShown(trackId = "t1", backByAtEpochMillis = morning + 40 * minute, nowEpochMillis = morning)
@@ -418,22 +397,8 @@ abstract class HudLandscapeT11Fixes {
         // control "the evening lines and Try again are both up", and then "the display covers none of the walker's dot",
         // `hud.bottom <= walkerY - WALKER_DOT_RADIUS || hud.top >= walkerY + WALKER_DOT_RADIUS`. What overlap is left at this size is
         // accepted and measured, not asserted.
-        // Dispatch 2026-11-06-01, Amendment 1, J3 step 3 (RECORD -2183, the owner: "Own line, card moves up", "the evening line stays
-        // on the card"): the card now moves up just enough to clear the dot instead, so the lines stay and the dot is uncovered. Was
-        // "the evening lines have left the card rather than take it over the dot (-955 C)", `nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isEmpty()`.
         assertTrue("positive control: Try again is up", nodes(NAVIGATION_HUD_RETRY_TAG).isNotEmpty())
-        val strip = tag(T11_STRIP_TAG)
-        println("MEASURED J5 item 2: card $hud, strip bottom ${strip.bottom.value}, screen bottom ${window().bottom.value}, evening line ${nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).size}")
-        assertTrue("J3 step 3, J5: the card's top ${hud.top} is under the compass strip's bottom ${strip.bottom}", hud.top >= strip.bottom - 0.5.dp)
-        // J5 (RECORD -2183, the owner: "Yes, lines leave"), then J6 ("Lines leave (as built)"): moved up, the card would pass the
-        // compass strip, so it stays on the bottom edge and the evening lines leave it (RECORD -955). With the card's height counted as
-        // drawn (J5's defect fix) that holds in both windows, 780 x 360 and 823 x 384. Was J3 step 3's "the evening line stays on the
-        // card" and "the card covers none of the walker's dot" at 823 x 384 (`tallestMovesUp`, true there): one sundown line still moves
-        // up with the card and stays on it, which NavigationCardMovesUpTest holds.
-        assertTrue("J5, J6: the card stays on the bottom edge (its bottom ${hud.bottom}, the screen's ${window().bottom})", kotlin.math.abs((hud.bottom - window().bottom).value) <= 0.5f)
-        assertTrue("J5, J6: the evening lines leave the card", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isEmpty())
-        // "As today" (RECORD -955 C, "Overlap left at font 2.0 is accepted"): what overlap of the dot Try again leaves on the bottom
-        // edge is measured (the line below), not asserted, as it was before J3 step 3.
+        assertTrue("the evening lines have left the card rather than take it over the dot (-955 C)", nodes(NAVIGATION_HUD_SUNDOWN_LINE_TAG).isEmpty())
         println("MEASURED -955 font 2.0 at its tallest: display $hud, dot at y ${walkerY.value} r ${WALKER_DOT_RADIUS.value}, overlap ${!(hud.bottom <= walkerY - WALKER_DOT_RADIUS || hud.top >= walkerY + WALKER_DOT_RADIUS)}")
         val needle = tag(NAVIGATION_HUD_NEEDLE_TAG)
         assertTrue("the needle $needle is inside the display $hud", needle.left >= hud.left && needle.right <= hud.right && needle.top >= hud.top && needle.bottom <= hud.bottom)
@@ -590,7 +555,7 @@ abstract class HudLandscapeT11Fixes {
             Control("Locate", {
                 described("Center on my location").let { r -> if (onLeft) DpRect(r.left + 14.dp, r.top, r.right, r.bottom) else DpRect(r.left, r.top, r.right - 14.dp, r.bottom) }.also { locateBefore = locates }
             }) { locates == locateBefore + 1 },
-            Control("Layers", { described("Layers:", substring = true) }) { nodes(MAP_TYPE_PANEL_TAG).isNotEmpty() },
+            Control("Layers", { described("Layers:", substring = true) }) { nodes(MAP_LAYERS_SHEET_TAG).isNotEmpty() },
             Control("Add", { add() }) { nodes(ADD_ACTION_TILE_TAG).isNotEmpty() },
             Control("Record", { record().also { recordBefore = recordToggles } }) { recordToggles == recordBefore + 1 },
             Control("Return", { returnButton().also { returnBefore = returnToggles } }) { returnToggles == returnBefore + 1 },
@@ -716,7 +681,6 @@ abstract class HudLandscapeT11Fixes {
     private companion object {
         /** The walker's dot, a margin generous enough for MapLibre's puck and its accuracy ring at walking zoom. */
         val WALKER_DOT_RADIUS = 12.dp
-        const val T11_STRIP_TAG = "compass-elevation-strip"
         const val MAX_FRAMES = 120
     }
 }

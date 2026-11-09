@@ -42,7 +42,7 @@ fetch() {
 
 # --- 1. soil variables are hourly-only ------------------------------------------------
 printf '%s\n' "--- daily endpoint must reject soil variables ---"
-reject=$(fetch "$API?latitude=45.5&longitude=-121.6&daily=soil_moisture_0_to_7cm&forecast_days=1")
+reject=$(fetch "$API?latitude=45.5&longitude=-122.6&daily=soil_moisture_0_to_7cm&forecast_days=1")
 if printf '%s' "$reject" | grep -q '"error":true'; then
   printf '  daily=soil_moisture_0_to_7cm -> rejected, as expected\n'
   printf '  reason: %s\n' "$(printf '%s' "$reject" | python3 -c 'import json,sys; print(json.load(sys.stdin).get("reason","?"))')"
@@ -118,7 +118,7 @@ print("    OK")
 }
 
 for spec in \
-  "Portland:45.5:-121.6" \
+  "Portland:45.5:-122.6" \
   "London:51.51:-0.13" \
   "Berlin:52.52:13.41" \
   "Sydney:-33.87:151.21"
@@ -133,7 +133,7 @@ done
 # forecast_days=0 really does end at *yesterday* in the location's own timezone, and
 # forecast_days=N really does append N days starting from today.
 printf '%s\n' "--- past/future window boundary ---"
-for spec in "Portland:45.5:-121.6" "London:51.51:-0.13"; do
+for spec in "Portland:45.5:-122.6" "London:51.51:-0.13"; do
   IFS=: read -r label lat lng <<< "$spec"
   base="$API?latitude=$lat&longitude=$lng&daily=precipitation_sum&past_days=$PAST_DAYS&timezone=auto"
   history=$(fetch "$base&forecast_days=0")

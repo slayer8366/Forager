@@ -28,11 +28,10 @@ internal object RoutingDataFolder {
         val files = folder.listFiles { f -> f.isFile && f.name.endsWith(RD5_SUFFIX) }.orEmpty().sortedBy { it.name }
         if (files.isEmpty()) return TrailRouteFailure.DataMissing("no $RD5_SUFFIX file in ${folder.name}")
 
-        // A square with no file holds no data for this area, so an end in it lies outside the stored data. Marked as a
-        // square with no file, which the way to a waypoint reads as "No trail routes here" (RECORD -1667).
+        // A square with no file holds no data for this area, so an end in it lies outside the stored data.
         val names = files.map { it.name }.toSet()
-        if (squareFileName(start) !in names) return TrailRouteFailure.EndOutsideData(RouteEnd.START, squareHasNoFile = true)
-        if (squareFileName(end) !in names) return TrailRouteFailure.EndOutsideData(RouteEnd.END, squareHasNoFile = true)
+        if (squareFileName(start) !in names) return TrailRouteFailure.EndOutsideData(RouteEnd.START)
+        if (squareFileName(end) !in names) return TrailRouteFailure.EndOutsideData(RouteEnd.END)
 
         for (file in files) {
             headerProblem(file)?.let { return TrailRouteFailure.DataCorrupt("${file.name}: $it") }

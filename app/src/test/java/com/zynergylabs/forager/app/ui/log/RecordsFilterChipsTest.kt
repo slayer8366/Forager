@@ -32,30 +32,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.test.core.app.ApplicationProvider
-import android.os.Looper
-import com.zynergylabs.forager.app.domain.AddPhotoToGalleryUseCase
-import com.zynergylabs.forager.app.domain.AddPhotoToLogEntryUseCase
 import com.zynergylabs.forager.app.domain.CartographyEntryMapData
-import com.zynergylabs.forager.app.domain.CommitDraftEntryUseCase
-import com.zynergylabs.forager.app.domain.CreateMushroomLogEntryUseCase
-import com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCase
-import com.zynergylabs.forager.app.domain.DeleteMushroomLogEntryUseCase
-import com.zynergylabs.forager.app.domain.GetDraftEntriesUseCase
-import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
-import com.zynergylabs.forager.app.domain.GetMushroomLogEntriesUseCase
-import com.zynergylabs.forager.app.domain.LocationProvider
-import com.zynergylabs.forager.app.domain.MushroomLogRepository
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
-import com.zynergylabs.forager.app.domain.PhotoStore
-import com.zynergylabs.forager.app.domain.PullPhotoIntoEntryUseCase
-import com.zynergylabs.forager.app.domain.RemovePhotoFromLogEntryUseCase
-import com.zynergylabs.forager.app.domain.SaveMushroomLogEntryUseCase
-import com.zynergylabs.forager.app.domain.StartEditingLogEntryUseCase
-import com.zynergylabs.forager.app.domain.UpdatePhotoLocationUseCase
-import com.zynergylabs.forager.app.domain.model.GalleryPhoto
-import com.zynergylabs.forager.app.domain.model.LogPhoto
-import com.zynergylabs.forager.app.domain.model.PhotoSource
-import java.io.IOException
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
@@ -143,7 +120,7 @@ class RecordsFilterChipsTest {
                 onOpenCameraForAlbum = {},
                 onOpenCameraForCartographyEntry = {},
                 mapSlot = CHIPS_STUB_MAP,
-                pickerRegion = Region(lat = 45.3736, lng = -120.28965, radiusKm = 15),
+                pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
                 basemap = Basemap.DEFAULT,
                 onOpenEntry = { id -> uiState = uiState.copy(editingEntry = uiState.entries.first { it.id == id }) },
                 onCloseEntry = { uiState = uiState.copy(editingEntry = null) },
@@ -331,7 +308,7 @@ class RecordsFilterChipsTest {
 
     @Test
     fun `EDIT_NEW_FIND lands on Finds editing with the Finds chip selected`() {
-        val newFind = MushroomLogEntry.draft(id = "new-find", location = LatLng(45.5, -121.09375), date = LocalDate.of(2026, 8, 1))
+        val newFind = MushroomLogEntry.draft(id = "new-find", location = LatLng(45.5, -122.5), date = LocalDate.of(2026, 8, 1))
         setScreen(
             MushroomLogUiState(entries = listOf(CHIPS_FIND), editingEntry = newFind),
             pendingDestination = PendingJournalDestination.EDIT_NEW_FIND,
@@ -341,7 +318,7 @@ class RecordsFilterChipsTest {
         composeRule.onNodeWithText("Records").assertIsSelected()
         chip(FINDS_CHIP).assertIsSelected()
         composeRule.onNodeWithText("Photos").assertIsDisplayed()
-        composeRule.onNodeWithText("Found at 45.5000, -121.0938").assertIsDisplayed()
+        composeRule.onNodeWithText("Found at 45.5000, -122.5000").assertIsDisplayed()
     }
 
     @Test
@@ -389,8 +366,8 @@ class RecordsFilterChipsTest {
     private val logDraft = MushroomLogEntry.draft(id = "D1", location = null, date = d1)
 
     private fun logWaypoints() = listOf(
-        Waypoint(id = "W1", lat = 45.5, lng = -121.19375, altitude = null, name = "Morning pin", note = "", createdAtEpochMillis = localMillis(d1, 9)),
-        Waypoint(id = "W2", lat = 45.6, lng = -121.29375, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = localMillis(d2, 10)),
+        Waypoint(id = "W1", lat = 45.5, lng = -122.6, altitude = null, name = "Morning pin", note = "", createdAtEpochMillis = localMillis(d1, 9)),
+        Waypoint(id = "W2", lat = 45.6, lng = -122.7, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = localMillis(d2, 10)),
     )
 
     private fun logTracks() = listOf(
@@ -398,7 +375,7 @@ class RecordsFilterChipsTest {
     )
 
     private fun logRegions() = listOf(
-        OfflineRegionSummary(id = 7L, name = "Noon region", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = localMillis(d1, 12)),
+        OfflineRegionSummary(id = 7L, name = "Noon region", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = localMillis(d1, 12)),
     )
 
     /** The logbook data, on All: Records opens on Finds since RECORD -868, so All is touched first. */
@@ -470,7 +447,7 @@ class RecordsFilterChipsTest {
             composeRule.onNodeWithTag(badgeTag(type, id), useUnmergedTree = true).assertExists()
         }
         // The same rows the single-type chips show: find tiles, the track row's share action, the
-        // waypoint row with no Directions (dispatch 2026-10-29-09) and its swipe-to-delete row (J4: the trash icon is gone), the
+        // waypoint row's Directions and its swipe-to-delete row (J4: the trash icon is gone), the
         // region row and its swipe-to-delete row (J4: its "Delete" button is gone).
         // Each find row is a find tile: an unnamed find with no time shows no title and says "Find, <date>" to a screen reader
         // (data part D, RECORD -702 and -703; it read "Find on <d1>" before, counted twice for d1's two finds).
@@ -478,7 +455,7 @@ class RecordsFilterChipsTest {
             composeRule.onNode(hasContentDescription("Find, ${displayDate(d1)}") and hasAnyAncestor(hasTestTag(rowTag("finds", id))), useUnmergedTree = true).assertExists()
         }
         composeRule.onNodeWithTag("share-track-T1").assertExists()
-        composeRule.onNodeWithContentDescription("Directions to Morning pin").assertDoesNotExist() // Was assertExists (-1819).
+        composeRule.onNodeWithContentDescription("Directions to Morning pin").assertExists()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.WAYPOINTS, "W2")).assertExists()
         composeRule.onNodeWithText("Noon region").assertExists()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7")).assertExists()
@@ -585,147 +562,7 @@ class RecordsFilterChipsTest {
             composeRule.onNodeWithTag(journalSwitchTestTag(JournalTopTab.CARTOGRAPHY)).assertIsSelected()
         }
     }
-
-    // ── Dispatch 2026-10-28-08 (RECORD -1780, -1781): each empty list says what the user can do, in the owner's words ──
-    //
-    // Each asserted as exact text through the real Records screen. A failed load keeps its own text.
-
-    private fun emptyScreen(initial: MushroomLogUiState = MushroomLogUiState()) =
-        setScreen(initial = initial, waypoints = emptyList(), tracks = emptyList(), regions = emptyList())
-
-    @Test
-    fun `an empty All says how records are made`() {
-        emptyScreen()
-        touchChip(ALL_CHIP, Offset(0.5f, 0.5f))
-        composeRule.onNodeWithText("No records yet. Record a track, drop a waypoint or download a map, and it shows here.").assertIsDisplayed()
-    }
-
-    @Test
-    fun `an empty Tracks says to tap the record button on the map`() {
-        emptyScreen()
-        touchChip(TRACKS_CHIP, Offset(0.5f, 0.5f))
-        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertIsDisplayed()
-    }
-
-    @Test
-    fun `an empty Offline maps says to pan the map and tap Download Maps`() {
-        emptyScreen()
-        touchChip(OFFLINE_MAPS_CHIP, Offset(0.5f, 0.5f))
-        composeRule.onNodeWithText("No maps downloaded yet. Pan the map to an area and tap Download Maps.").assertExists()
-    }
-
-    @Test
-    fun `an empty, loaded Finds Log says to use New find, and its Drafts says where an unsaved find waits`() {
-        emptyScreen()
-        chip(FINDS_CHIP).assertIsSelected()
-        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertIsDisplayed()
-        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertDoesNotExist()
-
-        composeRule.onNodeWithText("Drafts").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertIsDisplayed()
-        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertDoesNotExist()
-    }
-
-    @Test
-    fun `a failed Finds load keeps its own text on both tabs, and neither empty line shows`() {
-        emptyScreen(MushroomLogUiState(loadErrorMessage = "Log entries unavailable."))
-        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
-        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertDoesNotExist()
-
-        composeRule.onNodeWithText("Drafts").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
-        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertDoesNotExist()
-    }
-
-    @Test
-    fun `a Finds Log still loading says nothing yet, while its drafts already show`() {
-        val draft = MushroomLogEntry.draft(id = "draft-1", location = null, date = LocalDate.of(2026, 9, 21))
-        emptyScreen(MushroomLogUiState(isLoadingEntries = true, draftEntries = listOf(draft)))
-        composeRule.onNodeWithText("Drafts (1)").assertIsDisplayed()
-        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertDoesNotExist()
-    }
-
-    /**
-     * Amendment 2 (RECORD -1784, Sorrel's N5; the owner: "Say it couldn't load (Recommended)"): when the drafts read fails,
-     * the Drafts tab shows the same failed-load text the Log tab shows, never "No drafts. …", which would tell a user whose
-     * draft is on disk that there is none. The state comes from the real [MushroomLogViewModel.loadEntries] over a store whose
-     * drafts read fails, not from a hand-set field, and is drawn by the real Records screen.
-     */
-    @Test
-    fun `a drafts read that fails says so on Drafts rather than No drafts, and Log still says what to do`() {
-        val store = DraftsReadFailsStore()
-        val log = draftsReadFailsViewModel(store)
-        Shadows.shadowOf(Looper.getMainLooper()).idle()
-        assertEquals("positive control: the entries read and the drafts read both ran", 2, store.reads)
-        assertEquals("positive control: the load has finished", false, log.uiState.value.isLoadingEntries)
-
-        emptyScreen(log.uiState.value)
-        composeRule.onNodeWithText("No finds yet. Use New find to log one.").assertIsDisplayed()
-        composeRule.onNodeWithText("Log entries unavailable.").assertDoesNotExist()
-
-        composeRule.onNodeWithText("Drafts").performClick()
-        composeRule.waitForIdle()
-
-        composeRule.onNodeWithText("Log entries unavailable.").assertIsDisplayed()
-        composeRule.onNodeWithText("No drafts. A find you leave before saving waits here.").assertDoesNotExist()
-    }
 }
-
-/**
- * Sorrel's N5: a log store whose drafts read fails. [MushroomLogViewModel.loadEntries] reads the entries first and the drafts
- * second, both through [MushroomLogRepository.getAll], so every second read fails; the test checks [reads] is 2, so this
- * stands only while that order does. The entries read succeeds, empty.
- */
-private class DraftsReadFailsStore : MushroomLogRepository {
-    var reads = 0
-
-    override suspend fun getAll(): Result<List<MushroomLogEntry>> =
-        if (++reads % 2 == 0) Result.failure(IOException("drafts read failed")) else Result.success(emptyList())
-    override suspend fun getForDay(foundOnKey: String): Result<List<MushroomLogEntry>> = Result.success(emptyList())
-    override suspend fun getAllPhotos(): Result<List<GalleryPhoto>> = Result.success(emptyList())
-    override suspend fun save(entry: MushroomLogEntry): Result<Unit> = unsupported()
-    override suspend fun commitDraft(draftId: String, committed: MushroomLogEntry): Result<Unit> = unsupported()
-    override suspend fun delete(id: String): Result<Unit> = unsupported()
-    override suspend fun addPhotoToGallery(photo: LogPhoto): Result<Unit> = unsupported()
-    override suspend fun updatePhotoLocation(photoId: String, latitude: Double, longitude: Double): Result<Unit> = unsupported()
-    override suspend fun attachPhotoToEntry(entryId: String, photoId: String): Result<Unit> = unsupported()
-    override suspend fun detachPhotoFromEntry(entryId: String, photoId: String): Result<Unit> = unsupported()
-    override suspend fun deletePhotoFromGallery(photoId: String): Result<Unit> = unsupported()
-
-    private fun unsupported(): Result<Unit> = Result.failure(UnsupportedOperationException("not part of this test's path"))
-}
-
-private object DraftsReadFailsPhotoStore : PhotoStore {
-    override suspend fun persist(source: PhotoSource): Result<LogPhoto> = Result.failure(UnsupportedOperationException("not part of this test's path"))
-    override suspend fun delete(photo: LogPhoto): Result<Unit> = Result.success(Unit)
-}
-
-private object DraftsReadFailsNoLocation : LocationProvider {
-    override suspend fun getCurrentLocation(): LocationResult = LocationResult.LocationUnavailable
-}
-
-private fun draftsReadFailsViewModel(store: DraftsReadFailsStore) = MushroomLogViewModel(
-    getEntries = GetMushroomLogEntriesUseCase(store),
-    getDraftEntries = GetDraftEntriesUseCase(store),
-    createEntry = CreateMushroomLogEntryUseCase(store, today = { LocalDate.of(2026, 10, 28) }, idGenerator = { "find-new" }),
-    startEditingEntry = StartEditingLogEntryUseCase(store, idGenerator = { "draft-of-find" }),
-    saveEntry = SaveMushroomLogEntryUseCase(store),
-    commitDraftEntry = CommitDraftEntryUseCase(store),
-    deleteEntry = DeleteMushroomLogEntryUseCase(store),
-    addPhoto = AddPhotoToLogEntryUseCase(DraftsReadFailsPhotoStore, store),
-    addPhotoToGallery = AddPhotoToGalleryUseCase(DraftsReadFailsPhotoStore, store),
-    removePhoto = RemovePhotoFromLogEntryUseCase(store),
-    getGalleryPhotos = GetGalleryPhotosUseCase(store),
-    pullPhotoIntoEntry = PullPhotoIntoEntryUseCase(store),
-    deleteGalleryPhoto = DeleteGalleryPhotoUseCase(store, DraftsReadFailsPhotoStore),
-    locationProvider = DraftsReadFailsNoLocation,
-    updatePhotoLocation = UpdatePhotoLocationUseCase(store),
-    entryReferenceCounts = NoEntryReferenceCounts,
-)
 
 private const val ALL_CHIP = "records-chip-all"
 private const val FINDS_CHIP = "records-chip-finds"
@@ -739,8 +576,8 @@ private val TOUCH_SAMPLES = listOf(Offset(0.12f, 0.3f), Offset(0.5f, 0.5f), Offs
 private val CHIPS_FIND = MushroomLogEntry.draft(id = "find-1", location = null, date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
 
 private val CHIPS_WAYPOINTS = listOf(
-    Waypoint(id = "w1", lat = 45.5, lng = -121.19375, altitude = null, name = "Alpha", note = "", createdAtEpochMillis = 1_758_000_000_000L),
-    Waypoint(id = "w2", lat = 45.6, lng = -121.29375, altitude = null, name = "Bravo", note = "", createdAtEpochMillis = 1_758_100_000_000L),
+    Waypoint(id = "w1", lat = 45.5, lng = -122.6, altitude = null, name = "Alpha", note = "", createdAtEpochMillis = 1_758_000_000_000L),
+    Waypoint(id = "w2", lat = 45.6, lng = -122.7, altitude = null, name = "Bravo", note = "", createdAtEpochMillis = 1_758_100_000_000L),
 )
 
 private val CHIPS_TRACKS = listOf(
@@ -748,9 +585,9 @@ private val CHIPS_TRACKS = listOf(
 )
 
 private val CHIPS_REGIONS = listOf(
-    OfflineRegionSummary(id = 1L, name = "Ridge", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_300_000_000L),
-    OfflineRegionSummary(id = 2L, name = "Creek", region = Region(45.4, -121.09375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_400_000_000L),
-    OfflineRegionSummary(id = 3L, name = "Saddle", region = Region(45.37, -120.99375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_500_000_000L),
+    OfflineRegionSummary(id = 1L, name = "Ridge", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_300_000_000L),
+    OfflineRegionSummary(id = 2L, name = "Creek", region = Region(45.4, -122.5, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_400_000_000L),
+    OfflineRegionSummary(id = 3L, name = "Saddle", region = Region(45.3, -122.4, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 10, sizeBytes = 1000L, createdAtEpochMillis = 1_758_500_000_000L),
 )
 
 private val CHIPS_EMPTY_MAP_DATA = CartographyEntryMapData(

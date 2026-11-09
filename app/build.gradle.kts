@@ -653,9 +653,6 @@ tasks.withType<Test>().configureEach {
     }
 }
 
-// The older-SDK test classes run in their own test JVM, with the check that keeps their list current (dispatch 2026-10-26-08).
-apply(from = rootProject.file("gradle/older-sdk-tests.gradle.kts"))
-
 /**
  * Fails the build if a test-only dependency ends up in the shipped APK.
  *

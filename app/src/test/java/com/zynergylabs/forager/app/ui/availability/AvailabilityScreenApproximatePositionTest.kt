@@ -85,8 +85,8 @@ class AvailabilityScreenApproximatePositionTest {
     val rules: RuleChain = RuleChain.outerRule(declareHostActivity).around(composeRule)
 
     private val t = 1_700_000_000_000L
-    private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
-    private val origin = Waypoint("origin", 45.36, -121.6959, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    private val creek = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
+    private val origin = Waypoint("origin", 45.31, -122.634, null, "Start", "", 500L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
     /** Metres per degree of latitude on the sphere GeoDistance uses, as `AvailabilityScreenWaypointNavigateTest` has it. */
     private val metersPerDegree = 111_195.08
@@ -160,7 +160,7 @@ class AvailabilityScreenApproximatePositionTest {
                     isReturning = returning,
                     onToggleReturning = { returning = !returning },
                     navigationTarget = if (recording) origin else null,
-                    returnRoute = ReturnRoute.Ahead(LatLng(45.37, -121.6959), 1_800.0),
+                    returnRoute = ReturnRoute.Ahead(LatLng(45.32, -122.634), 1_800.0),
                     onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
                     onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
                 ),
@@ -271,7 +271,7 @@ class AvailabilityScreenApproximatePositionTest {
 
         composeRule.onNodeWithTag(NAVIGATION_HUD_TAG).assertIsDisplayed()
         assertEquals("≈ 3.2 km", text(NAVIGATION_HUD_DISTANCE_TAG))
-        assertEquals("the needle: the creek is due north of a walker facing north", "0°", text(NAVIGATION_HUD_TARGET_TAG)) // Amendment 1, G2 (dispatch 2026-11-05-10): the degrees alone. Was "ahead 0°".
+        assertEquals("the needle: the creek is due north of a walker facing north", "ahead 0°", text(NAVIGATION_HUD_TARGET_TAG))
         // Dispatch 2026-09-28-677: from an approximate reading the figure is the straight line, and says so.
         assertEquals("straight", text(NAVIGATION_HUD_DISTANCE_KIND_TAG))
         // Dispatch 2026-10-12-08 (RECORD -951, option (a): GPS status messages show on the strip only): the strip stays while

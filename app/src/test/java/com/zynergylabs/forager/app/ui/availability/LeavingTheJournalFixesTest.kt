@@ -84,7 +84,6 @@ import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PlannedTripRepository
@@ -252,7 +251,6 @@ class LeavingTheJournalFixesTest {
             deleteGalleryPhoto = DeleteGalleryPhotoUseCase(logRepository, photoStore),
             locationProvider = LeaveFixUnavailableLocationProvider,
             updatePhotoLocation = UpdatePhotoLocationUseCase(logRepository),
-            entryReferenceCounts = NoEntryReferenceCounts,
         )
         cartographyViewModel = CartographyViewModel(
             getEntries = GetCartographyEntriesUseCase(cartographyRepository),
@@ -296,7 +294,6 @@ class LeavingTheJournalFixesTest {
             unitSystemPreferenceRepository = LeaveFixStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = LeaveFixStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(LeaveFixStubTripPlanningWeatherProvider),
-            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by availabilityViewModel.uiState.collectAsState()
@@ -1098,7 +1095,7 @@ class LeavingTheJournalFixesTest {
         assertCommittedFindIntact()
     }
 
-    private val bubbleMap = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.FINDS, COMMITTED_FIND.id, 60.dp, 160.dp, LatLng(45.38, -121.69))))
+    private val bubbleMap = BubbleMapSlot(listOf(StubGlyph(MapLayerIds.FINDS, COMMITTED_FIND.id, 60.dp, 160.dp, LatLng(45.33, -122.63))))
 
     /** Maps, the find's glyph, its bubble's "Open in Journal" (M1): the find opens in its report over the Journal. */
     private fun openFindInJournalFromMaps() {
@@ -1221,13 +1218,13 @@ class LeavingTheJournalFixesTest {
 
         val PHOTO = LogPhoto(id = "photo-1", relativePath = "photos/photo-1.jpg", createdAtEpochMillis = 1_000L)
 
-        val COMMITTED_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.38, -121.69), date = FIND_DATE)
+        val COMMITTED_FIND: MushroomLogEntry = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.33, -122.63), date = FIND_DATE)
             .copy(isDraft = false, ownIdentification = "Chanterelle", photos = listOf(PHOTO))
 
         val DAY_WAYPOINT = Waypoint(
             id = "wp-1",
-            lat = 45.37,
-            lng = -121.70,
+            lat = 45.32,
+            lng = -122.64,
             altitude = null,
             name = "Creek pin",
             note = "",
@@ -1238,13 +1235,13 @@ class LeavingTheJournalFixesTest {
             .copy(
                 isDraft = false,
                 text = "The original account.",
-                waypointDecisions = listOf(WaypointDecision(waypointId = "wp-1", name = "Creek pin", lat = 45.37, lng = -121.70, kept = true)),
+                waypointDecisions = listOf(WaypointDecision(waypointId = "wp-1", name = "Creek pin", lat = 45.32, lng = -122.64, kept = true)),
             )
     }
 }
 private val LeaveFixStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Button(onClick = { onCameraIdle(LatLng(45.3736, -121.6959)) }) { Text("Simulate pan to test location") }
+        Button(onClick = { onCameraIdle(LatLng(45.326, -122.634)) }) { Text("Simulate pan to test location") }
     }
 }
 

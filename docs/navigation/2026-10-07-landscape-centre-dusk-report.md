@@ -8,7 +8,7 @@ Fix commit `fde14934`, test file only. No app code changed and no visual change.
 `AvailabilityScreenLandscapeB2Test` never passed `currentTime` to `AvailabilityScreen`. The
 navigation HUD's sundown line, which is computed on screen when there is no recording
 (`AvailabilityCompactMapUi.kt:1012`, `SundownLineText.kt:112`), therefore read the real clock. The
-fixture's fix is near Portland, so the line is shown from 2 h 30 min before sunset
+fixture's fix is near Portland, so the line is shown from 2 h 30 min before sunset (about 23:15Z)
 until sunrise (`SundownLine.isShown`, `SundownLine.kt:159-168`). Under legacy graphics the HUD
 grows from 124 dp to 160 dp, which crosses the central third's top at 128 dp.
 
@@ -18,8 +18,8 @@ committed, and the file was restored from a saved copy each time.
 | Clock | Line | Legacy graphics | NATIVE graphics |
 |---|---|---|---|
 | 2026-10-06T18:00Z | none | 124 dp | 80 dp |
-| 2026-10-07T01:00Z | "Sunset h:mm PM · in nn min · dark h:mm" | 160 dp | 96 dp |
-| 2026-10-07T03:40Z | "Dark since h:mm PM" | 160 dp | 96 dp |
+| 2026-10-07T01:00Z | "Sunset 6:41 PM · in 41 min · dark 7:10" | 160 dp | 96 dp |
+| 2026-10-07T03:40Z | "Dark since 7:10 PM" | 160 dp | 96 dp |
 | real clock, line forced to null at `:1012` | none | 124 dp, both S10 cases pass | 80 dp |
 | 18:00Z, line forced to a fixed string | shown | 160 dp, both S10 cases fail | 96 dp |
 
@@ -62,7 +62,7 @@ afterwards. No run had compile errors in its log.
 
 | Revert | Result |
 |---|---|
-| R1: the clock unpinned (`currentTime = { System.currentTimeMillis() }`), run at 03:48Z | 4 failures. Day cases: "at B2_DAY_NOW the HUD must carry no sundown line; found 1". Dusk cases: "… reads sunset, nn min and dark; was <Dark since h:mm PM>" |
+| R1: the clock unpinned (`currentTime = { System.currentTimeMillis() }`), run at 03:48Z | 4 failures. Day cases: "at B2_DAY_NOW the HUD must carry no sundown line; found 1". Dusk cases: "… reads sunset, 41 min and dark; was <Dark since 7:10 PM>" |
 | R2: NATIVE removed from the 90 dusk case | 1 failure: the central third, `navigation-hud DpRect(left=383.0.dp, top=0.0.dp, right=743.0.dp, bottom=160.0.dp)` |
 | R3: the HUD's line forced to null in app code | 2 failures, both dusk cases: "… was <null>" |
 
@@ -98,5 +98,3 @@ navigating state.
 
 The index row in `docs/audits/README.md` is left to the planner, to avoid that file's merge
 conflicts.
-
-_Clock times and countdowns taken at the owner's home are shown as h:mm (dispatch 2026-11-05-11, removed 2026-11-06)._

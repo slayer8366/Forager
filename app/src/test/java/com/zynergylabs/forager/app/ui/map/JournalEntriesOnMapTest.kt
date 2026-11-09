@@ -34,7 +34,7 @@ import com.zynergylabs.forager.app.ui.format.displayDate
 /**
  * J8's headless half on the UI side (`prompts/preserved/2026-09-28-52.md`, J8-3 and J8-4, with the
  * owner's Q2 ruling and the planner's Q3 in `2026-09-28-53`): the chip's text, a highlighted record's
- * bubble lines naming the entries that keep it, and Tools > Map Layers' "Journal Entries" switch. The
+ * bubble lines naming the entries that keep it, and the Layers sheet's "Journal entries" switch. The
  * composables that show these are exercised through the real screens in `JournalEntriesOnMapScreenTest`.
  */
 class JournalEntriesOnMapTest {
@@ -88,11 +88,11 @@ class JournalEntriesOnMapTest {
         )
     }
 
-    private val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(44.7, -122.0), date = LocalDate.of(2026, 9, 12)).copy(isDraft = false)
+    private val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.0, -122.0), date = LocalDate.of(2026, 9, 12)).copy(isDraft = false)
     private val photo = GalleryPhoto(photo = LogPhoto(id = "photo-1", relativePath = "p.jpg", createdAtEpochMillis = 1L), referencingEntryIds = emptyList())
-    private val waypoint = Waypoint(id = "waypoint-1", lat = 44.7, lng = -122.0, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = 0L)
+    private val waypoint = Waypoint(id = "waypoint-1", lat = 45.0, lng = -122.0, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = 0L)
     private val track = Track(id = "track-1", name = "Loop", startedAtEpochMillis = 0L, endedAtEpochMillis = 1L, points = emptyList())
-    private val region = OfflineRegionSummary(id = 7L, name = "Ridge", region = Region(44.7, -122.0, 10), minZoom = 10.0, maxZoom = 15.0, tileCount = 0, sizeBytes = 0L, createdAtEpochMillis = 0L)
+    private val region = OfflineRegionSummary(id = 7L, name = "Ridge", region = Region(45.0, -122.0, 10), minZoom = 10.0, maxZoom = 15.0, tileCount = 0, sizeBytes = 0L, createdAtEpochMillis = 0L)
 
     private val keepers = listOf(onMap("a", 12), onMap("b", 5))
     private val sources = MapRecordSources(
@@ -111,7 +111,7 @@ class JournalEntriesOnMapTest {
     )
 
     private fun keptInOf(kind: MapBubbleKind, layerId: String, id: String): List<JournalEntryOnMap>? =
-        when (val content = mapBubbleContentFor(MapBubbleTarget.FeatureTarget(kind, layerId, id, LatLng(44.7, -122.0)), sources, is24HourClock = false)) {
+        when (val content = mapBubbleContentFor(MapBubbleTarget.FeatureTarget(kind, layerId, id, LatLng(45.0, -122.0)), sources, is24HourClock = false)) {
             is MapBubbleContent.Find -> content.keptIn
             is MapBubbleContent.Photo -> content.keptIn
             is MapBubbleContent.WaypointContent -> content.keptIn
@@ -139,13 +139,10 @@ class JournalEntriesOnMapTest {
     // ── The Layers switch ──
 
     @Test
-    fun `Tools Map Layers lists Journal Entries last of the record overlays, in Title Case`() {
-        // Dispatch 2026-10-28-02 Amendment 1 (RECORD -1765): "Journal entries should be Journal Entries". Trails follows it.
-        assertEquals(
-            com.zynergylabs.forager.app.ui.availability.MapOverlayOption(JOURNAL_ENTRIES_SWITCH_LAYER_ID, "Journal Entries"),
-            com.zynergylabs.forager.app.ui.availability.MAP_LAYER_OVERLAYS.last(),
-        )
-        assertEquals(8, com.zynergylabs.forager.app.ui.availability.MAP_LAYER_OVERLAYS.size)
+    fun `the Maps tab's Layers sheet lists Journal entries last, and the entry map's does not`() {
+        assertEquals(MapOverlayOption(JOURNAL_ENTRIES_SWITCH_LAYER_ID, "Journal entries"), MAPS_TAB_OVERLAYS.last())
+        assertEquals(8, MAPS_TAB_OVERLAYS.size)
+        assertEquals(emptyList<MapOverlayOption>(), ENTRY_MAP_OVERLAYS.filter { it.layerId == JOURNAL_ENTRIES_SWITCH_LAYER_ID })
     }
 
     @Test
@@ -193,11 +190,11 @@ class JournalEntriesOnMapTest {
     fun `each halo source receives the highlighted records of its kind, each feature carrying its record's id`() {
         val highlights = JournalEntryHighlights(
             shownEntries = listOf(onMap("a", 12)),
-            trackPolylines = listOf(RecordPolyline("track-1", listOf(LatLng(44.7, -122.0), LatLng(44.8, -122.1)))),
-            findMarkers = listOf(RecordPoint("find-1", LatLng(44.9, -122.2))),
-            photoMarkers = listOf(RecordPoint("photo-1", LatLng(45.0, -122.3))),
-            waypointMarkers = listOf(RecordPoint("waypoint-1", LatLng(45.1, -122.4))),
-            offlineRegionCircles = listOf(RecordRegion("7", Region(45.2, -122.5, 10))),
+            trackPolylines = listOf(RecordPolyline("track-1", listOf(LatLng(45.0, -122.0), LatLng(45.1, -122.1)))),
+            findMarkers = listOf(RecordPoint("find-1", LatLng(45.2, -122.2))),
+            photoMarkers = listOf(RecordPoint("photo-1", LatLng(45.3, -122.3))),
+            waypointMarkers = listOf(RecordPoint("waypoint-1", LatLng(45.4, -122.4))),
+            offlineRegionCircles = listOf(RecordRegion("7", Region(45.5, -122.5, 10))),
             keptIn = emptyMap(),
         )
         val ids = journalHighlightFeatureCollections(highlights).mapValues { (_, collection) ->

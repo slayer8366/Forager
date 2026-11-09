@@ -5,7 +5,6 @@ package com.zynergylabs.forager.app.ui.availability
 // is composed at the same point among the same siblings: after every effect and remember above it, and before
 // InAppCameraHost, which stays in the body after it because composition order is what puts the camera on top.
 
-import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.DrawerState
 import androidx.compose.material3.LocalContentColor
@@ -28,14 +27,11 @@ import com.zynergylabs.forager.app.ui.map.LocalMapCompass
 import com.zynergylabs.forager.app.ui.map.LocalMapKeepOuts
 import com.zynergylabs.forager.app.ui.map.LocalMapPosition
 import com.zynergylabs.forager.app.ui.map.MapCompass
-import com.zynergylabs.forager.app.ui.map.MapLayersControls
 import com.zynergylabs.forager.app.ui.map.MapPosition
 import com.zynergylabs.forager.app.ui.map.fanout.MapKeepOuts
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
-import com.zynergylabs.forager.app.ui.map.mapChromeOutline
-import com.zynergylabs.forager.app.ui.map.mapChromeShape
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 
 /**
@@ -53,25 +49,19 @@ internal fun AvailabilityScreenDrawerHost(
     mapCompass: MapCompass,
     mapPosition: MapPosition,
     trackDetailsFoldOpen: MutableState<Boolean>,
-    /** Dispatch 2026-10-28-02: Tools > Map Layers' fold, held by the body, and what its switches show and change. */
-    mapLayersFoldOpen: MutableState<Boolean>,
-    /** Amendment 3 (RECORD -1770): Tools > Trip Planner's fold, held by the body as Map Layers' is. */
-    tripPlannerFoldOpen: MutableState<Boolean>,
-    mapLayers: MapLayersControls,
     uiState: AvailabilityUiState,
     distanceUnit: DistanceUnit,
     onDistanceUnitSelected: (DistanceUnit) -> Unit,
     onDeletePlannedTrip: (String) -> Unit,
     isNightMode: Boolean,
     onNightModeMapsChanged: (Boolean) -> Unit,
-    crowdedIcons: CrowdedIconsControls = CrowdedIconsControls(),
-    waypointNames: WaypointNamesControls = WaypointNamesControls(),
     onThemeModeChanged: (AppThemeMode) -> Unit,
     backup: BackupControls,
     openBackupRequest: Int,
+    onSundownAlertsEnabledChanged: (Boolean) -> Unit,
+    onDarknessMarginChanged: (Int) -> Unit,
+    onOffTrackReminderChanged: (Boolean) -> Unit,
     openOfflineMapsFromTools: () -> Unit,
-    /** Dispatch 2026-10-30-08: a Trip Planner route row's tap; `null` leaves the rows as they were. */
-    onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null,
     compactMainScaffold: @Composable () -> Unit,
 ) {
     CompositionLocalProvider(LocalLayoutDirection provides drawerDirection, LocalMapKeepOuts provides mapKeepOuts, LocalMapCompass provides mapCompass, LocalMapPosition provides mapPosition, LocalTrackDetailsFold provides trackDetailsFoldOpen) {
@@ -99,23 +89,13 @@ internal fun AvailabilityScreenDrawerHost(
             // Only what is inside it goes back to the ambient direction.
             // Material3's own default container role for a modal drawer, passed explicitly, and
             // its content colour pinned to the role's own (`contentColorFor` matches a colour-scheme
-            // role exactly).
+            // role exactly; see `MapLayersSheet`).
             // Over the Maps tab at the map chrome's alpha, following the tab (owner: "80% over Maps
             // (Recommended)"; planner message -77, Q4); solid over the other tabs.
-            // Dispatch 2026-11-05-09 (RECORD -2180, the owner: "Give the tools drawer an outline also please"): the same one value
-            // decides the line. Over the Maps tab the sheet carries the map-chrome hairline on its edge facing the map
-            // (toolsDrawerEdge); over the other tabs it stays solid with none (the owner: "In the places that aren't covering a
-            // map, they can stay solid").
-            val overMap = state.compactTab() == CompactTab.MAP
-            val drawerColor = mapChromeFill(navigationBarContainerColor(), overMap)
+            val drawerColor = mapChromeFill(navigationBarContainerColor(), state.compactTab() == CompactTab.MAP)
             val drawerContentColor = contentColorFor(navigationBarContainerColor())
-            // The sheet's shape, Material's own default for a modal drawer (toolsDrawerShape), built once and given to the sheet
-            // and its line, so the two cannot drift, and set on its node so a test reads the corners the sheet is filled to.
-            val drawerShape = toolsDrawerShape()
-            val drawerEdge = if (overMap) Modifier.toolsDrawerEdge(drawerShape, mapChromeOutline()) else Modifier
             ModalDrawerSheet(
-                modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor).mapChromeShape(drawerShape).then(drawerEdge),
-                drawerShape = drawerShape,
+                modifier = Modifier.testTag(TOOLS_DRAWER_SHEET_TAG).mapChromeContainerColor(drawerColor),
                 drawerContainerColor = drawerColor,
                 drawerContentColor = drawerContentColor,
             ) {
@@ -129,20 +109,22 @@ internal fun AvailabilityScreenDrawerHost(
                     onDeletePlannedTrip = onDeletePlannedTrip,
                     isNightMode = isNightMode,
                     onNightModeMapsChanged = onNightModeMapsChanged,
-                    crowdedIcons = crowdedIcons,
-                    waypointNames = waypointNames,
                     themeMode = uiState.themeMode,
                     onThemeModeChanged = onThemeModeChanged,
                     backup = backup,
                     openSettingsRequest = openBackupRequest,
                     openSettingsOnlyRequest = state.openSettingsOnlyRequest(),
+                    sundown = SundownSettings(
+                        alertsEnabled = uiState.sundownAlertsEnabled,
+                        darknessMarginMinutes = uiState.darknessMarginMinutes,
+                        onAlertsEnabledChanged = onSundownAlertsEnabledChanged,
+                        onDarknessMarginChanged = onDarknessMarginChanged,
+                    ),
+                    offTrackReminder = OffTrackReminderSettings(
+                        enabled = uiState.offTrackReminderEnabled,
+                        onEnabledChanged = onOffTrackReminderChanged,
+                    ),
                     onOpenOfflineMaps = openOfflineMapsFromTools,
-                    mapLayers = mapLayers,
-                    mapLayersOpen = mapLayersFoldOpen.value,
-                    onMapLayersOpenChange = { mapLayersFoldOpen.value = it },
-                    tripPlannerOpen = tripPlannerFoldOpen.value,
-                    onTripPlannerOpenChange = { tripPlannerFoldOpen.value = it },
-                    onOpenPlannedRoute = onOpenPlannedRoute,
                 )
                 }
                 }

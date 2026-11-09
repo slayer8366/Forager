@@ -148,8 +148,7 @@ internal fun AddActionTile(
             Surface(
                 modifier = Modifier.testTag(ADD_ACTION_TILE_TAG).mapChromeContainerColor(if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight),
                 shape = RoundedCornerShape(Spacing.md),
-                // No shadow (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"): under the 0.8 fill it
-                // showed as a band darker than the fill inside the edges. It had 4 dp; its hairline was already here.
+                shadowElevation = 4.dp,
                 color = if (isDarkTheme) MapIconStackButtonColorDark else MapIconStackButtonColorLight,
                 contentColor = if (isDarkTheme) Color.White else Bark,
                 border = BorderStroke(1.dp, if (isDarkTheme) MAP_ICON_STACK_BORDER_COLOR_DARK else MAP_ICON_STACK_BORDER_COLOR_LIGHT),

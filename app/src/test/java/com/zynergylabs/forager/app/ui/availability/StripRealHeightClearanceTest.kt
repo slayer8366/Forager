@@ -133,7 +133,7 @@ abstract class StripRealHeightClearanceTests(private val rotation: Int, private 
         val x = (slot.left + slot.right) / 2
         fun placeAndOpen(y: Dp, atX: Dp = x) {
             glyphs.clear()
-            glyphs.add(StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", atX - slot.left, y - slot.top, LatLng(45.3736, -121.6959)))
+            glyphs.add(StubGlyph(MapLayerIds.WAYPOINTS, "wp-1", atX - slot.left, y - slot.top, LatLng(45.326, -122.634)))
             composeRule.waitForIdle()
             composeRule.onNodeWithTag(glyphTag("wp-1")).performTouchInput { click(center) }
             composeRule.waitForIdle()

@@ -305,7 +305,7 @@ class RoomSearchCacheRepositoryTest {
     }
 
     private companion object {
-        val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+        val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 
         fun forecast(month: Int, filter: TaxonFilter, topCount: Int = 14) = AvailabilityForecast(
             region = REGION,

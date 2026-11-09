@@ -34,14 +34,14 @@ class EntryMapFrameTest {
         val frame = entryMapFrame(
             data(
                 tracks = listOf(
-                    RecordPolyline("t1", listOf(LatLng(45.20, -121.60), LatLng(45.23, -121.56))),
-                    RecordPolyline("t2", listOf(LatLng(45.18, -121.62), LatLng(45.21, -121.59))),
+                    RecordPolyline("t1", listOf(LatLng(45.20, -122.50), LatLng(45.23, -122.46))),
+                    RecordPolyline("t2", listOf(LatLng(45.18, -122.52), LatLng(45.21, -122.49))),
                 ),
             ),
         )
 
         assertEquals(
-            EntryMapFrame.Fit(GeoBoundingBox(north = 45.23, south = 45.18, east = -121.56, west = -121.62), paddingDp = 48, maxZoom = 17.0),
+            EntryMapFrame.Fit(GeoBoundingBox(north = 45.23, south = 45.18, east = -122.46, west = -122.52), paddingDp = 48, maxZoom = 17.0),
             frame,
         )
     }
@@ -50,19 +50,19 @@ class EntryMapFrameTest {
     fun `mixed kinds fit tracks, finds, waypoints and located photos together`() {
         val frame = entryMapFrame(
             data(
-                tracks = listOf(RecordPolyline("t1", listOf(LatLng(45.40, -121.68), LatLng(45.41, -121.69)))),
-                finds = listOf(RecordPoint("f1", LatLng(45.48, -121.73))),
-                waypoints = listOf(RecordPoint("w1", LatLng(45.37, -121.58))),
-                photos = listOf(RecordPoint("p1", LatLng(45.44, -121.82))),
+                tracks = listOf(RecordPolyline("t1", listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51)))),
+                finds = listOf(RecordPoint("f1", LatLng(45.30, -122.55))),
+                waypoints = listOf(RecordPoint("w1", LatLng(45.15, -122.40))),
+                photos = listOf(RecordPoint("p1", LatLng(45.25, -122.60))),
             ),
         )
 
-        assertEquals(EntryMapFrame.Fit(GeoBoundingBox(north = 45.48, south = 45.37, east = -121.58, west = -121.82)), frame)
+        assertEquals(EntryMapFrame.Fit(GeoBoundingBox(north = 45.30, south = 45.15, east = -122.40, west = -122.60)), frame)
     }
 
     @Test
     fun `a single point opens centred on it at zoom 16, and so do several at the same place`() {
-        val at = LatLng(45.51, -121.71)
+        val at = LatLng(45.51, -122.61)
 
         assertEquals(EntryMapFrame.SinglePoint(at, zoom = 16.0), entryMapFrame(data(finds = listOf(RecordPoint("f1", at)))))
         assertEquals(
@@ -80,7 +80,7 @@ class EntryMapFrameTest {
     fun `regions only frame nothing, and the same regions with a waypoint frame the waypoint`() {
         assertNull(entryMapFrame(data(regions = listOf(farRegion))))
 
-        val waypoint = LatLng(45.4, -121.6)
+        val waypoint = LatLng(45.4, -122.5)
         assertEquals(
             EntryMapFrame.SinglePoint(waypoint),
             entryMapFrame(data(waypoints = listOf(RecordPoint("w1", waypoint)), regions = listOf(farRegion))),
@@ -89,13 +89,13 @@ class EntryMapFrameTest {
 
     @Test
     fun `regions plus a find frame the find alone, the region ignored`() {
-        val find = LatLng(45.51, -121.71)
+        val find = LatLng(45.51, -122.61)
 
         assertEquals(EntryMapFrame.SinglePoint(find), entryMapFrame(data(finds = listOf(RecordPoint("f1", find)), regions = listOf(farRegion))))
         assertEquals(
-            EntryMapFrame.Fit(GeoBoundingBox(north = 45.52, south = 45.51, east = -121.70, west = -121.71)),
+            EntryMapFrame.Fit(GeoBoundingBox(north = 45.52, south = 45.51, east = -122.60, west = -122.61)),
             entryMapFrame(
-                data(finds = listOf(RecordPoint("f1", find), RecordPoint("f2", LatLng(45.52, -121.70))), regions = listOf(farRegion)),
+                data(finds = listOf(RecordPoint("f1", find), RecordPoint("f2", LatLng(45.52, -122.60))), regions = listOf(farRegion)),
             ),
         )
     }
@@ -106,7 +106,7 @@ class EntryMapFrameTest {
         assertNull(entryMapFrame(data()))
         assertNull(entryMapFrame(data(tracks = listOf(RecordPolyline("t1", emptyList())))))
 
-        val photo = LatLng(45.0, -121.1)
+        val photo = LatLng(45.0, -122.0)
         assertEquals(EntryMapFrame.SinglePoint(photo), entryMapFrame(data(photos = listOf(RecordPoint("p1", photo)))))
     }
 }

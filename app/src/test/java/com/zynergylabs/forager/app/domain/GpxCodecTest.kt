@@ -22,8 +22,8 @@ class GpxCodecTest {
             startedAtEpochMillis = 1_000L,
             endedAtEpochMillis = 5_000L,
             points = listOf(
-                TrackPoint(lat = 45.501, lng = -121.701, altitude = 312.5, accuracyMeters = 5f, timestampEpochMillis = 1_000L),
-                TrackPoint(lat = 45.502, lng = -121.702, altitude = null, accuracyMeters = 8f, timestampEpochMillis = 2_000L),
+                TrackPoint(lat = 45.501, lng = -122.601, altitude = 312.5, accuracyMeters = 5f, timestampEpochMillis = 1_000L),
+                TrackPoint(lat = 45.502, lng = -122.602, altitude = null, accuracyMeters = 8f, timestampEpochMillis = 2_000L),
             ),
         )
 
@@ -33,7 +33,7 @@ class GpxCodecTest {
         assertEquals(2, decoded.track?.points?.size)
         val firstDecoded = decoded.track!!.points[0]
         assertEquals(45.501, firstDecoded.lat, 1e-6)
-        assertEquals(-121.701, firstDecoded.lng, 1e-6)
+        assertEquals(-122.601, firstDecoded.lng, 1e-6)
         assertEquals(312.5, firstDecoded.altitude!!, 1e-6)
         assertEquals(1_000L, firstDecoded.timestampEpochMillis)
         // Accuracy is not part of the GPX schema this app writes — see GpxCodec's doc comment —
@@ -44,7 +44,7 @@ class GpxCodecTest {
 
     @Test
     fun `a waypoint round-trips through encode and decode with name and note intact`() {
-        val waypoint = Waypoint(id = "ignored", lat = 45.1, lng = -121.2, altitude = 250.0, name = "Trailhead & Parking", note = "Gravel lot, room for 3 cars", createdAtEpochMillis = 4_000L)
+        val waypoint = Waypoint(id = "ignored", lat = 45.1, lng = -122.1, altitude = 250.0, name = "Trailhead & Parking", note = "Gravel lot, room for 3 cars", createdAtEpochMillis = 4_000L)
 
         val decoded = GpxCodec.decode(GpxCodec.encode(GpxDocument(track = null, waypoints = listOf(waypoint))))
 
@@ -84,14 +84,14 @@ class GpxCodecTest {
      */
     @Test
     fun `the full record round-trips through encode and decode with every field and verdict intact`() {
-        val track = Track(id = "ignored-on-decode", name = "Loop", startedAtEpochMillis = 1_000L, endedAtEpochMillis = 11_000L, points = listOf(TrackPoint(lat = 45.000, lng = -121.1, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)))
+        val track = Track(id = "ignored-on-decode", name = "Loop", startedAtEpochMillis = 1_000L, endedAtEpochMillis = 11_000L, points = listOf(TrackPoint(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)))
         val fullRecord = listOf(
             TrackPointRecord(
-                point = TrackPoint(lat = 45.000, lng = -121.1, altitude = 97.5, accuracyMeters = 8f, timestampEpochMillis = 1_000L, speedMetersPerSecond = 1.2f, speedAccuracyMetersPerSecond = 0.3f),
+                point = TrackPoint(lat = 45.000, lng = -122.0, altitude = 97.5, accuracyMeters = 8f, timestampEpochMillis = 1_000L, speedMetersPerSecond = 1.2f, speedAccuracyMetersPerSecond = 0.3f),
                 kept = true,
             ),
             TrackPointRecord(
-                point = TrackPoint(lat = 45.030, lng = -121.1, altitude = 111.6, accuracyMeters = 20f, timestampEpochMillis = 3_500L),
+                point = TrackPoint(lat = 45.030, lng = -122.0, altitude = 111.6, accuracyMeters = 20f, timestampEpochMillis = 3_500L),
                 kept = false,
             ),
         )
@@ -115,7 +115,7 @@ class GpxCodecTest {
     /** GPX has no element for [Waypoint.trackId]/[Waypoint.designation] — carried in the same `forager:` extension the full record uses, and round-trips the same way. */
     @Test
     fun `a waypoint's track link and designation round-trip through the forager extension`() {
-        val waypoint = Waypoint(id = "ignored", lat = 45.1, lng = -121.2, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+        val waypoint = Waypoint(id = "ignored", lat = 45.1, lng = -122.1, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
         val decoded = GpxCodec.decode(GpxCodec.encode(GpxDocument(track = null, waypoints = listOf(waypoint))))
 
@@ -131,7 +131,7 @@ class GpxCodecTest {
      */
     @Test
     fun `an ordinary waypoint with no track link carries only its id in the extensions block`() {
-        val waypoint = Waypoint(id = "wp-ordinary", lat = 45.1, lng = -121.2, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = 1_000L)
+        val waypoint = Waypoint(id = "wp-ordinary", lat = 45.1, lng = -122.1, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = 1_000L)
 
         val encoded = GpxCodec.encode(GpxDocument(track = null, waypoints = listOf(waypoint)))
 
@@ -149,7 +149,7 @@ class GpxCodecTest {
      */
     @Test
     fun `a waypoint's id survives the round trip rather than being regenerated`() {
-        val waypoint = Waypoint(id = "b3f1 & <odd> \"quoted\"", lat = 45.1, lng = -121.2, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+        val waypoint = Waypoint(id = "b3f1 & <odd> \"quoted\"", lat = 45.1, lng = -122.1, altitude = null, name = "Start", note = "", createdAtEpochMillis = 1_000L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
 
         val decoded = GpxCodec.decode(GpxCodec.encode(GpxDocument(track = null, waypoints = listOf(waypoint)))).waypoints.single()
 
@@ -164,7 +164,7 @@ class GpxCodecTest {
         val foreign = """
             <?xml version="1.0" encoding="UTF-8"?>
             <gpx version="1.1" creator="Elsewhere" xmlns="http://www.topografix.com/GPX/1/1">
-              <wpt lat="45.1" lon="-121.2"><name>Somewhere</name></wpt>
+              <wpt lat="45.1" lon="-122.1"><name>Somewhere</name></wpt>
             </gpx>
         """.trimIndent()
 
@@ -185,9 +185,9 @@ class GpxCodecTest {
     fun `the full record declares its rule set and names the rule on excluded points only`() {
         val track = Track(id = "t", name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = 3_500L, points = emptyList())
         val fullRecord = listOf(
-            TrackPointRecord(point = TrackPoint(lat = 45.000, lng = -121.1, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L), kept = true),
+            TrackPointRecord(point = TrackPoint(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L), kept = true),
             TrackPointRecord(
-                point = TrackPoint(lat = 45.030, lng = -121.1, altitude = null, accuracyMeters = null, timestampEpochMillis = 3_500L),
+                point = TrackPoint(lat = 45.030, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 3_500L),
                 kept = false,
                 excludedByRule = "timestampMillisNonZero",
             ),
@@ -233,7 +233,7 @@ class GpxCodecTest {
               <trk>
                 <extensions>
                   <forager:fullRecord authoritative="true" trksegDerivedFromFullRecord="true" pointCount="1">
-                    <forager:point lat="45.030" lon="-121.1" timeEpochMillis="3500" kept="false"/>
+                    <forager:point lat="45.030" lon="-122.0" timeEpochMillis="3500" kept="false"/>
                   </forager:fullRecord>
                 </extensions>
                 <trkseg></trkseg>
@@ -254,7 +254,7 @@ class GpxCodecTest {
     fun `a document with no declared rule set writes no rule attribute at all`() {
         val track = Track(id = "t", name = null, startedAtEpochMillis = 1_000L, endedAtEpochMillis = null, points = emptyList())
         val fullRecord = listOf(
-            TrackPointRecord(point = TrackPoint(lat = 45.000, lng = -121.1, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L), kept = true),
+            TrackPointRecord(point = TrackPoint(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L), kept = true),
         )
 
         val encoded = GpxCodec.encode(GpxDocument(track = track, waypoints = emptyList(), fullRecord = fullRecord))

@@ -26,7 +26,7 @@ import java.time.LocalDate
  */
 class OpenMeteoPastFutureSplitTest {
 
-    private val region = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
+    private val region = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
 
     /** Local day the fixtures below are built around: 14 days before it, then it, then 6 after. */
     private val referenceDay: LocalDate = LocalDate.of(2026, 8, 16)

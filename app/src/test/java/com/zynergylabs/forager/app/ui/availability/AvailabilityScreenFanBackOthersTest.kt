@@ -23,7 +23,6 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
 import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
 import com.zynergylabs.forager.app.ui.map.MapFeatureTap
@@ -100,8 +99,6 @@ class AvailabilityScreenFanBackOthersTest {
                         currentOnFeatureTap(MapFeatureTap(layerId, featureId, Offset(xPx, yPx), 0f, at))
                     override fun onUnidentifiedFeature(layerId: String) = currentOnTap()
                     override fun onCloseBubble() = currentOnCloseBubble()
-                    override fun onReferenceTrailTap(layerId: String, record: ReferenceTrailRecord, xPx: Float, yPx: Float, at: LatLng) =
-                        currentOnFeatureTap(MapFeatureTap.forReferenceTrail(layerId, record, Offset(xPx, yPx), 0f, at))
                 },
                 bubbleOpen = { currentBubbleShown },
             )

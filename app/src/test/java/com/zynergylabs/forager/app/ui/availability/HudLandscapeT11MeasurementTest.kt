@@ -417,15 +417,7 @@ abstract class HudLandscapeT11Measurement(private val windowLabel: String) {
         measure("05-return-sundown")
         composeRule.runOnIdle { backBy = BackByShown(trackId = "t1", backByAtEpochMillis = now + 40 * minute, nowEpochMillis = now) }
         settle()
-        if (composeRule.density.fontScale >= 1.5f) {
-            // Dispatch 2026-11-06-01, Amendment 1, J6 (RECORD -2183, the owner: "Lines leave (as built)"): at the largest text the card
-            // with both evening lines can't fit even moved up, so it stays at the bottom and the lines step off (RECORD -955). One
-            // sundown line (05, above) still moves up with the card and stays on it. Was "Back by" read here at every font.
-            assertHudReads("06", NAVIGATION_HUD_BACK_BY_LINE_TAG) { it == null }
-            assertHudReads("06", NAVIGATION_HUD_SUNDOWN_LINE_TAG) { it == null }
-        } else {
-            assertHudReads("06", NAVIGATION_HUD_BACK_BY_LINE_TAG) { it != null && it.startsWith("Back by") }
-        }
+        assertHudReads("06", NAVIGATION_HUD_BACK_BY_LINE_TAG) { it != null && it.startsWith("Back by") }
         measure("06-return-sundown-backby-longest")
 
         // 06r. T11 fixes, RECORD -770: the route withheld with "Try again" and both evening lines, the state the owner ruled on

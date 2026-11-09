@@ -61,28 +61,3 @@ internal fun attributionEndInsetClearOf(
     }
     return maxOf(endInsetPx, needed)
 }
-
-/**
- * D28 (dispatch 2026-10-30-08, RECORD -1979, -1980; the owner: "Hide while a card covers it (Recommended)", whose option read "The
- * 'i' disappears while the navigation or route card sits over its corner and comes back when the corner clears"): whether the
- * button, as MapLibre lays it out at gravity bottom-end with [defaults] plus [bottomInsetPx] and the settled [endInsetPx] (after
- * [attributionEndInsetClearOf]), intersects any of [covers], the cards' measured bounds in the map's own px. D30 (RECORD -1980),
- * the owner: "Never rises, hides under cards (Recommended)": the "i" stays in its corner (Amendment 9's rise above the route card is
- * removed) and is judged there. `false` with no cards or before the map has a size.
- */
-internal fun attributionHiddenUnder(
-    covers: List<Rect>,
-    mapWidthPx: Int,
-    mapHeightPx: Int,
-    defaults: IntArray,
-    bottomInsetPx: Int,
-    endInsetPx: Int,
-    isRtl: Boolean,
-    buttonPx: Int,
-): Boolean {
-    if (covers.isEmpty() || mapWidthPx <= 0 || mapHeightPx <= 0) return false
-    val bottom = (mapHeightPx - defaults[3] - bottomInsetPx).toFloat()
-    val left = if (isRtl) (defaults[0] + endInsetPx).toFloat() else (mapWidthPx - defaults[2] - endInsetPx - buttonPx).toFloat()
-    val button = Rect(left, bottom - buttonPx, left + buttonPx, bottom)
-    return covers.any { it.overlaps(button) }
-}

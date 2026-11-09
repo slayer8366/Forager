@@ -43,7 +43,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.domain.FixProvider
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -104,7 +103,7 @@ import com.zynergylabs.forager.app.domain.model.TaxonFilter
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.ui.map.CENTRE_PIN_CONFIRM_ROW_TAG
-import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.centrePinFillPixel
 import com.zynergylabs.forager.app.ui.theme.MapPalette
@@ -220,10 +219,6 @@ class AvailabilityScreenMapIconStackTest {
             unitSystemPreferenceRepository = unitSystemPreferenceRepository,
             appThemePreferenceRepository = IconStackStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(IconStackStubTripPlanningWeatherProvider),
-            entryReferenceCounts = NoEntryReferenceCounts,
-            // Dispatch 2026-10-28-13: the strip shows the height above sea level. A zero offset keeps this class's
-            // heights (feet against metres, the strip's rows) the fixes' own; the conversion is AvailabilityScreenSeaLevelHeightTest's.
-            seaLevelConverter = FixedOffsetSeaLevelConverter(0.0),
         )
         // Live-fix collection is acquired on the hosting Activity's ON_START and released on
         // ON_STOP, not from the ViewModel's init. Composing this screen at all implies a STARTED
@@ -354,19 +349,15 @@ class AvailabilityScreenMapIconStackTest {
     // repeats"): the strip is on screen, and the heading still appears exactly once, in the navigation info. Was "while navigating
     // the compass strip is absent and the true heading appears exactly once": `onAllNodesWithTag("compass-elevation-strip")
     // .assertCountEquals(0)`. The count of "95° E" nodes is the claim that matters, and it stands.
-    // Dispatch 2026-11-05-10, Amendment 1, H1 (the owner: "Keep the compass strip the exact same when in navigation mode as out; so keep
-    // the north compass out of the navigation panel"): the strip keeps its heading navigating, and it is the heading's one place. Was
-    // "while navigating the compass strip stays without its heading, and the true heading appears exactly once":
-    // `onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)` and `assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))`.
     @Test
-    fun `while navigating the compass strip keeps its heading, and the true heading appears exactly once`() {
+    fun `while navigating the compass strip stays without its heading, and the true heading appears exactly once`() {
         setNavigatingScreen()
         composeRule.waitForIdle()
 
         composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(1)
-        composeRule.onAllNodesWithTag(NAVIGATION_HUD_HEADING_TAG).assertCountEquals(0)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
         composeRule.onAllNodesWithText("95° E").assertCountEquals(1)
-        assertEquals("95° E", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
     }
 
     // ── Compass-reliability dispatch ────────────────────────────────────────────────────────
@@ -440,14 +431,11 @@ class AvailabilityScreenMapIconStackTest {
             returnRoute = hudRoute,
         )
         composeRule.waitForIdle()
-        // Amendment 1, H1 and H3 (dispatch 2026-11-05-10): the heading is the strip's, as out of navigation, and the stuck-compass notice
-        // is in the card's status space. Was textOfTag(NAVIGATION_HUD_HEADING_TAG) for both, the card's heading label.
-        assertEquals("95° E", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        assertEquals("95° E", textOfTag(NAVIGATION_HUD_HEADING_TAG))
 
         compass.emit(CompassReading(80f, HeadingUncertainty.Estimated(20.05f), timestampMillis = 0L))
         composeRule.waitForIdle()
-        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_COMPASS_NOTICE_TAG))
-        assertEquals("the strip says what it says out of navigation", "Compass unreliable", textOfTag(COMPASS_STRIP_HEADING_TAG))
+        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_HEADING_TAG))
         assertEquals("", textOfTag(NAVIGATION_HUD_TARGET_TAG))
         assertEquals("1.5 km", textOfTag(NAVIGATION_HUD_DISTANCE_TAG))
         composeRule.onAllNodesWithText("Compass calibrating…").assertCountEquals(1)
@@ -456,18 +444,18 @@ class AvailabilityScreenMapIconStackTest {
         // The fallback path, on its own: no estimate, status LOW — the same state.
         compass.emit(CompassReading(80f, HeadingUncertainty.Status(CompassStatus.LOW), timestampMillis = 500L))
         composeRule.waitForIdle()
-        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_COMPASS_NOTICE_TAG))
+        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_HEADING_TAG))
 
         // Recovery through the status path: HIGH held for two seconds, then the needle is back —
         // at the new reading exactly: 170° magnetic + 15° declination = 185°, and the target due
         // north from a device facing 185° is a 175° turn.
         compass.emit(CompassReading(170f, HeadingUncertainty.Status(CompassStatus.HIGH), timestampMillis = 1_000L))
         composeRule.waitForIdle()
-        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_COMPASS_NOTICE_TAG))
+        assertEquals("Compass calibrating…", textOfTag(NAVIGATION_HUD_HEADING_TAG))
         compass.emit(CompassReading(170f, HeadingUncertainty.Status(CompassStatus.HIGH), timestampMillis = 3_000L))
         composeRule.waitForIdle()
-        assertEquals("185° S", textOfTag(COMPASS_STRIP_HEADING_TAG))
-        assertEquals("175°", textOfTag(NAVIGATION_HUD_TARGET_TAG)) // Amendment 1, G2 (dispatch 2026-11-05-10): the degrees alone. Was "behind 175°".
+        assertEquals("185° S", textOfTag(NAVIGATION_HUD_HEADING_TAG))
+        assertEquals("behind 175°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     /**
@@ -477,16 +465,13 @@ class AvailabilityScreenMapIconStackTest {
     // Dispatch 2026-10-12-08 (RECORD -950, step 3: "the heading returns to the strip's line"): the strip was there all along, its
     // line without the heading. Was "leaving navigation brings the compass strip back with the heading, still exactly once", with
     // `onAllNodesWithTag("compass-elevation-strip").assertCountEquals(0)` before leaving.
-    // Amendment 1, H1 (dispatch 2026-11-05-10): the heading is on the strip's line navigating too, so leaving keeps it there. Was "leaving
-    // navigation puts the heading back on the strip's line, still exactly once", with `onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG)
-    // .assertCountEquals(0)` before leaving.
     @Test
-    fun `leaving navigation keeps the heading on the strip's line, still exactly once`() {
+    fun `leaving navigation puts the heading back on the strip's line, still exactly once`() {
         val returning = mutableStateOf(true)
         setNavigatingScreen(returning = returning)
         composeRule.waitForIdle()
         composeRule.onAllNodesWithTag("compass-elevation-strip").assertCountEquals(1)
-        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(1)
+        composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
 
         composeRule.runOnUiThread { returning.value = false }
         composeRule.waitForIdle()
@@ -512,7 +497,7 @@ class AvailabilityScreenMapIconStackTest {
         // RECORD -942: on the route, no straight-line note. Was "1.1 km straight".
         assertEquals("", textOfTag(NAVIGATION_HUD_STATUS_TAG))
         // Target due north (0°) from a device facing 95° true: 265° relative, a left turn.
-        assertEquals("95°", textOfTag(NAVIGATION_HUD_TARGET_TAG)) // Amendment 1, G2 (dispatch 2026-11-05-10): the degrees alone. Was "left 95°".
+        assertEquals("left 95°", textOfTag(NAVIGATION_HUD_TARGET_TAG))
     }
 
     /**
@@ -684,8 +669,7 @@ class AvailabilityScreenMapIconStackTest {
 
         // Dispatch 2026-09-28-430, rulings B and E: with no compass while navigating, the map is north-up
         // and the heading label says so. Was "Compass unavailable".
-        // Amendment 1, H3 (dispatch 2026-11-05-10): the notice is in the card's status space. Was textOfTag(NAVIGATION_HUD_HEADING_TAG).
-        assertEquals("No compass", textOfTag(NAVIGATION_HUD_COMPASS_NOTICE_TAG)) // Amendment 1, H9 (the owner: "Shorten to \"No compass\" (Recommended)"): was "Compass unavailable · north up".
+        assertEquals("Compass unavailable · north up", textOfTag(NAVIGATION_HUD_HEADING_TAG))
         // Was "Bearing 0° N" until the two-data-corrections dispatch (Part C, owner-authorised
         // change to this assertion). Asserted by node count as well as by the tagged text: no node
         // anywhere on the screen carries a bearing.
@@ -1025,8 +1009,8 @@ class AvailabilityScreenMapIconStackTest {
         // Latitude and Longitude are the dropdown's first row, with no fold (dispatch
         // 2026-09-28-697), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.3736")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
+        composeRule.onNodeWithText("Latitude").performScrollTo().performTextReplacement("45.326")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
         // performScrollTo(): "Search coordinates" sits under the fields (RECORD -700); kept in case it
         // is ever below the dropdown's own bounded, scrolled viewport on this suite's w360dp-h640dp
         // config — without
@@ -1150,7 +1134,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithContentDescription("Fullscreen").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Reset orientation to north").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Center on my location").assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Layers: Trail map. Choose the map type.").assertIsDisplayed()
+        composeRule.onNodeWithContentDescription("Layers: Trail map. Choose the map type and overlays.").assertIsDisplayed()
         composeRule.onNodeWithContentDescription("Plan a trip or log a find here").assertIsDisplayed()
     }
 
@@ -1200,7 +1184,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onNodeWithText("OK").performClick()
         composeRule.waitForIdle()
 
-        assertEquals(LatLng(45.3736, -121.6959), startedLogEntryAt)
+        assertEquals(LatLng(45.326, -122.634), startedLogEntryAt)
     }
 
     /**
@@ -1569,7 +1553,7 @@ class AvailabilityScreenMapIconStackTest {
         composeRule.onAllNodesWithText("Location services unavailable").assertCountEquals(1)
         composeRule.onAllNodesWithText("Compass unavailable").assertCountEquals(0)
         composeRule.onAllNodesWithText("Compass needs a fix").assertCountEquals(0)
-        composeRule.onAllNodesWithText("Alt unavailable").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Elevation unavailable").assertCountEquals(0)
         composeRule.onAllNodesWithText("Coordinates unavailable").assertCountEquals(0)
         composeRule.onAllNodesWithTag(COMPASS_STRIP_HEADING_TAG).assertCountEquals(0)
     }
@@ -2475,7 +2459,7 @@ class AvailabilityScreenMapIconStackTest {
     // ── popover did too, until map layers L0b replaced it with the Layers sheet)             ──
 
     /** [MapIconBar]'s layers row, as it reads at this file's default basemap: Trail since dispatch 2026-10-22-01 (RECORD -1554); Street before that (RECORD -1297), and Topographical before that. */
-    private val layersRowDescription = "Layers: Trail map. Choose the map type."
+    private val layersRowDescription = "Layers: Trail map. Choose the map type and overlays."
 
     /** [MapIconBar]'s add row. */
     private val addRowDescription = "Plan a trip or log a find here"
@@ -2615,51 +2599,32 @@ class AvailabilityScreenMapIconStackTest {
     }
 
     /**
-     * Dispatch 2026-10-28-02 (RECORD -1764): the map type panel is back, anchored to the Layers row wherever the bar has
-     * been dragged, on either edge, as `MapModePicker` was before L0b. With real touches: the Layers row opens it; its
-     * vertical centre is level with the row's (within 2 dp: the anchor is computed from the bar's rows, not measured,
-     * `MapIconBarSizes.kt`), it overlaps the row, and it extends toward the map's middle from the bar's side; a real
-     * touch on its Topo chip, at screen coordinates, applies Topo and closes it.
+     * Map layers L0b (planner's ruling on F3): the popover these two tests used to anchor-check is
+     * gone, replaced by the Layers sheet, which is a modal bottom sheet with no anchor to the bar. What
+     * still holds, and what these check with real touches, is that the layers row opens it from
+     * wherever the bar has been dragged, on either edge, and that the sheet's map-type chips work: a
+     * touch on "Topographical" (on "Street" until Street became the opening map) changes the row's description. The sheet is its own window, so the touch on
+     * the chip is through the chip's own node rather than the app's root.
      */
-    private fun assertPanelAnchoredToLayersRow(onLeft: Boolean) {
-        val row = composeRule.onNodeWithContentDescription(layersRowDescription).getUnclippedBoundsInRoot()
+    @Test
+    fun `with the bar dragged to the bottom on the right, a real touch on the layers row opens the Layers sheet and its map types work`() {
+        setScreen()
+
+        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
         composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
         composeRule.waitForIdle()
 
-        val panel = composeRule.onNodeWithTag(MAP_TYPE_PANEL_TAG).assertIsDisplayed().getUnclippedBoundsInRoot()
-        val rowMid = (row.top + row.bottom) / 2
-        val panelMid = (panel.top + panel.bottom) / 2
-        assertTrue("the panel's middle ($panelMid) is level with the Layers row's ($rowMid)", abs((panelMid - rowMid).value) <= 2f)
-        assertTrue("the panel ($panel) overlaps the Layers row ($row)", panel.left < row.right && panel.right > row.left)
-        if (onLeft) {
-            assertTrue("on the left it grows rightward from the bar ($panel, $row)", panel.right > row.right && panel.left <= row.left + 1.dp)
-        } else {
-            assertTrue("on the right it grows leftward from the bar ($panel, $row)", panel.left < row.left && panel.right >= row.right - 1.dp)
-        }
-
-        composeRule.onRoot().performTouchInput { click(centerOfText("Topo")) }
+        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
+        // Topo, away from the opening Trail (dispatch 2026-10-22-01), so the description has to change.
+        composeRule.onNodeWithText("Topo").performTouchInput { click() }
         composeRule.waitForIdle()
 
-        composeRule.onNodeWithContentDescription("Layers: Topo map. Choose the map type.").assertIsDisplayed()
-        assertEquals("one tap closes it", 0, composeRule.onAllNodesWithTag(MAP_TYPE_PANEL_TAG).fetchSemanticsNodes().size)
-    }
-
-    @Test
-    fun `with the bar at rest on the right, the Layers row opens the map type panel beside it and a real touch on Topo applies it`() {
-        setScreen()
-        assertPanelAnchoredToLayersRow(onLeft = false)
-    }
-
-    @Test
-    fun `with the bar dragged to the bottom on the right, the map type panel opens beside the Layers row and its map types work`() {
-        setScreen()
-        dragIconBarHandle(tag = "map-icon-bar-minimize-handle", dyDp = 2000.dp)
-        assertPanelAnchoredToLayersRow(onLeft = false)
+        composeRule.onNodeWithContentDescription("Layers: Topo map. Choose the map type and overlays.").assertIsDisplayed()
     }
 
     /** The same on the left edge: one drag snaps the bar left and drops it to the bottom of its range. */
     @Test
-    fun `with the bar dragged to the bottom on the left, the map type panel opens beside the Layers row and its map types work`() {
+    fun `with the bar dragged to the bottom on the left, a real touch on the layers row opens the Layers sheet and its map types work`() {
         setScreen()
         val fullscreenLeftBefore = composeRule.onNodeWithContentDescription("Fullscreen").getUnclippedBoundsInRoot().left
 
@@ -2670,7 +2635,16 @@ class AvailabilityScreenMapIconStackTest {
             "expected the bar to have snapped to the left edge (left=$fullscreenLeftAfter, was $fullscreenLeftBefore)",
             fullscreenLeftAfter.value < fullscreenLeftBefore.value,
         )
-        assertPanelAnchoredToLayersRow(onLeft = true)
+
+        composeRule.onRoot().performTouchInput { click(centerOfContentDescription(layersRowDescription)) }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
+        // Topo, away from the opening Trail (dispatch 2026-10-22-01), so the description has to change.
+        composeRule.onNodeWithText("Topo").performTouchInput { click() }
+        composeRule.waitForIdle()
+
+        composeRule.onNodeWithContentDescription("Layers: Topo map. Choose the map type and overlays.").assertIsDisplayed()
     }
 
     /**
@@ -3265,8 +3239,8 @@ private val TAPPED_SIGHTING = Sighting(
     taxonId = 47348L,
     scientificName = "Cantharellus formosus",
     commonName = "Chanterelle",
-    lat = 45.38,
-    lng = -121.70,
+    lat = 45.33,
+    lng = -122.64,
     observedOn = LocalDate.of(2026, 8, 1),
     photoUrl = null,
 )

@@ -155,10 +155,10 @@ class CartographyViewModelTest {
 
     @Test
     fun `starting a new entry keeps every one of that day's candidates by default`() = runTest(dispatcher) {
-        val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.4, -121.19375), date = DAY).copy(isDraft = false)
+        val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.5, -122.6), date = DAY).copy(isDraft = false)
         RoomMushroomLogRepository(database.mushroomLogDao()).save(find).getOrThrow()
 
-        val waypoint = Waypoint(id = "waypoint-1", lat = 45.4, lng = -121.19375, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = dayStartMillis())
+        val waypoint = Waypoint(id = "waypoint-1", lat = 45.5, lng = -122.6, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = dayStartMillis())
         RoomWaypointRepository(database.waypointDao()).save(waypoint).getOrThrow()
 
         val trackRepository = RoomTrackRepository(database.trackDao())
@@ -166,7 +166,7 @@ class CartographyViewModelTest {
         trackRepository.create(track).getOrThrow()
         trackRepository.appendPoints(
             trackId = track.id,
-            points = listOf(TrackPoint(lat = 45.4, lng = -121.19375, altitude = null, accuracyMeters = null, timestampEpochMillis = dayStartMillis())),
+            points = listOf(TrackPoint(lat = 45.5, lng = -122.6, altitude = null, accuracyMeters = null, timestampEpochMillis = dayStartMillis())),
         ).getOrThrow()
         trackRepository.end(track.id, dayStartMillis() + 60_000L).getOrThrow()
 
@@ -217,7 +217,7 @@ class CartographyViewModelTest {
         trackRepository.create(Track(id = "track-walk", name = "Ridge Loop", startedAtEpochMillis = t0 + 600_000L, endedAtEpochMillis = null, points = emptyList())).getOrThrow()
         trackRepository.end("track-walk", t0 + 600_000L + 3_600_000L).getOrThrow()
         fun marker(id: String, trackId: String, at: Long, designation: WaypointDesignation?) =
-            Waypoint(id = id, lat = 45.4, lng = -121.19375, altitude = null, name = id, note = "", createdAtEpochMillis = at, trackId = trackId, designation = designation)
+            Waypoint(id = id, lat = 45.5, lng = -122.6, altitude = null, name = id, note = "", createdAtEpochMillis = at, trackId = trackId, designation = designation)
         listOf(
             marker("blip-start", "track-blip", t0 + 5_000L, WaypointDesignation.ORIGIN),
             marker("blip-saved", "track-blip", t0 + 10_000L, null),
@@ -316,7 +316,7 @@ class CartographyViewModelTest {
     /** `amendment-2b-optional-writing.md`: selection alone is a complete act of authorship — finishing a wordless entry must succeed, not be blocked or read as incomplete. */
     @Test
     fun `finishing a wordless entry with kept items succeeds and commits it`() = runTest(dispatcher) {
-        val waypoint = Waypoint(id = "waypoint-1", lat = 45.4, lng = -121.19375, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = dayStartMillis())
+        val waypoint = Waypoint(id = "waypoint-1", lat = 45.5, lng = -122.6, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = dayStartMillis())
         RoomWaypointRepository(database.waypointDao()).save(waypoint).getOrThrow()
 
         viewModel.onStartEntry(DAY)
@@ -869,7 +869,7 @@ class CartographyViewModelTest {
      * screen never shows the stale sum. The stale snapshot is planted directly in the database (as
      * every pre-rule entry effectively has one) and the entry list reloaded from disk so the open
      * path reads the planted row, not an in-memory copy. Expected figures by hand: three whole-second
-     * points at 44.900/44.901/44.902°N are two steps of 0.001° = 2 × 111.19 m = 222.39 m over
+     * points at 45.000/45.001/45.002°N are two steps of 0.001° = 2 × 111.19 m = 222.39 m over
      * 10 000 ms; the two sub-second spikes 3.3 km north are excluded before any of that is summed.
      * Fails with the recompute removed from onOpenEntry (6789.0 stays).
      */
@@ -883,11 +883,11 @@ class CartographyViewModelTest {
         trackRepository.appendPoints(
             track.id,
             listOf(
-                TrackPoint(lat = 44.900, lng = -120.59375, altitude = null, accuracyMeters = null, timestampEpochMillis = t0),
-                TrackPoint(lat = 44.930, lng = -120.59375, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = t0 + 2_500L),
-                TrackPoint(lat = 44.901, lng = -120.59375, altitude = null, accuracyMeters = null, timestampEpochMillis = t0 + 5_000L),
-                TrackPoint(lat = 44.930, lng = -120.59375, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = t0 + 7_250L),
-                TrackPoint(lat = 44.902, lng = -120.59375, altitude = null, accuracyMeters = null, timestampEpochMillis = t0 + 10_000L),
+                TrackPoint(lat = 45.000, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = t0),
+                TrackPoint(lat = 45.030, lng = -122.0, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = t0 + 2_500L),
+                TrackPoint(lat = 45.001, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = t0 + 5_000L),
+                TrackPoint(lat = 45.030, lng = -122.0, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = t0 + 7_250L),
+                TrackPoint(lat = 45.002, lng = -122.0, altitude = null, accuracyMeters = null, timestampEpochMillis = t0 + 10_000L),
             ),
         ).getOrThrow()
 
@@ -932,14 +932,14 @@ class CartographyViewModelTest {
         trackRepository.create(Track(id = "track-1", name = "Ridge Loop", startedAtEpochMillis = t0, endedAtEpochMillis = t0 + 110_000L, points = emptyList())).getOrThrow()
         trackRepository.appendPoints(
             "track-1",
-            (0 until 12).map { i -> TrackPoint(lat = 44.9 + 0.001 * i, lng = -120.59375, altitude = 100.0 + 5.0 * i, accuracyMeters = 5f, timestampEpochMillis = t0 + i * 10_000L) },
+            (0 until 12).map { i -> TrackPoint(lat = 45.0 + 0.001 * i, lng = -122.0, altitude = 100.0 + 5.0 * i, accuracyMeters = 5f, timestampEpochMillis = t0 + i * 10_000L) },
         ).getOrThrow()
         trackRepository.end("track-1", t0 + 110_000L).getOrThrow()
-        waypointRepository.save(Waypoint(id = "wp-start", lat = 44.9, lng = -120.59375, altitude = null, name = "Start", note = "", createdAtEpochMillis = t0, trackId = "track-1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.ORIGIN)).getOrThrow()
-        waypointRepository.save(Waypoint(id = "wp-end", lat = 44.911, lng = -120.59375, altitude = null, name = "End", note = "", createdAtEpochMillis = t0 + 110_000L, trackId = "track-1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.END)).getOrThrow()
-        waypointRepository.save(Waypoint(id = "wp-dropped", lat = 44.905, lng = -120.59375, altitude = null, name = "Big fir", note = "", createdAtEpochMillis = t0 + 50_000L, trackId = "track-1")).getOrThrow()
-        waypointRepository.save(Waypoint(id = "wp-loose", lat = 45.1, lng = -120.79375, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = t0 + 3_600_000L)).getOrThrow()
-        RoomMushroomLogRepository(database.mushroomLogDao()).save(MushroomLogEntry.draft(id = "find-1", location = LatLng(45.4, -121.19375), date = DAY).copy(isDraft = false)).getOrThrow()
+        waypointRepository.save(Waypoint(id = "wp-start", lat = 45.0, lng = -122.0, altitude = null, name = "Start", note = "", createdAtEpochMillis = t0, trackId = "track-1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.ORIGIN)).getOrThrow()
+        waypointRepository.save(Waypoint(id = "wp-end", lat = 45.011, lng = -122.0, altitude = null, name = "End", note = "", createdAtEpochMillis = t0 + 110_000L, trackId = "track-1", designation = com.zynergylabs.forager.app.domain.model.WaypointDesignation.END)).getOrThrow()
+        waypointRepository.save(Waypoint(id = "wp-dropped", lat = 45.005, lng = -122.0, altitude = null, name = "Big fir", note = "", createdAtEpochMillis = t0 + 50_000L, trackId = "track-1")).getOrThrow()
+        waypointRepository.save(Waypoint(id = "wp-loose", lat = 45.2, lng = -122.2, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = t0 + 3_600_000L)).getOrThrow()
+        RoomMushroomLogRepository(database.mushroomLogDao()).save(MushroomLogEntry.draft(id = "find-1", location = LatLng(45.5, -122.6), date = DAY).copy(isDraft = false)).getOrThrow()
     }
 
     private fun keptById(entry: com.zynergylabs.forager.app.domain.model.CartographyEntry): Map<String, Boolean> =
@@ -1033,7 +1033,7 @@ class CartographyViewModelTest {
         advanceUntilIdle()
         val id = viewModel.uiState.value.editingEntry!!.id
         RoomWaypointRepository(database.waypointDao()).save(
-            Waypoint(id = "wp-later", lat = 45.2, lng = -120.89375, altitude = null, name = "Later pin", note = "", createdAtEpochMillis = dayStartMillis() + 15 * 3_600_000L),
+            Waypoint(id = "wp-later", lat = 45.3, lng = -122.3, altitude = null, name = "Later pin", note = "", createdAtEpochMillis = dayStartMillis() + 15 * 3_600_000L),
         ).getOrThrow()
         viewModel.onCloseEntry()
         viewModel.onOpenEntry(id)

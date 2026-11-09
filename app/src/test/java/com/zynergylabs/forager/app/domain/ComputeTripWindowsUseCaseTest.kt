@@ -24,7 +24,7 @@ import java.time.LocalDate
 class ComputeTripWindowsUseCaseTest {
 
     private val useCase = ComputeTripWindowsUseCase()
-    private val region = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
+    private val region = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
 
     private val referenceDay: LocalDate = LocalDate.of(2026, 8, 16)
     private val firstDay: LocalDate = referenceDay.minusDays(14) // 2026-08-02

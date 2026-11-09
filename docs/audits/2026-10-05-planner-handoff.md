@@ -27,7 +27,7 @@ The earlier planner was **not dead**. It reconnected around 20:21 UTC and kept w
 1. **-516, sundown alerts** (`sundown-alerts` at `d85b4ae2`, not merged; report `docs/navigation/2026-10-05-sundown-alerts-report.md`).
    - Installed on both phones as 1.0.2763+gbf34fc87.
    - **Today's walk** ran with both phone clocks set 4 h 09 min ahead, on purpose, for the sunset check (the owner: -541 "1 yes").
-     - The heads-up fired on both phones at h:mm PM by the phone clock: "Sunset at h:mm PM / The walk back is unknown."
+     - The heads-up fired on both phones at 5:13 PM by the phone clock: "Sunset at 6:42 PM / The walk back is unknown."
      - The walk back was unknown only because the clock made every GPS fix look lost (-540).
      - Whether the leave-by and sunset alerts fired later is **not known**. Both phones were still recording at 20:25 UTC.
      - The owner has set the S26's clock back (-541 "2 it's set back"). The S22's clock was not re-read; both phones were unplugged at 20:32 UTC.
@@ -65,5 +65,3 @@ The earlier planner was **not dead**. It reconnected around 20:21 UTC and kept w
 
 - **Model named in co-author lines.** This session's coder commits on `no-position-bubble` (`c7e04dde`, `3ca5b138`, `8ce82e7f`, `895104b5`) name a model in the co-author line, against the project's rule. They are pushed and merged, so they are disclosed, not amended.
 - **Screenshots.** The walk screenshots this session pulled are in `/tmp/plan/` on the laptop only. They show street addresses and are not in the repository.
-
-_Clock times taken at the owner's home are shown as h:mm (dispatch 2026-11-05-11, removed 2026-11-06)._

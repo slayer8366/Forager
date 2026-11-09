@@ -320,8 +320,8 @@ explicitly rather than absorbed.
 test: bounding box from the centre by the equirectangular rule `GeoDistance.boundingBox` uses
 (`GeoDistance.kt:69–83`; mean radius 6 371 008.8 m, longitude span divided by `cos(lat)`), tile
 column `floor((lng+180)/360·2^z)`, tile row `floor((1 − ln(tan φ + sec φ)/π)/2·2^z)`, tiles per zoom
-= columns × rows, summed over z = 10…15. Cross-check against the previous work's figures at its
-reference point (shown here as the made-up stand-in 45.3736, −121.6959; see the note below the table): **5/15/50 km → 68/485/4772 at ceiling 14 and 224/1781/18696
+= columns × rows, summed over z = 10…15. Cross-check against the previous work's figures at the
+owner's coordinates (45.357, −122.607): **5/15/50 km → 68/485/4772 at ceiling 14 and 224/1781/18696
 at ceiling 15 — all six reproduced exactly.**
 
 **B2.1 — which latitude.** The archive is a continental-US extract, `--bbox=-124.85,24.40,-66.87,49.60`
@@ -333,10 +333,10 @@ slider.
 Tile counts also depend on where the centre sits relative to tile edges, by up to one extra column
 and one extra row per zoom, so a single global maximum has to fit the *worst alignment*, not one
 lucky centre. For each radius I took the maximum over a 40 × 40 sweep of the centre across one
-zoom-15 tile in both axes ("worst" below), alongside the point estimate at the reference point's longitude
+zoom-15 tile in both axes ("worst" below), alongside the point estimate at the owner's longitude
 ("point").
 
-| Radius | 49.60°N worst | 49.60°N point | reference latitude worst | reference latitude point |
+| Radius | 49.60°N worst | 49.60°N point | 45.357°N worst | 45.357°N point (owner) |
 |---|---|---|---|---|
 | 8 km (miles default) | 696 | 656 | 562 | 532 |
 | 10 km (km default) | 1 007 | 980 | 869 | 824 |
@@ -347,15 +347,13 @@ zoom-15 tile in both axes ("worst" below), alongside the point estimate at the r
 | 28 km | 7 019 | — | 6 075 | — |
 | 50 km (today's max) | 22 028 | — | 18 802 | 18 696 |
 
-*Note added 2026-11-06 (dispatch 2026-11-06-03): the reference point this section was computed at, a public city point, is withheld from this copy, and the wording that tied it to a person has been removed. The stand-in coordinates above are made up; every figure in this section was computed at the original point, not at the stand-in.*
-
 Per-zoom breakdown of the 25 km case at 49.60°N, point estimate: 3×3 + 5×5 + 8×9 + 16×17 + 32×33 +
 64×65 = 9 + 25 + 72 + 272 + 1 056 + 4 160 = 5 594. Zoom 15 alone is 74 % of it.
 
 **So the largest radius that fits everywhere the archive reaches is 25 km** (worst-case 5 718 ≤
 6 000; 26 km is 6 075 and over). The dispatch's unverified "28 km at 45°N" was a point estimate at a
 comfortable latitude and alignment; it would be refused at the archive's northern edge and can be
-refused at 45°N with an unlucky centre (6 075 worst). At the reference point's latitude the honest number
+refused at 45°N with an unlucky centre (6 075 worst). At the owner's own latitude the honest number
 is 27 km worst-case, 28 km on a lucky centre — but the slider is one global number.
 
 **Is 25 km uselessly small?** It is half of today's 50 km, and today's 50 km was never real: at
@@ -372,7 +370,7 @@ km value is the one stored, gated and estimated. **Proposed: 25 km / "16 mi".** 
 rather the miles reading be round, 24 km / "15 mi" costs 472 fewer worst-case tiles and is equally
 one constant.
 
-**B2.3 — the per-unit defaults.** 8 km ("5 mi") now costs 532 tiles at the reference point's latitude and up
+**B2.3 — the per-unit defaults.** 8 km ("5 mi") now costs 532 tiles at the owner's latitude and up
 to 696 at the archive's northern edge — 8.9–11.6 % of the budget; 10 km costs 824–1 007 — 13.7–16.8 %.
 At ceiling 14 those were 152–194 and 224–278 (2.5–4.6 %). So a default-radius region went from
 "one of ~25–40 that fit" to "one of ~6–11 that fit". Neither is an unreasonable share for a single
@@ -575,7 +573,7 @@ so a finer sweep cannot move it).
   recorded at all; `listRegions` reads the live `completedTileCount` from `OfflineManager` each
   time. The conclusion the dispatch hoped for (accounting stays correct) is true, for a stronger
   reason.
-- "The 6000 budget then holds roughly 28 km at 45°N" — 27 km worst-case at the reference point's latitude, 28 km only on
+- "The 6000 budget then holds roughly 28 km at 45°N" — 27 km worst-case at 45.357°N, 28 km only on
   a favourable centre, and 25 km at the archive's northern edge, which is the number that matters.
 - "One branch, one existing test" (Part C) — one branch, **two** existing tests: the readout unit
   test and the screen test both pinned "Bearing 0° N".

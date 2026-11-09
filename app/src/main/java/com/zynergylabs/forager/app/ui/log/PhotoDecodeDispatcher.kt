@@ -4,10 +4,8 @@ import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 
 /**
- * The one place [DecodedPhoto], and the photo viewer's `ZoomablePhoto` (`PhotoViewerDialog.kt`), get the dispatcher
- * they decode on. Production is [Dispatchers.IO], exactly as before this seam existed; nothing in `main/` ever sets
- * [override]. The viewer joined it after pre-main run 41766149924, where its own `withContext(Dispatchers.IO)` hit the
- * mechanism below in `PhotoViewerDialogTest` ("Detected multithreaded access to SnapshotStateObserver").
+ * The one place [DecodedPhoto] gets the dispatcher it decodes on. Production is [Dispatchers.IO],
+ * exactly as before this seam existed; nothing in `main/` ever sets [override].
  *
  * **Why it exists** (dispatch 2026-09-28-351). The owner chose, for the leaving-the-journal CI
  * flake: "tests control the photo-loading thread. The app loads photos exactly as it does now,
@@ -35,7 +33,7 @@ internal object PhotoDecodeDispatcher {
     @Volatile
     private var override: CoroutineDispatcher? = null
 
-    /** What [DecodedPhoto] and the photo viewer decode on: [Dispatchers.IO] unless [override] has been set. Read at each decode. */
+    /** What [DecodedPhoto] decodes on: [Dispatchers.IO] unless [override] has been set. Read at each decode. */
     val current: CoroutineDispatcher get() = override ?: Dispatchers.IO
 
     /** For the unit-test source set only: `null` restores the production default. */

@@ -40,7 +40,7 @@ class BasemapTest {
         // MapMode superseded it): MapMode.DEFAULT is Topographical via OpenStreetMap, because USGS
         // covers the United States only and a US-only opening basemap would break the map outright
         // for every user outside it. See MapMode's own doc comment.
-        // Was assertEquals(Basemap.OPEN_TOPO_MAP, Basemap.DEFAULT), then STREET (Street, RECORD -1297); the opening map
+        // Was assertEquals(Basemap.OPEN_TOPO_MAP, Basemap.DEFAULT), then OSM_STANDARD (Street, RECORD -1297); the opening map
         // became Forager Trail Map (dispatch 2026-10-22-01, RECORD -1554).
         assertEquals(Basemap.FORAGER_TRAIL, Basemap.DEFAULT)
         assertEquals(MapMode.DEFAULT.basemap, Basemap.DEFAULT)
@@ -116,5 +116,8 @@ class BasemapTest {
         )
     }
 
-    // "Street's caption and full credit are the same line" is held in ui/map/street/StreetMapTest (dispatch 2026-11-03-05 D7).
+    @Test
+    fun `Street's caption and full credit are the same line`() {
+        assertEquals(Basemap.OSM_STANDARD.attribution, Basemap.OSM_STANDARD.fullAttribution)
+    }
 }

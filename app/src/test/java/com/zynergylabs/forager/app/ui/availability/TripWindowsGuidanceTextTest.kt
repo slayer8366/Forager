@@ -95,8 +95,8 @@ class TripWindowsGuidanceTextTest {
         composeRule.waitForIdle()
         // The same reference coordinates AvailabilityScreenConditionsMonthTest types; not anyone's real place.
         composeRule.runOnIdle {
-            viewModel.onManualLatChanged("45.3736")
-            viewModel.onManualLngChanged("-121.6959")
+            viewModel.onManualLatChanged("45.326")
+            viewModel.onManualLngChanged("-122.634")
             viewModel.searchManualCoordinates()
         }
         composeRule.waitForIdle()

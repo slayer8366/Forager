@@ -55,7 +55,7 @@ class TrackPointSpeedMigrationTest {
             legacyDb.trackDao().insertTrack(TrackEntity(id = "track-1", name = "Before speed", startedAtEpochMillis = 1_000L, endedAtEpochMillis = 9_000L, originWaypointId = null))
             legacyDb.trackDao().insertPoints(
                 listOf(
-                    TrackPointEntity(id = 7L, trackId = "track-1", lat = 45.5, lng = -121.7, altitude = 312.0, accuracyMeters = 8.5f, timestampEpochMillis = 2_000L, speedMetersPerSecond = null, speedAccuracyMetersPerSecond = null),
+                    TrackPointEntity(id = 7L, trackId = "track-1", lat = 45.5, lng = -122.6, altitude = 312.0, accuracyMeters = 8.5f, timestampEpochMillis = 2_000L, speedMetersPerSecond = null, speedAccuracyMetersPerSecond = null),
                 ),
             )
             // The shared TrackPointEntity now declares both speed columns, which a real version-14
@@ -72,15 +72,15 @@ class TrackPointSpeedMigrationTest {
         try {
             val repository = RoomTrackRepository(migrated.trackDao())
 
-            val legacyPoint = TrackPoint(lat = 45.5, lng = -121.7, altitude = 312.0, accuracyMeters = 8.5f, timestampEpochMillis = 2_000L, speedMetersPerSecond = null, speedAccuracyMetersPerSecond = null)
+            val legacyPoint = TrackPoint(lat = 45.5, lng = -122.6, altitude = 312.0, accuracyMeters = 8.5f, timestampEpochMillis = 2_000L, speedMetersPerSecond = null, speedAccuracyMetersPerSecond = null)
             assertEquals(
                 Track(id = "track-1", name = "Before speed", startedAtEpochMillis = 1_000L, endedAtEpochMillis = 9_000L, points = listOf(legacyPoint)),
                 repository.getById("track-1").getOrThrow(),
             )
             assertEquals(listOf(7L), migrated.trackDao().getPointsForTrack("track-1").map { it.id })
 
-            val withSpeed = TrackPoint(lat = 45.51, lng = -121.71, altitude = 300.0, accuracyMeters = 3.79f, timestampEpochMillis = 3_000L, speedMetersPerSecond = 0.96f, speedAccuracyMetersPerSecond = 0.69f)
-            val withoutSpeed = TrackPoint(lat = 45.52, lng = -121.72, altitude = null, accuracyMeters = 17.2f, timestampEpochMillis = 4_000L, speedMetersPerSecond = null, speedAccuracyMetersPerSecond = null)
+            val withSpeed = TrackPoint(lat = 45.51, lng = -122.61, altitude = 300.0, accuracyMeters = 3.79f, timestampEpochMillis = 3_000L, speedMetersPerSecond = 0.96f, speedAccuracyMetersPerSecond = 0.69f)
+            val withoutSpeed = TrackPoint(lat = 45.52, lng = -122.62, altitude = null, accuracyMeters = 17.2f, timestampEpochMillis = 4_000L, speedMetersPerSecond = null, speedAccuracyMetersPerSecond = null)
             repository.appendPoints("track-1", listOf(withSpeed, withoutSpeed)).getOrThrow()
 
             assertEquals(listOf(legacyPoint, withSpeed, withoutSpeed), repository.getById("track-1").getOrThrow()!!.points)

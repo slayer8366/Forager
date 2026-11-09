@@ -169,7 +169,7 @@ test("an area partly outside the build: 200 with the squares that exist, the mis
 });
 
 test("an area the build does not cover at all: 404 outside_coverage, naming the squares", async () => {
-  const body = await assertError(await call("/routing/area.json?south=45.5&west=-121.7&north=45.6&east=-121.6"), 404, "outside_coverage");
+  const body = await assertError(await call("/routing/area.json?south=45.5&west=-122.7&north=45.6&east=-122.6"), 404, "outside_coverage");
   assert.deepEqual(body.squares, ["W125_N45"]);
 });
 

@@ -104,7 +104,7 @@ class RoundedMapCardTouchTest {
         composeRule.setContent {
             key(generation) {
                 AvailabilityScreen(
-                    uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
+                    uiState = AvailabilityUiState(liveFix = fix),
                     recording = AvailabilityScreenRecording(
                         isRecording = true,
                     ),

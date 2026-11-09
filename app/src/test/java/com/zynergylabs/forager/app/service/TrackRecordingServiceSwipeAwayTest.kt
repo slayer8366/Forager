@@ -16,7 +16,6 @@ import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.AppContainer
 import com.zynergylabs.forager.app.ForagerApplication
 import com.zynergylabs.forager.app.alert.OFF_TRACK_NOTIFICATION_ID
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.ReturnWatchState
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
@@ -124,7 +123,6 @@ class TrackRecordingServiceSwipeAwayTest {
                         getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
                         alreadyRecordingMessage = ALREADY_RECORDING,
                         abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
-                        entryReferenceCounts = NoEntryReferenceCounts,
                     ).also(createdViewModels::add)
                 }
             },

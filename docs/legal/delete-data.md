@@ -1,6 +1,6 @@
 # Deleting your Forager data
 
-**Last updated: 2026-11-09.**
+**Last updated: 2026-10-15.**
 
 Forager stores everything on your own device. There is no account, no server, and no copy of your
 data anywhere except the phone in your hand and any backup files you choose to make. That shapes what deletion means here: there is nothing
@@ -17,7 +17,7 @@ immediately:
 - **Recorded tracks** — the track and every GPS point in it.
 - **Waypoints** — including vehicle and origin markers.
 - **Downloaded offline map regions.**
-- **Planned trips**, with any route you plotted for them.
+- **Planned trips.**
 
 ## Uninstalling removes everything
 
@@ -36,14 +36,31 @@ waypoints never leave the device.
 
 What does leave the device, while you are online, is **where you are looking** — the coordinates a
 species or weather lookup runs on, and the map tiles for the area on screen. Those requests go to
-iNaturalist, Open-Meteo, the map tile providers and our map server on Cloudflare, and
+iNaturalist, Open-Meteo, the map tile providers and a Cloudflare Worker run by the developer, and
 they are logged by the services that receive them. They carry no name, no account and no device
 identifier, because Forager has none to send. Full detail, including exactly which fields each
 service receives, is in the [privacy policy](https://www.zynergy-labs.com/privacy/).
 
 Because those requests are not stored by Forager and cannot be tied to you, there is no deletion
-request to make. Turning off the location permission stops the app using your position; the map still
-loads tiles for the area on screen while you are online.
+request to make. If you want to stop them entirely, denying or revoking the location permission ends
+them; the app keeps working without it.
+
+## The beta signup list is separate
+
+Everything above is about the app. There is one piece of data Zynergy Labs does hold about a person,
+and it does not come from the app at all.
+
+If you filled in the form at <https://www.zynergy-labs.com/beta-signup/>, that signup is stored: your
+email address, anything optional you chose to add (a name, a device type, an Android version, a note)
+and a two-letter country code derived from your connection. Your IP address is not kept. The full
+description is in the [privacy policy](https://www.zynergy-labs.com/privacy/#beta-signup-list).
+
+**To have your signup record deleted, email privacy@zynergy-labs.com** and say which address to
+remove. Unlike the app data above, this is a genuine request channel, because here there really is a
+copy held by someone other than you.
+
+Removing your signup does not affect anything on your phone, and deleting data on your phone does not
+remove your signup. They are separate and each has to be asked for separately.
 
 ## Questions
 

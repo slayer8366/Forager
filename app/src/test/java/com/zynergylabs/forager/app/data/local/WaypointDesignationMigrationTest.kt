@@ -46,7 +46,7 @@ class WaypointDesignationMigrationTest {
     @Test
     fun `a pre-existing linked waypoint survives 13 to 14 with no designation, and designated waypoints round-trip`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
-        val legacy = WaypointEntity(id = "wp-legacy", lat = 45.5, lng = -121.6, altitude = 312.0, name = "Old parking", note = "", createdAtEpochMillis = 1_500L, trackId = "track-1")
+        val legacy = WaypointEntity(id = "wp-legacy", lat = 45.5, lng = -122.6, altitude = 312.0, name = "Old parking", note = "", createdAtEpochMillis = 1_500L, trackId = "track-1")
 
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV13::class.java, dbFile.absolutePath).build()
         try {
@@ -66,12 +66,12 @@ class WaypointDesignationMigrationTest {
             val repository = RoomWaypointRepository(migrated.waypointDao())
 
             assertEquals(
-                listOf(Waypoint(id = "wp-legacy", lat = 45.5, lng = -121.6, altitude = 312.0, name = "Old parking", note = "", createdAtEpochMillis = 1_500L, trackId = "track-1", designation = null)),
+                listOf(Waypoint(id = "wp-legacy", lat = 45.5, lng = -122.6, altitude = 312.0, name = "Old parking", note = "", createdAtEpochMillis = 1_500L, trackId = "track-1", designation = null)),
                 repository.getAll().getOrThrow(),
             )
 
-            val origin = Waypoint(id = "wp-origin", lat = 45.52, lng = -121.68, altitude = 50.0, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 3_000L, trackId = "track-2", designation = WaypointDesignation.ORIGIN)
-            val end = Waypoint(id = "wp-end", lat = 45.53, lng = -121.69, altitude = null, name = "End · Sep 5, 11:02 AM", note = "", createdAtEpochMillis = 4_000L, trackId = "track-2", designation = WaypointDesignation.END)
+            val origin = Waypoint(id = "wp-origin", lat = 45.52, lng = -122.68, altitude = 50.0, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 3_000L, trackId = "track-2", designation = WaypointDesignation.ORIGIN)
+            val end = Waypoint(id = "wp-end", lat = 45.53, lng = -122.69, altitude = null, name = "End · Sep 5, 11:02 AM", note = "", createdAtEpochMillis = 4_000L, trackId = "track-2", designation = WaypointDesignation.END)
             repository.save(origin).getOrThrow()
             repository.save(end).getOrThrow()
 

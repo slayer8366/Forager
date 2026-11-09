@@ -215,7 +215,7 @@ class AvailabilityScreenJournalEntriesStateTest {
     }
 }
 
-private val RESULTS_REGION_A = com.zynergylabs.forager.app.domain.model.Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+private val RESULTS_REGION_A = com.zynergylabs.forager.app.domain.model.Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 private val RESULTS_REGION_B = com.zynergylabs.forager.app.domain.model.Region(lat = 44.0, lng = -121.0, radiusKm = 15)
 
 private const val VIEW_TIMELINE = "entries-view-timeline"

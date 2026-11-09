@@ -246,9 +246,6 @@ class MarkerGlyphsTest {
             MarkerIcon.PLANNED_TRIP to MarkerGlyph.PLANNED_TRIP,
             MarkerIcon.PHOTO to MarkerGlyph.PHOTO,
             MarkerIcon.SEARCH_CENTRE to MarkerGlyph.SEARCH_CENTRE,
-            // Dispatch 2026-11-06-05, Amendment 2: a saved route's selected stop, the same pin and flag in the accent colour.
-            MarkerIcon.WAYPOINT_ROUTE_SELECTED to MarkerGlyph.WAYPOINT,
-            MarkerIcon.PLANNED_TRIP_ROUTE_SELECTED to MarkerGlyph.PLANNED_TRIP,
         )
         // J8's three halo icons have their own test (JournalHaloGlyphTest); every marker icon is here.
         assertEquals(MarkerIcon.entries.filterNot { it.halo }.toSet(), glyphs.keys)
@@ -260,10 +257,6 @@ class MarkerGlyphsTest {
                 MarkerIcon.PLANNED_TRIP to palette.plannedTrip,
                 MarkerIcon.PHOTO to palette.photo,
                 MarkerIcon.SEARCH_CENTRE to palette.searchCentre,
-                // The accent written out as hex, so a selected marker drawn in any other colour fails: the dimmer cream #E3D3B5 by day
-                // (Amendment 6, "a dimmer cream by day"; #EDE3D0 before), rust at night, unchanged.
-                MarkerIcon.WAYPOINT_ROUTE_SELECTED to if (palette == MapPalette.NIGHT) 0xFFA2612C.toInt() else 0xFFE3D3B5.toInt(),
-                MarkerIcon.PLANNED_TRIP_ROUTE_SELECTED to if (palette == MapPalette.NIGHT) 0xFFA2612C.toInt() else 0xFFE3D3B5.toInt(),
             )
             for ((icon, glyph) in glyphs) {
                 assertEquals("$icon glyph", glyph, icon.glyph)

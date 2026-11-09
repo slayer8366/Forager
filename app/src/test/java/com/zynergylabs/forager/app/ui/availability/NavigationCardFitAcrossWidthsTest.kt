@@ -46,8 +46,7 @@ import kotlin.math.abs
  * states that stretch it. In every one:
  * - no text in the columns, the grid reference's line or the evening lines is clipped or ends in "…" (each text's own layout:
  *   no visual overflow, no ellipsis, and its one line holds the whole string where it is one line);
- * - the turn needle and the compass arrow share a line (centres within 2 dp), the needle left of the arrow; since Amendment 1, H1, of
- *   dispatch 2026-11-05-10, the needle is drawn and the north arrow is not (it is the strip's);
+ * - the turn needle and the compass arrow share a line (centres within 2 dp), the needle left of the arrow;
  * - (until dispatch 2026-10-12-08) the grid reference is drawn, whole, in its column or on its own line. Since RECORD -950 it
  *   is the compass strip's while navigating, and this test no longer looks for it in the card.
  * The status line under the columns keeps its own earlier rule (RECORD -694: its shortest form, then "…" as the last resort)
@@ -152,10 +151,9 @@ class NavigationCardFitAcrossWidthsTest {
     // Dispatch 2026-10-12-08 (RECORD -950): the height and the grid reference are the strip's while navigating, so the card's
     // texts are the figure, the kind, the turn, the heading and the evening pieces. Was also the elevation, its "Alt" label and
     // the grid reference (dispatch 2026-10-12-06's three columns).
-    // Amendment 1, H1: no heading in the card; NAVIGATION_HUD_HEADING_TAG was in this list.
     private val wholeTags = listOf(
         NAVIGATION_HUD_DISTANCE_TAG, NAVIGATION_HUD_DISTANCE_KIND_TAG, NAVIGATION_HUD_TARGET_TAG,
-        NAVIGATION_HUD_EVENING_PIECE_TAG,
+        NAVIGATION_HUD_HEADING_TAG, NAVIGATION_HUD_EVENING_PIECE_TAG,
     )
 
     private fun assertFits(where: String) {
@@ -187,8 +185,8 @@ class NavigationCardFitAcrossWidthsTest {
             val texts = wholeTags.flatMap { layoutsUnder(it) }
             val buttons = bounds(NAVIGATION_HUD_EXIT_TAG).single()
             val cuts = texts.mapNotNull { laid -> cut(laid.layout, laid.bounds, buttons.left)?.let { "${laid.tag} $it" } }
-            val needles = bounds(NAVIGATION_HUD_NEEDLE_TAG)
-            val arrows = bounds(NAVIGATION_HUD_NORTH_ARROW_TAG)
+            val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG).single()
+            val arrow = bounds(NAVIGATION_HUD_NORTH_ARROW_TAG).single()
             val turn = layoutsUnder(NAVIGATION_HUD_TARGET_TAG).firstOrNull()?.layout?.layoutInput?.text?.text ?: "<none>"
             val figure = layoutsUnder(NAVIGATION_HUD_DISTANCE_TAG).firstOrNull()?.layout?.layoutInput?.text?.text ?: "<none>"
             val card = bounds(NAVIGATION_HUD_TAG).single()
@@ -206,11 +204,9 @@ class NavigationCardFitAcrossWidthsTest {
                 if (text.contains(" · ")) problems += "${c.name}: evening piece not broken at its joins: '$text'"
                 if (laid.bounds.left < lastDivider - 0.5.dp || laid.bounds.right > buttons.left + 0.5.dp) problems += "${c.name}: evening piece '$text' ${laid.bounds} outside the right column (from $lastDivider to ${buttons.left})"
             }
-            // Dispatch 2026-11-05-10, Amendment 1, H1 ("keep the north compass out of the navigation panel"): the needle is drawn, and
-            // no north arrow. Was: `if (abs((needleMid - arrowMid).value) > 2f || needle.right > arrow.left) problems += "…: arrows
-            // apart, …"`, the needle and the north arrow sharing a line.
-            if (needles.size != 1) problems += "${c.name}: ${needles.size} needles drawn"
-            if (arrows.isNotEmpty()) problems += "${c.name}: a north arrow in the card, $arrows"
+            val needleMid = (needle.top + needle.bottom) / 2
+            val arrowMid = (arrow.top + arrow.bottom) / 2
+            if (abs((needleMid - arrowMid).value) > 2f || needle.right > arrow.left) problems += "${c.name}: arrows apart, needle $needle, arrow $arrow"
             measured++
         }
         assertEquals("every state measured", cases.size, measured)

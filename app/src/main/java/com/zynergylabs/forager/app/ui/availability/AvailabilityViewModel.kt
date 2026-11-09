@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.availability
 
-import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.zynergylabs.forager.app.domain.DEFAULT_DARKNESS_MARGIN_MINUTES
@@ -22,10 +21,6 @@ import com.zynergylabs.forager.app.domain.GetTodaysForecastUseCase
 import com.zynergylabs.forager.app.domain.GetTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.NoLastKnownLocation
-import com.zynergylabs.forager.app.domain.NoBarometer
-import com.zynergylabs.forager.app.domain.NoSeaLevelConverter
-import com.zynergylabs.forager.app.domain.PressureProvider
-import com.zynergylabs.forager.app.domain.SeaLevelConverter
 import com.zynergylabs.forager.app.domain.LocationProvider
 import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
@@ -40,12 +35,8 @@ import com.zynergylabs.forager.app.domain.NoReturnLeg
 import com.zynergylabs.forager.app.domain.NoStoredWaypointNavigation
 import com.zynergylabs.forager.app.domain.PredictAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.ReturnLeg
-import com.zynergylabs.forager.app.domain.targetRef
+import com.zynergylabs.forager.app.domain.WaypointNavigation
 import com.zynergylabs.forager.app.domain.WaypointNavigationRepository
-import com.zynergylabs.forager.app.domain.CurrentTimeProvider
-import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
-import com.zynergylabs.forager.app.domain.model.Waypoint
-import com.zynergylabs.forager.app.domain.wayto.WayToWaypointResult
 import com.zynergylabs.forager.app.domain.SavePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.SearchTaxaUseCase
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
@@ -65,10 +56,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -105,14 +92,14 @@ class AvailabilityViewModel(
     private val unitSystemPreferenceRepository: UnitSystemPreferenceRepository,
     private val appThemePreferenceRepository: AppThemePreferenceRepository,
     private val getTodaysForecast: GetTodaysForecastUseCase,
-    /** How many journal entries keep each offline region, live, for its delete message (dispatch 2026-10-28-08). No default, so a factory that leaves it out does not compile (Sorrel's N1). */
-    private val entryReferenceCounts: EntryReferenceCountSource,
+    /** How many Cartography entries currently keep a reference to an offline region — Journal Stage 2b's 4b deletion warning. See `TrackRecordingViewModel.getWaypointReferenceCount`'s own doc comment for why this is a plain suspend function rather than the whole Cartography repository. */
+    private val getOfflineRegionReferenceCount: suspend (Long) -> Int = { 0 },
     /**
      * Settings' "Automatically Save Location to Photos" preference, read and written as two plain
      * functions rather than by taking
      * [com.zynergylabs.forager.app.domain.PhotoLocationPreferenceRepository] itself — the same
-     * "borrow the one capability, not the whole collaborator" shape the offline region counts
-     * used here until dispatch 2026-10-28-08. Defaulted so
+     * "borrow the one capability, not the whole collaborator" shape [getOfflineRegionReferenceCount]
+     * already uses here, and `MushroomLogViewModel`'s `getPhotoEntryReferenceCount`. Defaulted so
      * the thirteen existing suites that construct this ViewModel and never touch this setting need
      * no stub apiece; `MainActivity` wires both to the real repository. `Result`-returning, so the
      * read and write fold exactly the way [AvailabilitySettingsPrefs.loadNightModePreferences] does.
@@ -172,9 +159,6 @@ class AvailabilityViewModel(
     private val basemapPreferenceRepository: BasemapPreferenceRepository = NoStoredBasemap,
     /** RECORD -711: where the Maps tab's icon cluster's side and height persist across restarts. */
     private val mapIconClusterPlacementRepository: MapIconClusterPlacementRepository = NoStoredMapIconClusterPlacement,
-    private val crowdedIconsRepository: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
-    /** Dispatch 2026-11-02-04: where Settings > Map > "Waypoint names" persists across restarts. */
-    private val waypointNamesRepository: com.zynergylabs.forager.app.domain.WaypointNamesPreferenceRepository = NoStoredWaypointNames,
     /** The maps' "no signal" state (NoSignalTrailMap.kt), read when Offline maps opens; defaulted to "no signal", so nothing fetches. */
     internal val noSignal: () -> Boolean = { true },
     /**
@@ -183,19 +167,6 @@ class AvailabilityViewModel(
      * Defaulted to no report, as [com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel] does.
      */
     private val trackEnds: StateFlow<String?> = MutableStateFlow(null),
-    /** Step 6 PR 1 (RECORD -1657): the waypoint being navigated to, read by id for its line. Defaulted to none stored. */
-    private val readWaypoint: suspend (String) -> Result<Waypoint?> = { Result.success(null) },
-    /** Step 6 PR 1 (RECORD -1655): the clock the waypoint line's freshness is read against. */
-    private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
-    /** Step 6 PR 3: the way to a waypoint along trails (AppContainer.findWayToWaypoint); `null`, none (tests), is today's straight line. */
-    private val findWayToWaypoint: (suspend (LatLng, LatLng, Float?) -> WayToWaypointResult)? = null,
-    /** Dispatch 2026-11-06-01, H4 (2b-1): each trail line's junctions for the next turn; `null`, none (tests). */
-    private val readRouteTurns: com.zynergylabs.forager.app.domain.nextturn.RouteTurnsReader? = null,
-    /** Dispatch 2026-10-28-13: the barometer and the sea-level converter behind the live height ([AvailabilityLiveLocation]). Defaulted to none: "Alt unavailable". */
-    private val pressureProvider: PressureProvider = NoBarometer,
-    private val seaLevelConverter: SeaLevelConverter = NoSeaLevelConverter,
-    /** Known bug 14 (dispatch 2026-11-02-02): the map server's detail check for the Offline Maps picker; defaulted to none. */
-    private val trailMapDetail: com.zynergylabs.forager.app.domain.mapdata.TrailMapDetail = com.zynergylabs.forager.app.domain.mapdata.NoTrailMapDetail,
 ) : ViewModel() {
 
     // mapIconClusterPlacement starts null here, not at its data-class default: this ViewModel has a read to
@@ -217,7 +188,7 @@ class AvailabilityViewModel(
      * The planned trips, moved to their own class by UI split Phase 2.4 PR 1. It writes this screen's state
      * through the setter here and launches in this ViewModel's own scope.
      */
-    internal val plannedTrips = AvailabilityPlannedTrips(
+    private val plannedTrips = AvailabilityPlannedTrips(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         getPlannedTrips = getPlannedTrips,
@@ -248,8 +219,6 @@ class AvailabilityViewModel(
         getBatterySaverEnabled = getBatterySaverEnabled,
         setBatterySaverEnabled = setBatterySaverEnabled,
         errorLog = errorLog,
-        crowdedIconsRepository = crowdedIconsRepository,
-        waypointNamesRepository = waypointNamesRepository,
     )
 
     /**
@@ -281,10 +250,9 @@ class AvailabilityViewModel(
         offlineMapRepository = offlineMapRepository,
         mapPreferencesRepository = mapPreferencesRepository,
         locationProvider = locationProvider,
-        entryReferenceCounts = entryReferenceCounts,
+        getOfflineRegionReferenceCount = getOfflineRegionReferenceCount,
         errorLog = errorLog,
         onDownloaded = { region -> offlineRoutes.noteDownloaded(region) },
-        trailMapDetail = trailMapDetail,
     )
 
     internal val offlineRoutes: AvailabilityOfflineRoutes = AvailabilityOfflineRoutes(
@@ -324,12 +292,6 @@ class AvailabilityViewModel(
         waypointNavigationRepository = waypointNavigationRepository,
         errorLog = errorLog,
     )
-
-    /** The straight line to the waypoint being navigated to, moved out of the screen by step 6 PR 1: see the class. */
-    private val waypointLine = AvailabilityWaypointLine({ transform -> _uiState.update(transform) }, navigationTargetReader(readWaypoint, getPlannedTrips::invoke), currentTime, errorLog)
-    /** The way to that waypoint along trails (step 6 PR 3): see the class. Started and ended beside the line, below. */
-    private val waypointRoute =
-        AvailabilityWaypointRoute({ transform -> _uiState.update(transform) }, navigationTargetReader(readWaypoint, getPlannedTrips::invoke), findWayToWaypoint, { _uiState.value.offlineRegions }, currentTime, errorLog, readRouteTurns)
 
     /**
      * The species lookup (its one job and the debounce) and the search inputs' plain writes, moved to their own
@@ -375,13 +337,7 @@ class AvailabilityViewModel(
         scope = { viewModelScope },
         locationTracker = locationTracker,
         lastKnownLocation = lastKnownLocation,
-        pressureProvider = pressureProvider,
-        seaLevelConverter = seaLevelConverter,
-        errorLog = errorLog,
     )
-
-    /** The locate-me button, moved to its own class by dispatch 2026-10-28-13 (the modular rule): see the class. */
-    private val locateMeButton = AvailabilityLocateMe({ _uiState.value }, { transform -> _uiState.update(transform) }, { viewModelScope }, locationProvider)
 
     init {
         // Independent of any search — see AvailabilityUiState.plannedTrips — so this loads once
@@ -391,7 +347,6 @@ class AvailabilityViewModel(
         // connection gets back to a result at all, so it has to be populated before the first
         // search rather than as a side effect of one.
         loadRecentSearches()
-        offlineMaps.watchReferenceCounts()
         offlineMaps.loadOfflineRegions()
         offlineMaps.loadOfflineMapPreferences()
         settingsPrefs.loadUnitSystemPreference()
@@ -406,18 +361,6 @@ class AvailabilityViewModel(
         mapDisplay.loadBasemapPreference()
         mapDisplay.loadMapIconClusterPlacement()
         waypointNavigationStore.loadWaypointNavigation()
-        // Step 6 PR 1: the waypoint line runs while a waypoint (since dispatch 2026-11-05-05, or a trip) is navigated to, started when
-        // one is chosen or picked back up and cancelled when it ends or another is chosen. Decided here, not in the collaborator (RECORD -1450).
-        viewModelScope.launch {
-            _uiState.map { it.waypointNavigation?.targetRef }.distinctUntilChanged().collectLatest { target ->
-                val fixes = _uiState.map { it.liveFix }.distinctUntilChanged()
-                // Step 6 PR 3: the way along trails runs beside the line, for the same navigation, and ends with it.
-                coroutineScope {
-                    launch { waypointRoute.follow(target, fixes) }
-                    waypointLine.follow(target, fixes)
-                }
-            }
-        }
         // Dispatch 2026-10-24-07 (RECORD -1605): a finished track is on the map right after Stop. Recording
         // happens on the Maps tab, so the tab-shown reload never runs at a Stop; the records reload when the
         // service reports the stored end instead, which is never before the row reads ended (TrackEnds).
@@ -612,17 +555,40 @@ class AvailabilityViewModel(
         _uiState.update { it.copy(locationPermissionDenied = true) }
     }
 
-    /** The map icon stack's locate-me button: see [AvailabilityLocateMe.locateMe]. */
-    fun locateMe() = locateMeButton.locateMe()
+    /**
+     * The map icon stack's GPS/locate-me button: recenters the map on the device's live location.
+     * Deliberately independent of [useCurrentLocation] above — that one sets the *search region*
+     * and re-runs the search; this one only reports a point for the map to pan to, touching
+     * neither [AvailabilityUiState.region] nor any search state. [LocateMeStatus] carries its own
+     * denied/unavailable states rather than reusing [AvailabilityUiState.locationPermissionDenied],
+     * which belongs to the other control.
+     */
+    fun locateMe() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(locateMeStatus = LocateMeStatus.Loading) }
+            val status = when (val result = locationProvider.getCurrentLocation()) {
+                // RECORD -1525: tagged with the search it arrived under, read now (see LocateMeStatus.Located).
+                is LocationResult.Success ->
+                    LocateMeStatus.Located(LatLng(result.lat, result.lng), result.altitude, _uiState.value.searchFrameSerial)
+                LocationResult.PermissionDenied -> LocateMeStatus.PermissionDenied
+                LocationResult.LocationUnavailable -> LocateMeStatus.Unavailable
+            }
+            _uiState.update { it.copy(locateMeStatus = status) }
+        }
+    }
 
-    /** See [AvailabilityLocateMe.onLocateMePermissionDenied]. */
-    fun onLocateMePermissionDenied() = locateMeButton.onLocateMePermissionDenied()
+    /**
+     * The Activity denied the OS permission dialog before [locationProvider] was ever asked — see
+     * [onPermissionDenied] for why that gate is the Activity's job, not this class's. Mirrors it
+     * for [LocateMeStatus] rather than [AvailabilityUiState.locationPermissionDenied], which is the
+     * other control's field.
+     */
+    fun onLocateMePermissionDenied() {
+        _uiState.update { it.copy(locateMeStatus = LocateMeStatus.PermissionDenied) }
+    }
 
     /** See [AvailabilityMapDisplay.onMapShown]. */
     fun onMapShown() = mapDisplay.onMapShown()
-
-    /** See [AvailabilityLiveLocation.onMapsTabShownChanged]. */
-    fun onMapsTabShownChanged(shown: Boolean) = liveLocation.onMapsTabShownChanged(shown)
 
     /** See [AvailabilityMapDisplay.onFindDeleted]. */
     fun onFindDeleted(id: String) = mapDisplay.onFindDeleted(id)

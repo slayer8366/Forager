@@ -1222,7 +1222,7 @@ previously deferred the question entirely.
 Two more fixes from the same hardware pass, unrelated to the colour
 question:
 
-- **The coordinate strip truncated mid-coordinate** ("Lat. [a point near the owner's home; removed 2026-11-06]
+- **The coordinate strip truncated mid-coordinate** ("Lat. 45.3262
   Lon…") on a metro-width screen — half a coordinate is not a coordinate,
   on the one element whose job is telling you where you are. Fixed: MGRS
   by default (compact, unambiguous), with a tap on the coordinates segment
@@ -1326,7 +1326,7 @@ observed, on the owner's device: a downloaded region (5 mi radius around
 39.7940, -98.5529 — 139 tiles, 0.1 MB) survived a force-close, clearing the
 app from recents, and a cold reopen; `getStatus()` read the persisted region
 back correctly afterward, with no crash and no inline error. An earlier run
-(6 km around [a point near the owner's home; removed 2026-11-06] — 88 tiles, 1.9 MB) confirmed the download
+(6 km around 45.3368, -122.6016 — 88 tiles, 1.9 MB) confirmed the download
 itself completes cleanly against the real Worker-hosted style with no hang.
 The two bugs that hardware round caught, not headless coverage: an
 `asset://` style URL that hung `OfflineManager`'s resource discovery

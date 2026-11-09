@@ -32,7 +32,6 @@ import com.zynergylabs.forager.app.domain.AlertAudibilityState
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.DeleteTrackUseCase
-import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.InMemoryKeptTrackPaths
 import com.zynergylabs.forager.app.domain.DeleteWaypointUseCase
 import com.zynergylabs.forager.app.domain.ReturnWatch
@@ -129,7 +128,7 @@ class TrackDeleteTest {
             returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), { _: Alert -> }),
             alertAudibility = TrackDeleteAudible,
             errorLog = ErrorLog { tag, message, _ -> loggedFailures += "$tag: $message" },
-            entryReferenceCounts = FakeEntryReferenceCountSource(tracks = referenceCounts),
+            getTrackReferenceCount = { id -> referenceCounts[id] ?: 0 },
         )
         trackViewModel.loadTracks()
         composeRule.setContent {
@@ -384,7 +383,7 @@ private val DONE_TRACK = Track(
     name = "Morning loop",
     startedAtEpochMillis = 1_758_100_000_000L,
     endedAtEpochMillis = 1_758_103_600_000L,
-    points = listOf(TrackPoint(45.5, -121.7, null, null, 1_758_100_000_000L), TrackPoint(45.51, -121.71, null, null, 1_758_100_060_000L)),
+    points = listOf(TrackPoint(45.5, -122.6, null, null, 1_758_100_000_000L), TrackPoint(45.51, -122.61, null, null, 1_758_100_060_000L)),
 )
 private val OTHER_DONE_TRACK = DONE_TRACK.copy(id = "t-other", name = "Ridge walk", startedAtEpochMillis = 1_758_000_000_000L, endedAtEpochMillis = 1_758_003_600_000L)
 

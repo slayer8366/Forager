@@ -8,9 +8,9 @@ import org.junit.Test
 /** Navigation HUD stage one's map display rules — the map's filter, never Records'. */
 class MapVisibleWaypointsTest {
 
-    private val user = Waypoint(id = "u", lat = 45.5, lng = -121.6, altitude = null, name = "Big oak", note = "", createdAtEpochMillis = 1L)
-    private val origin = Waypoint(id = "o", lat = 45.5, lng = -121.6, altitude = null, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 2L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
-    private val end = Waypoint(id = "e", lat = 45.5, lng = -121.6, altitude = null, name = "End · Sep 5, 11:02 AM", note = "", createdAtEpochMillis = 3L, trackId = "t1", designation = WaypointDesignation.END)
+    private val user = Waypoint(id = "u", lat = 45.5, lng = -122.6, altitude = null, name = "Big oak", note = "", createdAtEpochMillis = 1L)
+    private val origin = Waypoint(id = "o", lat = 45.5, lng = -122.6, altitude = null, name = "Start · Sep 5, 9:41 AM", note = "", createdAtEpochMillis = 2L, trackId = "t1", designation = WaypointDesignation.ORIGIN)
+    private val end = Waypoint(id = "e", lat = 45.5, lng = -122.6, altitude = null, name = "End · Sep 5, 11:02 AM", note = "", createdAtEpochMillis = 3L, trackId = "t1", designation = WaypointDesignation.END)
     private val all = listOf(user, origin, end)
 
     @Test

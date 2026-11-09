@@ -22,7 +22,6 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performTouchInput
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
-import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.data.repository.DataStoreMapPreferencesRepository
@@ -30,7 +29,7 @@ import com.zynergylabs.forager.app.domain.AbsentForecastCellStore
 import com.zynergylabs.forager.app.domain.BasemapPreferenceRepository
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.ui.map.Basemap
-import com.zynergylabs.forager.app.ui.map.MAP_TYPE_PANEL_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_LAYERS_SHEET_TAG
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import java.io.File
@@ -159,9 +158,8 @@ class AvailabilityScreenBasemapPersistenceTest {
     }
 
     @Test
-    // Was "…offers only Street and Topographical"; three map types since dispatch 2026-10-22-01 (RECORD -1554, -1556). The
-    // Street map's chip is held by `ui/map/street/StreetMapPersistenceTest` since dispatch 2026-11-03-05 D7.
-    fun `the map type panel offers Trail and Topo, and no Satellite`() {
+    // Was "…offers only Street and Topographical"; three map types since dispatch 2026-10-22-01 (RECORD -1554, -1556).
+    fun `the Layers sheet offers only Trail, Topo and OSM`() {
         val (repository, _) = launchRepository()
         val viewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = repository)
         composeRule.setContent { MapLayersTestScreen(viewModel, slot, AbsentForecastCellStore) }
@@ -169,10 +167,12 @@ class AvailabilityScreenBasemapPersistenceTest {
 
         touchLayersRow()
 
-        composeRule.onNodeWithTag(MAP_TYPE_PANEL_TAG).assertIsDisplayed()
+        composeRule.onNodeWithTag(MAP_LAYERS_SHEET_TAG).assertIsDisplayed()
         composeRule.onNodeWithText("Trail").assertIsDisplayed()
         composeRule.onNodeWithText("Topo").assertIsDisplayed()
+        composeRule.onNodeWithText("OSM").assertIsDisplayed()
         composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
+        composeRule.onAllNodesWithText("Street").assertCountEquals(0)
     }
 
     @Test
@@ -249,18 +249,16 @@ class AvailabilityScreenBasemapPersistenceTest {
     }
 
     /**
-     * Dispatch 2026-11-03-05 B1 (RECORD -1999, -2000), as steps: a phone whose file says "street" from before this update
-     * (the Trail Map's key since dispatch 2026-10-22-01) opens on Trail Map, and the file then says "trail"; after a
-     * restart it is still Trail Map. The file is written the way the old build wrote it, with no migration, so the
-     * migration runs exactly as on an updated phone. Through the real DataStore file and screen, as the test above.
+     * Dispatch 2026-10-22-01 (RECORD -1554, -1556), as steps: Street chosen before the update → opens on Trail Map;
+     * OpenStreetMap picked with a real touch → stored under its own key → still OpenStreetMap after a restart. Driven
+     * through the real DataStore file and the Layers sheet's chip, as the persistence test above.
      */
     @Test
-    fun `the Trail Map's old key from before the update opens on Trail and is moved to trail, once`() {
-        val seedJob = SupervisorJob().also { scopes += it }
-        val oldBuild = PreferenceDataStoreFactory.create(scope = CoroutineScope(Dispatchers.IO + seedJob)) { dataStoreFile() }
+    fun `Street stored before the update opens on Trail, and OSM picked after it survives a restart`() {
+        val (seeder, seederScope) = launchRepository()
         runBlocking {
-            oldBuild.edit { it[stringPreferencesKey("map.basemap")] = "street" }
-            seedJob.cancelAndJoin()
+            seeder.setBasemapKey("street").getOrThrow()
+            seederScope.cancelAndJoin()
         }
 
         val (firstRepository, firstScope) = launchRepository()
@@ -268,11 +266,16 @@ class AvailabilityScreenBasemapPersistenceTest {
         var current by mutableStateOf(firstViewModel)
         composeRule.setContent { key(current) { MapLayersTestScreen(current, slot, AbsentForecastCellStore) } }
         awaitIdle("a style to be released to the map") { released().isNotEmpty() }
-        assertEquals("the old street opens on Trail", listOf(Basemap.FORAGER_TRAIL), released().map { it.basemap }.distinct())
-        assertEquals("and is stored as trail", "trail", stored(firstRepository))
+        assertEquals("Street from before the update opens on Trail", listOf(Basemap.FORAGER_TRAIL), released().map { it.basemap }.distinct())
+        assertEquals("the move rewrites nothing", "street", stored(firstRepository))
+
+        touchLayersRow()
+        composeRule.onNodeWithText("OSM").performTouchInput { click() }
+        awaitIdle("OSM to be stored") { stored(firstRepository) == "openstreetmap" }
+        assertEquals(Basemap.OSM_STANDARD, released().last().basemap)
         release(firstScope)
 
-        val (secondRepository, secondScope) = launchRepository()
+        val (secondRepository, _) = launchRepository()
         val secondViewModel = mapLayersViewModel(errorLog = errorLog, basemapPreferences = secondRepository)
         composeRule.runOnIdle {
             modes.clear()
@@ -280,10 +283,8 @@ class AvailabilityScreenBasemapPersistenceTest {
         }
         awaitIdle("a style to be released to the map") { released().isNotEmpty() }
 
-        assertEquals("after the restart, Trail", listOf(Basemap.FORAGER_TRAIL), released().map { it.basemap }.distinct())
-        assertEquals("trail", stored(secondRepository))
-        release(secondScope)
-        assertEquals("the file says trail", "trail", rawStoredKey())
+        assertEquals("after the restart, OSM", listOf(Basemap.OSM_STANDARD), released().map { it.basemap }.distinct())
+        composeRule.onNode(hasContentDescription("Layers: OSM map.", substring = true)).assertExists()
         assertEquals(emptyList<String>(), logged.filter { "basemap" in it })
     }
 }

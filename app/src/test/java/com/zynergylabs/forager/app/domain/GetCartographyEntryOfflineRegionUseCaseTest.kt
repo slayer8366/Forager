@@ -26,11 +26,11 @@ class GetCartographyEntryOfflineRegionUseCaseTest {
 
     @Test
     fun `an entry whose kept data falls inside a kept, downloaded region reports that region`() = runTest {
-        val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
+        val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
         val region = regionSummary(id = 1L, region = portland)
         val entry = baseEntry.copy(offlineRegionDecisions = listOf(keptDecision(offlineRegionId = 1L, region = portland)))
         // Roughly 3km east of centre, well inside a 10km-radius region's footprint.
-        val points = listOf(LatLng(45.5, -121.15375))
+        val points = listOf(LatLng(45.5, -122.56))
 
         val result = GetCartographyEntryOfflineRegionUseCase(FakeOfflineMapRepository(listOf(region)))(entry, points)
 
@@ -39,11 +39,11 @@ class GetCartographyEntryOfflineRegionUseCaseTest {
 
     @Test
     fun `an entry whose kept data falls outside a kept, downloaded region's tiles reports none`() = runTest {
-        val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
+        val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
         val region = regionSummary(id = 1L, region = portland)
         val entry = baseEntry.copy(offlineRegionDecisions = listOf(keptDecision(offlineRegionId = 1L, region = portland)))
         // Seattle, ~230km north — nowhere near a 10km-radius region centred on Portland.
-        val points = listOf(LatLng(47.6, -120.89375))
+        val points = listOf(LatLng(47.6, -122.3))
 
         val result = GetCartographyEntryOfflineRegionUseCase(FakeOfflineMapRepository(listOf(region)))(entry, points)
 
@@ -52,10 +52,10 @@ class GetCartographyEntryOfflineRegionUseCaseTest {
 
     @Test
     fun `a kept region deleted from the device is treated as unavailable, without error`() = runTest {
-        val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
+        val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
         // Never in the repository's own listRegions() result -- the dangling-reference case.
         val entry = baseEntry.copy(offlineRegionDecisions = listOf(keptDecision(offlineRegionId = 1L, region = portland)))
-        val points = listOf(LatLng(45.5, -121.15375))
+        val points = listOf(LatLng(45.5, -122.56))
 
         val result = GetCartographyEntryOfflineRegionUseCase(FakeOfflineMapRepository(emptyList()))(entry, points)
 
@@ -64,7 +64,7 @@ class GetCartographyEntryOfflineRegionUseCaseTest {
 
     @Test
     fun `an entry with no resolvable coordinates at all reports none and does not throw`() = runTest {
-        val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
+        val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
         val region = regionSummary(id = 1L, region = portland)
         val entry = baseEntry.copy(offlineRegionDecisions = listOf(keptDecision(offlineRegionId = 1L, region = portland)))
 
@@ -75,10 +75,10 @@ class GetCartographyEntryOfflineRegionUseCaseTest {
 
     @Test
     fun `an entry with no kept offline region decisions reports none, even if a covering region is downloaded`() = runTest {
-        val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
+        val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
         val region = regionSummary(id = 1L, region = portland)
         // No offlineRegionDecisions at all -- nothing kept, so nothing to check against.
-        val points = listOf(LatLng(45.5, -121.15375))
+        val points = listOf(LatLng(45.5, -122.56))
 
         val result = GetCartographyEntryOfflineRegionUseCase(FakeOfflineMapRepository(listOf(region)))(baseEntry, points)
 
@@ -87,14 +87,14 @@ class GetCartographyEntryOfflineRegionUseCaseTest {
 
     @Test
     fun `a withheld offline region decision is never checked, even if its region is downloaded and covers the data`() = runTest {
-        val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
+        val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
         val region = regionSummary(id = 1L, region = portland)
         val entry = baseEntry.copy(
             offlineRegionDecisions = listOf(
                 OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = portland.lat, lng = portland.lng, radiusKm = portland.radiusKm, kept = false),
             ),
         )
-        val points = listOf(LatLng(45.5, -121.15375))
+        val points = listOf(LatLng(45.5, -122.56))
 
         val result = GetCartographyEntryOfflineRegionUseCase(FakeOfflineMapRepository(listOf(region)))(entry, points)
 
@@ -109,10 +109,10 @@ class GetCartographyEntryOfflineRegionUseCaseTest {
      */
     @Test
     fun `a covering, downloaded region the entry never kept is not reported`() = runTest {
-        val portland = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
+        val portland = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
         val region = regionSummary(id = 99L, region = portland)
         // baseEntry keeps nothing at all -- region 99 covers the data but was never kept by this entry.
-        val points = listOf(LatLng(45.5, -121.15375))
+        val points = listOf(LatLng(45.5, -122.56))
 
         val result = GetCartographyEntryOfflineRegionUseCase(FakeOfflineMapRepository(listOf(region)))(baseEntry, points)
 

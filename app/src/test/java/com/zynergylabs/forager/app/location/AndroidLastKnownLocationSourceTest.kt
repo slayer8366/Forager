@@ -49,13 +49,13 @@ class AndroidLastKnownLocationSourceTest {
         shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
         // GPS an hour older than the network's. setLastKnownLocation is deprecated in Robolectric 4.16 in favour of
         // simulateLocation, which also delivers to listeners; this seeds what the provider holds and nothing else.
-        shadowLocationManager.setLastKnownLocation(LocationManager.GPS_PROVIDER, location(LocationManager.GPS_PROVIDER, 45.5, -121.7, 1_700_000_000_000L - 3_600_000L, 8f, altitude = 100.0))
-        shadowLocationManager.setLastKnownLocation(LocationManager.NETWORK_PROVIDER, location(LocationManager.NETWORK_PROVIDER, 45.51, -121.71, 1_700_000_000_123L, 120f))
+        shadowLocationManager.setLastKnownLocation(LocationManager.GPS_PROVIDER, location(LocationManager.GPS_PROVIDER, 45.5, -122.6, 1_700_000_000_000L - 3_600_000L, 8f, altitude = 100.0))
+        shadowLocationManager.setLastKnownLocation(LocationManager.NETWORK_PROVIDER, location(LocationManager.NETWORK_PROVIDER, 45.51, -122.61, 1_700_000_000_123L, 120f))
 
         val known = AndroidLastKnownLocationSource(context).lastKnown()
 
         assertEquals(
-            LocationFix.Update(lat = 45.51, lng = -121.71, altitude = null, accuracyMeters = 120f, timestampEpochMillis = 1_700_000_000_123L, provider = FixProvider.NETWORK),
+            LocationFix.Update(lat = 45.51, lng = -122.61, altitude = null, accuracyMeters = 120f, timestampEpochMillis = 1_700_000_000_123L, provider = FixProvider.NETWORK),
             known,
         )
     }
@@ -63,7 +63,7 @@ class AndroidLastKnownLocationSourceTest {
     @Test
     fun `without location permission there is none, whatever the providers hold`() {
         shadowOf(context).denyPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-        shadowLocationManager.setLastKnownLocation(LocationManager.GPS_PROVIDER, location(LocationManager.GPS_PROVIDER, 45.5, -121.7, 1_700_000_000_000L, 8f))
+        shadowLocationManager.setLastKnownLocation(LocationManager.GPS_PROVIDER, location(LocationManager.GPS_PROVIDER, 45.5, -122.6, 1_700_000_000_000L, 8f))
 
         assertNull(AndroidLastKnownLocationSource(context).lastKnown())
     }
@@ -83,12 +83,12 @@ class AndroidLastKnownLocationSourceTest {
     @Test
     fun `a fused fix held by the passive provider is carried as unknown`() {
         shadowOf(context).grantPermissions(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION)
-        shadowLocationManager.setLastKnownLocation(LocationManager.PASSIVE_PROVIDER, location(LocationManager.FUSED_PROVIDER, 45.52, -121.78, 1_700_000_000_000L, 15f))
+        shadowLocationManager.setLastKnownLocation(LocationManager.PASSIVE_PROVIDER, location(LocationManager.FUSED_PROVIDER, 45.52, -122.68, 1_700_000_000_000L, 15f))
 
         val known = AndroidLastKnownLocationSource(context).lastKnown()
 
         assertEquals(
-            LocationFix.Update(lat = 45.52, lng = -121.78, altitude = null, accuracyMeters = 15f, timestampEpochMillis = 1_700_000_000_000L, provider = FixProvider.UNKNOWN),
+            LocationFix.Update(lat = 45.52, lng = -122.68, altitude = null, accuracyMeters = 15f, timestampEpochMillis = 1_700_000_000_000L, provider = FixProvider.UNKNOWN),
             known,
         )
     }

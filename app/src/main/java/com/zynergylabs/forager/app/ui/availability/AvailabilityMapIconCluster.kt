@@ -93,7 +93,9 @@ import com.zynergylabs.forager.app.ui.map.mapIconClusterContainerColor
 import com.zynergylabs.forager.app.ui.map.mapIconClusterChildColor
 import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.LEGEND_ATTRIBUTION_CLEARANCE
+import com.zynergylabs.forager.app.ui.map.MAPS_TAB_OVERLAYS
 import com.zynergylabs.forager.app.ui.map.MapLayersControls
+import com.zynergylabs.forager.app.ui.map.MapLayersSheet
 import com.zynergylabs.forager.app.ui.map.MapLegendChip
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
@@ -613,9 +615,7 @@ internal fun BoxScope.MapIconCluster(
                     // MAP_ICON_CLUSTER_CONTAINER_ALPHA's own doc comment for the
                     // compositing arithmetic and the values chosen.
                     color = mapIconClusterContainerColor(),
-                    // No shadow (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"): narrow as it is,
-                    // its 2 dp shadow darkened the whole fill a little, under its children's own (Phase 1 report, section 2). Its
-                    // hairline was already here.
+                    shadowElevation = 2.dp,
                     border = BorderStroke(1.dp, mapIconStackBorderColor()),
                     modifier = clusterMeasure.mapChromeContainerColor(mapIconClusterContainerColor()),
                 ) {

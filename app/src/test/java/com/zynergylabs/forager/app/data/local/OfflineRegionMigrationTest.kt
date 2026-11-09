@@ -55,8 +55,8 @@ class OfflineRegionMigrationTest {
     fun `planned trips and mushroom log entries survive the 5 to 6 migration intact, offlineRegionId is null for the pre-existing entry, and offline_regions is usable`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
-        val legacyTrip = PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -121.76, date = "2026-09-01")
-        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -121.7), date = LocalDate.of(2026, 8, 1))
+        val legacyTrip = PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -122.66, date = "2026-09-01")
+        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -122.6), date = LocalDate.of(2026, 8, 1))
 
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV5::class.java, dbFile.absolutePath).build()
         try {
@@ -124,7 +124,7 @@ class OfflineRegionMigrationTest {
                 id = 1L,
                 name = "Post-migration region",
                 lat = 45.0,
-                lng = -121.1,
+                lng = -122.0,
                 radiusKm = 15,
                 minZoom = 10.0,
                 maxZoom = 14.0,

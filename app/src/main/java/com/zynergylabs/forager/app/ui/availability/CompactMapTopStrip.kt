@@ -33,9 +33,8 @@ import com.zynergylabs.forager.app.ui.log.ScreenEdge
  * measured sizes are the tab's state, handed in ([CompactMapLayoutState] since UI split Phase 2.3).
  *
  * Dispatch 2026-10-12-08 (RECORD -948, -950, -951): the strip stays while navigating, in both orientations, exactly where it is
- * and at the size it is (the owner: "The compass strip stays exactly where it is in both modes"). Since Amendment 1, H1, of dispatch
- * 2026-11-05-10 its line is the same as out of navigation, the north arrow and the heading included (until then it dropped them,
- * [CompassElevationStrip]'s `navigating`); its own sundown and Back by lines still go to the navigation info. In
+ * and at the size it is (the owner: "The compass strip stays exactly where it is in both modes"). Its line drops the north arrow
+ * and the heading ([CompassElevationStrip]'s `navigating`), and its own sundown and Back by lines go to the navigation info. In
  * portrait the navigation info ([portraitNavigationInfo]) is drawn inside the strip's card under a thin line, one card that
  * extends down ("have the card just extend down rather than a dual tuck"); in landscape it is a card of its own hanging under the
  * strip ([CompactMapNavigationDisplay]).
@@ -151,11 +150,7 @@ internal fun BoxScope.CompactMapTopStrip(
         quickSettings = quickSettings,
         cardCorners = landscapeStripCorners(railPortEdge, punchHoleEdge),
         tuck = stripTuck,
-        // Dispatch 2026-11-05-10, Amendment 1, H1 (RECORD -2181), the owner: "Keep the compass strip the exact same when in navigation
-        // mode as out; so keep the north compass out of the navigation panel." So the strip is not told it is navigating: its north
-        // arrow and heading stay, as out of navigation, and the card's turn line keeps only the degrees and the needle. Was
-        // `navigating = isNavigating` (RECORD -948: the line dropped the north arrow and the heading, which the card showed once).
-        navigating = false,
+        navigating = isNavigating,
         // RECORD -946, -951: in landscape the strip and the pill are the top bar, both in the pill's lighter shade.
         fill = if (railPortEdge != null) (if (isDarkTheme) MapPillColorDark else MapPillColorLight) else null,
         navigationInfo = if (railPortEdge == null) portraitNavigationInfo else null,

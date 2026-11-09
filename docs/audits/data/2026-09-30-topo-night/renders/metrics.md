@@ -1,7 +1,4 @@
 | map zoom | source tileSize | tile level | dp per tile | letter height (dp) | tiles for a 412 x 892 dp view | x today |
-
-_Measured on render images removed on 2026-11-06 on the owner's word (dispatch 2026-11-05-11); the figures stay as measured._
-
 |---|---|---|---|---|---|---|
 | 7 | 256 | 8 | 256.0 | 10.0 | 12 | 1.0x |
 | 7 | 128 | 9 | 128.0 | 5.0 | 34 | 2.9x |

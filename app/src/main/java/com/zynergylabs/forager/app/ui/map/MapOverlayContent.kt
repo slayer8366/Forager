@@ -24,11 +24,6 @@ data class MapOverlayContent(
     /** Saved waypoints, drawn as markers — independent of any track, per [Waypoint]'s own doc comment. */
     val waypoints: List<Waypoint> = emptyList(),
     /**
-     * Whether [waypoints] are drawn with their names (dispatch 2026-11-02-04; WaypointNameLayers.kt): Settings > Map >
-     * "Waypoint names", on by default. Only the Maps tab sets it; every other map draws pins alone, as before.
-     */
-    val waypointNames: Boolean = false,
-    /**
      * A changing token, not a boolean flag — incrementing it (regardless of the new value) tells
      * the map to (re-)engage GPS camera tracking, the same "GPS icon re-centers and resumes
      * following" behavior the project owner asked for. A `Boolean` can't carry a repeat action:
@@ -151,6 +146,4 @@ data class MapOverlayContent(
      * `null` on every map but the Maps tab while navigating.
      */
     val route: RouteOnMap? = null,
-    /** A plotted route (dispatch 2026-10-30-08, step 3; PlottedRouteLayers.kt): `null` on every map but the Maps tab while one shows. */
-    val plottedRoute: PlottedRouteOnMap? = null,
 )

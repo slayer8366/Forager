@@ -626,7 +626,7 @@ private fun ShortLandscapeScreen(uiState: AvailabilityUiState, mapSlot: MapSlot)
     )
 }
 
-private val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 
 private fun sighting(index: Int) = Sighting(
     observationId = index.toLong(),

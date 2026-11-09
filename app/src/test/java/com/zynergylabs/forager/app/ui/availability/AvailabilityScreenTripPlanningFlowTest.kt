@@ -23,7 +23,6 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -148,7 +147,6 @@ class AvailabilityScreenTripPlanningFlowTest {
             unitSystemPreferenceRepository = TripFlowStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = TripFlowStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(TripFlowStubTripPlanningWeatherProvider),
-            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -207,8 +205,8 @@ class AvailabilityScreenTripPlanningFlowTest {
         // Latitude and Longitude are the dropdown's first row, with no fold (dispatch
         // 2026-09-28-697), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Latitude").performTextReplacement("45.3736")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
         composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }

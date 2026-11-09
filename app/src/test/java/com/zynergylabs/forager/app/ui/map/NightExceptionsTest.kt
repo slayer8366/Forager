@@ -16,23 +16,20 @@ import org.junit.Test
  * drinking-water icons, take their own night colours instead of the inversion (the owner: "Roads (Recommended),
  * Railways + boundaries (Recommended), Place dots + icon rings (Recommended)"). Footpaths and tracks were not chosen
  * and keep the inversion. The design's copies are in the served style's metadata; the contrast floors are the ones
- * `map-style/tools/check-trail-night.mjs` holds (2.5:1 for the lines, 3:1 for the rings), against the night forest,
+ * `map-style/tools/check-street-night.mjs` holds (2.5:1 for the lines, 3:1 for the rings), against the night forest,
  * grass and ground derived with the app's own [nightColorOf].
  *
  * Dispatch 2026-10-19-41: informal paths take their own night colour too, held on the night forest to the owner's band
  * ([INFORMAL_NIGHT_FOREST_BAND]) in place of the 2.5:1 floor, for those two layers on that one ground only.
  *
  * Dispatch 2026-10-22-03 (Trail Map's character, style v2): the forest, wetland and bare-rock fills take their own
- * night colours ([TRAIL_NIGHT_FILL_COLOURS]), and the tree glyph pattern is painted `#5d804f`
- * ([TRAIL_NIGHT_PATTERN_COLOURS]), held to 1.35:1 on the night forest. The night forest is now `#446835`, so every
+ * night colours ([STREET_NIGHT_FILL_COLOURS]), and the tree glyph pattern is painted `#5d804f`
+ * ([STREET_NIGHT_PATTERN_COLOURS]), held to 1.35:1 on the night forest. The night forest is now `#446835`, so every
  * floor on "the night forest" here is measured on what the app draws there.
- *
- * Read from street-v3 since the switch (dispatch 2026-10-26-21): the style the app loads. Its layers other than the
- * official-trails band's three are v2's, so these held unchanged; reading v3 keeps a later v3 edit covered.
  */
 class NightExceptionsTest {
 
-    private val style = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v3.json").readText()).jsonObject
+    private val style = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v2.json").readText()).jsonObject
     private val metadata = style.getValue("metadata").jsonObject
     private val palette = metadata.getValue("forager:palette").jsonObject
 
@@ -48,7 +45,7 @@ class NightExceptionsTest {
         return (hi + 0.05) / (lo + 0.05)
     }
 
-    private val nightForest: Int = TRAIL_NIGHT_FILL_COLOURS.getValue(rgb(palette.getValue("forest").jsonPrimitive.content))
+    private val nightForest: Int = STREET_NIGHT_FILL_COLOURS.getValue(rgb(palette.getValue("forest").jsonPrimitive.content))
 
     private val nightGrounds: Map<String, Int> = mapOf(
         "forest" to nightForest,
@@ -80,7 +77,7 @@ class NightExceptionsTest {
     @Test
     fun `the app's layer exceptions are the design's`() {
         val design = metadata.getValue("forager:night-layers").jsonObject.mapValues { it.value.jsonPrimitive.content }
-        assertEquals(design, TRAIL_NIGHT_LAYER_COLOURS)
+        assertEquals(design, STREET_NIGHT_LAYER_COLOURS)
     }
 
     @Test
@@ -89,7 +86,7 @@ class NightExceptionsTest {
             val o = ring.jsonObject
             IconRingNight(rgb(o.getValue("ring").jsonPrimitive.content), rgb(o.getValue("fill").jsonPrimitive.content), rgb(o.getValue("night").jsonPrimitive.content))
         }
-        assertEquals(design, TRAIL_NIGHT_ICON_RINGS)
+        assertEquals(design, STREET_NIGHT_ICON_RINGS)
     }
 
     @Test
@@ -98,7 +95,7 @@ class NightExceptionsTest {
             nightColorOf((0xFF shl 24) or rgb(palette.getValue("footpath").jsonPrimitive.content)),
             nightGrounds.getValue("forest"),
         )
-        TRAIL_NIGHT_LAYER_COLOURS.forEach { (layer, hex) ->
+        STREET_NIGHT_LAYER_COLOURS.forEach { (layer, hex) ->
             nightGrounds.forEach { (name, ground) ->
                 val ratio = contrast(rgb(hex), ground)
                 if (layer in INFORMAL_LAYERS && name == "forest") {
@@ -109,7 +106,7 @@ class NightExceptionsTest {
                 }
             }
         }
-        TRAIL_NIGHT_ICON_RINGS.forEach { (icon, ring) ->
+        STREET_NIGHT_ICON_RINGS.forEach { (icon, ring) ->
             nightGrounds.forEach { (name, ground) ->
                 val ratio = contrast(ring.nightRing, ground)
                 assertTrue("$icon ring on night $name is $ratio:1", ratio >= 3.0)
@@ -120,11 +117,11 @@ class NightExceptionsTest {
     @Test
     fun `each exception layer exists in the Street style, and its line takes the exception at night`() {
         val layers = style.getValue("layers").jsonArray.associateBy { it.jsonObject.getValue("id").jsonPrimitive.content }
-        TRAIL_NIGHT_LAYER_COLOURS.forEach { (id, hex) ->
+        STREET_NIGHT_LAYER_COLOURS.forEach { (id, hex) ->
             val layer = layers[id]?.jsonObject ?: error("no layer $id in the Street style")
             val value = layer.getValue("paint").jsonObject.getValue("line-color")
             val colour = if (value is JsonPrimitive) StyleColourValue.Literal(value.content) else StyleColourValue.Expression(value.toString())
-            val outcome = trailNightRecolourOf(LayerColourProperty(id, "line-color", colour), layer["source-layer"]?.jsonPrimitive?.content)
+            val outcome = streetNightRecolourOf(LayerColourProperty(id, "line-color", colour), layer["source-layer"]?.jsonPrimitive?.content)
             assertEquals(id, NightRecolour.Recoloured(LayerColourProperty(id, "line-color", colour), StyleColourValue.Literal(hex)), outcome)
         }
     }
@@ -144,13 +141,13 @@ class NightExceptionsTest {
         val ids = pathIds + edges
         for (id in ids) {
             val property = LayerColourProperty(id, "line-color", StyleColourValue.Literal("#a8452a"))
-            assertEquals(id, offlineNightRecolourOf(property), trailNightRecolourOf(property, "roads"))
+            assertEquals(id, offlineNightRecolourOf(property), streetNightRecolourOf(property, "roads"))
         }
     }
 
     @Test
     fun `an icon's ring goes to its night colour, its inside inverts, and its anti-aliased edge blends between them`() {
-        val dot = TRAIL_NIGHT_ICON_RINGS.getValue("townspot")
+        val dot = STREET_NIGHT_ICON_RINGS.getValue("townspot")
         val ring = 0xFF868686.toInt()
         val inside = 0xFFF3F3F3.toInt()
         val edge = 0x80BCBCBC.toInt() // on the ring-to-inside line, about half way, half transparent
@@ -169,9 +166,9 @@ class NightExceptionsTest {
     @Test
     fun `the app's fill and pattern night colours are the design's`() {
         val fills = metadata.getValue("forager:night-fills").jsonObject.entries.associate { (day, night) -> rgb(day) to rgb(night.jsonPrimitive.content) }
-        assertEquals(fills, TRAIL_NIGHT_FILL_COLOURS)
+        assertEquals(fills, STREET_NIGHT_FILL_COLOURS)
         val patterns = metadata.getValue("forager:night-patterns").jsonObject.mapValues { rgb(it.value.jsonPrimitive.content) }
-        assertEquals(patterns, TRAIL_NIGHT_PATTERN_COLOURS)
+        assertEquals(patterns, STREET_NIGHT_PATTERN_COLOURS)
     }
 
     @Test
@@ -179,7 +176,7 @@ class NightExceptionsTest {
         val layers = style.getValue("layers").jsonArray.associateBy { it.jsonObject.getValue("id").jsonPrimitive.content }
         fun nightOf(id: String): String {
             val value = layers.getValue(id).jsonObject.getValue("paint").jsonObject.getValue("fill-color")
-            val outcome = trailNightRecolourOf(LayerColourProperty(id, "fill-color", StyleColourValue.Expression(value.toString())), "landuse")
+            val outcome = streetNightRecolourOf(LayerColourProperty(id, "fill-color", StyleColourValue.Expression(value.toString())), "landuse")
             return ((outcome as NightRecolour.Recoloured).night as StyleColourValue.Expression).json
         }
         val park = nightOf("landuse_park")
@@ -198,12 +195,12 @@ class NightExceptionsTest {
         assertTrue(nightOf("landcover"), nightOf("landcover").contains("rgba(68, 104, 53, 1)"))
         // A fill colour only matches at full opacity: a half-transparent forest inverts.
         val faint = LayerColourProperty("landuse_park", "fill-color", StyleColourValue.Literal("rgba(169, 211, 155, 0.5)"))
-        assertEquals(NightRecolour.Recoloured(faint, StyleColourValue.Literal("rgba(67, 109, 53, 0.5)")), trailNightRecolourOf(faint, "landuse"))
+        assertEquals(NightRecolour.Recoloured(faint, StyleColourValue.Literal("rgba(67, 109, 53, 0.5)")), streetNightRecolourOf(faint, "landuse"))
     }
 
     @Test
     fun `the tree glyph reads at 1_35 to 1 on the night forest, and would not on the inversion`() {
-        val glyph = TRAIL_NIGHT_PATTERN_COLOURS.getValue("tree_dark_irregular")
+        val glyph = STREET_NIGHT_PATTERN_COLOURS.getValue("tree_dark_irregular")
         val onForest = contrast(glyph, nightForest)
         assertTrue("tree glyph on the night forest is $onForest:1", onForest >= 1.35)
         // The inversion #436d35 is why the forest exception ships with the glyph: 1.34:1 there.
@@ -224,7 +221,7 @@ class NightExceptionsTest {
         val patterns = style.getValue("layers").jsonArray
             .mapNotNull { it.jsonObject["paint"]?.jsonObject?.get("fill-pattern")?.jsonPrimitive?.content }
         assertEquals(listOf("tree_dark_irregular", "tufts"), patterns)
-        assertEquals(patterns.toSet(), TRAIL_NIGHT_PATTERN_PAINTS.keys)
+        assertEquals(patterns.toSet(), STREET_NIGHT_PATTERN_PAINTS.keys)
         // The tree glyph's day pixel to its ruled night; the tufts painted #2485ad (RECORD -1566), which is also the
         // inversion of its day #3fa0c8, the owner's earlier "Keep #2485ad".
         assertEquals(0xFF5D804F.toInt(), nightSpritePixelsOf("tree_dark_irregular", intArrayOf(0xFF3E7A3A.toInt())).single())

@@ -123,7 +123,7 @@ class JournalShortWindowCardsTest {
                     onOpenCameraForAlbum = {},
                     onOpenCameraForCartographyEntry = {},
                     mapSlot = CARDS_STUB_MAP_J5,
-                    pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
+                    pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
                     basemap = Basemap.DEFAULT,
                     onOpenEntry = {},
                     onCloseEntry = {},
@@ -541,4 +541,4 @@ private val CARDS_STUB_MAP_J5: MapSlot = { _, _, _, _, _, _, _, _, modifier -> B
 
 /** A saved find for the RECORD -753 tests. */
 private fun keptFindEntry(id: String): MushroomLogEntry =
-    MushroomLogEntry.draft(id = id, location = com.zynergylabs.forager.app.domain.model.LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+    MushroomLogEntry.draft(id = id, location = com.zynergylabs.forager.app.domain.model.LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)

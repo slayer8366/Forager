@@ -69,10 +69,10 @@ API (species search, observations), Open-Meteo's forecast API (current condition
 separate historical-archive API (`archive-api.open-meteo.com`, its own DTOs — `HistoricalPrecipitationResponseDto`).
 
 **Maps:** MapLibre GL Android SDK `13.5.0` (migrated off `osmdroid`, which is fully removed — no
-`osmdroid` import found anywhere in `app/src/main`). Three basemaps: Forager Trail Map, the app's own
-vector map served by the self-hosted `pmtiles-worker` (`map/TrailStyle.kt`), and two rasters, Topographical
-(OpenTopoMap) and Street (OpenStreetMap's own map, kept in `ui/map/street/` so it can be removed), with no vendor
-SDK naming a tile source directly (`ui/map/BasemapStyles.kt`). Offline regions are downloaded in Trail Map's style.
+`osmdroid` import found anywhere in `app/src/main`). Three live basemaps (Street, Topographical,
+Satellite), all plain style-URL templates, no vendor SDK naming a tile source directly
+(`ui/map/BasemapStyles.kt`). Offline tiles are a distinct fourth source: the self-hosted
+`pmtiles-worker`.
 
 ---
 

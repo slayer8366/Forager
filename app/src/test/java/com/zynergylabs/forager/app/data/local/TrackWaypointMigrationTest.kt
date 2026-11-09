@@ -58,8 +58,8 @@ class TrackWaypointMigrationTest {
     fun `planned trips and mushroom log entries survive the 4 to 5 migration intact, and the new tables are usable`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
-        val legacyTrip = PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -121.76, date = "2026-09-01")
-        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -121.7), date = LocalDate.of(2026, 8, 1))
+        val legacyTrip = PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -122.66, date = "2026-09-01")
+        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -122.6), date = LocalDate.of(2026, 8, 1))
 
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV4::class.java, dbFile.absolutePath).build()
         try {
@@ -115,7 +115,7 @@ class TrackWaypointMigrationTest {
             trackRepository.create(track).getOrThrow()
             // A whole-second stamp: since the timestamp-filter dispatch the repository's read excludes any
             // point with a fractional second as a network-provider fix, so sample data must look like GPS data.
-            val point = TrackPoint(lat = 45.0, lng = -121.1, altitude = 100.0, accuracyMeters = 5f, timestampEpochMillis = 1_000L)
+            val point = TrackPoint(lat = 45.0, lng = -122.0, altitude = 100.0, accuracyMeters = 5f, timestampEpochMillis = 1_000L)
             trackRepository.appendPoints(track.id, listOf(point)).getOrThrow()
             trackRepository.end(track.id, endedAtEpochMillis = 2_000L).getOrThrow()
 
@@ -123,7 +123,7 @@ class TrackWaypointMigrationTest {
             assertEquals(track.copy(endedAtEpochMillis = 2_000L, points = listOf(point)), savedTrack)
 
             val waypointRepository = RoomWaypointRepository(migrated.waypointDao())
-            val waypoint = Waypoint(id = "post-migration-waypoint", lat = 45.1, lng = -121.2, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = 3_000L)
+            val waypoint = Waypoint(id = "post-migration-waypoint", lat = 45.1, lng = -122.1, altitude = null, name = "Trailhead", note = "", createdAtEpochMillis = 3_000L)
             waypointRepository.save(waypoint).getOrThrow()
             assertEquals(listOf(waypoint), waypointRepository.getAll().getOrThrow())
         } finally {

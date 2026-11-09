@@ -4,7 +4,6 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -104,24 +103,23 @@ class AvailabilityViewModelLocateMeTest {
             unitSystemPreferenceRepository = LocateMeStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = LocateMeStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(LocateMeStubTripPlanningWeatherProvider),
-            entryReferenceCounts = NoEntryReferenceCounts,
         )
     }
 
     @Test
     fun `a fix with altitude reports Located carrying that altitude`() = runTest(dispatcher) {
-        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.Success(45.5, -121.19375, altitude = 123.4)))
+        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.Success(45.5, -122.6, altitude = 123.4)))
 
         vm.locateMe()
         advanceUntilIdle()
 
         val status = vm.uiState.value.locateMeStatus
-        assertEquals(LocateMeStatus.Located(LatLng(45.5, -121.19375), 123.4), status)
+        assertEquals(LocateMeStatus.Located(LatLng(45.5, -122.6), 123.4), status)
     }
 
     @Test
     fun `a fix with no altitude (a network-based fix) reports Located with null altitude, never a guessed value`() = runTest(dispatcher) {
-        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.Success(45.5, -121.19375, altitude = null)))
+        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.Success(45.5, -122.6, altitude = null)))
 
         vm.locateMe()
         advanceUntilIdle()
@@ -154,7 +152,7 @@ class AvailabilityViewModelLocateMeTest {
 
     @Test
     fun `locateMe never touches the search region, unlike useCurrentLocation`() = runTest(dispatcher) {
-        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.Success(45.5, -121.19375, altitude = 10.0)))
+        val vm = viewModel(LocateMeFixedLocationProvider(LocationResult.Success(45.5, -122.6, altitude = 10.0)))
 
         vm.locateMe()
         advanceUntilIdle()

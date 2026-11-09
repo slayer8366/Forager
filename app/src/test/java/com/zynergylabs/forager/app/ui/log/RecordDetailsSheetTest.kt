@@ -56,6 +56,7 @@ import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -88,10 +89,9 @@ import org.robolectric.shadows.ShadowDialog
  * - **Back** is a real Back key sent to the sheet's own window (the sheet is a dialog with its own
  *   back dispatcher, which is what a Back press reaches while it shows). **The scrim** is touched
  *   at a point the sheet does not cover.
- * - **Navigate** (dispatch 2026-09-28-502, which changed this): the waypoint test pins its presence. Until
- *   -502 Navigate was not built and that test pinned its absence. Dispatch 2026-10-29-09 (RECORD -1819)
- *   removed Directions from the sheet and the rows, so they pin its absence. What Navigate does is
- *   `AvailabilityScreenWaypointNavigateTest`'s.
+ * - **Navigate** (dispatch 2026-09-28-502, which changed this): the waypoint test pins its presence
+ *   beside Directions', and Directions still starting its intent. Until -502 Navigate was not built and
+ *   that test pinned its absence. What Navigate does is `AvailabilityScreenWaypointNavigateTest`'s.
  *
  * Tags are literals so these compile against the base they were written before.
  */
@@ -230,14 +230,12 @@ class RecordDetailsSheetTest {
 
     private fun assertWaypointCreekContent() {
         field("mgrs").assertTextEquals("MGRS", CREEK_MGRS)
-        field("coordinates").assertTextEquals("Coordinates", "45.3736, -121.6959")
+        field("coordinates").assertTextEquals("Coordinates", "45.3260, -122.6340")
         field("created").assertTextEquals("Created", stamp(CREEK.createdAtEpochMillis))
         field("track").assertTextEquals("Track", stamp(TRACK_T1.startedAtEpochMillis))
         field("used-in").assertTextEquals("Used in", "2 journal entries")
-        // Dispatch 2026-10-29-09 (RECORD -1819): was "is displayed"; the sheet offers Navigate in Directions' place.
-        // Dispatch 2026-11-05-05 (A5, C1; RECORD -2152): still absent, unchanged. Every sheet this runs in is opened with no
-        // onNavigateToWaypoint, so it has no Navigate, and Directions is shown only beside Navigate.
-        composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist()
+        // The sheet's content scrolls in a short window, so an action may start below its fold.
+        composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
     }
 
     private fun tile(label: String): SemanticsNodeInteraction = composeRule.onNodeWithTag("track-tile-$label")
@@ -278,9 +276,7 @@ class RecordDetailsSheetTest {
         composeRule.onNodeWithTag("record-details-stale").assertTextEquals("Stale")
         field("radius").assertTextEquals("Radius", "9 mi")
         field("centre").assertTextEquals("Centre", "45.5000, -122.5000")
-        // T1 (dispatch 2026-10-26-21, RECORD -1703): the area's estimate from its centre and radius (15 km at 45.5, -122.5,
-        // zooms 10 to 15), the figure the tile budget counts it by, not MapLibre's stored count (1234 in the fixture).
-        field("tiles").assertTextEquals("Tiles", "1766")
+        field("tiles").assertTextEquals("Tiles", "1234")
         field("size").assertTextEquals("Size", "12.3 MB")
         field("downloaded").assertTextEquals("Downloaded", "${stamp(DETAILS_REGION.createdAtEpochMillis)} (70 days ago)")
         composeRule.onNodeWithTag(ZOOM).assertTextEquals(REGION_ZOOM_NOTE)
@@ -347,17 +343,14 @@ class RecordDetailsSheetTest {
     }
 
     @Test
-    // Edited by dispatch 2026-10-28-08, Amendment 1 (RECORD -1781): "RecordDetailsContent.kt:75 reads a missing id as 0".
-    // The counts are live and hold only ids some committed entry keeps, so a missing id is a real zero now, not an
-    // uncounted one. Was: "a waypoint with no count given has no Used in line, rather than a made-up zero".
-    fun `a waypoint with no track and no count says no journal entries, one with a missing track says Not loaded`() {
+    fun `a waypoint with no track and no count shows neither line, one with a missing track says Not loaded`() {
         setScreen()
         openRecords()
         touch(waypointRow("W2"), Offset(0.4f, 0.5f))
         composeRule.onNodeWithTag(TITLE).assertTextEquals("Oak pin")
-        field("coordinates").assertTextEquals("Coordinates", "45.4000, -121.8000")
+        field("coordinates").assertTextEquals("Coordinates", "45.4000, -122.7000")
         assertTrue("a waypoint dropped with no recording has no Track line", !exists("record-details-field-track"))
-        field("used-in").assertTextEquals("Used in", "no journal entries")
+        assertTrue("a waypoint with no count given has no Used in line, rather than a made-up zero", !exists("record-details-field-used-in"))
         pressBackOnSheet()
 
         touch(waypointRow("W3"), Offset(0.4f, 0.5f))
@@ -368,15 +361,18 @@ class RecordDetailsSheetTest {
 
     // ── The row's own buttons keep doing what they do ──
 
-    // Dispatch 2026-10-29-09 (RECORD -1819): was `the waypoint row's own Directions button starts directions and does not
-    // open the sheet`. The row has no Directions now; its Navigate is AvailabilityScreenWaypointNavigateTest's.
     @Test
-    fun `the waypoint row has no Directions button`() {
+    fun `the waypoint row's own Directions button starts directions and does not open the sheet`() {
         setScreen()
+        registerFakeMapsApp()
         openRecords()
         selectChip(RecordsSubTab.WAYPOINTS)
-        composeRule.onNodeWithText("Creek pin").performScrollTo().assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Directions to Creek pin").assertDoesNotExist()
+        composeRule.onNodeWithContentDescription("Directions to Creek pin").performScrollTo().performTouchInput { click(center) }
+        composeRule.waitForIdle()
+
+        val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
+        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
+        assertTrue("a tap on the row's own Directions button does not open the sheet", !sheetShowing())
     }
 
     @Suppress("DEPRECATION")
@@ -479,35 +475,24 @@ class RecordDetailsSheetTest {
     // ── Actions ──
 
     @Test
-    fun `the waypoint sheet offers Navigate, and Directions to its right, which starts directions to that waypoint`() {
+    fun `the waypoint sheet offers Navigate beside Directions, and its Directions starts directions to that waypoint`() {
         // Dispatch -502 changed this. Before: named "... and there is no Navigate", it asserted that no
         // node's text contained "Navigate" (the J5c stop rule: no in-app entry point navigated to a chosen
         // waypoint). After: the owner asked for Navigate beside Directions (-502, T9), so it asserts the
-        // sheet's Navigate is shown, labelled "Navigate". Dispatch 2026-10-29-09 (RECORD -1819) changed it
-        // again: named "... beside Directions, and its Directions starts directions to that waypoint", it
-        // asserted Directions shown and its geo intent; Directions is gone from the sheet, so it asserts that.
-        // Dispatch 2026-11-05-05 (A5; RECORD -2140, the owner: "In the Details card add the Directions button for external
-        // maps to the right of the in-app Navigate button and center the two buttons") changed it a third time: named "... offers
-        // Navigate and no Directions", it asserted Directions absent. Now Directions is shown, to Navigate's right, and a real
-        // touch on it starts the waypoint's geo intent. The centring is WaypointCardDirectionsTest's.
+        // sheet's Navigate is shown, labelled "Navigate"; Directions' assertions below are unchanged.
         setScreen(onNavigateToWaypoint = {})
         registerFakeMapsApp()
         openRecords()
         touch(waypointRow("W1"), Offset(0.3f, 0.5f))
+        composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
         composeRule.onNodeWithTag(NAVIGATE).performScrollTo().assertIsDisplayed()
         assertEquals("Navigate", composeRule.onNodeWithTag(NAVIGATE).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
-        composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
-        assertEquals("Directions", composeRule.onNodeWithTag(DIRECTIONS).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text })
-        val navigate = composeRule.onNodeWithTag(NAVIGATE).fetchSemanticsNode().boundsInRoot
-        val directions = composeRule.onNodeWithTag(DIRECTIONS).fetchSemanticsNode().boundsInRoot
-        assertTrue("Directions to the right of Navigate: ${directions.left} vs ${navigate.right}", directions.left > navigate.right)
 
         composeRule.onNodeWithTag(DIRECTIONS).performTouchInput { click(Offset(width * 0.3f, height * 0.5f)) }
         composeRule.waitForIdle()
         val started = Shadows.shadowOf(composeRule.activity).nextStartedActivity
         assertEquals(Intent.ACTION_VIEW, started?.action)
-        assertEquals("geo:0,0?q=45.3736,-121.6959(Creek%20pin)", started?.data.toString())
-        assertTrue("the sheet stays open (A12)", sheetShowing())
+        assertEquals("geo:0,0?q=45.326,-122.634(Creek%20pin)", started?.data.toString())
     }
 
     @Suppress("DEPRECATION")
@@ -627,9 +612,7 @@ class RecordDetailsSheetTest {
             touch(walkWaypointRow("W1"), point)
             composeRule.onNodeWithTag(TITLE).assertTextEquals("Creek pin")
             field("track").assertTextEquals("Track", stamp(TRACK_T1.startedAtEpochMillis))
-            // Was "is displayed" (dispatch 2026-10-29-09). Still absent under dispatch 2026-11-05-05 (C1; RECORD -2152): this sheet
-            // is opened with no onNavigateToWaypoint, and Directions is shown only beside Navigate.
-            composeRule.onNodeWithTag(DIRECTIONS).assertDoesNotExist()
+            composeRule.onNodeWithTag(DIRECTIONS).performScrollTo().assertIsDisplayed()
 
             pressBackOnSheet()
             assertTrue("Back from the waypoint (tap at $point) leaves a sheet showing", sheetShowing())
@@ -707,7 +690,6 @@ class RecordDetailsSheetTest {
         return started!!
     }
 
-    /** Dispatch 2026-11-05-05: a maps app that takes `geo:` links, as this class had until dispatch 2026-10-29-09 removed it. */
     private fun registerFakeMapsApp() {
         val activity = composeRule.activity
         val componentName = ComponentName(activity, "com.example.fakemaps.MapsActivity")
@@ -720,6 +702,7 @@ class RecordDetailsSheetTest {
                 addDataScheme("geo")
             },
         )
+        assertNull("nothing started before the tap", Shadows.shadowOf(activity).nextStartedActivity)
     }
 
     private fun hasClickLabel(label: String): SemanticsMatcher =
@@ -762,9 +745,9 @@ private val TRACK_T1 = Track(
     endedAtEpochMillis = NOW - 3 * DAY + 75 * MINUTE,
     // Three points 0.01 degrees of latitude apart: 2 x 1111.95 m = 2223.9 m, 1.38 mi; 70 minutes first to last.
     points = listOf(
-        TrackPoint(lat = 45.00, lng = -121.1, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY),
-        TrackPoint(lat = 45.01, lng = -121.1, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY + 30 * MINUTE),
-        TrackPoint(lat = 45.02, lng = -121.1, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY + 70 * MINUTE),
+        TrackPoint(lat = 45.00, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY),
+        TrackPoint(lat = 45.01, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY + 30 * MINUTE),
+        TrackPoint(lat = 45.02, lng = -122.0, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 3 * DAY + 70 * MINUTE),
     ),
     // 12 of 15 stored points excluded as network fixes: past the 75% line, so the row and the sheet carry the note.
     excludedPointCount = 12,
@@ -776,34 +759,34 @@ private val TRACK_T2 = Track(
     startedAtEpochMillis = NOW - 5 * DAY,
     endedAtEpochMillis = null,
     points = listOf(
-        TrackPoint(lat = 45.10, lng = -121.2, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 5 * DAY),
-        TrackPoint(lat = 45.11, lng = -121.2, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 5 * DAY + 20 * MINUTE),
+        TrackPoint(lat = 45.10, lng = -122.1, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 5 * DAY),
+        TrackPoint(lat = 45.11, lng = -122.1, altitude = null, accuracyMeters = 5f, timestampEpochMillis = NOW - 5 * DAY + 20 * MINUTE),
     ),
 )
 
 private val DETAILS_TRACKS = listOf(TRACK_T1, TRACK_T2)
 
 private val CREEK = Waypoint(
-    id = "W1", lat = 45.3736, lng = -121.6959, altitude = null, name = "Creek pin", note = "",
+    id = "W1", lat = 45.3260, lng = -122.6340, altitude = null, name = "Creek pin", note = "",
     createdAtEpochMillis = NOW - 2 * DAY, trackId = "T1",
 )
 private val OAK = Waypoint(
-    id = "W2", lat = 45.4000, lng = -121.8000, altitude = null, name = "Oak pin", note = "",
+    id = "W2", lat = 45.4000, lng = -122.7000, altitude = null, name = "Oak pin", note = "",
     createdAtEpochMillis = NOW - 1 * DAY,
 )
 private val RIDGE = Waypoint(
-    id = "W3", lat = 45.4500, lng = -121.7500, altitude = null, name = "Ridge pin", note = "",
+    id = "W3", lat = 45.4500, lng = -122.6500, altitude = null, name = "Ridge pin", note = "",
     createdAtEpochMillis = NOW - 4 * DAY, trackId = "T-not-in-the-list",
 )
 private val DETAILS_WAYPOINTS = listOf(OAK, CREEK, RIDGE)
 
 // Dispatch -616: T1's start and end markers, and a second waypoint dropped on it, older than Creek pin.
 private val T1_ORIGIN = Waypoint(
-    id = "W-origin", lat = 45.00, lng = -121.1, altitude = null, name = "Start pin", note = "",
+    id = "W-origin", lat = 45.00, lng = -122.0, altitude = null, name = "Start pin", note = "",
     createdAtEpochMillis = NOW - 3 * DAY + MINUTE, trackId = "T1", designation = WaypointDesignation.ORIGIN,
 )
 private val T1_END = Waypoint(
-    id = "W-end", lat = 45.02, lng = -121.1, altitude = null, name = "End pin", note = "",
+    id = "W-end", lat = 45.02, lng = -122.0, altitude = null, name = "End pin", note = "",
     createdAtEpochMillis = NOW - 3 * DAY + 75 * MINUTE, trackId = "T1", designation = WaypointDesignation.END,
 )
 private val SPRING = Waypoint(

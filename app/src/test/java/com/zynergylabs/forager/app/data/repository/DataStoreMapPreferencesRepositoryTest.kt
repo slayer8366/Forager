@@ -53,7 +53,7 @@ class DataStoreMapPreferencesRepositoryTest {
     @Test
     fun `a saved region round-trips exactly`() = runTest {
         val repository = repository()
-        val region = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+        val region = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 
         repository.setLastPickedRegion(region).getOrThrow()
 
@@ -63,7 +63,7 @@ class DataStoreMapPreferencesRepositoryTest {
     @Test
     fun `saving a second region replaces the first`() = runTest {
         val repository = repository()
-        repository.setLastPickedRegion(Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)).getOrThrow()
+        repository.setLastPickedRegion(Region(lat = 45.326, lng = -122.634, radiusKm = 15)).getOrThrow()
 
         val second = Region(lat = 40.0, lng = -105.0, radiusKm = 25)
         repository.setLastPickedRegion(second).getOrThrow()

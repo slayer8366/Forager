@@ -63,7 +63,7 @@ private var SemanticsPropertyReceiver.journalMenuContentColor by JournalMenuCont
  * A J8 menu over the map, the chip's list and a bubble's list of keeping entries: Material3's own
  * default menu container role (`MenuDefaults.containerColor`) at [MAP_CHROME_OVER_MAP_ALPHA] (the
  * owner's edge-case ruling 1 for menus over a map, "80% over the map"; planner, continuation
- * `2026-09-28-64`), as the Layers sheet puts its own sheet role at that alpha (`mapChromeFill`'s doc, MapChrome.kt:103-109).
+ * `2026-09-28-64`), as the Layers sheet puts its own sheet role at that alpha (`MapLayersSheet`).
  */
 @Composable
 internal fun journalMenuContainerColor(): Color = navigationBarContainerColor().copy(alpha = MAP_CHROME_OVER_MAP_ALPHA)
@@ -88,7 +88,7 @@ internal fun Modifier.journalMenuColours(container: Color, content: Color): Modi
  * shown on the map ([journalEntriesChipLabel]), composed only while at least one is. A tap lists them by
  * the report header's date ([journalEntryDateLabel]), one row each, whose tap hides that entry ("Hide"),
  * with "Hide all" last; hiding writes `shownOnMap` through the host's callbacks and never touches the
- * Layers sheet's "Journal Entries" switch.
+ * Layers sheet's "Journal entries" switch.
  *
  * Its fill is the taxon chip's own colour source, [MapIconStackButtonColorDark] and
  * [MapIconStackButtonColorLight] at [MAP_CHROME_OVER_MAP_ALPHA], with the taxon chip's content colours
@@ -142,9 +142,6 @@ internal fun JournalEntriesMapChip(
             expanded = expanded,
             onDismissRequest = { expanded = false },
             containerColor = menuContainer,
-            // Over the map: no shadow, the map-chrome hairline (dispatch 2026-11-05-06; MapChromeMenuEdge.kt).
-            shadowElevation = mapChromeMenuShadowElevation(overMap = true),
-            border = mapChromeMenuBorder(overMap = true),
             modifier = Modifier.testTag(JOURNAL_ENTRIES_LIST_TAG).journalMenuColours(menuContainer, menuContent),
         ) {
             CompositionLocalProvider(LocalContentColor provides menuContent) {

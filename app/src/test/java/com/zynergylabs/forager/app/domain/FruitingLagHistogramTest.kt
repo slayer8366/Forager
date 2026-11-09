@@ -107,6 +107,6 @@ class FruitingLagHistogramTest {
     )
 
     private companion object {
-        val REGION = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
+        val REGION = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
     }
 }

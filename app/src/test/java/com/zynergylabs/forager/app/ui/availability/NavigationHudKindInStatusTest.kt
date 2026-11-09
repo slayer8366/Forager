@@ -147,26 +147,17 @@ class NavigationHudKindInStatusTest {
         with(composeRule.density) { androidx.compose.ui.unit.DpRect(n.boundsInRoot.left.toDp(), n.boundsInRoot.top.toDp(), n.boundsInRoot.right.toDp(), n.boundsInRoot.bottom.toDp()) }
     }
 
-    /** [tag]'s first baseline in the root, in dp (dispatch 2026-11-05-10). */
-    private fun baselineOf(tag: String): Float {
-        val results = mutableListOf<TextLayoutResult>()
-        composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().single().config[SemanticsActions.GetTextLayoutResult].action?.invoke(results)
-        return bounds(tag).top.value + with(composeRule.density) { results.single().firstBaseline.toDp().value }
-    }
-
     private fun textOf(tag: String): String =
         composeRule.onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().single().config[androidx.compose.ui.semantics.SemanticsProperties.Text].joinToString { it.text }
 
     /**
-     * Dispatch 2026-11-05-10 (RECORD -2181, the owner: "move the "by trail" from the bottom to the top right half, on the same line as
-     * 2.2 mi"; "Meet at the middle (Recommended)"): at 320 dp with no evening time the kind shares the figure's line, on its
-     * baseline, right of it, above the turn line, whole, and still not in the status line. Was (dispatch 2026-10-12-08, RECORD -945):
-     * "at 320 dp the kind is a small line of its own under the turn line, whole", asserting `kind.top >= figure.bottom - 0.5.dp` and
-     * `kind.top >= needle.bottom - 0.5.dp`. Before that (dispatch 2026-10-12-06): "at 320 dp the kind leads the status line, whole,
-     * below the figure", asserting `assertEquals("By trail", ...)` and the kind leading the line under the columns.
+     * Dispatch 2026-10-12-08 (RECORD -945, the owner: "Full dividers + by trail under figure (Recommended)"): the kind word is a
+     * small line of its own under the turn line, and no longer leads the status line. Was (dispatch 2026-10-12-06): "at 320 dp the
+     * kind leads the status line, whole, below the figure", asserting `assertEquals("By trail", ...)` and the kind leading the line
+     * under the columns.
      */
     @Test
-    fun `at 320 dp the kind shares the figure's line, on its baseline, whole`() {
+    fun `at 320 dp the kind is a small line of its own under the turn line, whole`() {
         val longest = cases.single { it.name == "Sharp right, by trail" }
         composeRule.setContent {
             val c = case ?: return@setContent
@@ -194,9 +185,8 @@ class NavigationHudKindInStatusTest {
         val needle = bounds(NAVIGATION_HUD_NEEDLE_TAG)
         val exit = bounds(NAVIGATION_HUD_EXIT_TAG)
         val hud = bounds(NAVIGATION_HUD_TAG)
-        assertEquals("the kind is on the figure's baseline", baselineOf(NAVIGATION_HUD_DISTANCE_TAG), baselineOf(NAVIGATION_HUD_DISTANCE_KIND_TAG), 0.5f)
-        assertTrue("the kind $kind is right of the figure $figure", kind.left >= figure.right)
-        assertTrue("the kind $kind is above the turn line (needle $needle)", kind.bottom <= needle.top + 0.5.dp)
+        assertTrue("the kind $kind is below the figure $figure", kind.top >= figure.bottom - 0.5.dp)
+        assertTrue("the kind $kind is below the turn line (needle $needle)", kind.top >= needle.bottom - 0.5.dp)
         // RECORD -942: no straight-line note on the route, and the kind no longer leads the status line, so it is empty.
         assertEquals("the status line is empty: the kind is not in it", "", textOf(NAVIGATION_HUD_STATUS_TAG))
         assertTrue("the kind's line is inside the card, left of the X: $kind in $hud, X $exit", kind.bottom <= hud.bottom && kind.right <= exit.left + 0.5.dp)

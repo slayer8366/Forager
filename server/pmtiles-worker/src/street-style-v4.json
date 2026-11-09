@@ -6496,6 +6496,53 @@
       }
     },
     {
+      "id": "reference_fs_number",
+      "type": "symbol",
+      "source": "reference",
+      "source-layer": "fs_trails",
+      "minzoom": 14,
+      "filter": [
+        "all",
+        [
+          "match",
+          [
+            "coalesce",
+            [
+              "get",
+              "trail_type"
+            ],
+            ""
+          ],
+          [
+            "SNOW",
+            "WATER"
+          ],
+          false,
+          true
+        ],
+        [
+          "has",
+          "trail_no"
+        ]
+      ],
+      "layout": {
+        "symbol-placement": "line",
+        "text-field": [
+          "get",
+          "trail_no"
+        ],
+        "text-font": [
+          "Noto Sans Regular"
+        ],
+        "text-size": 10
+      },
+      "paint": {
+        "text-color": "#7b5ea7",
+        "text-halo-color": "#ffffff",
+        "text-halo-width": 1.5
+      }
+    },
+    {
       "id": "roads_link",
       "type": "line",
       "source": "protomaps",
@@ -10017,53 +10064,6 @@
           18,
           15
         ]
-      }
-    },
-    {
-      "id": "reference_fs_number",
-      "type": "symbol",
-      "source": "reference",
-      "source-layer": "fs_trails",
-      "minzoom": 14,
-      "filter": [
-        "all",
-        [
-          "match",
-          [
-            "coalesce",
-            [
-              "get",
-              "trail_type"
-            ],
-            ""
-          ],
-          [
-            "SNOW",
-            "WATER"
-          ],
-          false,
-          true
-        ],
-        [
-          "has",
-          "trail_no"
-        ]
-      ],
-      "layout": {
-        "symbol-placement": "line",
-        "text-field": [
-          "get",
-          "trail_no"
-        ],
-        "text-font": [
-          "Noto Sans Regular"
-        ],
-        "text-size": 10
-      },
-      "paint": {
-        "text-color": "#7b5ea7",
-        "text-halo-color": "#ffffff",
-        "text-halo-width": 1.5
       }
     },
     {

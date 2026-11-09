@@ -208,7 +208,7 @@ What the tests assert:
 - Back sends a real `KEYCODE_BACK` down and up to the sheet's own dialog window and closes only the
   sheet: the Waypoints chip stays selected.
 - A scrim touch (on the node described "Close sheet", at a point the sheet does not cover) closes it.
-- The sheet's Directions starts `geo:0,0?q=[a point near the owner's home; removed 2026-11-06](Creek%20pin)`; its Share starts the GPX
+- The sheet's Directions starts `geo:0,0?q=45.326,-122.634(Creek%20pin)`; its Share starts the GPX
   chooser; there is no "Navigate" text.
 - "Details for …" click labels on all three row types, in All and in each chip.
 
@@ -221,11 +221,11 @@ by byte comparison each time), with `git status` empty and `HEAD` `b6a5ae5` afte
 |---|---|---|
 | rv1 sheet opening | `RecordsTab`'s `openDetails = { target -> detailsTarget = target }` → `{ _ -> }` | 18/21 fail: every row-tap, Back, scrim and sheet-action test ("a tap at … opens the details sheet", "record-details-sheet is not displayed"). The 3 that pass need no sheet: the two row-button pins and the click-label test. |
 | rv2 open-swipe exception | J4b's overlay condition (`TwoStageSwipe.kt:297`) → `if (false)` | 3/21 fail: the three open-swipe tests, "the tap … closed the open row" |
-| rv3 waypoint content | sheet's Coordinates `decimalDegreesLabel(lat, lng)` → `(lng, lat)` | 6/21 fail: every waypoint-content test, `[Coordinates, [a point near the owner's home; removed 2026-11-06]]` |
+| rv3 waypoint content | sheet's Coordinates `decimalDegreesLabel(lat, lng)` → `(lng, lat)` | 6/21 fail: every waypoint-content test, `[Coordinates, 45.3260, -122.6340]` |
 | rv4 track content | sheet's Distance unit → `DistanceUnit.KILOMETERS` | 4/21 fail: every track-content test, `[Distance, 1.4 mi]` |
 | rv5 region content | sheet's Radius unit → `DistanceUnit.KILOMETERS` | 5/21 fail: every region-content test, `[Radius, 9 mi]` |
 | rv6 no made-up zero | `referenceCounts[id]?.let` → `(referenceCounts[id] ?: 0).let` | 1/21: "a waypoint with no count given has no Used in line, rather than a made-up zero" |
-| rv7 row's Directions keeps its tap | the button's `onClick` → `onClick ?: { launchDirections(…) }` | 1/21: `expected:<[geo:0,0?q=[a point near the owner's home; removed 2026-11-06](Creek%20pin)]> but was:<[null]>` |
+| rv7 row's Directions keeps its tap | the button's `onClick` → `onClick ?: { launchDirections(…) }` | 1/21: `expected:<[geo:0,0?q=45.326,-122.634(Creek%20pin)]> but was:<[null]>` |
 | **rv8 row's Share keeps its tap** | the button's `onClick` → `onClick ?: { scope.launch { … } }` | **Did not compile** (`TrackExportPanel.kt:151:23 Argument type mismatch: actual type is 'Function0<Any>', but 'Function0<Unit>' was expected`). **Results refused, nothing cited. The abort.** |
 | **rv8b** (the one allowed retry) row's Share keeps its tap | the button's `onClick = { scope.launch { … } }` → `onClick = { if (onClick != null) onClick() else scope.launch { … } }` (the expected type stays `() -> Unit`, so it compiles) | **0 `e:` lines.** 1/21: "the track row's own Share button starts the GPX share and does not open the sheet", `ComposeTimeoutException: Condition still not satisfied after 5000 ms`. The chooser never started, because the button opened the sheet instead. Only this edit makes the row's Share start nothing. Restored from the saved copy, identical; `git status` empty; the forward line is present at `TrackExportPanel.kt:151`. |
 | rv9 saver fails loudly | `else -> error(…)` → `else -> null` | 1/2: "expected java.lang.IllegalStateException to be thrown, but nothing was thrown" |

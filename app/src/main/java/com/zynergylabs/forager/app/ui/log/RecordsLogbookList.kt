@@ -43,7 +43,6 @@ import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.availability.AvailabilityUiState
 import com.zynergylabs.forager.app.ui.availability.OfflineRegionRow
-import com.zynergylabs.forager.app.ui.availability.OfflineRegionRowWithDelete
 import com.zynergylabs.forager.app.ui.availability.WaypointRow
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.track.TrackExportRow
@@ -140,8 +139,7 @@ internal fun RecordsLogbookList(
             )
         }
         if (sectionRows.isEmpty()) {
-            // Dispatch 2026-10-28-08, Amendment 1 (RECORD -1781), the owner's words; was "No records yet.".
-            Text("No records yet. Record a track, drop a waypoint or download a map, and it shows here.", style = MaterialTheme.typography.bodyMedium)
+            Text("No records yet.", style = MaterialTheme.typography.bodyMedium)
         }
         sectionRows.forEach { sectionRow -> key(sectionRow.key) { ListRowMotion(sectionRow) { section ->
           // One column per section, with the list's own spacing, so a leaving section shrinks as one block.
@@ -229,16 +227,13 @@ internal fun RecordsLogbookList(
                                 detailsName = record.region.name,
                                 onClick = onOpenDetails?.let { open -> { open(RecordDetailsTarget.OfflineRegionDetails(record.region.id)) } },
                             ) {
-                                // Dispatch 2026-10-29-10 (RECORD -1817, -1818): the same trash button as the Offline maps chip's rows.
-                                OfflineRegionRowWithDelete(region = record.region, onDelete = { onDeleteOfflineRegion(record.region.id) }) {
-                                    OfflineRegionRow(
-                                        region = record.region,
-                                        isStale = isOfflineRegionStale(record.region.createdAtEpochMillis, now, availabilityUiState.offlineStaleThresholdDays),
-                                        distanceUnit = distanceUnit,
-                                        nowEpochMillis = now,
-                                        onDownloadAgain = { onDownloadAgain(record.region.id) },
-                                    )
-                                }
+                                OfflineRegionRow(
+                                    region = record.region,
+                                    isStale = isOfflineRegionStale(record.region.createdAtEpochMillis, now, availabilityUiState.offlineStaleThresholdDays),
+                                    distanceUnit = distanceUnit,
+                                    nowEpochMillis = now,
+                                    onDownloadAgain = { onDownloadAgain(record.region.id) },
+                                )
                             }
                         }
                     }

@@ -87,7 +87,7 @@ class JournalTabTest {
     // starting point for this file's report/edit navigation tests (Workstream L4b-R).
     private val existingEntry = MushroomLogEntry.draft(
         id = "existing-1",
-        location = LatLng(45.3736, -121.6959),
+        location = LatLng(45.326, -122.634),
         date = LocalDate.of(2026, 8, 1),
     ).copy(isDraft = false)
 
@@ -117,7 +117,7 @@ class JournalTabTest {
                 onOpenCameraForAlbum = {},
                 onOpenCameraForCartographyEntry = {},
                 mapSlot = mapSlot,
-                pickerRegion = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15),
+                pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
                 deviceLocation = deviceLocation.value,
                 basemap = Basemap.DEFAULT,
                 onOpenEntry = { id -> uiState = uiState.copy(editingEntry = uiState.entries.first { it.id == id }) },
@@ -421,7 +421,7 @@ class JournalTabTest {
         setScreen(MushroomLogUiState(), mapSlot = map.slot)
         composeRule.onNodeWithTag(FINDS_FAB_TAG).performClick()
         composeRule.onNodeWithText("Add Location").performClick()
-        composeRule.onNodeWithText("Pin at: 45.3736, -121.6959").assertExists()
+        composeRule.onNodeWithText("Pin at: 45.3260, -122.6340").assertExists()
 
         composeRule.runOnIdle { deviceLocation.value = FIRST_FIX }
         composeRule.waitForIdle()

@@ -86,10 +86,10 @@ class AndroidLocationProviderTest {
 
         // Only the network provider ever actually produces a location — standing in for GPS's
         // real-world slow cold-lock never resolving before the fix that matters (network) does.
-        shadowLocationManager.simulateLocation(fixAt(lat = 45.5, lng = -121.6))
+        shadowLocationManager.simulateLocation(fixAt(lat = 45.5, lng = -122.6))
         shadowOf(Looper.getMainLooper()).idle() // dispatches the queued onLocationChanged callback
 
-        assertEquals(LocationResult.Success(lat = 45.5, lng = -121.6, altitude = null), pending.await())
+        assertEquals(LocationResult.Success(lat = 45.5, lng = -122.6, altitude = null), pending.await())
     }
 
     @Test

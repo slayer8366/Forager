@@ -50,7 +50,7 @@ class StripSundownLineGrowTest {
     private val resolver get() = ApplicationProvider.getApplicationContext<Application>().contentResolver
 
     private var line by mutableStateOf<String?>(null)
-    private var location by mutableStateOf<LatLng?>(LatLng(45.38, -121.70))
+    private var location by mutableStateOf<LatLng?>(LatLng(45.33, -122.64))
 
     @After
     fun restore() {

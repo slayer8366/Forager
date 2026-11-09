@@ -44,12 +44,12 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `offline off loads the basemap's own raster style as JSON, night applied`() {
-        // ownTrail = false: the raster path, which Trail Map's own style would otherwise take over for Trail Map and for
+        // ownStreet = false: the raster path, which Trail Map's own style would otherwise take over for Trail Map and for
         // Topographical at night (D3 of #359, carried over by dispatch 2026-10-22-01); those sources are
-        // OwnTrailStyleSourceTest's. rasterDrawn: Trail Map's raster stand-in is OpenStreetMap's (the -1513 fallback).
+        // OwnStreetStyleSourceTest's. rasterDrawn: Trail Map's raster stand-in is OpenStreetMap's (the -1513 fallback).
         Basemap.entries.forEach { basemap ->
-            val day = mapStyleSourceFor(basemap, night = false, useOfflineTiles = false, ownTrail = false)
-            val night = mapStyleSourceFor(basemap, night = true, useOfflineTiles = false, ownTrail = false)
+            val day = mapStyleSourceFor(basemap, night = false, useOfflineTiles = false, ownStreet = false)
+            val night = mapStyleSourceFor(basemap, night = true, useOfflineTiles = false, ownStreet = false)
 
             assertTrue("$basemap day must be a JSON style", day is MapStyleSource.Json)
             assertTrue("$basemap must name its own tile template", (day as MapStyleSource.Json).json.contains(basemap.rasterDrawn().tileUrlTemplate))
@@ -71,6 +71,7 @@ class OfflineStyleSwapTest {
     @Test
     fun `the credit over a basemap is that basemap's own`() {
         assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)", mapAttributionFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false))
+        assertEquals("© OpenStreetMap contributors", mapAttributionFor(Basemap.OSM_STANDARD, useOfflineTiles = false))
     }
 
     @Test
@@ -84,7 +85,7 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `nothing applied yet is a reload, and an identical request is not`() {
-        val style = AppliedMapStyle(Basemap.OPEN_TOPO_MAP, palette, useOfflineTiles = false, night = false)
+        val style = AppliedMapStyle(Basemap.OSM_STANDARD, palette, useOfflineTiles = false, night = false)
 
         assertTrue(needsStyleReload(applied = null, requested = style))
         assertFalse(needsStyleReload(applied = style, requested = style))
@@ -93,9 +94,9 @@ class OfflineStyleSwapTest {
     @Test
     fun `a basemap change is still a reload, with the offline flag unchanged`() {
         val topo = AppliedMapStyle(Basemap.OPEN_TOPO_MAP, palette, useOfflineTiles = false, night = false)
-        val trail = topo.copy(basemap = Basemap.FORAGER_TRAIL)
+        val osm = topo.copy(basemap = Basemap.OSM_STANDARD)
 
-        assertTrue(needsStyleReload(applied = topo, requested = trail))
+        assertTrue(needsStyleReload(applied = topo, requested = osm))
     }
 
     /**
@@ -114,7 +115,7 @@ class OfflineStyleSwapTest {
 
     @Test
     fun `turning Night Maps on or off is a reload on Topographical and Street`() {
-        for (basemap in Basemap.entries.filter { it.isRaster }) {
+        for (basemap in listOf(Basemap.OPEN_TOPO_MAP, Basemap.OSM_STANDARD)) {
             val day = applied(basemap, nightMode = false)
             val night = applied(basemap, nightMode = true)
 

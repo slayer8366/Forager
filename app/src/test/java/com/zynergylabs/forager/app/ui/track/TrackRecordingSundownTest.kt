@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.track
 
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.ui.availability.onDarknessMarginChanged
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.AlertDelivery
@@ -157,7 +156,6 @@ class TrackRecordingSundownTest {
             currentTime = clock,
             zone = ZoneOffset.UTC,
             sundownShown = sundownShown,
-            entryReferenceCounts = NoEntryReferenceCounts,
         ).also(createdViewModels::add)
     }
 

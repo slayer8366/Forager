@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.geometry.Offset
 import androidx.test.core.app.ApplicationProvider
@@ -51,10 +52,9 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * Maps > ⋮ > "Off-track reminder" (dispatch 2026-09-28-626, plan T14; Amendment 1, RECORD -627; in Settings until dispatch
- * 2026-09-28-707, then in the Tools drawer's Sundown section until dispatch 2026-10-27-14 Amendment 1, RECORD -1751), on
+ * Tools > Sundown > "Off-track reminder" (in Settings until dispatch 2026-09-28-707) (dispatch 2026-09-28-626, plan T14; Amendment 1, RECORD -627), on
  * the real [AvailabilityScreen] and [AvailabilityViewModel] over the real DataStore repository: the
- * menu's label, on by default, flipped by real touches across the row, and read back by a
+ * owner's words, on by default, flipped by real touches across the row, and read back by a
  * recreated repository, including the synchronous read the off-track rule uses.
  */
 @RunWith(RobolectricTestRunner::class)
@@ -143,20 +143,21 @@ class OffTrackReminderSettingsTest {
             )
         }
         composeRule.waitForIdle()
-        // Opening the map's ⋮ menu is not the claim here; the touches on the row are.
-        composeRule.onNodeWithTag(MAP_QUICK_SETTINGS_BUTTON_TAG).performTouchInput { click(center) }
+        // Opening Tools is not the claim here; the touches on the row are. One tap since dispatch
+        // 2026-09-28-707, where it was Tools then Settings.
+        composeRule.onNodeWithText("Tools").performClick()
         composeRule.waitForIdle()
     }
 
     private fun checked(): Boolean {
-        val node = composeRule.onNodeWithTag(QUICK_OFF_TRACK_TAG).fetchSemanticsNode()
+        val node = composeRule.onNodeWithTag(OFF_TRACK_REMINDER_TAG).fetchSemanticsNode()
         return node.config.getOrNull(SemanticsProperties.ToggleableState) == ToggleableState.On ||
             node.children.any { it.config.getOrNull(SemanticsProperties.ToggleableState) == ToggleableState.On }
     }
 
-    /** A real touch at [fraction] across the row's width, at its vertical centre (the menu's rows are all on screen). */
+    /** A real touch at [fraction] across the row's width, at its vertical centre. */
     private fun touchRow(fraction: Float) {
-        composeRule.onNodeWithTag(QUICK_OFF_TRACK_TAG).performTouchInput { click(Offset(width * fraction, height / 2f)) }
+        composeRule.onNodeWithTag(OFF_TRACK_REMINDER_TAG).performScrollTo().performTouchInput { click(Offset(width * fraction, height / 2f)) }
         composeRule.waitForIdle()
     }
 
@@ -173,10 +174,14 @@ class OffTrackReminderSettingsTest {
     }
 
     @Test
-    fun `the quick settings' row reads Off-track reminder, and is on by default`() {
+    fun `the row reads the owner's words, and is on by default`() {
         val (repository, _) = repository()
         setScreen(viewModelOver(repository))
-        assertEquals(1, composeRule.onAllNodesWithText(QUICK_OFF_TRACK_LABEL).fetchSemanticsNodes().size)
+        composeRule.onNodeWithTag(OFF_TRACK_REMINDER_TAG).performScrollTo()
+        assertEquals(
+            1,
+            composeRule.onAllNodesWithText("Off-track reminder: your phone buzzes if you head away from your start.").fetchSemanticsNodes().size,
+        )
         assertEquals(true, checked())
     }
 

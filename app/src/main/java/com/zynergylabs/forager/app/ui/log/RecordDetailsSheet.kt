@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
-import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
@@ -46,18 +45,11 @@ import androidx.compose.runtime.setValue
  * **Opened fully expanded** (`skipPartiallyExpanded`), so every field shows without a drag in
  * portrait; in a short landscape window the sheet takes the height it has and its content scrolls.
  *
- * **Waypoint: Navigate** (dispatch 2026-09-28-502, plan task T9). The owner's M1 ruling asked for
- * Navigate (the app's own HUD) beside Directions; J5c shipped Directions only, because nothing then
- * navigated to a chosen waypoint. [onNavigateToWaypoint] is that entry point now: the sheet closes and
- * the Maps tab navigates to the waypoint, and Back opens this sheet again (Amendment 1). Every host
- * passes one (the Maps tab, Records, and since RECORD -890 a journal entry's map), so dispatch
- * 2026-10-29-09 removed Directions from the sheet (RECORD -1819); a host passing none (tests) shows neither. Dispatch
- * 2026-11-05-05 (A5; RECORD -2140) put Directions back, to Navigate's right, the two centred, wherever Navigate is
- * ([NavigateDirectionsRow]).
- *
- * **Trip** (dispatch 2026-11-05-05, A4 as A9 rules it): a planned trip's card ([TripDetails]), resolved against
- * [plannedTrips], which only the Maps tab's bubble layer hands in (C1); every other host passes none, so a trip target there
- * closes the sheet as a record gone from its list does. Its Navigate is [onNavigateToTrip].
+ * **Waypoint: Navigate, then Directions** (dispatch 2026-09-28-502, plan task T9). The owner's M1 ruling
+ * asked for Navigate (the app's own HUD) beside Directions; J5c shipped Directions only, because nothing
+ * then navigated to a chosen waypoint. [onNavigateToWaypoint] is that entry point now: the sheet closes
+ * and the Maps tab navigates to the waypoint, and Back opens this sheet again (Amendment 1). A host that
+ * passes none (an entry map's) offers Directions only.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,10 +81,6 @@ internal fun RecordDetailsSheet(
      * list's rows without a tap, and Back closes the sheet.
      */
     onOpenDetails: ((RecordDetailsTarget) -> Unit)? = null,
-    /** Dispatch 2026-11-05-05: the planned trips a [RecordDetailsTarget.TripDetails] is looked up in; none by default. */
-    plannedTrips: List<PlannedTrip> = emptyList(),
-    /** Dispatch 2026-11-05-05 (A8): a trip's "Navigate", given its id; `null` offers none, and so no Directions (C1). */
-    onNavigateToTrip: ((String) -> Unit)? = null,
 ) {
     // One sheet per target, so a target opened in this one's place gets a sheet of its own, shown fresh:
     // the sheet Back has just hidden is not reused (its state is hidden, and it would stay so).
@@ -100,7 +88,6 @@ internal fun RecordDetailsSheet(
         RecordDetailsSheetFor(
             target, waypoints, tracks, offlineRegions, waypointEntryReferenceCounts, distanceUnit, nowEpochMillis,
             staleThresholdDays, getFullRecord, onDeleteTrack, onDismiss, overMap, onNavigateToWaypoint, onOpenDetails,
-            plannedTrips, onNavigateToTrip,
         )
     }
 }
@@ -122,21 +109,18 @@ private fun RecordDetailsSheetFor(
     overMap: Boolean,
     onNavigateToWaypoint: ((String) -> Unit)?,
     onOpenDetails: ((RecordDetailsTarget) -> Unit)?,
-    plannedTrips: List<PlannedTrip>,
-    onNavigateToTrip: ((String) -> Unit)?,
 ) {
     val waypoint = (target as? RecordDetailsTarget.WaypointDetails)?.let { t -> waypoints.firstOrNull { it.id == t.id } }
     val track = (target as? RecordDetailsTarget.TrackDetails)?.let { t -> tracks.firstOrNull { it.id == t.id } }
     val region = (target as? RecordDetailsTarget.OfflineRegionDetails)?.let { t -> offlineRegions.firstOrNull { it.id == t.id } }
-    val trip = (target as? RecordDetailsTarget.TripDetails)?.let { t -> plannedTrips.firstOrNull { it.id == t.id } }
-    if (waypoint == null && track == null && region == null && trip == null) {
+    if (waypoint == null && track == null && region == null) {
         // Not an error: the record left the list the row came from. Nothing to show, so no sheet.
         LaunchedEffect(target) { onDismiss() }
         return
     }
     val sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     // Material3's own default container role for a sheet (`BottomSheetDefaults.ContainerColor`), at the
-    // map chrome's alpha over a map, as the Layers sheet is (`mapChromeFill`'s doc, MapChrome.kt:103-109). The content colour is
+    // map chrome's alpha over a map, as the Layers sheet is (`MapLayersSheet`). The content colour is
     // pinned to the role's own for the reason given there: `contentColorFor` matches a colour-scheme
     // role exactly. The scrim stays Material3's default.
     // C1: the navigation bar's colour (was surfaceContainerLow); alpha as it was, 0.8 over a map and solid elsewhere.
@@ -167,8 +151,6 @@ private fun RecordDetailsSheetFor(
                 waypoint = waypoint,
                 track = track,
                 region = region,
-                trip = trip,
-                onNavigateToTrip = onNavigateToTrip,
                 waypoints = waypoints,
                 tracks = tracks,
                 waypointEntryReferenceCounts = waypointEntryReferenceCounts,
@@ -185,14 +167,12 @@ private fun RecordDetailsSheetFor(
     }
 }
 
-/** What the record's details show in [RecordDetailsSheet]. Exactly one of [waypoint], [track], [region], [trip] is non-null. */
+/** What the record's details show in [RecordDetailsSheet]. Exactly one of [waypoint], [track], [region] is non-null. */
 @Composable
 private fun RecordDetailsBody(
     waypoint: Waypoint?,
     track: Track?,
     region: OfflineRegionSummary?,
-    trip: PlannedTrip?,
-    onNavigateToTrip: ((String) -> Unit)?,
     waypoints: List<Waypoint>,
     tracks: List<Track>,
     waypointEntryReferenceCounts: Map<String, Int>,
@@ -217,6 +197,5 @@ private fun RecordDetailsBody(
             overMap = overMap,
         )
         region != null -> OfflineRegionDetails(region, distanceUnit, nowEpochMillis, staleThresholdDays)
-        trip != null -> TripDetails(trip, onNavigateToTrip)
     }
 }

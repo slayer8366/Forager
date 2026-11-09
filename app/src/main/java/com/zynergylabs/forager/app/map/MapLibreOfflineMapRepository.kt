@@ -5,8 +5,6 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
-import com.zynergylabs.forager.app.data.dropoffmap.NoRegionDropOffMaps
-import com.zynergylabs.forager.app.data.dropoffmap.RegionDropOffMaps
 import com.zynergylabs.forager.app.data.local.OfflineRegionDao
 import com.zynergylabs.forager.app.data.repository.RoomOfflineRegionIdReplacer
 import com.zynergylabs.forager.app.data.routedata.RegionRouteFolders
@@ -18,7 +16,6 @@ import com.zynergylabs.forager.app.domain.DownloadPause
 import com.zynergylabs.forager.app.domain.DownloadPauseDecision
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
-import com.zynergylabs.forager.app.domain.mapdata.DropOffMapPass
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.domain.routedata.RegionRouteData
 import com.zynergylabs.forager.app.domain.routedata.routeAreaFor
@@ -101,11 +98,6 @@ class MapLibreOfflineMapRepository(
     private val regionIdReplacer: RoomOfflineRegionIdReplacer,
     /** Each region's trail route data, fetched with its tiles, listed with them, deleted with them (dispatch 2026-10-23-03). */
     private val routes: RegionRouteFolders,
-    /**
-     * Each region's drop-off map copy (dispatch 2026-11-04-09): listed with it, counted into its size, deleted with it.
-     * MapLibre's own store is only read by it, never written.
-     */
-    private val dropOffMaps: RegionDropOffMaps = NoRegionDropOffMaps,
 ) : OfflineMapRepository {
 
     private val appContext = context.applicationContext
@@ -145,7 +137,7 @@ class MapLibreOfflineMapRepository(
         onPauseChanged: (paused: Boolean) -> Unit,
     ): Result<OfflineRegionSummary> = runCatchingCancellable {
         val definition = OfflineTilePyramidRegionDefinition(
-            // OFFLINE_STYLE_URL, unless Trail Map is on (TrailStyle.kt): then the Trail Map style.
+            // OFFLINE_STYLE_URL, unless the own Street is on (StreetStyle.kt): then the Street style.
             offlineDownloadStyleUrl(),
             region.toLatLngBounds(),
             OfflineMapRepository.MIN_ZOOM,
@@ -231,18 +223,10 @@ class MapLibreOfflineMapRepository(
         routes.fetchFor(id, Region(row.lat, row.lng, row.radiusKm))
     }
 
-    override suspend fun fetchDropOffMap(id: Long): Result<DropOffMapPass> = runCatchingCancellable {
-        val row = offlineRegionDao.getById(id) ?: throw java.io.IOException("no region $id")
-        // Only a region whose tiles are on this phone, as fetchRoutes: a restored row has nothing to copy for.
-        if (offlineManager().listOfflineRegionsSuspend().none { it.id == id }) throw java.io.IOException("region $id is not downloaded here")
-        dropOffMaps.fetchFor(id, Region(row.lat, row.lng, row.radiusKm))
-    }
-
     override suspend fun deleteRegion(id: Long): Result<Unit> = runCatchingCancellable {
         offlineManager().listOfflineRegionsSuspend().firstOrNull { it.id == id }?.deleteSuspend()
         offlineRegionDao.deleteById(id)
         deleteRoutesOrLeaveForCleanup(routes, id) { message -> Log.w(TAG, message) }
-        deleteDropOffMapOrLeaveForCleanup(dropOffMaps, id) { message -> Log.w(TAG, message) }
     }
 
     override suspend fun listRegions(): Result<List<OfflineRegionSummary>> = runCatchingCancellable {
@@ -272,7 +256,6 @@ class MapLibreOfflineMapRepository(
             deleteRegion = { id -> byId.getValue(id).deleteSuspend() },
             warn = { message -> Log.w(TAG, message) },
             routes = routes,
-            dropOffMaps = dropOffMaps,
         )
     }
 
@@ -311,7 +294,7 @@ private const val TAG = "MapLibreOfflineMapRepo"
 /**
  * The style "use offline tiles" should load now ([offlineRenderStyleUrl]), from the style URLs MapLibre's own region
  * definitions record (`OfflineRegion.getDefinition().getStyleURL()`, checked with `javap` at the pinned `13.5.0`).
- * A failed read is logged and gives [OFFLINE_STYLE_URL], the style every region downloaded before Trail Map
+ * A failed read is logged and gives [OFFLINE_STYLE_URL], the style every region downloaded before the own Street
  * holds (CLAUDE.md: no fallback that is not logged when it fires).
  */
 internal suspend fun currentOfflineRenderStyleUrl(context: Context): String {

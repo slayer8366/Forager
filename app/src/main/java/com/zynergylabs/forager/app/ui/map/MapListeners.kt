@@ -5,14 +5,9 @@ import android.util.Log
 import android.view.Gravity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
-import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveCause
-import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackZoom
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapSinks
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
@@ -43,8 +38,6 @@ internal fun MapListeners(
     // Registered once per composition of this MapView, not per recomposition: getMapAsync's
     // callback fires exactly once for the life of the MapView, so there's no re-registration to
     // guard against the way the style reload's guard (MapStyleReload.kt) is needed for setStyle.
-    // Dispatch 2026-11-04-02, A6: the crowded-stack zoom reads the phone's Reduce Motion at each tap, so the latest is kept here.
-    val reduceMotion by rememberUpdatedState(LocalReduceMotion.current)
     DisposableEffect(state.mapView) {
         // A style that cannot be loaded — the offline style with no region covering the camera
         // and no network, or a worker URL that moved — fails here rather than in setStyle's own
@@ -53,14 +46,14 @@ internal fun MapListeners(
         // 13.5.0 artifact with javap, the same way every other SDK call in this file was.
         state.mapView.addOnDidFailLoadingMapListener { message ->
             Log.w(SIGHTINGS_MAP_TAG, "MapLibre failed to load the map style: $message")
-            // RECORD -1513: Trail Map online falls back to the raster that stands in for it (the Street map's) until the signal returns (OwnTrailFallback.kt).
-            OWN_TRAIL_FALLBACK.onStyleLoadFailed(state.lastStyleRequest, message)
+            // RECORD -1513: the own Street online falls back to OpenStreetMap's Street for the process (OwnStreetFallback.kt).
+            OWN_STREET_FALLBACK.onStyleLoadFailed(state.lastStyleRequest, message)
         }
-        // RECORD -1513: tile errors on Trail Map are logged, a few a process, and never fall back. Listener checked with
+        // RECORD -1513: tile errors on the own Street are logged, a few a process, and never fall back. Listener checked with
         // javap against the pinned 13.5.0 artifact: addOnTileActionListener, onTileAction(TileOperation, z, x, y, wrap,
         // overscaledZ, sourceId).
         val tileErrorLogger = MapView.OnTileActionListener { operation, z, x, y, _, _, sourceId ->
-            if (operation == TileOperation.Error) OWN_TRAIL_FALLBACK.onTileError(state.lastStyleRequest, sourceId, z, x, y)
+            if (operation == TileOperation.Error) OWN_STREET_FALLBACK.onTileError(state.lastStyleRequest, sourceId, z, x, y)
         }
         state.mapView.addOnTileActionListener(tileErrorLogger)
         // RECORD -752 (dispatch 2026-09-28-755, item 4): logging only, to find the S22's blank and magnified frame on a return
@@ -101,14 +94,6 @@ internal fun MapListeners(
                 // A record on a layer switched off is not drawn, so it is not a fan member.
                 warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) },
                 layerDrawn = { id -> MAP_LAYER_REGISTRY.firstOrNull { it.id == id }?.let { layerPaintFor(it, state.layersState).visible } ?: false },
-                // Dispatch 2026-10-27-07 (RECORD -1736): a stack whose fan does not fit zooms in, then fans; only on a map whose host
-                // shows the list and walks Back (the Maps tab). Elsewhere it fans past the edge as before, logged.
-                crowded = CrowdedStackZoom(
-                    camera = MapStackCamera(map, state, resources.displayMetrics.density).also { state.tapHandlerRef.stackCamera = it },
-                    host = { state.tapHandlerRef.crowdedHost },
-                    warn = { message -> Log.w(SIGHTINGS_MAP_TAG, message) },
-                    reduceMotion = { reduceMotion },
-                ),
                 sinks = object : MapTapSinks {
                     override fun onPlainTap() = state.onTap()
 
@@ -131,12 +116,6 @@ internal fun MapListeners(
                     }
 
                     override fun onCloseBubble() = state.onCloseBubble()
-
-                    override fun onReferenceTrailTap(layerId: String, record: ReferenceTrailRecord, xPx: Float, yPx: Float, at: LatLng) {
-                        // Step 8c (dispatch 2026-10-26-16): a band's bubble, read from the tapped feature, through the same
-                        // feature-tap path as every other bubble ("Bubble only", as above).
-                        state.onFeatureTap(MapFeatureTap.forReferenceTrail(layerId, record, Offset(xPx, yPx), map.cameraPosition.bearing.toFloat(), at))
-                    }
 
                     override fun onUnidentifiedFeature(layerId: String) {
                         // Logged, never silent: a feature with no id cannot name its record, so no
@@ -166,10 +145,7 @@ internal fun MapListeners(
             // rarely rests, so a shown bubble is kept on its glyph on every camera move, not only at
             // idle. Outside navigation it is re-anchored at idle as before.
             map.addOnCameraMoveListener {
-                if (state.navigationView != null) {
-                    state.reanchorFocusedBubble(map)
-                    state.reanchorCrowdedList(map)
-                }
+                if (state.navigationView != null) state.reanchorFocusedBubble(map)
                 state.navigationModeChange.noteCameraMove(map) // dispatch -470, Part A: logging only
             }
             // Dispatch -477, Part A: every fling MapLibre reports while navigating, with the camera mode then.
@@ -190,8 +166,6 @@ internal fun MapListeners(
                 }
                 state.tapHandlerRef.handler?.onCameraMoveStarted(cause)
                 if (isUserCameraGesture(reason)) state.onUserCameraGesture()
-                // D25, D26 (RECORD -1968, -1969): the credit strip fades at the user's first pan or zoom (MapCreditStrip.kt).
-                if (isUserCameraGesture(reason)) state.userCameraGestures++
             }
             // OnCameraIdleListener.onCameraIdle() takes no argument (verified via javap against
             // the pinned org.maplibre.gl:android-sdk:13.5.0 artifact — MapLibreMap$OnCameraIdleListener
@@ -213,7 +187,18 @@ internal fun MapListeners(
                 // back after a tab change. Not before this MapView's first style has loaded: until then
                 // the camera is the SDK's default, and the restore has yet to read what was saved.
                 if (state.loadedStyle != null) {
-                    cameraSnapshotOf(map, state.lastAppliedCameraTarget)?.let { state.cameraMemory?.saved = it }
+                    val camera = map.cameraPosition
+                    camera.target?.let { target ->
+                        state.cameraMemory?.saved = MapCameraSnapshot(
+                            target = LatLng(target.latitude, target.longitude),
+                            zoom = camera.zoom,
+                            bearing = camera.bearing,
+                            tilt = camera.tilt,
+                            following = map.locationComponent.isLocationComponentActivated &&
+                                map.locationComponent.cameraMode != CameraMode.NONE,
+                            appliedTarget = state.lastAppliedCameraTarget,
+                        )
+                    }
                 }
                 // Item 8 (dispatch 2026-09-29-57, amendment -262, "Remember and reopen"): the fan a user left when they opened a
                 // find on the Journal reopens here, at the first idle after this map's style has loaded (the camera memory's
@@ -224,8 +209,6 @@ internal fun MapListeners(
                 // Keeps a shown bubble glued to its glyph across a pan, zoom or rotate gesture: see
                 // reanchorFocusedBubble, which a rotation of the device also calls (onViewportResized, in SightingsMapLayout.kt).
                 state.reanchorFocusedBubble(map)
-                // Dispatch 2026-11-04-02, A1: and the crowded stack's list bubble on its stack, the same way.
-                state.reanchorCrowdedList(map)
             }
             // MapLibre's own tap-to-reveal attribution control defaults to bottom-start — the same
             // corner this composable's own always-visible Basemap.attribution caption occupies (see
@@ -251,8 +234,6 @@ internal fun MapListeners(
             state.mapLibreMap = map
         }
         onDispose {
-            // Amendment 1, S2: the host outlives this map; Back's camera step stops moving this one.
-            state.tapHandlerRef.stackCamera = null
             state.mapView.removeOnDidFinishRenderingFrameListener(frameLogger)
             state.mapView.removeOnTileActionListener(tileErrorLogger)
         }

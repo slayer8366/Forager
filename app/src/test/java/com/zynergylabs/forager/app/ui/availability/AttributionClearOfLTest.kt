@@ -58,12 +58,8 @@ class AttributionClearOfLTest {
 
     private fun tag(tag: String): DpRect = composeRule.onNodeWithTag(tag).getUnclippedBoundsInRoot()
 
-    /**
-     * MapLibre's own margins, in dp: 4 on every side, as the S22 shows them (RECORD -2187, the planner's correction for dispatch 2026-11-06-05:
-     * the right margin is MapLibre's 4 dp, and the side bar's width is the end inset the map is handed, not part of the margin). Was a 52 dp
-     * right margin, from the run record's 146 px at 450 dpi, which counted that inset in the margin.
-     */
-    private fun defaultsPx(): IntArray = with(composeRule.density) { intArrayOf(4.dp.roundToPx(), 4.dp.roundToPx(), 4.dp.roundToPx(), 4.dp.roundToPx()) }
+    /** MapLibre's own margins, in dp, as the run record measured them on the S22 (right 146 px, bottom 11 px at 450 dpi). */
+    private fun defaultsPx(): IntArray = with(composeRule.density) { intArrayOf(4.dp.roundToPx(), 4.dp.roundToPx(), 52.dp.roundToPx(), 4.dp.roundToPx()) }
 
     private fun dragClusterRightAndDown() {
         val handle = tag("map-icon-bar-minimize-handle")

@@ -42,6 +42,13 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.theme.Spacing
 
 /**
+ * The evening lines broken at their " · " joins into short pieces, the sundown line's first, then Back by's (RECORD -941: "Sunset
+ * 12:41 AM", "in 2 h 28 min", "dark 1:13", "Back by …").
+ */
+internal fun eveningPieces(sundownLine: String?, backByLine: String?): List<String> =
+    listOfNotNull(sundownLine, backByLine).flatMap { line -> line.split(" · ").map(String::trim).filter(String::isNotEmpty) }
+
+/**
  * RECORD -941: the evening lines stacked in the right part, one piece per line, centred (RECORD -945), never ending in "…" (a piece
  * wider than the part wraps; the fit reserves the widest piece's width, so it only wraps where the fit reports an overflow). Each
  * line keeps its own tag on a column whose text is the whole line, so it reads as it did; each piece carries
@@ -53,8 +60,6 @@ internal fun EveningStack(
     backByLine: String?,
     sundownVisibility: MutableTransitionState<Boolean>,
     backByVisibility: MutableTransitionState<Boolean>,
-    /** Amendment 1, H5: the sundown line breaks at the owner's ▪︎ ([CardEvening.breaks]). */
-    breakAtSquare: Boolean = true,
 ) {
     val reduceMotion = LocalReduceMotion.current
     val lineFade = MotionTokens.mapPopUpFadeSpec<Float>()
@@ -74,7 +79,7 @@ internal fun EveningStack(
                         modifier = Modifier.fillMaxWidth().semantics { text = AnnotatedString(whole) }.testTag(tag),
                         horizontalAlignment = Alignment.CenterHorizontally,
                     ) {
-                        eveningPieces(whole, null, breakAtSquare).forEach { piece ->
+                        eveningPieces(whole, null).forEach { piece ->
                             WordSwap(text = piece) { shown ->
                                 Text(text = shown, style = style, modifier = Modifier.testTag(NAVIGATION_HUD_EVENING_PIECE_TAG))
                             }
@@ -87,17 +92,18 @@ internal fun EveningStack(
 }
 
 /**
- * The line under the parts that says the route home cannot be calculated: the route message, with "Try again" beside it when
- * recomputing could change that (RECORD -932, step 3; in landscape too, RECORD -934), in [widthPx]. It carries
- * [NAVIGATION_HUD_DISTANCE_TAG], the large slot's tag, since it is the large slot's words moved here; the left part shows a dash
- * meanwhile. Where even "No route" cannot sit beside "Try again" (font 2.0 in a narrow window), "Try again" takes its own line under
- * it, as before. Nothing otherwise.
- *
- * The status line was under it too until Amendment 1, H2, of dispatch 2026-11-05-10 moved it into the right part ([StatusSpace]).
- * The route message and Try again are not status words, so they keep their own line and row (the planner's reading of H).
+ * The lines under the parts that say what is wrong or what else is true (RECORD -935: everything today's status line said, shown
+ * only when it has something to say), in [widthPx]:
+ * - the route message, when the route home cannot be calculated, with "Try again" beside it when recomputing could change that
+ *   (RECORD -932, step 3; in landscape too, RECORD -934). It carries [NAVIGATION_HUD_DISTANCE_TAG], the large slot's tag, since
+ *   it is the large slot's words moved here; the left part shows a dash meanwhile. Where even "No route" cannot sit beside
+ *   "Try again" (font 2.0 in a narrow window), "Try again" takes its own line under it, as before;
+ * - the status line. Since dispatch 2026-10-12-08 the kind word is a line of its own in the left part (RECORD -945), so it no
+ *   longer leads this line; and what the compass strip already says about the position (no fix, approximate, last seen) is left
+ *   out here, so it shows once, on the strip (RECORD -951).
  */
 @Composable
-internal fun CardRouteLines(
+internal fun CardRouteAndStatusLines(
     readout: NavigationHudReadout,
     widthPx: Int,
     onRetryRoute: () -> Unit,
@@ -107,31 +113,51 @@ internal fun CardRouteLines(
     val density = LocalDensity.current
     fun widthOf(text: String, style: TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
     val gapPx = with(density) { Spacing.sm.roundToPx() }
-    if (readout.distanceText != ROUTE_UNAVAILABLE_TEXT) return
-    val retryPx = with(density) { (RETRY_ICON_SIZE + Spacing.xs).roundToPx() } + widthOf(ROUTE_RETRY_TEXT, retryTextStyle())
-    val besideRoom = if (readout.routeRetryOffered) widthPx - retryPx - gapPx else widthPx
-    val message = if (widthOf(ROUTE_UNAVAILABLE_TEXT, statusStyle) <= besideRoom) ROUTE_UNAVAILABLE_TEXT else ROUTE_UNAVAILABLE_SHORT_TEXT
-    val beside = !readout.routeRetryOffered || retryFitsBeside(widthPx, retryPx, gapPx, widthOf(ROUTE_UNAVAILABLE_SHORT_TEXT, statusStyle))
-    val messageText: @Composable () -> Unit = {
-        WordSwap(text = if (beside) message else ROUTE_UNAVAILABLE_TEXT) { shown ->
+    if (readout.distanceText == ROUTE_UNAVAILABLE_TEXT) {
+        val retryPx = with(density) { (RETRY_ICON_SIZE + Spacing.xs).roundToPx() } + widthOf(ROUTE_RETRY_TEXT, retryTextStyle())
+        val besideRoom = if (readout.routeRetryOffered) widthPx - retryPx - gapPx else widthPx
+        val message = if (widthOf(ROUTE_UNAVAILABLE_TEXT, statusStyle) <= besideRoom) ROUTE_UNAVAILABLE_TEXT else ROUTE_UNAVAILABLE_SHORT_TEXT
+        val beside = !readout.routeRetryOffered || retryFitsBeside(widthPx, retryPx, gapPx, widthOf(ROUTE_UNAVAILABLE_SHORT_TEXT, statusStyle))
+        val messageText: @Composable () -> Unit = {
+            WordSwap(text = if (beside) message else ROUTE_UNAVAILABLE_TEXT) { shown ->
+                Text(
+                    text = shown,
+                    style = statusStyle,
+                    maxLines = 1,
+                    softWrap = false,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
+                )
+            }
+        }
+        if (beside) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Box(modifier = Modifier.weight(1f, fill = false)) { messageText() }
+                if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
+            }
+        } else {
+            messageText()
+            RouteRetryRow(onRetryRoute)
+        }
+    }
+    val separatorPx = widthOf("·", statusStyle) + 2 * with(density) { Spacing.xs.roundToPx() }
+    val statusFit = statusLineFit(readout, kindInStatus = false, maxPx = widthPx, leadSeparatorPx = separatorPx) { widthOf(it, statusStyle) }
+    val status = if (readout.statusIsPositionStatus) "" else statusFit.status
+    if (status.isEmpty()) {
+        // Nothing to say: no line (RECORD -935, "only when it has something to say"). An empty, zero-height node keeps the
+        // status's tag, reading "", so "the status line is empty" stays a statement a test can check.
+        Text(text = "", style = statusStyle, modifier = Modifier.height(0.dp).testTag(NAVIGATION_HUD_STATUS_TAG))
+    } else {
+        WordSwap(text = status) { shown ->
             Text(
                 text = shown,
                 style = statusStyle,
                 maxLines = 1,
                 softWrap = false,
                 overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.testTag(NAVIGATION_HUD_DISTANCE_TAG),
+                modifier = Modifier.testTag(NAVIGATION_HUD_STATUS_TAG),
             )
         }
-    }
-    if (beside) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Box(modifier = Modifier.weight(1f, fill = false)) { messageText() }
-            if (readout.routeRetryOffered) RouteRetryRow(onRetryRoute)
-        }
-    } else {
-        messageText()
-        RouteRetryRow(onRetryRoute)
     }
 }
 

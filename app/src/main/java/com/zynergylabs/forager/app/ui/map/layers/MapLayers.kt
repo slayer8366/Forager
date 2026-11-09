@@ -38,21 +38,7 @@ enum class ZGroup { COLOUR_FIELDS, AREAS, DECORATIONS, LINES, MARKERS }
  * circle, the sighting dot, or a symbol, every bitmap marker), and each renderer has its own opacity
  * property ([OpacityProperty.renderer]).
  */
-enum class LayerRenderer {
-    FILL,
-    LINE,
-    CIRCLE,
-    SYMBOL,
-
-    /**
-     * A layer the loaded style itself carries, which the app never builds (step 8, PR 8b; dispatch 2026-10-26-15
-     * Amendments 1 and 2): Trail Map's official-trails band. The app sets only its `visibility`, and only when the
-     * loaded style has it (`ReferenceTrailsVisibility.kt`). Its paint, the 0.35 opacity included, is the style's own
-     * (`map-style/overrides/forager-reference.mjs`), so its spec carries no base opacity: [registryProblems] refuses one,
-     * since no [OpacityProperty] belongs to this renderer, and [layerPaintFor] then resolves visibility alone.
-     */
-    STYLE_LAYER,
-}
+enum class LayerRenderer { FILL, LINE, CIRCLE, SYMBOL }
 
 /**
  * The tap precedence the owner chose (L0 design rulings, 3: "Markers, then lines, then colour"):
@@ -170,14 +156,6 @@ object MapLayerIds {
     const val JOURNAL_ENTRY_WAYPOINTS = "journal-entry-waypoints-layer"
     const val JOURNAL_ENTRY_FINDS = "journal-entry-finds-layer"
     const val JOURNAL_ENTRY_PHOTOS = "journal-entry-photos-layer"
-
-    // Step 8b: the official-trails band, layers of Trail Map's own style (street-v3), not of the app. The ids are the
-    // style's, mirrored from map-style/overrides/forager-reference.mjs (bandLayers, labelLayers) and held to it by
-    // ReferenceTrailLayersTest, which reads that file. Bottom to top: the Forest Service band, the BLM band, the
-    // Forest Service trail number.
-    const val REFERENCE_FS_BAND = "reference_fs_band"
-    const val REFERENCE_BLM_BAND = "reference_blm_band"
-    const val REFERENCE_FS_NUMBER = "reference_fs_number"
 }
 
 /** Every overlay GeoJSON source id, the values `SightingsMap` has always used. */
@@ -200,14 +178,10 @@ object MapSourceIds {
     const val JOURNAL_ENTRY_WAYPOINTS = "journal-entry-waypoints"
     const val JOURNAL_ENTRY_FINDS = "journal-entry-finds"
     const val JOURNAL_ENTRY_PHOTOS = "journal-entry-photos"
-
-    // Step 8b: the style's own vector source for the official trails (forager-reference.mjs, REFERENCE_SOURCE_ID). The
-    // app adds no source by this id; the style brings it.
-    const val REFERENCE = "reference"
 }
 
 /**
- * J8: the layer whose state is the Layers sheet's "Journal Entries" switch. The other four halos
+ * J8: the layer whose state is the Layers sheet's "Journal entries" switch. The other four halos
  * follow it ([MapLayerSpec.stateOwnerId]), so the one switch hides or shows every highlight together,
  * and its stored choice persists by this id like every other overlay switch.
  */
@@ -272,7 +246,7 @@ private fun line(id: String, sourceId: String, role: PaletteRole, tapGroup: TapG
 
 /**
  * J8: a journal-entry halo under [decorates], in [PaletteRole.JOURNAL_ENTRY], taking no taps, and
- * following the "Journal Entries" switch ([JOURNAL_ENTRIES_SWITCH_LAYER_ID]); the switch's own layer
+ * following the "Journal entries" switch ([JOURNAL_ENTRIES_SWITCH_LAYER_ID]); the switch's own layer
  * is the one halo not following another. See [MapLayerSpec.drawnWith].
  *
  * A halo is in [zGroup]. A line's halo stays in the lines band, directly beneath its own line's casing,
@@ -334,37 +308,6 @@ private fun colourField(field: ColourFieldSpec) = MapLayerSpec(
     credit = SYNTHETIC_DATA_CREDIT,
 )
 
-/**
- * Step 8b (dispatch 2026-10-26-15 Amendments 1 and 2; RECORD -1633, -1680, -1681): one of the official-trails band's
- * layers in Trail Map's own style, as a registry entry, so the Layers sheet's switch, its stored choice, its caption
- * credit and 8c's taps reach it through the machinery every overlay uses. [LayerRenderer.STYLE_LAYER]: the style draws
- * it, the app only shows or hides it. Its colours and its 0.35 opacity are the style's, so no palette role and no base
- * opacity. [owner] null is the switch's own layer ("Trails", on by default, credited while shown); the others
- * follow it, so one switch shows or hides all three.
- */
-private fun referenceTrailLayer(id: String, tapGroup: TapGroup, owner: String?) = MapLayerSpec(
-    id = id,
-    kind = LayerKind.LINE,
-    renderer = LayerRenderer.STYLE_LAYER,
-    sourceId = MapSourceIds.REFERENCE,
-    zGroup = ZGroup.LINES,
-    paletteRole = null,
-    userToggleable = owner == null,
-    userOpacity = false,
-    userReorderable = false,
-    tapGroup = tapGroup,
-    baseOpacities = emptyList(),
-    stateOwnerId = owner,
-    credit = if (owner == null) REFERENCE_TRAILS_CREDIT else null,
-)
-
-/**
- * The caption's credit while the official-trails band is shown, the owner's wording (RECORD -1680, "Confirm as sketched
- * (Recommended)"): the Forest Service's data is CC BY 4.0, which asks for the credit and the licence's name; BLM's is
- * public domain and credited anyway (the step 8 report, section 1).
- */
-const val REFERENCE_TRAILS_CREDIT = "Trails: USDA Forest Service, CC BY 4.0 · BLM"
-
 /** A colour field's base fill opacity; see [colourField]. */
 private const val COLOUR_FIELD_FILL_OPACITY = 0.6f
 
@@ -401,7 +344,7 @@ private const val COLOUR_FIELD_FILL_OPACITY = 0.6f
  * put each directly under its own marker, above every line and the search-centre
  * reticle, and continuation `-87` reports rings covering parts of a kept track and of the reticle. A
  * halo takes no taps, so M1's tap
- * routing is unchanged, and it is drawn only while its record's own switch and the "Journal Entries"
+ * routing is unchanged, and it is drawn only while its record's own switch and the "Journal entries"
  * switch are both on ([MapLayerSpec.drawnWith]). The sighting dots and the search centre are not in that list, so they are not
  * toggleable here. `userOpacity` is offered for colour fields only (layer ruling 1: "each with its
  * own opacity slider"); the multiplier itself applies to any layer. Both are for L0b to confirm.
@@ -432,12 +375,6 @@ val MAP_LAYER_REGISTRY: List<MapLayerSpec> = COLOUR_FIELDS.map(::colourField) + 
     journalHalo(MapLayerIds.JOURNAL_ENTRY_WAYPOINTS, MapSourceIds.JOURNAL_ENTRY_WAYPOINTS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.WAYPOINTS, zGroup = ZGroup.DECORATIONS),
     journalHalo(MapLayerIds.JOURNAL_ENTRY_FINDS, MapSourceIds.JOURNAL_ENTRY_FINDS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.FINDS, zGroup = ZGroup.DECORATIONS),
     journalHalo(MapLayerIds.JOURNAL_ENTRY_PHOTOS, MapSourceIds.JOURNAL_ENTRY_PHOTOS, LayerKind.MARKER, LayerRenderer.SYMBOL, decorates = MapLayerIds.PHOTOS, zGroup = ZGroup.DECORATIONS),
-    // Step 8b: the official-trails band, drawn by Trail Map's own style beneath every layer the app adds, so first in
-    // the lines band: below every app line here too, and so last among lines in a tap (tapWinner ranks the higher
-    // first). In the style's own order: the two bands, then the Forest Service number (forager-reference.mjs).
-    referenceTrailLayer(MapLayerIds.REFERENCE_FS_BAND, TapGroup.LINE, owner = null),
-    referenceTrailLayer(MapLayerIds.REFERENCE_BLM_BAND, TapGroup.LINE, owner = MapLayerIds.REFERENCE_FS_BAND),
-    referenceTrailLayer(MapLayerIds.REFERENCE_FS_NUMBER, TapGroup.NONE, owner = MapLayerIds.REFERENCE_FS_BAND),
     journalHalo(MapLayerIds.JOURNAL_ENTRY_REGIONS, MapSourceIds.JOURNAL_ENTRY_REGIONS, LayerKind.LINE, LayerRenderer.LINE, decorates = MapLayerIds.OFFLINE_REGION_OUTLINE),
     line(MapLayerIds.OFFLINE_REGION_BORDER, MapSourceIds.OFFLINE_REGIONS, PaletteRole.OFFLINE_REGION_BORDER, TapGroup.NONE, owner = MapLayerIds.OFFLINE_REGION_FILL)
         .copy(baseOpacities = listOf(BaseOpacity(OpacityProperty.LINE, OFFLINE_REGION_BORDER_OPACITY))),

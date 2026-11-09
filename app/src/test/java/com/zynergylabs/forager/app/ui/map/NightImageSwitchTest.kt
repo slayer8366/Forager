@@ -113,7 +113,7 @@ class NightImageSwitchTest {
         style.loadSprite(spriteNames.associateWith { "day pixels of $it" })
 
         assertEquals(
-            "Trail night: 61 night images added, 6 image references switched, 0 refused by MapLibre, 0 left in day images; no night copy missing.",
+            "Street night: 61 night images added, 6 image references switched, 0 refused by MapLibre, 0 left in day images; no night copy missing.",
             outcome.logLine(),
         )
         val drawn = v2Samples.map { s -> "${s.key} ${s.dayName}" to style.drawn(s.key, s.properties, s.zoom) }
@@ -184,20 +184,6 @@ class NightImageSwitchTest {
     }
 
     @Test
-    fun `v4 with sprite v6's night copies switches its orchard patterns too, with nothing left or missing`() {
-        // Dispatch 2026-10-31-coder-07 Part 3: Street v4 names sprite v6, whose three patterns each have a night copy;
-        // the match's unreachable "" output names no image, so it is neither switched nor missing.
-        val v4 = Json.parseToJsonElement(File("../map-style/forager-trail-v4.json").readText()).jsonObject
-        val v6Names = Json.parseToJsonElement(File("src/test/resources/sprite-v6-day/light@2x.json").readText()).jsonObject.keys
-        val plan = nightImageSwitchPlan(v4.toString(), v6Names)
-        assertEquals(emptyList<String>(), plan.left)
-        assertEquals(emptyList<String>(), plan.missingNightCopies)
-        val orchards = plan.switches.single { it.layerId == "landuse_orchards_pattern" && it.property == "fill-pattern" }
-        val json = (orchards.night as ImageReference.Expr).json
-        for (name in listOf("orchard_dots", "vineyard_rows", "nursery_dots")) assertTrue(json, json.contains("\"night/$name\""))
-    }
-
-    @Test
     fun `v2 switches exactly its six image references, with nothing left or missing`() {
         val style = styleOf(2)
         val plan = nightImageSwitchPlan(style.toString(), spriteNames)
@@ -215,7 +201,7 @@ class NightImageSwitchTest {
         val style = LoadedStyle(styleOf(1))
         val outcome = applyNightImages(style, spriteNames.associateWith { "night pixels of $it" })
         style.loadSprite(spriteNames.associateWith { "day pixels of $it" })
-        assertEquals("Trail night: 61 night images added, 4 image references switched, 0 refused by MapLibre, 0 left in day images; no night copy missing.", outcome.logLine())
+        assertEquals("Street night: 61 night images added, 4 image references switched, 0 refused by MapLibre, 0 left in day images; no night copy missing.", outcome.logLine())
         assertEquals("night pixels of arrow", style.drawn("roads_oneway/icon-image"))
         assertEquals("night pixels of US:I-1char", style.drawn("roads_shields/icon-image", mapOf("network" to "US:I", "shield_text" to "5")))
         assertEquals("night pixels of townspot", style.drawn("pois/icon-image", mapOf("kind" to "parking")))

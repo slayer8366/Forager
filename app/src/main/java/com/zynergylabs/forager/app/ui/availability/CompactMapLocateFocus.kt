@@ -14,7 +14,6 @@ import com.zynergylabs.forager.app.domain.model.LatLng
  */
 internal fun compactMapLocateFocus(uiState: AvailabilityUiState): LatLng? {
     if (uiState.region == null) return null
-    // Through a running fetch, the fix it replaces (dispatch 2026-11-07-01 Amendment 1): see LocateMeStatus.Loading.
-    val located = uiState.locateMeStatus.lastLocateFix() ?: return null
+    val located = uiState.locateMeStatus as? LocateMeStatus.Located ?: return null
     return located.location.takeIf { located.searchFrameSerial == uiState.searchFrameSerial }
 }

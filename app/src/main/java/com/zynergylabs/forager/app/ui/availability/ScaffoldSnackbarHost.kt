@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarDefaults
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -27,11 +28,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
-import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.motion.PressHighlight
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 
@@ -81,19 +80,12 @@ internal fun ScaffoldSnackbarHost(
                             .then(if (compactTab() == CompactTab.MAP && showRail) Modifier.padding(mapControlsPadding) else Modifier)
                             .padding(bottom = snackbarMapBottom),
                     ) {
-                        // Dispatch 2026-11-05-06 (RECORD -2155, the owner: "App's own notice (Recommended)"): the app's notice, laid
-                        // out as Material's Snackbar, in its place. Over the map it has no shadow and the map-chrome hairline, so it
-                        // reads an even 80% to its edge; Material's draws a 6 dp shadow and takes neither, and the shadow showed as a
-                        // band inside the 0.8 fill. Off the map it is solid and keeps Material's shadow and no line (A3).
-                        val overMap = compactTab() == CompactTab.MAP
-                        MapChromeSnackbar(
+                        Snackbar(
                             snackbarData = data,
                             containerColor = snackbarColor,
                             contentColor = snackbarContentColor,
                             actionContentColor = MaterialTheme.colorScheme.primary,
                             dismissActionContentColor = snackbarContentColor,
-                            shadowElevation = if (overMap) 0.dp else MATERIAL_SNACKBAR_SHADOW_ELEVATION,
-                            border = if (overMap) mapChromeOutline() else null,
                         )
                         // The drawn surface's own box. No pointer input unless the notice is tappable, so an ordinary notice's
                         // action and dismiss buttons, under it, keep their touches.

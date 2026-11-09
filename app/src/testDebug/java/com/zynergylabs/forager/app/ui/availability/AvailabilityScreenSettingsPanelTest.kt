@@ -6,7 +6,6 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasTestTag
 import com.zynergylabs.forager.app.ui.log.RecordType
 import com.zynergylabs.forager.app.ui.log.swipeToDeleteTag
 import android.app.Application
@@ -387,7 +386,7 @@ class AvailabilityScreenSettingsPanelTest {
         assertEquals(AppThemeMode.LIGHT, capturedThemeMode)
     }
 
-    private val mapModeContentDescription = "Layers: Trail map. Choose the map type."
+    private val mapModeContentDescription = "Layers: Trail map. Choose the map type and overlays."
 
     /**
      * Was "...renders over the map's own top-right corner", asserting `iconBounds.top` strictly
@@ -437,25 +436,28 @@ class AvailabilityScreenSettingsPanelTest {
     }
 
     @Test
-    fun `tapping the quick-fire icon opens the map type panel, and each chip there changes the basemap and closes it`() {
-        // The map opens on Trail (dispatch 2026-10-22-01), so every other map type is taken in chip order (Topo, then each
-        // added one, dispatch 2026-11-03-05 D7: the Street map's), then back to Trail. Since dispatch
-        // 2026-10-28-02 the button opens the map type panel again, which a chip tap closes (as the picker did before L0b), so
-        // the button is tapped before each chip. No Satellite chip is offered (dispatch 2026-09-28-708).
+    fun `tapping the quick-fire icon opens the Layers sheet, and a chip there changes the basemap while the sheet stays open`() {
+        // The map opens on Trail (dispatch 2026-10-22-01), so Topo is taken first, then OSM, then back to Trail. Before
+        // that it opened on Street and went Topographical, then back to Street.
         setScreen()
         assertEquals(Basemap.FORAGER_TRAIL, capturedBasemap)
 
-        for ((label, basemap) in MapMode.entries.filter { it != MapMode.TRAIL }.map { it.label to it.basemap }) {
-            composeRule.onNodeWithContentDescription("Layers:", substring = true).performClick()
-            composeRule.waitForIdle()
-            composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
-            composeRule.onNodeWithText(label).assertIsDisplayed().performClick()
-            composeRule.waitForIdle()
-            assertEquals(basemap, capturedBasemap)
-            composeRule.onAllNodesWithText(label).assertCountEquals(0)
-        }
-        composeRule.onNodeWithContentDescription("Layers:", substring = true).performClick()
+        composeRule.onNodeWithContentDescription(mapModeContentDescription).performClick()
+        composeRule.onNodeWithText("Topo").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
+
+        assertEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        // Map layers L0b (owner's ruling on Q3, "Stays open"): the sheet stays open on a map-type
+        // tap, so the other chip is still on screen. Before L0b the picker closed itself here and
+        // this asserted Satellite's count was 0; until dispatch 2026-09-28-708 it then went on to
+        // Satellite, which that dispatch removed, so it now goes back to Topographical and checks
+        // that no Satellite chip is offered.
+        composeRule.onAllNodesWithText("Satellite").assertCountEquals(0)
+        composeRule.onNodeWithText("OSM").assertIsDisplayed().performClick()
+        composeRule.waitForIdle()
+
+        assertNotEquals(Basemap.OPEN_TOPO_MAP, capturedBasemap)
+        assertEquals(Basemap.OSM_STANDARD, capturedBasemap)
         composeRule.onNodeWithText("Trail").assertIsDisplayed().performClick()
         composeRule.waitForIdle()
 
@@ -490,7 +492,7 @@ class AvailabilityScreenSettingsPanelTest {
         setScreen()
         openRecordedTracksSubTab()
 
-        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertIsDisplayed()
+        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
     }
 
     /**
@@ -656,7 +658,7 @@ class AvailabilityScreenSettingsPanelTest {
             .assertCountEquals(0)
 
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performScrollTo().performClick()
-        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertIsDisplayed()
+        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
         composeRule.onAllNodesWithTag(OFFLINE_PICKER_MAP_TAG).assertCountEquals(0)
     }
 
@@ -674,19 +676,18 @@ class AvailabilityScreenSettingsPanelTest {
         openOfflineMapsSubTab()
 
         composeRule.onNodeWithText("Download Maps").performScrollTo().assertIsDisplayed().assertIsEnabled()
-        composeRule.onNodeWithText("No maps downloaded yet. Pan the map to an area and tap Download Maps.").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("No regions downloaded yet.").performScrollTo().assertIsDisplayed()
     }
 
     /**
      * J4b L5: what the old "no delete buttons" line was guarding, asserted where it can fail. A
-     * downloaded region's row, at rest, carries no "Delete" text, and **does** carry J4's swipe (its
-     * tag) and the "Delete" accessibility action (J4 D3). Since dispatch 2026-10-29-10 Amendment 2
-     * (RECORD -1823) it carries exactly one clickable node described as a delete: the visible trash
-     * button, by its tag and its label "Delete <map name>". The row's name showing is the positive
-     * control: the row is really there to be looked at.
+     * downloaded region's row, at rest, carries **no** delete control of its own (no "Delete" text,
+     * no clickable node described as a delete), and **does** carry J4's swipe (its tag) and the
+     * "Delete" accessibility action that stands in for the button (J4 D3). The row's name showing is
+     * the positive control: the row is really there to be looked at.
      */
     @Test
-    fun `a downloaded region's row at rest has no Delete text and exactly one clickable delete, the trash button, and carries the swipe and its Delete action`() {
+    fun `a downloaded region's row has no Delete control at rest, and carries the swipe and its Delete action`() {
         setScreen(uiState = SEARCHED_STATE.copy(offlineRegions = listOf(L5_REGION)))
         openOfflineMapsSubTab()
 
@@ -699,12 +700,8 @@ class AvailabilityScreenSettingsPanelTest {
                 },
             )
         composeRule.onAllNodesWithText("Delete", ignoreCase = true).assertCountEquals(0)
-        // Dispatch 2026-10-29-10 Amendment 2 (RECORD -1823), the owner: "Exactly one: the trash (Recommended)".
-        val clickableDeletes = composeRule.onAllNodes(hasContentDescription("Delete", substring = true, ignoreCase = true) and hasClickAction())
-        clickableDeletes.assertCountEquals(1)
-        clickableDeletes[0]
-            .assert(hasTestTag(offlineRegionDeleteButtonTag(L5_REGION.id)))
-            .assert(hasContentDescription("Delete ${L5_REGION.name}"))
+        composeRule.onAllNodes(hasContentDescription("Delete", substring = true, ignoreCase = true) and hasClickAction())
+            .assertCountEquals(0)
     }
 
     // Dispatch 2026-10-18-03 (Forager RECORD -1269): this screen has no OK; Download Maps picks the pin's point and asks first. Was
@@ -900,7 +897,7 @@ class AvailabilityScreenSettingsPanelTest {
 private const val MAP_SLOT_TAG = "settings-panel-test-map-slot"
 private const val OFFLINE_PICKER_MAP_TAG = "settings-panel-test-offline-picker-map-slot"
 
-private val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 private val PICKED_LOCATION = LatLng(lat = 44.5, lng = -121.5)
 
 private const val TRACK_STARTED_AT = 1_756_400_000_000L

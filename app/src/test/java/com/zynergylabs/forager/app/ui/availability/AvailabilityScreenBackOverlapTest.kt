@@ -89,7 +89,7 @@ class AvailabilityScreenBackOverlapTest {
     private val t = 1_700_000_000_000L
     private val fix = LocationFix.Update(lat = 45.52, lng = -122.68, altitude = 104.9, accuracyMeters = 5f, timestampEpochMillis = t, provider = FixProvider.GPS)
     private val map: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier.background(Color(0xFF2E7D32))) }
-    private val creek = Waypoint("wp-1", 45.3736, -121.6959, null, "Creek pin", "", 1_000L)
+    private val creek = Waypoint("wp-1", 45.326, -122.634, null, "Creek pin", "", 1_000L)
 
     private val uiState = mutableStateOf(AvailabilityUiState())
     private var waypointNavigationStops = 0

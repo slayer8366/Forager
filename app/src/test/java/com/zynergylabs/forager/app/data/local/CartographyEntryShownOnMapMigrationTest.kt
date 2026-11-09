@@ -63,8 +63,8 @@ class CartographyEntryShownOnMapMigrationTest {
             TrackDecision(trackId = "track-1", name = "Ridge Loop", distanceMeters = 3200.0, durationMillis = 5_400_000L, pointCount = 240, kept = true),
             TrackDecision(trackId = "track-2", name = "Withheld", distanceMeters = 800.0, durationMillis = 900_000L, pointCount = 60, kept = false),
         ),
-        waypointDecisions = listOf(WaypointDecision(waypointId = "waypoint-1", name = "Trailhead", lat = 45.4, lng = -121.19375, kept = true)),
-        offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 7L, name = "Ridge", lat = 45.4, lng = -121.19375, radiusKm = 10, kept = true)),
+        waypointDecisions = listOf(WaypointDecision(waypointId = "waypoint-1", name = "Trailhead", lat = 45.4, lng = -122.6, kept = true)),
+        offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 7L, name = "Ridge", lat = 45.4, lng = -122.6, radiusKm = 10, kept = true)),
         photos = listOf(PhotoAttachment(photoId = "photo-1", attachedAtEpochMillis = 6_000L)),
     )
     private val savedWordless = CartographyEntry.draft(id = "entry-wordless", date = LocalDate.of(2026, 9, 5), updatedAtEpochMillis = 2_000L)

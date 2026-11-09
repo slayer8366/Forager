@@ -3,6 +3,7 @@ package com.zynergylabs.forager.app.domain
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import kotlin.math.hypot
 
 /**
  * The way home along the walked route, for the needle (dispatch 2026-09-28-417, way-back-route
@@ -34,16 +35,6 @@ sealed interface RouteHome {
         val pathHome: PathHome,
         val route: List<LatLng> = emptyList(),
         val routeAhead: List<LatLng> = emptyList(),
-        /**
-         * The line ahead in its kinds, for the map's dotted and solid lines (dispatch 2026-10-24-10; RECORD -1589, "Dotted,
-         * same colour"). Empty for the track home, which is drawn solid as [routeAhead], as before.
-         */
-        val aheadParts: List<RouteLinePart> = emptyList(),
-        /**
-         * Which line this is: 0 for the walker's track, as [routeHome] gives it; the way home's generation for a way home
-         * along trails (`domain/wayhome/WayHomeWatch`). A change of it replaces the line at Return ([nextRouteLine]).
-         */
-        val generation: Long = 0,
     ) : RouteHome
 
     /**
@@ -105,9 +96,7 @@ const val ROUTE_LOOKAHEAD_METERS = 25.0
  *
  * The stored track lags the walker. The service writes points every 30 s or every 20 kept points,
  * and the screen re-reads the track every 15 s, so the most recent stored point can be 30 to 45 s
- * behind the walker: at walking pace, 27 to 40 m, more than the lookahead itself. (That lag is the
- * stored track's, which this route reads; the drawn recording line no longer has it, since it adds
- * each kept point not yet written, RECORD -1651.) Measured from
+ * behind the walker: at walking pace, 27 to 40 m, more than the lookahead itself. Measured from
  * that point alone, the lookahead would often land behind a walker heading home. The walker has
  * covered at least the straight-line hop of route since the stored point, so the lookahead is
  * measured from there: the first route point at least `hop + [ROUTE_LOOKAHEAD_METERS]` along the
@@ -176,7 +165,13 @@ fun routeHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand:
 
     val last = nodes.lastIndex
     val walkerPlace = (0..last).firstOrNull { alongMeters[it] >= hopMeters } ?: last
-    val chosen = lookaheadIndex(nodes, alongMeters, walkerPlace, hopMeters + ROUTE_LOOKAHEAD_METERS, current)
+    val wanted = (walkerPlace..last).firstOrNull { alongMeters[it] >= hopMeters + ROUTE_LOOKAHEAD_METERS } ?: last
+    var chosen = walkerPlace
+    for (k in walkerPlace + 1..wanted) {
+        val keepsToTheRoute = (walkerPlace until k).all { offLineMeters(nodes[it], current, nodes[k]) <= SELF_JOIN_EPSILON_METERS }
+        if (!keepsToTheRoute) break
+        chosen = k
+    }
 
     return RouteHome.Ahead(
         lookahead = nodes[chosen],
@@ -188,4 +183,20 @@ fun routeHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand:
         route = nodes,
         routeAhead = nodes.subList(walkerPlace, nodes.size),
     )
+}
+
+/**
+ * Metres from [point] to the straight segment from [from] to [to], on a flat local projection
+ * about [from]. The distances here are tens of metres, where the flat projection's error is far
+ * below the fixes' own.
+ */
+private fun offLineMeters(point: LatLng, from: LatLng, to: LatLng): Double {
+    val (metersPerDegreeLat, metersPerDegreeLng) = GeoDistance.metersPerDegree(from.lat)
+    val bx = (to.lng - from.lng) * metersPerDegreeLng
+    val by = (to.lat - from.lat) * metersPerDegreeLat
+    val px = (point.lng - from.lng) * metersPerDegreeLng
+    val py = (point.lat - from.lat) * metersPerDegreeLat
+    val lengthSquared = bx * bx + by * by
+    val t = if (lengthSquared == 0.0) 0.0 else ((px * bx + py * by) / lengthSquared).coerceIn(0.0, 1.0)
+    return hypot(px - t * bx, py - t * by)
 }

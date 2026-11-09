@@ -26,7 +26,6 @@ import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 /** The Layers sheet's inputs for the Maps tab. Reads the forecast cells, the zoomed-out flag and the legend's flag through [state]. */
 internal fun availabilityMapLayersControls(
     state: AvailabilityScreenState,
-    referenceTrailsShown: Boolean,
     uiState: AvailabilityUiState,
     availableColourFieldGroups: Map<String, String>,
     mapRecordsDrawn: MapRecords,
@@ -43,7 +42,7 @@ internal fun availabilityMapLayersControls(
     records = mapRecordsDrawn,
     journalHighlights = journalHighlights,
     // J8-3: the chip's list. Hiding writes shownOnMap for each entry, one write each; the Layers
-    // sheet's "Journal Entries" switch is a separate, display-only choice and is never touched here.
+    // sheet's "Journal entries" switch is a separate, display-only choice and is never touched here.
     onHideJournalEntry = { id -> onSetCartographyEntryShownOnMap(id, false) },
     onHideAllJournalEntries = { journalHighlights.shownEntries.forEach { onSetCartographyEntryShownOnMap(it.entryId, false) } },
     legendExpanded = state.mapLegendExpanded(),
@@ -51,7 +50,6 @@ internal fun availabilityMapLayersControls(
     onVisibilityChanged = onMapLayerVisibilityChanged,
     onOpacityChanged = onMapLayerOpacityChanged,
     onColourFieldMoved = onColourFieldMoved,
-    referenceTrailsShown = referenceTrailsShown,
 )
 
 /** How the Maps tab's map is drawn. Reads the basemap picked on this screen through [state]. */
@@ -62,7 +60,6 @@ internal fun availabilityMapRenderMode(
     isNightMode: Boolean,
     drawnMapLayers: MapLayersState,
     forecastFeed: MapForecastFeed?,
-    onReferenceTrailsShown: (Boolean) -> Unit,
 ): MapRenderMode = MapRenderMode(
     basemap = basemap,
     night = isNightMode,
@@ -74,8 +71,6 @@ internal fun availabilityMapRenderMode(
     forecast = forecastFeed,
     // Dispatch 2026-10-19-37: the Maps tab's map springs back from a small nudge while following.
     nudgeSpringBack = true,
-    // Step 8b: the map tells the screen whether its loaded style draws the official-trails band.
-    onReferenceTrailsShown = onReferenceTrailsShown,
 )
 
 /**

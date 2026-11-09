@@ -29,7 +29,7 @@ Source paths named below that do not start with a top-level folder are under
 - **List** shows the ranking for that search, with a way to see a species on the map.
 - **Seasonal** shows the weather for the searched region and a test of the rule of thumb that fruiting
   follows rain by one to three weeks. That test does not change the ranking.
-- **Maps** is the main screen. Three base maps: Forager Trail Map (the app's own, and the one offline areas are downloaded in), topographical (OpenTopoMap) and Street (OpenStreetMap's own map);
+- **Maps** is the main screen. Street, topographical (OpenTopoMap) and satellite (USGS imagery) base maps;
   overlay switches for your finds, photos, waypoints, planned trips, the trail you are recording, saved
   tracks, offline map regions and the journal entries that keep a record; the iNaturalist sightings of the
   current search drawn as dots; centre-on-me, reset-to-north, fullscreen, and an add action for planning a
@@ -145,7 +145,7 @@ What the code talks to, and what each needs. No API key or token for any of them
 |---|---|---|
 | iNaturalist API (`api.inaturalist.org/v1`) | species counts and observations for the ranking; the sightings on the map | a connection |
 | Open-Meteo (forecast and archive) | the weather panel, trip windows and the rain-and-fruiting test | a connection |
-| OpenStreetMap, OpenTopoMap | the Street and topographical base maps | a connection; with no signal and a downloaded offline region, Forager Trail Map is drawn from it instead |
+| OpenStreetMap, OpenTopoMap, USGS National Map | the street, topographical and satellite base maps | a connection, unless you have downloaded an offline region |
 | MapLibre demo glyph server | text on the vector map | a connection |
 | The project's own tile worker (`server/pmtiles-worker/`) | the vector tiles behind offline map downloads | a connection while downloading |
 

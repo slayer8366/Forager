@@ -83,31 +83,4 @@ class AttributionClearanceTest {
         assertFalse("the button $moved does not intersect the L $lOnTheLeft at inset $inset", moved.overlaps(lOnTheLeft))
         assertEquals(lOnTheLeft.right + gap, moved.left, 1f)
     }
-
-    private fun hiddenUnder(covers: List<Rect>, endInset: Int = 0, bottomInset: Int = 0, rtl: Boolean = false) =
-        attributionHiddenUnder(covers, width, height, defaults, bottomInset, endInset, rtl, button)
-
-    /** D28 with D30 (RECORD -1979, -1980): the "i" hides exactly while a card's rectangle intersects its own. */
-    @Test
-    fun `the button hides under a card over its corner, and not under one beside or above it`() {
-        val i = buttonAt(endInset = 0, bottomInset = 40)
-        assertTrue("a card over the corner", hiddenUnder(listOf(Rect(i.left - 300f, i.top - 10f, width.toFloat(), height.toFloat())), bottomInset = 40))
-        assertTrue("a card over one pixel of it", hiddenUnder(listOf(Rect(i.right - 1f, i.bottom - 1f, i.right + 100f, i.bottom + 100f)), bottomInset = 40))
-        assertFalse("a card just above it", hiddenUnder(listOf(Rect(0f, 0f, width.toFloat(), i.top)), bottomInset = 40))
-        assertFalse("a card just inboard of it", hiddenUnder(listOf(Rect(0f, 0f, i.left, height.toFloat())), bottomInset = 40))
-        assertTrue("any one of several", hiddenUnder(listOf(Rect(0f, 0f, 10f, 10f), Rect(i.left, i.top, i.right, i.bottom)), bottomInset = 40))
-        assertFalse("no cards", hiddenUnder(emptyList(), bottomInset = 40))
-    }
-
-    @Test
-    fun `in a right-to-left layout the button is judged in the bottom-left corner`() {
-        val i = buttonAt(endInset = 0, bottomInset = 0, rtl = true)
-        assertTrue(hiddenUnder(listOf(Rect(0f, i.top, i.right, height.toFloat())), rtl = true))
-        assertFalse("the bottom-right corner is not the button's", hiddenUnder(listOf(Rect(width - 400f, 0f, width.toFloat(), height.toFloat())), rtl = true))
-    }
-
-    @Test
-    fun `before the map has a size nothing hides`() {
-        assertFalse(attributionHiddenUnder(listOf(Rect(0f, 0f, 5000f, 5000f)), 0, 0, defaults, 0, 0, false, button))
-    }
 }

@@ -2,7 +2,6 @@ package com.zynergylabs.forager.app
 
 import android.os.Looper
 import androidx.test.core.app.ApplicationProvider
-import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackPoint
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
@@ -61,7 +60,6 @@ class ForagerApplicationAbandonedTracksTest {
             getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
             alreadyRecordingMessage = "Forager is already recording a track. Stop it before starting another.",
             abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
-            entryReferenceCounts = NoEntryReferenceCounts,
         )
     }
 

@@ -69,10 +69,6 @@ abstract class MapChromeColourPixelsTests(private val dark: Boolean) {
      * darkens what is under it slightly: in light, about 3% (read 0.933, 0.922, 0.875 against 0.961, 0.945, 0.898 declared), and about 7% in dark (0.114 against 0.122),
      * So the bar is held to the same colour **darkened by a neutral factor of at most 10%**: each channel is the
      * expected one times one common factor, not a different hue. A Cream or Bark bar fails this, having a different hue.
-     *
-     * Dispatch 2026-11-05-06 (RECORD -2154) took that shadow away, and the pill's and the strip's, so these surfaces now read the
-     * composite itself. This rule is left as it was, a hue check that allows darkening; it passes with or without a shadow, so it
-     * is not what shows the band gone. SeeThroughEdgePixelsTest holds each window to the composite from 2 dp inside its edges.
      */
     private fun assertSameColourShadowed(message: String, expected: Color, actual: Color) {
         val k = actual.red / expected.red
@@ -115,8 +111,7 @@ abstract class MapChromeColourPixelsTests(private val dark: Boolean) {
 
         // Dispatch 2026-10-12-06: the search bar is the rounded pill and the strip the card tucked under it, each with the 2 dp
         // shadow the icon bar has, which shows through the 0.8 fill (see assertSameColourShadowed): held to the token darkened by a
-        // neutral factor, as the icon bar is. Was assertSame, against the square, shadowless bar and strip. Since dispatch
-        // 2026-11-05-06 none of the three has a shadow over the map; the rule is unchanged (see assertSameColourShadowed).
+        // neutral factor, as the icon bar is. Was assertSame, against the square, shadowless bar and strip.
         val search = bounds(SEARCH_ENTRY_BAR_TAG)
         val searchMid = (search.top + search.bottom) / 2
         val pillPixel = at(search.left + 4.dp, searchMid)
@@ -211,11 +206,8 @@ abstract class MapChromeColourPixelsTests(private val dark: Boolean) {
         val token = if (dark) SurfaceContainerDark else SurfaceContainerLight
         val card = composeRule.onNodeWithTag(MAP_BUBBLE_TAG).getUnclippedBoundsInRoot()
         val reference = at(root.left + 4.dp, root.bottom - 200.dp)
-        // Inside the card's left edge at mid-height, clear of its text. Dispatch 2026-11-05-06 (RECORD -2154, the owner: "Thin
-        // outline (Recommended)"): the card has no shadow, so it is the token at 0.8 exactly here. Was assertSameColourShadowed
-        // ("the card has a 6 dp shadow that darkens a little"), which allowed darkening by a factor of 0.90 to 1 and so passed with
-        // the shadow's band under this point (Phase 1 report, section 4).
-        assertSame("the bubble is the token at 0.8, with no band under its edge", over(token, MAP_CHROME_OVER_MAP_ALPHA, reference), at(card.left + 4.dp, (card.top + card.bottom) / 2))
+        // Inside the card's left edge at mid-height, clear of its text; the card has a 6 dp shadow that darkens a little.
+        assertSameColourShadowed("the bubble is the token at 0.8", over(token, MAP_CHROME_OVER_MAP_ALPHA, reference), at(card.left + 4.dp, (card.top + card.bottom) / 2))
     }
 }
 

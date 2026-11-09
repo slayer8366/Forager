@@ -19,7 +19,7 @@ package com.zynergylabs.forager.app.ui.availability
 //   -1309; the owner, from a screenshot of this screen showing Topo: "Offline maps displays topo
 //   maps. Have it display the street map", then, asked whether it should always be Street or
 //   follow the Layers choice, "Always be street."). It is `Basemap.FORAGER_TRAIL` since dispatch 2026-10-22-01 (RECORD
-//   -1556: "Offline-maps picker: shows Forager Trail Map"); it was `Basemap.STREET` from -1309, named
+//   -1556: "Offline-maps picker: shows Forager Trail Map"); it was `Basemap.OSM_STANDARD` from -1309, named
 //   directly rather than read from `MapMode.DEFAULT` (which is also Street today), so a later
 //   change to the app's opening map does not move this one, and rather than the Layers choice,
 //   which the owner turned down. Night mode is unchanged (Street's night paint, as on the Maps
@@ -62,10 +62,7 @@ import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.key
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -74,7 +71,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import com.zynergylabs.forager.app.domain.CurrentTimeProvider
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
-import com.zynergylabs.forager.app.domain.budgetTilesUsed
 import com.zynergylabs.forager.app.domain.estimateServedOfflineTileCount
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -110,7 +106,7 @@ import com.zynergylabs.forager.app.ui.theme.Spacing
  * centre pin (an accessibility decision, not a style one). [Basemap.FORAGER_TRAIL] here
  * is the map the download is made in (RECORD -1554, -1556), whatever the Layers choice; see this
  * file's header comment. From dispatch 2026-10-18-07 (RECORD -1309; the owner: "Always be street.") it
- * was [Basemap.STREET]; before that [Basemap.OPEN_TOPO_MAP], and before that
+ * was [Basemap.OSM_STANDARD]; before that [Basemap.OPEN_TOPO_MAP], and before that
  * `Basemap.USGS_TOPO` (US-only), until [MapMode] removed it from the app entirely.
  *
  * Before anything is picked, [uiState]'s `offlineMapLatText`/`offlineMapLngText` are blank, so the
@@ -159,24 +155,13 @@ internal fun OfflineMapsPanel(
         lng = pickedLng ?: defaultCenter.lng,
         radiusKm = uiState.offlineMapRadiusKm,
     )
-    // One pin for both layouts below (L1): turning the phone swaps the layout, not the pin. Started again on each trip's Download
-    // Maps (dispatch 2026-11-05-08, B3), which a pin the user has panned would otherwise ignore (CentrePinState's "follow until
-    // you touch it"). The picker's map is rebuilt with it, since pickerMap is remembered on the pin.
-    val pinState = key(uiState.offlineMapPinRequest) { rememberCentrePinState(pickerRegion) }
+    // One pin for both layouts below (L1): turning the phone swaps the layout, not the pin.
+    val pinState = rememberCentrePinState(pickerRegion)
     // Dispatch 2026-10-18-03: Download Maps downloads wherever the pin sits, so the tile figures read the pin too (the line under
     // the slider and the confirmation's). They read the last confirmed point while OK existed; with OK gone that point would lag.
     val pin = pinState.cameraCenter
     val pinRegion = Region(lat = pin.lat, lng = pin.lng, radiusKm = uiState.offlineMapRadiusKm)
     val pinIsAPlace = pin.lat in -90.0..90.0 && pin.lng in -180.0..180.0
-    // Known bug 14 (dispatch 2026-11-02-02, A3 to A9): each area the pin and radius settle on is told to the ViewModel, which
-    // decides whether to ask the map server about it; the line under "Pin at" shows its answer, for this area only.
-    val currentRouteActions by rememberUpdatedState(routeActions)
-    LaunchedEffect(pinRegion, pinIsAPlace) { if (pinIsAPlace) currentRouteActions.onAreaSettled(pinRegion) }
-    val detailNote: @Composable () -> Unit = {
-        OfflineDetailNote(uiState.offlineDetail, pinRegion)
-        // Dispatch 2026-11-05-08 (A3, A6): a route too big for one download says so, right after bug 14's line (TripDownloadMapsUi.kt).
-        TripAreaNoteLine(uiState.offlineMapsTripOpening, uiState.offlineMapRadiusKm, pinMoved = pinState.touched)
-    }
     // The map moves between the two layouts rather than being composed twice: a second mapSlot call
     // would tear down and rebuild the MapView on every turn (the same guarantee
     // CartographyEntryReportScreen's fullscreen relies on), losing the camera the pin reads.
@@ -238,7 +223,7 @@ internal fun OfflineMapsPanel(
         // MAX_ZOOM; the min inside is kept as the seam for their next divergence) — see
         // OfflineMapRepository.SERVED_MAX_ZOOM (tile-estimate dispatch; two-data-corrections dispatch).
         val estimatedTiles = estimateServedOfflineTileCount(pinRegion)
-        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.budgetTilesUsed()
+        val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - uiState.offlineRegions.sumOf { it.tileCount }
         val exceedsBudget = estimatedTiles > remainingBudget
         Text(
             if (exceedsBudget) {
@@ -300,8 +285,7 @@ internal fun OfflineMapsPanel(
             // Journal redesign J4: a region whose delete is pending is left out of the rows, but
             // its tiles are still on disk until the delete runs, so the budget counts every region.
             regions = uiState.visibleOfflineRegions,
-            // Each area by its own estimate (budgetTileCount; T1, RECORD -1703), the figure the picker showed for it.
-            tilesUsed = uiState.offlineRegions.budgetTilesUsed(),
+            tilesUsed = uiState.offlineRegions.sumOf { it.tileCount },
             errorMessage = uiState.offlineRegionsErrorMessage,
             staleThresholdDays = uiState.offlineStaleThresholdDays,
             distanceUnit = distanceUnit,
@@ -328,8 +312,6 @@ internal fun OfflineMapsPanel(
             // Dispatch 2026-10-18-03 (Forager RECORD -1269): "Pin at: …", then Download Maps across the controls side. Was, under
             // RECORD -1253 ("C: OK, Cancel and Download on one line"), OK, Cancel and Download on one line under "Pin at".
             pinnedActions = {
-                // A5 (the planner's call on the Phase 1 report's S3, option a): in landscape, pinned above "Pin at".
-                detailNote()
                 CentrePinConfirmActions(
                     state = pinState,
                     onConfirm = onRegionPicked,
@@ -369,8 +351,6 @@ internal fun OfflineMapsPanel(
             val portraitMapRatio = if (isLargeScreenWindow()) 1f else MAP_PICKER_ASPECT_RATIO
             pickerMap(isNightMode, Modifier.fillMaxWidth().aspectRatio(portraitMapRatio).testTag(OFFLINE_PICKER_MAP_TAG))
             confirmActions()
-            // A5: in portrait, directly under "Pin at".
-            detailNote()
         }
 
         Column(

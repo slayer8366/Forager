@@ -76,7 +76,7 @@ internal fun mapVisibleWaypoints(waypoints: List<Waypoint>, isNavigating: Boolea
  *
  * **MGRS by default; decimal degrees only on tap ([showDecimalDegrees]).** This strip used to show
  * both at once ("`<mgrs> · Lat. X Long. Y`"), but a real hardware pass found the combined line
- * truncates mid-coordinate on a metro-width screen ("Lat. 45.3736 Lon…") — half a coordinate is not
+ * truncates mid-coordinate on a metro-width screen ("Lat. 45.3262 Lon…") — half a coordinate is not
  * a coordinate, on the one element whose job is telling you where you are. MGRS is the better fit
  * for a strip this narrow: compact, unambiguous, built for grid work.
  *
@@ -92,12 +92,12 @@ internal fun mapVisibleWaypoints(waypoints: List<Waypoint>, isNavigating: Boolea
  * instruction for exactly this case: if the setting isn't wired, hardcode MGRS and say so, rather
  * than build the setting or the emergency card as unplanned scope here.
  *
- * **Superseded for the labels by dispatch -677, Amendment 1 (RECORD -680):** the pair is now bare, "45.3736, -121.6959",
+ * **Superseded for the labels by dispatch -677, Amendment 1 (RECORD -680):** the pair is now bare, "45.3262, -122.6340",
  * on the strip and the navigation display, because with the heading and altitude labelled the labelled pair no longer
  * fitted at 360 dp; the owner chose "Shorter decimals, no labels (Recommended)". The reasoning below was the original's.
  *
  * The decimal pair is labeled ("Lat."/"Long.", the project owner's own wording) rather than the bare
- * "45.5231, -121.7414" [PlannedTripRow] shows — that row sits next to a named trip, where the pair
+ * "45.5231, -122.6414" [PlannedTripRow] shows — that row sits next to a named trip, where the pair
  * reads as "that trip's location" from context; this strip has no such context, so an unlabeled pair
  * here could as easily read as two unrelated numbers. `"%.4f"` matches the same precision every
  * other decimal-degree display in this file already uses (`PlannedTripRow`, `RecentSearchRow`, the
@@ -107,8 +107,8 @@ internal fun coordinatesStripText(location: LatLng?, showDecimalDegrees: Boolean
     if (location == null) return "Coordinates unavailable"
     if (showDecimalDegrees) {
         // Dispatch 2026-09-28-677, Amendment 1 (RECORD -680; the owner: "Shorter decimals, no labels (Recommended)"):
-        // "45.3736, -121.6959", where it read "Lat. 45.3736 Long. -121.6959". Locale.US, so a comma-decimal phone cannot
-        // print "45,3736, -121,6959", a pair that no longer reads as two numbers.
+        // "45.3262, -122.6340", where it read "Lat. 45.3262 Long. -122.6340". Locale.US, so a comma-decimal phone cannot
+        // print "45,3262, -122,6340", a pair that no longer reads as two numbers.
         return "${String.format(java.util.Locale.US, "%.4f", location.lat)}, ${String.format(java.util.Locale.US, "%.4f", location.lng)}"
     }
     return when (val mgrs = MgrsConverter.convert(location)) {

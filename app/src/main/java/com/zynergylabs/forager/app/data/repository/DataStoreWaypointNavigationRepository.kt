@@ -6,7 +6,6 @@ import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.stringPreferencesKey
-import com.zynergylabs.forager.app.domain.NavigationTargetKind
 import com.zynergylabs.forager.app.domain.WaypointNavigation
 import com.zynergylabs.forager.app.domain.WaypointNavigationRepository
 import kotlinx.coroutines.CoroutineScope
@@ -22,11 +21,6 @@ import kotlinx.coroutines.flow.first
  * against. Two keys, not one: the waypoint's id, and whether a return was paused for it, so that ending
  * the navigation after the app was closed and opened again still picks the return back up (step 6). Both
  * are written in one edit and cleared in one edit.
- *
- * A third key since dispatch 2026-11-05-05 (Amendment 1, A8; RECORD -2148): what the id names, written for a trip only.
- * No kind key reads as a waypoint, so a navigation kept before the update resumes as before, and a waypoint's is kept in
- * exactly the two keys it always was. A kind this build does not know is refused as a failed read, as a missing return
- * flag is, rather than guessed.
  *
  * Its own file, `waypoint_navigation`, as each concern here has, built per instance with
  * [PreferenceDataStoreFactory.create] for the Robolectric isolation reason
@@ -51,15 +45,8 @@ class DataStoreWaypointNavigationRepository(
         val prefs = dataStore.data.first()
         prefs[KEY_TARGET_ID]?.let { id ->
             val resumesReturn = prefs[KEY_RESUMES_RETURN] ?: error("waypoint navigation '$id' was kept without its return flag")
-            WaypointNavigation(id, resumesReturn, kindOf(prefs[KEY_TARGET_KIND], id))
+            WaypointNavigation(id, resumesReturn)
         }
-    }
-
-    /** No kind is a waypoint's (A8: "a missing key read as a waypoint"); a kind this build does not know is refused. */
-    private fun kindOf(saved: String?, id: String): NavigationTargetKind = when (saved) {
-        null -> NavigationTargetKind.WAYPOINT
-        TRIP_KIND -> NavigationTargetKind.TRIP
-        else -> error("navigation '$id' was kept with a kind this build does not know: '$saved'")
     }
 
     override suspend fun setCurrent(navigation: WaypointNavigation?): Result<Unit> = runCatchingCancellable {
@@ -67,13 +54,7 @@ class DataStoreWaypointNavigationRepository(
             if (navigation == null) {
                 prefs.remove(KEY_TARGET_ID)
                 prefs.remove(KEY_RESUMES_RETURN)
-                prefs.remove(KEY_TARGET_KIND)
             } else {
-                // The kind is written for a trip only: a waypoint's is kept as before the update, in two keys.
-                when (navigation.kind) {
-                    NavigationTargetKind.TRIP -> prefs[KEY_TARGET_KIND] = TRIP_KIND
-                    NavigationTargetKind.WAYPOINT -> prefs.remove(KEY_TARGET_KIND)
-                }
                 prefs[KEY_TARGET_ID] = navigation.waypointId
                 prefs[KEY_RESUMES_RETURN] = navigation.resumesReturn
             }
@@ -84,7 +65,5 @@ class DataStoreWaypointNavigationRepository(
         const val DATA_STORE_NAME = "waypoint_navigation"
         val KEY_TARGET_ID = stringPreferencesKey("waypoint_navigation.target_id")
         val KEY_RESUMES_RETURN = booleanPreferencesKey("waypoint_navigation.resumes_return")
-        val KEY_TARGET_KIND = stringPreferencesKey("waypoint_navigation.target_kind")
-        const val TRIP_KIND = "trip"
     }
 }

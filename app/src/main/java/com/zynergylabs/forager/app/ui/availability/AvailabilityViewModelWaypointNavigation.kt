@@ -1,6 +1,5 @@
 package com.zynergylabs.forager.app.ui.availability
 
-import com.zynergylabs.forager.app.domain.NavigationTargetKind
 import com.zynergylabs.forager.app.domain.WaypointNavigation
 import kotlinx.coroutines.flow.update
 
@@ -20,17 +19,7 @@ import kotlinx.coroutines.flow.update
  * keeps that. The pause comes before this state changes, on the same thread, so the screen never sees a
  * moment with neither on: no new start zoom (the planner's ruling).
  */
-fun AvailabilityViewModel.onNavigateToWaypoint(waypointId: String) = startNavigation(waypointId, NavigationTargetKind.WAYPOINT)
-
-/**
- * "Navigate" on planned trip [tripId] (dispatch 2026-11-05-05, Amendment 1, A8; RECORD -2148, the owner: "As a trip
- * (Recommended)"): the same navigation as [onNavigateToWaypoint]'s, the return paused and remembered as there, with the trip
- * as its target. Choosing a trip while navigating to a waypoint, or the other way round, keeps the paused return.
- */
-fun AvailabilityViewModel.onNavigateToTrip(tripId: String) = startNavigation(tripId, NavigationTargetKind.TRIP)
-
-/** [onNavigateToWaypoint]'s body as it was, with the target's [kind] kept beside its [id] (dispatch 2026-11-05-05). */
-private fun AvailabilityViewModel.startNavigation(id: String, kind: NavigationTargetKind) {
+fun AvailabilityViewModel.onNavigateToWaypoint(waypointId: String) {
     waypointNavigationStore.waypointNavigationChosenHere = true
     val current = _uiState.value.waypointNavigation
     val resumesReturn = when {
@@ -41,7 +30,7 @@ private fun AvailabilityViewModel.startNavigation(id: String, kind: NavigationTa
         }
         else -> false
     }
-    val navigation = WaypointNavigation(id, resumesReturn, kind)
+    val navigation = WaypointNavigation(waypointId, resumesReturn)
     _uiState.update { it.copy(waypointNavigation = navigation) }
     waypointNavigationStore.keepWaypointNavigation(navigation)
 }

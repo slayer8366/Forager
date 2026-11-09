@@ -9,8 +9,8 @@ import java.io.File
  * this, never on the engine. The one implementation is BRouter's (`routing/BRouterTrailRouter`), chosen at
  * RECORD -484.
  *
- * Called in production by the way home (`domain/wayhome/FindWayHomeUseCase`, through `routing/WayHomeRouting`) and
- * the way to a waypoint (`domain/wayto/FindWayToWaypointUseCase`, through `TrailEngineSource`).
+ * Nothing calls this in production yet. The way home, waypoint navigation and the stored route data for a
+ * download are later steps (RECORD -1568).
  */
 interface TrailRouter {
     /**
@@ -42,37 +42,15 @@ data class TrailRoute(
     val points: List<LatLng>,
     /** The engine's own length of the route, in whole metres. */
     val lengthMetres: Int,
-    /**
-     * The trail data's height at each of [points], in metres, in the same order; `null` where the data has none
-     * (dispatch 2026-10-30-06, RECORD -1836, -1838). A square built without heights, or downloaded before they were
-     * added (2026-10-28), gives `null` at every point: missing is never 0 (Aspen: "treat missing heights as missing, not
-     * as zero"). Defaults to all missing, so a route built without heights says so.
-     */
-    val heightsMetres: List<Double?> = points.map { null },
-) {
-    init {
-        require(heightsMetres.size == points.size) { "${heightsMetres.size} heights for ${points.size} points" }
-    }
-}
+)
 
 /** Which end of a route a failure is about. */
 enum class RouteEnd { START, END }
 
 /** Why there is no route. Each kind is one the caller can tell the walker about differently. */
 sealed interface TrailRouteFailure {
-    /**
-     * [end] has no trail near it in the stored data: it lies outside the area the data covers.
-     *
-     * [squareHasNoFile] says the end's five-degree square has no route file at all, ordinarily a square the route
-     * build lacked, rather than the engine finding no way within reach (dispatch 2026-10-26-10 Amendment 2, RECORD
-     * -1667: the way to a waypoint says "No trail routes here" for it). A primary-constructor field since step 6 PR 3
-     * (dispatch 2026-10-26-11; Sorrel's S-412R-1, the owner: "safer design in PR 3"), so equality, `copy` and
-     * `toString` carry it and no later copy, log or comparison can drop it silently. It was declared in the body
-     * before, outside all four. Every reader that does not ask for it reads the failure as before: the way home's
-     * trail-join scan tests only [end], and its notes map every [EndOutsideData] alike (`TrailJoins`,
-     * `FindWayHomeUseCase.failedOn`), so the way home is unchanged.
-     */
-    data class EndOutsideData(val end: RouteEnd, val squareHasNoFile: Boolean = false) : TrailRouteFailure
+    /** [end] has no trail near it in the stored data: it lies outside the area the data covers. */
+    data class EndOutsideData(val end: RouteEnd) : TrailRouteFailure
 
     /** Both ends are on trails in the data, and no path joins them. */
     data class NoPath(val detail: String) : TrailRouteFailure

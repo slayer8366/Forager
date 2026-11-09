@@ -65,8 +65,8 @@ class PositionLookOptionsTest {
 
     @Test
     fun `the look follows the one rule the label, the strip and the HUD read`() {
-        val gps = LocationFix.Update(45.5, -121.7, null, 5f, 1_000L, provider = FixProvider.GPS)
-        val reading = LocationFix.Update(45.51, -121.71, null, 120f, 2_123L, provider = FixProvider.NETWORK)
+        val gps = LocationFix.Update(45.5, -122.6, null, 5f, 1_000L, provider = FixProvider.GPS)
+        val reading = LocationFix.Update(45.51, -122.61, null, 120f, 2_123L, provider = FixProvider.NETWORK)
         assertEquals(PositionLook.PRECISE, positionLookOf(ShownPosition.Precise(gps), gps))
         assertEquals(PositionLook.APPROXIMATE, positionLookOf(ShownPosition.Approximate(reading), gps))
         assertEquals(PositionLook.LAST_KNOWN, positionLookOf(ShownPosition.LastKnown(reading), gps))

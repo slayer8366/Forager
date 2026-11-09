@@ -1,15 +1,15 @@
 #!/usr/bin/env python3
 """One-off fetch of a fixed OpenTopoMap tile sample (dispatch 2026-09-28-310).
 
-3x3 block centred on downtown Asheville, North Carolina (35.59556 N, 82.55194 W, Wikipedia's city point) at each zoom 7..15 = 81 tiles, one request per
+3x3 block centred on Oregon City (45.36 N, 122.6 W) at each zoom 7..15 = 81 tiles, one request per
 1.5 s, identifying User-Agent, never re-fetching a tile already on disk. Within OpenTopoMap's usage
 policy (no bulk download; identify the app).
 """
 import math, os, sys, time, urllib.request
 
-LAT, LON = 35.59556, -82.55194
+LAT, LON = 45.36, -122.6
 OUT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "tiles")
-UA = "Forager-topo-night-measurement/1.1 (+https://github.com/slayer8366/Forager; one-off 81-tile sample)"
+UA = "Forager-topo-night-measurement/1.0 (armyofwann@gmail.com; one-off 81-tile sample)"
 
 def tile(lat, lon, z):
     n = 2 ** z

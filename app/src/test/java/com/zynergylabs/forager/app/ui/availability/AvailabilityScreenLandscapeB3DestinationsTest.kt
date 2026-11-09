@@ -288,7 +288,7 @@ private fun DpRect.centreX(): Float = ((left + right) / 2).value
 
 private val B3_STUB_MAP: MapSlot = { _, _, _, _, _, _, _, _, modifier -> Box(modifier) }
 
-private val B3_REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
+private val B3_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
 
 private val B3_LIST_STATE = AvailabilityUiState(
     region = B3_REGION,

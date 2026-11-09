@@ -14,11 +14,11 @@ import org.junit.Test
  */
 class ImportedTrackBubbleTest {
 
-    private val points = listOf(TrackPoint(45.5, -121.6, null, null, 0L), TrackPoint(45.6, -121.6, null, null, 3_600_000L))
+    private val points = listOf(TrackPoint(45.5, -122.6, null, null, 0L), TrackPoint(45.6, -122.6, null, null, 3_600_000L))
 
     private fun durationOf(track: Track): String {
         val content = mapBubbleContentFor(
-            MapBubbleTarget.FeatureTarget(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, track.id, LatLng(45.5, -121.6)),
+            MapBubbleTarget.FeatureTarget(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, track.id, LatLng(45.5, -122.6)),
             MapRecordSources(tracks = listOf(track)),
             is24HourClock = false,
         ) as MapBubbleContent.TrackContent

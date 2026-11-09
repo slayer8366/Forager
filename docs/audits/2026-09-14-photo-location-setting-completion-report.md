@@ -214,8 +214,8 @@ identical to the pushed commit afterwards:
 
 | revert | failures produced |
 |---|---|
-| the capture gate removed | 2: "the find gets no location expected null, but was LatLng(45.5, -121.6)"; the Album case, "expected null, but was 45.5" |
-| the find-creation gate removed | 1: "but with no location expected null, but was LatLng(45.5, -121.6)" |
+| the capture gate removed | 2: "the find gets no location expected null, but was LatLng(45.5, -122.6)"; the Album case, "expected null, but was 45.5" |
+| the find-creation gate removed | 1: "but with no location expected null, but was LatLng(45.5, -122.6)" |
 | `PhotoLocationSection` removed from the panel | 1: "Action performScrollTo() failed" (no such node) |
 
 ---

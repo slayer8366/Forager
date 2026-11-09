@@ -42,7 +42,6 @@ The audit and the review never run on the coder's model (-1134). The owner: "It'
 - **One plain question per decision, with the options and what each means for the user.** The owner is a systems thinker, not a programmer: describe behaviour and consequences, not code names.
 - **Put the recommendation first and mark it "(Recommended)".** Say why in the option's description.
 - **Confirm behaviour as a step path** (tap > shows > Back) before dispatching any change a person will see, and restate the whole path once all its parts are answered.
-- **After a decision is settled, ask what to do with it as checkboxes.** One multi-select question, each action its own box: "Record it", "Build it", "Hold", plus any other action in play (merge, close, message a coder). Do only what is ticked; a settled answer is a decision, not a go. The owner, 2026-11-07: "Thank you for asking to record and build. I like the checkbox option for that, can you make that a standard process?" (RECORD -2188).
 - **Batch related questions** (up to four at a time) so the owner rules once, not in drips.
 - **Read the answer literally.** "Option 1, but 2.5 hours instead of 4" is a new ruling, not option 1. A question back ("Why is this important?") gets an explanation, not a re-ask.
 - **Correct your own wrong premises out loud.** When a coder finds that something the planner told the owner was false (a long-press that doesn't exist, a map that isn't there, the wrong number of tests), say so plainly in the next message before asking again.
@@ -51,13 +50,12 @@ The audit and the review never run on the coder's model (-1134). The owner: "It'
 ## Dispatching work
 
 - **Every task is a committed file** (`prompts/preserved/` in Forager, `docs/dispatch/` in forager-forecast), recorded as an intent in RECORD.md, before a coder starts.
-- **Amendments go by category, not by date.** A dispatch's later rulings are sorted into lettered categories (A, B, C... as many as it takes), each item numbered in the order it was ruled (C1, C2, C3), naming its date and RECORD entry. A new ruling is the next item in its category, and marks the earlier item it replaces. The rules every item shares are written once at the top, with a short list of what is still to build. The owner, 2026-11-02: "Revert the amendments into separate parts, but have them arranged different. A B C D to arrange different categories. And have the amendments add to each category. IE amendments C1 C2 C3 for the cards"; "4 isn't the limit, use as many as it takes"; "Now I can read the amendments easier and we can have an easier time sorting what's been done should we need to change anything in the future"; "Yes, all dispatches". First done on dispatch 2026-10-30-08 (route plotting).
 - **Verify first, then build.** Coders read the code and report, by message, before writing anything. Every premise in a dispatch is marked as a premise to re-check, with file and line.
 - **Check from source, not memory.** Every fact a dispatch states (a path, a line, an ID, a count, a branch or commit, what a RECORD entry or ruling says, whether something exists) is read from its source while the dispatch is written, and cited with the commit or time read. Recall, summaries, handoffs, earlier reports, a coder's reading and the memory notes are pointers to where to look, not sources; anything that can't be checked first is marked unverified and listed as a premise to re-check. The owner, 2026-10-16: "Memory drifts, so always check from source".
 - **Name the stops.** Each dispatch lists what makes the coder stop and ask rather than choose: an owner-level choice, a migration number, a restricted permission, a wrong premise.
 - **Fix choices before data.** Anything that could be tuned to a result (a test, a threshold, a sample, a tolerance) is written down and committed before the result is read.
 - **Assign globally unique numbers up front** (decision IDs, migration numbers) when branches run in parallel, so they can't collide at merge.
-- **Name and role first.** Every helper's prompt opens with its name and role ("You are Hazel, the app coder"), so the accountant can count it (RECORD -1645).
+- **Gradle waits for the owner's "go"**, given in the planner's own window.
 
 ## Running several things at once
 
@@ -65,7 +63,6 @@ The audit and the review never run on the coder's model (-1134). The owner: "It'
 - **Every heavy command runs under a hard cap:** `systemd-run --user --scope -q -p MemoryMax=5G -p MemorySwapMax=0 <command>`, so a runaway job dies alone instead of restarting the session. Coders stream large counts instead of building whole tables.
 - **After any restart,** check `journalctl -k | grep -i oom`, read what each stopped agent had pushed, and relaunch with what was learned, rather than repeating the run that failed.
 - **Coders commit and push after every step,** so a restart loses minutes, not hours.
-- **A fresh helper past about 200,000 tokens.** Between work items, when a helper's conversation has passed about 200,000 tokens, the planner starts a fresh helper with a short handoff: the dispatch, the RECORD entries, the branch heads and what the helper learned. It doesn't resume the old one. The helper commits and pushes before the switch (RECORD -1645).
 - **Long work runs in resumable sections** with a stop time (T6b), started when the owner says, mostly overnight.
 - **Waiting is a background loop that exits on a result,** never polling in the conversation. Merges wait on green CI in the same way.
 
@@ -92,7 +89,6 @@ Since 2026-10-16 (RECORD -1085 to -1087; the gate amended by -1133 and -1134). T
 ## Reviews and merges
 
 - **Every forecast task gets an independent review** by a separate session before it merges (D18). Reviewers recompute headline numbers with their own code and run their own revert checks.
-- **Every app PR gets an independent review by Sorrel before any build reaches the owner** (-2190; the owner: "I've noticed that nothing went to Sorrel for review either", "Make it standing", then "The reason Sorrel reviews is to catch these cases before they reach me"). The order: Hazel builds to green → Sorrel reviews → the S22 check for anything visual → a build to the owner → a merge on the owner's word. Sorrel is a fresh session, never on Hazel's model. It reads the diff against the dispatch, the owner's recorded rulings and the app-wide principles (one line where pieces meet, 80% chrome, Back retraces the way in, "Don't make me think"); looks for tests that could not fail, removed or loosened checks and report claims the code does not support; and reports pass, pass with items, or fail. What breaks a ruling or principle goes back to Hazel, not to the owner. It advises; the owner decides.
 - **Merges happen only on the owner's word.** In forager-forecast, that word names the branch (D40). When the owner says "merge once the review is filed", a finding that's the owner's call is brought back first.
 - **Before an app merge,** back up the target branch (main for a promotion) to `~/Zynergy/forager-repo-backups/` with a verified bundle, and read the diff for `@Ignore` and removed assertions.
 - **Red CI on our own PR is ours to fix.** Root-cause it; "flake" is not a cause. A failure that also happens on code the PR doesn't touch gets one comment and one re-run.
@@ -100,9 +96,9 @@ Since 2026-10-16 (RECORD -1085 to -1087; the gate amended by -1133 and -1134). T
 
 ## Keeping the record
 
-- **RECORD.md gets an entry for every intent, ruling and merge,** on `records-after-173`, written by hand.
+- **RECORD.md gets an entry for every intent, ruling, merge and correction,** on `records-after-173`, written by hand.
 - **Timestamps come from `date -u`,** never estimated. (The 2026-10-06 planner guessed them and was corrected in -608.)
-- **A correction goes into the record it corrects, not a new entry.** The owner, 2026-11-02: "The rule is corrections go into the same record that was recorded. I have always said that". This line said the opposite ("Corrections are appended, never edited in") from 2026-10-07 until then.
+- **Corrections are appended, never edited in.** A wrong claim stays visible with its correction beside it.
 - **Check for open intents at every natural stop.** At each handoff, and whenever a report lands, list every intent with no closing entry (a terminal, or an outcome carrying `Closes`, per E-GD's RECORDING.md) and close or continue each one. Added 2026-10-16 (RECORD -1120) after three intents were left open that day by outcomes that only continued them (-1115).
 - **Say what wasn't checked.** "Not seen on a phone", "inferred, not measured", "unverified" are stated plainly in every report to the owner.
 

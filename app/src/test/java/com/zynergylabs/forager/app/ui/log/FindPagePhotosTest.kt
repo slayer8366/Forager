@@ -85,7 +85,7 @@ class FindPagePhotosTest {
         return LogPhoto(id = id, relativePath = relativePath, createdAtEpochMillis = 1_000L)
     }
 
-    private val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 10, 10))
+    private val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 10, 10))
         .copy(isDraft = false, ownIdentification = "Chanterelle")
 
     private fun setScreen(photos: List<LogPhoto>) {

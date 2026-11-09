@@ -8,7 +8,6 @@ package com.zynergylabs.forager.app.ui.availability
 // left behind is reached from here. Seam F (the wide layout) was released by the owner for this
 // split, as recorded in the Understory amendment merged in #130.
 
-import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.ui.motion.BouncingIconButton
 import com.zynergylabs.forager.app.ui.motion.ListRowMotion
 import com.zynergylabs.forager.app.ui.motion.rememberListRows
@@ -61,9 +60,9 @@ import com.zynergylabs.forager.app.ui.format.displayDate
  * absolute map points the user placed, independent of any search.
  */
 @Composable
-internal fun TripPlannerSection(uiState: AvailabilityUiState, onDeletePlannedTrip: (String) -> Unit, onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null) {
+internal fun TripPlannerSection(uiState: AvailabilityUiState, onDeletePlannedTrip: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
-        PlannedTripsList(plannedTrips = uiState.plannedTrips, onDeletePlannedTrip = onDeletePlannedTrip, onOpenPlannedRoute = onOpenPlannedRoute, distanceUnit = uiState.distanceUnit)
+        PlannedTripsList(plannedTrips = uiState.plannedTrips, onDeletePlannedTrip = onDeletePlannedTrip)
         HorizontalDivider()
         if (uiState.hasSearched) {
             TripWindowsCard(uiState = uiState)
@@ -82,12 +81,7 @@ internal fun TripPlannerSection(uiState: AvailabilityUiState, onDeletePlannedTri
  * already moved to the front — this composable renders that order, it doesn't recompute it.
  */
 @Composable
-private fun PlannedTripsList(
-    plannedTrips: List<PlannedTrip>,
-    onDeletePlannedTrip: (String) -> Unit,
-    onOpenPlannedRoute: ((PlannedTrip) -> Unit)? = null,
-    distanceUnit: DistanceUnit = DistanceUnit.KILOMETERS,
-) {
+private fun PlannedTripsList(plannedTrips: List<PlannedTrip>, onDeletePlannedTrip: (String) -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Text("Planned Trips", style = MaterialTheme.typography.titleSmall)
         // Motion Part 3, Amendment 1 (RECORD -681: "Every list's rows close up and grow in"; scout P1): a deleted trip's card
@@ -100,29 +94,14 @@ private fun PlannedTripsList(
             )
         } else {
             val today = LocalDate.now()
-            // Dispatch 2026-11-05-08: each trip's Download Maps, from the screen; none without a provider (TripDownloadMapsUi.kt).
-            val downloadMaps = LocalDownloadMapsForTrip.current
             rows.forEach { row ->
                 key(row.key) {
                     ListRowMotion(row) { trip ->
-                        if (trip.route != null) {
-                            // Dispatch 2026-10-30-08: a route trip's row, which opens the route on the map (PlannedRouteRow.kt).
-                            PlannedRouteRow(
-                                trip = trip,
-                                isToday = trip.date == today,
-                                distanceUnit = distanceUnit,
-                                onOpen = onOpenPlannedRoute?.let { open -> { open(trip) } },
-                                onDelete = { onDeletePlannedTrip(trip.id) },
-                                onDownloadMaps = downloadMaps?.let { open -> { open(trip) } },
-                            )
-                        } else {
-                            PlannedTripRow(
-                                trip = trip,
-                                isToday = trip.date == today,
-                                onDelete = { onDeletePlannedTrip(trip.id) },
-                                onDownloadMaps = downloadMaps?.let { open -> { open(trip) } },
-                            )
-                        }
+                        PlannedTripRow(
+                            trip = trip,
+                            isToday = trip.date == today,
+                            onDelete = { onDeletePlannedTrip(trip.id) },
+                        )
                     }
                 }
             }
@@ -137,11 +116,10 @@ private fun PlannedTripsList(
  * (the format asked for on this screen; see [MgrsConverter]) with decimal degrees kept alongside
  * since some readers still want them and MGRS can't cover every point (see
  * [MgrsCoordinate.Unsupported]), a "Directions" action that hands the location to whatever
- * navigation app is installed (see [launchDirections]), and delete. Left of Directions, the trip's Download Maps when
- * [onDownloadMaps] is set (dispatch 2026-11-05-08, A5: "Plain trip: maps, Directions, Delete").
+ * navigation app is installed (see [launchDirections]), and delete.
  */
 @Composable
-private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> Unit, onDownloadMaps: (() -> Unit)? = null) {
+private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> Unit) {
     val context = LocalContext.current
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -167,8 +145,7 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
                     )
                 }
                 Text(trip.name, style = MaterialTheme.typography.titleSmall)
-                // An undated trip (schema 23, dispatch 2026-10-30-02) shows no date line.
-                trip.date?.let { Text(displayDate(it), style = MaterialTheme.typography.bodyMedium) }
+                Text(displayDate(trip.date), style = MaterialTheme.typography.bodyMedium)
                 when (val mgrs = MgrsConverter.convert(trip.location)) {
                     is MgrsCoordinate.Grid -> Text(mgrs.value, style = MaterialTheme.typography.bodySmall)
                     // No line at all rather than a wrong or truncated one — see MgrsCoordinate's
@@ -180,12 +157,11 @@ private fun PlannedTripRow(trip: PlannedTrip, isToday: Boolean, onDelete: () -> 
                     style = MaterialTheme.typography.bodySmall,
                 )
             }
-            onDownloadMaps?.let { TripDownloadMapsIcon(trip = trip, onClick = it) }
             BouncingIconButton(onClick = { launchDirections(context, trip) }) {
                 Icon(Icons.Filled.Directions, contentDescription = "Directions to ${trip.name}")
             }
             BouncingIconButton(onClick = onDelete) {
-                Icon(Icons.Filled.Delete, contentDescription = plannedTripDeleteLabel(trip))
+                Icon(Icons.Filled.Delete, contentDescription = "Remove planned trip for ${displayDate(trip.date)}")
             }
         }
     }
@@ -277,22 +253,22 @@ internal fun WaypointsSection(
 }
 
 /**
- * One saved waypoint: its user-chosen [Waypoint.name] as the primary identifying text and the same
- * MGRS-plus-decimal-degrees coordinate display [PlannedTripRow] uses. No delete control of its own
- * since journal redesign J4: its callers wrap it in a [TwoStageSwipeRow] (J4b L6). Its "Directions"
- * action ([launchDirections]) was removed by dispatch 2026-10-29-09 (RECORD -1819, the owner:
- * "Everywhere Navigate exists"): every host offers [onNavigate] in its place.
+ * One saved waypoint: its user-chosen [Waypoint.name] as the primary identifying text, the same
+ * MGRS-plus-decimal-degrees coordinate display [PlannedTripRow] uses, and a "Directions" action
+ * ([launchDirections]) reusing the exact same `geo:` intent machinery. No delete control of its
+ * own since journal redesign J4: its callers wrap it in a [TwoStageSwipeRow] (J4b L6).
  *
  * [onClick] (journal redesign J5c) is what a tap on the card opens, the waypoint's details sheet, or
  * `null` for no card tap. The All logbook passes `null` and puts the tap on its badged row instead,
- * so the type badge takes it too. Navigate keeps its own tap either way.
+ * so the type badge takes it too. Directions keeps its own tap either way.
  *
  * [onNavigate] (dispatch 2026-09-28-502, plan task T9) is the app's own navigation to this waypoint, an
- * icon button that takes its own tap, not the card's; `null` (tests only: every production host passes
- * one) leaves the row with no button.
+ * icon button before Directions; `null` leaves the row with Directions only. Like Directions it takes
+ * its own tap, not the card's.
  */
 @Composable
 internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null, onNavigate: (() -> Unit)? = null) {
+    val context = LocalContext.current
     val location = LatLng(waypoint.lat, waypoint.lng)
     Card(
         modifier = Modifier
@@ -321,6 +297,9 @@ internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null, onNa
                     Icon(Icons.Filled.Navigation, contentDescription = "Navigate to ${waypoint.name}")
                 }
             }
+            BouncingIconButton(onClick = { launchDirections(context, waypoint.name, location) }) {
+                Icon(Icons.Filled.Directions, contentDescription = "Directions to ${waypoint.name}")
+            }
         }
     }
 }
@@ -329,15 +308,8 @@ internal fun WaypointRow(waypoint: Waypoint, onClick: (() -> Unit)? = null, onNa
 internal fun waypointRowNavigateTag(waypointId: String): String = "waypoint-row-navigate-$waypointId"
 
 /**
- * A point in decimal degrees to four places, "45.3736, -121.6959": how [WaypointRow] and the offline
+ * A point in decimal degrees to four places, "45.3260, -122.6340": how [WaypointRow] and the offline
  * region row print coordinates, and (journal redesign J5c) how the details sheet prints them, so the
  * sheet shows the coordinates exactly as the row does.
  */
 internal fun decimalDegreesLabel(lat: Double, lng: Double): String = "${"%.4f".format(lat)}, ${"%.4f".format(lng)}"
-
-/**
- * The trip row's delete button label. A dated trip keeps its label; an undated one is named instead, in the owner's words
- * (dispatch 2026-10-30-02 Amendment 1: "\"Delete trip <name>\" (Recommended)").
- */
-internal fun plannedTripDeleteLabel(trip: PlannedTrip): String =
-    trip.date?.let { "Remove planned trip for ${displayDate(it)}" } ?: "Delete trip ${trip.name}"

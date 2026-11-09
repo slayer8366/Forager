@@ -76,7 +76,7 @@ fetch_with_backoff() {
 
 # --- 1 & 2. field names and response shape, at one location ---------------------------------
 printf '%s\n' "--- request shape and response fields (10-day window) ---"
-short_url="$API?latitude=45.5&longitude=-121.6&start_date=2024-01-01&end_date=2024-01-10&daily=$DAILY&timezone=auto"
+short_url="$API?latitude=45.5&longitude=-122.6&start_date=2024-01-01&end_date=2024-01-10&daily=$DAILY&timezone=auto"
 short_body=$(fetch_with_backoff "$short_url") || fail=1
 printf '%s' "$short_body" | python3 -c '
 import json, sys
@@ -110,7 +110,7 @@ print("  OK")
 
 # --- 3. a multi-year span in one request -----------------------------------------------------
 printf '\n%s\n' "--- a single request spanning several years (2016-01-01 to 2024-12-31, 3288 days) ---"
-long_url="$API?latitude=45.5&longitude=-121.6&start_date=2016-01-01&end_date=2024-12-31&daily=$DAILY&timezone=auto"
+long_url="$API?latitude=45.5&longitude=-122.6&start_date=2016-01-01&end_date=2024-12-31&daily=$DAILY&timezone=auto"
 long_body=$(fetch_with_backoff "$long_url") || fail=1
 printf '%s' "$long_body" | python3 -c '
 import json, sys

@@ -28,12 +28,12 @@ import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
 
 /**
- * Every registered migration from 4→5 through 23→24, asserted against the schema files Room exports
+ * Every registered migration from 4→5 through 20→21, asserted against the schema files Room exports
  * to `app/schemas/` — not against a hand-written fixture. For each: the database is created at
  * version N **from `N.json`**, every table is seeded with a row that satisfies every NOT NULL column
  * *as `N.json` declares them*, the migration runs, [MigrationTestHelper.runMigrationsAndValidate]
  * validates the result against `N+1.json`, and the rows are asserted to have survived with the
- * specific values each migration carries or transforms. The last test runs the whole chain 4→24.
+ * specific values each migration carries or transforms. The last test runs the whole chain 4→21.
  *
  * **3→4 is not here and cannot be**: there is no `3.json` — versions 1–3 predate `exportSchema`
  * (see `ForagerDatabase`'s own history comment). `MushroomLogMigrationTest`'s `LegacyForagerDatabaseV3`
@@ -215,39 +215,15 @@ class SchemaMigrationTest {
             assertEquals("photos/p1.dng", db.scalar("SELECT rawRelativePath FROM log_photos"))
         }
 
-    // Route plotting step 1 (dispatch 2026-10-30-02): the planned_trips rebuild. Every seeded column is carried, the date
-    // included (assertEverySeededValueSurvived compares them by name), the two route tables appear empty (migrate's own
-    // check), and the date now takes NULL.
-    @Test fun `22 to 23 - the planned_trips rebuild makes date nullable, every value carried, route tables empty`() =
-        migrate(22, 23, MIGRATION_22_23, overrides = mapOf("planned_trips" to mapOf("date" to "2026-11-14", "lat" to 45.43, "lng" to -122.29))) { db ->
-            assertEquals("2026-11-14", db.scalar("SELECT date FROM planned_trips"))
-            db.execSQL("INSERT INTO planned_trips (id, name, lat, lng, date) VALUES ('undated', 'Ridge run', 45.2, -122.5, NULL)")
-            assertNull("a trip can now have no date", db.scalar("SELECT date FROM planned_trips WHERE id = 'undated'"))
-        }
-
-    // Dispatch 2026-11-06-05, Amendment 2: the route stop's soft link. Every seeded stop and leg value is carried
-    // (assertEverySeededValueSurvived), the old stop has no link, and both new columns take a value and carry an index.
-    @Test fun `23 to 24 - route stops gain two null link columns with indexes, every value carried`() =
-        migrate(23, 24, MIGRATION_23_24, overrides = mapOf("planned_trip_route_stops" to mapOf("name" to "Creek pin", "lat" to 45.2, "lng" to -122.5))) { db ->
-            assertEquals("Creek pin", db.scalar("SELECT name FROM planned_trip_route_stops"))
-            assertNull("an old stop has no waypoint link", db.scalar("SELECT linkedWaypointId FROM planned_trip_route_stops"))
-            assertNull("an old stop has no trip link", db.scalar("SELECT linkedTripId FROM planned_trip_route_stops"))
-            db.execSQL("UPDATE planned_trip_route_stops SET linkedWaypointId = 'wp-1'")
-            assertEquals("wp-1", db.scalar("SELECT linkedWaypointId FROM planned_trip_route_stops"))
-            for (index in listOf("index_planned_trip_route_stops_linkedWaypointId", "index_planned_trip_route_stops_linkedTripId")) {
-                assertEquals("$index exists", 1L, db.scalar("SELECT COUNT(*) FROM sqlite_master WHERE type = 'index' AND name = '$index'"))
-            }
-        }
-
     // ---- the whole chain ----------------------------------------------------------------------
 
-    // The chain now ends at 24, the current version (dispatch 2026-11-06-05, Amendment 2; it ended at 23 before MIGRATION_23_24).
-    @Test fun `4 to 24 - the full chain, validated against 24_json, every seeded value survives`() {
+    // The chain now ends at 22, the current version (dispatch 2026-10-15-01; it ended at 21 before MIGRATION_21_22).
+    @Test fun `4 to 22 - the full chain, validated against 22_json, every seeded value survives`() {
         val name = "chain.db"
         val seeded = helper.createDatabase(name, 4).use { db -> seedEveryTable(db, 4, mapOf("mushroom_log_entries" to mapOf("lat" to 45.4301, "lng" to -122.2869))) }
-        val db = helper.runMigrationsAndValidate(name, 24, true, *ForagerDatabase.ALL_MIGRATIONS)
+        val db = helper.runMigrationsAndValidate(name, 22, true, *ForagerDatabase.ALL_MIGRATIONS)
         try {
-            assertEverySeededValueSurvived(db, seeded, 4, 24)
+            assertEverySeededValueSurvived(db, seeded, 4, 22)
             assertEquals(0L, db.scalar("SELECT isDraft FROM mushroom_log_entries"))
             assertEquals(1L, db.scalar("SELECT COUNT(*) FROM log_entry_photos"))
         } finally { db.close() }

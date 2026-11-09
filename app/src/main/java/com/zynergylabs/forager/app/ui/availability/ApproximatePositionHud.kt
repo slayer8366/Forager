@@ -37,12 +37,10 @@ internal fun hudReadout(
     showDecimalDegrees: Boolean = false,
     route: ReturnRoute? = null,
     facing: NavigationFacing = NavigationFacing.FACING_UP,
-    /** The strip's live height above sea level (dispatch 2026-10-28-13); see [navigationReadout]. */
-    heightMeters: Double? = null,
 ): NavigationHudReadout = when (val inPlace = shownPosition(liveFix, approximateFix, lastKnownFix, nowEpochMillis).inPlaceOfGps(liveFix)) {
     is ShownPosition.Approximate -> approximateNavigationReadout(heading, inPlace.fix, target, distanceUnit, nowEpochMillis, route, facing)
     is ShownPosition.LastKnown -> lastKnownNavigationReadout(heading, inPlace.fix, target, distanceUnit, nowEpochMillis, facing)
-    else -> navigationReadout(heading, liveFix, target, distanceUnit, nowEpochMillis, showDecimalDegrees, route, facing, heightMeters)
+    else -> navigationReadout(heading, liveFix, target, distanceUnit, nowEpochMillis, showDecimalDegrees, route, facing)
 }
 
 /**
@@ -81,8 +79,7 @@ internal fun approximateNavigationReadout(
     val far = accuracy != null && !isApproaching(distanceMeters, accuracy)
     // Available only: an unreliable compass, or none, has no degrees, so no needle, as on the GPS HUD.
     val headingDegrees = (heading as? TrueHeadingReading.Available)?.degrees
-    // Step 6 PR 3: no trail route to a waypoint ([ReturnRoute.Straight]) keeps the needle, as with no route.
-    val needle = if (far && (route == null || route is ReturnRoute.Straight) && headingDegrees != null) {
+    val needle = if (far && route == null && headingDegrees != null) {
         relativeBearingDegrees(GeoDistance.initialBearingDegrees(here, there), headingDegrees)
     } else {
         null

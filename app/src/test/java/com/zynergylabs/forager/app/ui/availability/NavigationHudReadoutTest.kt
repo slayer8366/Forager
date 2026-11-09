@@ -39,10 +39,7 @@ class NavigationHudReadoutTest {
         now: Long = t + 1_000L,
         showDecimalDegrees: Boolean = false,
         route: ReturnRoute? = null,
-        // Dispatch 2026-10-28-13: the strip's height, given here as the fix's own (a zero sea-level offset), since these
-        // tests are about the readout's words; the card reading the strip's height and not the fix's is tested below.
-        height: Double? = liveFix?.altitude,
-    ) = navigationReadout(heading, liveFix, target, unit, now, showDecimalDegrees, route, heightMeters = height)
+    ) = navigationReadout(heading, liveFix, target, unit, now, showDecimalDegrees, route)
 
     // ── Dispatch 2026-09-28-430, ruling E: the stuck-compass notice is the heading label ──────
 
@@ -109,7 +106,7 @@ class NavigationHudReadoutTest {
     fun `navigating to a waypoint with no route keeps the straight line in the large slot and aims at the waypoint`() {
         val r = readout(route = null)
         assertEquals("0.7 mi", r.distanceText)
-        assertEquals("45°", r.targetText) // G2 (Amendment 1): the degrees alone. Was "left 45°".
+        assertEquals("left 45°", r.targetText)
         assertEquals("", r.statusText)
         assertFalse(r.routeRetryOffered)
     }
@@ -118,9 +115,9 @@ class NavigationHudReadoutTest {
     fun `the needle aims at the route's lookahead, not at the start`() {
         // The start is due north (a 315° turn from 45°); the lookahead due east (a 45° turn).
         val r = readout(route = ReturnRoute.Ahead(east, 1_500.0))
-        assertEquals("45°", r.targetText) // G2 (Amendment 1): the degrees alone. Was "right 45°".
+        assertEquals("right 45°", r.targetText)
         assertEquals(45f, r.targetArrowDegrees!!, 0.5f)
-        assertEquals("45°", readout(route = null).targetText) // G2 (Amendment 1): the degrees alone. Was "left 45°".
+        assertEquals("left 45°", readout(route = null).targetText)
     }
 
     @Test
@@ -195,7 +192,7 @@ class NavigationHudReadoutTest {
 
         assertEquals("45° NE", r.headingText)
         assertEquals(-45f, r.northArrowDegrees)
-        assertEquals("45°", r.targetText) // G2 (Amendment 1): the degrees alone. Was "left 45°".
+        assertEquals("left 45°", r.targetText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
         assertEquals("0.7 mi", r.distanceText)
         assertFalse(r.distanceDeEmphasised)
@@ -208,7 +205,7 @@ class NavigationHudReadoutTest {
 
         val r = readout(target = west)
 
-        assertEquals("135°", r.targetText) // G2 (Amendment 1): the degrees alone. Was "sharp left 135°".
+        assertEquals("sharp left 135°", r.targetText)
         assertEquals(225f, r.targetArrowDegrees!!, 0.05f)
     }
 
@@ -279,7 +276,7 @@ class NavigationHudReadoutTest {
         assertNotNull("a needle at 16.46 m with 8 m accuracy", r2.targetArrowDegrees)
         assertEquals(315f, r2.targetArrowDegrees!!, 1e-3f)
         assertEquals("Approaching", r2.statusText)
-        assertEquals("45°", r2.targetText) // G2 (Amendment 1): the degrees alone. Was "left 45°".
+        assertEquals("left 45°", r2.targetText)
     }
 
     // ── Dispatch 2026-09-28-578, Amendment 1 (-579): "Approaching" has its own zone ─────────────
@@ -296,7 +293,7 @@ class NavigationHudReadoutTest {
         assertEquals("Approaching", r.statusText)
         assertEquals("≈ 50 m", r.distanceText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("45°", r.targetText) // G2 (Amendment 1): the degrees alone. Was "left 45°".
+        assertEquals("left 45°", r.targetText)
         assertFalse(r.distanceDeEmphasised)
     }
 
@@ -340,7 +337,7 @@ class NavigationHudReadoutTest {
 
         assertNotNull(r.targetArrowDegrees)
         assertEquals("", r.statusText)
-        assertEquals("45°", r.targetText) // G2 (Amendment 1): the degrees alone. Was "left 45°".
+        assertEquals("left 45°", r.targetText)
         // Dispatch -502 changed this (Amendment 2). Before: the large slot was asserted to read "33 ft" (no
         // accuracy, no rounding, no marker). After: arrival applies to any target, and with no accuracy its
         // radius is 15 m, so 10 m reads "Arrived". The needle, drawn with no basis for approaching, is unchanged.
@@ -365,7 +362,7 @@ class NavigationHudReadoutTest {
         assertEquals("Approaching", r.statusText)
         assertEquals("164 ft", r.distanceText)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("45°", r.targetText) // G2 (Amendment 1): the degrees alone. Was "left 45°".
+        assertEquals("left 45°", r.targetText)
     }
 
     @Test
@@ -413,7 +410,7 @@ class NavigationHudReadoutTest {
         assertEquals("≈ 50 m", r.distanceText)
         assertTrue(r.distanceDeEmphasised)
         assertEquals(315f, r.targetArrowDegrees!!, 1e-3f)
-        assertEquals("45°", r.targetText) // G2 (Amendment 1): the degrees alone. Was "left 45°".
+        assertEquals("left 45°", r.targetText)
     }
 
     @Test
@@ -552,22 +549,12 @@ class NavigationHudReadoutTest {
         // converter, a value that test already fixes independently.
         val portland = fix.copy(lat = 45.5152, lng = -122.6784, altitude = null)
         val p = readout(liveFix = portland)
-        assertEquals("Alt unavailable", p.elevationText)
+        assertEquals("Elevation unavailable", p.elevationText)
         assertEquals("10T ER 25118 40235", p.coordinatesText)
         // Dispatch 2026-09-28-549: under metric the elevation reads exactly as before.
         assertEquals("50 m", readout(unit = DistanceUnit.KILOMETERS).elevationText)
-        assertEquals("Alt unavailable", readout(liveFix = portland, unit = DistanceUnit.KILOMETERS).elevationText)
+        assertEquals("Elevation unavailable", readout(liveFix = portland, unit = DistanceUnit.KILOMETERS).elevationText)
         assertEquals("45.5152, -122.6784", readout(liveFix = portland, showDecimalDegrees = true).coordinatesText)
-    }
-
-    /**
-     * Dispatch 2026-10-28-13 ("Yes, same as the strip (Recommended)"): the card's height is the strip's, given to it,
-     * never the fix's own raw height. The fix says 50 m; the strip's sea-level height is 71.6 m.
-     */
-    @Test
-    fun `the card reads the strip's height, not the fix's raw one`() {
-        assertEquals("72 m", readout(unit = DistanceUnit.KILOMETERS, height = 71.6).elevationText)
-        assertEquals("with no height to show the card says so, whatever the fix carries", "Alt unavailable", readout(unit = DistanceUnit.KILOMETERS, height = null).elevationText)
     }
 
     // ── Dispatch 2026-09-28-677 (data part B): words, kinds and labels ──────────────────────────
@@ -606,14 +593,13 @@ class NavigationHudReadoutTest {
     }
 
     @Test
-    fun `the turn is in degrees from the needle's own angle`() {
-        // Was `the turn is in words from the needle's own angle` (G2 dropped the words).
+    fun `the turn is in words from the needle's own angle`() {
         // Facing 45°, the start due north: 315° clockwise, 45° to the left; the arrow's rotation is unchanged.
         val r = readout(route = null)
-        assertEquals("45°", r.targetText) // G2 (Amendment 1): the degrees alone. Was "left 45°".
+        assertEquals("left 45°", r.targetText)
         assertEquals(315f, r.targetArrowDegrees!!, 0.5f)
         // Facing 350°, the start due north: 10° clockwise, a slight right.
-        assertEquals("10°", readout(heading = TrueHeadingReading.Available(350f), route = null).targetText) // G2 (Amendment 1): the degrees alone. Was "slight right 10°".
+        assertEquals("slight right 10°", readout(heading = TrueHeadingReading.Available(350f), route = null).targetText)
     }
 
     @Test

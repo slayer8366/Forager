@@ -171,7 +171,7 @@ class LandscapeRotationsAlikeTest {
             "search bar" to bounds(SEARCH_ENTRY_BAR_TAG),
             "strip" to bounds("compass-elevation-strip"),
             "icon bar" to bounds(MAP_ICON_BAR_TAG),
-            "the i's bottom and end insets" to lastRenderMode?.let { it.attributionBottomInset to it.attributionEndInset },
+            "i beside the credit strip" to lastRenderMode?.attributionBesideCredit,
         )
         if (navigating) out["card"] = bounds(NAVIGATION_HUD_TAG)
         return out
@@ -215,10 +215,10 @@ class LandscapeRotationsAlikeTest {
     @Test
     fun `the credit strip is at the bottom left at both rotations`() {
         // The real credit caption is drawn by the real map (SightingsMap), which Robolectric cannot build; the map is asked the same
-        // thing at both rotations. Here: its bottom inset, and the "i"'s (D24: the "i" is at the bottom end in every window).
+        // thing at both rotations (the "i" beside it, held in the snapshots above). Here: the bottom-left request is the same.
         val asks = listOf(Surface.ROTATION_90, Surface.ROTATION_270).map { rotation ->
             setScreen(rotation, navigating = false)
-            lastRenderMode?.let { listOf(it.bottomInset, it.attributionBottomInset, it.attributionEndInset) }
+            lastRenderMode?.let { listOf(it.bottomInset, it.attributionBesideCredit, it.attributionEndInset) }
         }
         assertEquals("the map is asked the same at both rotations", asks[0], asks[1])
     }

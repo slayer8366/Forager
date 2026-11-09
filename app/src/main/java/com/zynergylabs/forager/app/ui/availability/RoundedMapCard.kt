@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
@@ -45,11 +46,9 @@ import com.zynergylabs.forager.app.ui.map.mapChromeOutlinePath
  * Box (the bubble, the cluster, the pickers), whose order is recorded as load-bearing (`CompactMapTab`, the mapSlot comment).
  * Rejected too: letting the card's fill run under the pill whole. The overlap would composite to 0.96, not the 0.8 token.
  *
- * **No elevation shadow** (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"). The card had a 2 dp one,
- * cast by its visible part only. Under the 0.8 fill the renderer drew it as a ring whose hole it expected the card to hide, so it
- * showed through as a band darker than the fill inside the card's edges (prompts/preserved/2026-11-05-06-phase1-report.md); the
- * card's outline marks its edge instead. The pill's cast shadow onto the card, drawn by hand below, is not an elevation shadow and
- * stays exactly as it was (RECORD -945, -2154: "The tuck shadow you chose stays as it is").
+ * **The shadow** is cast by the card's visible part only (its own bounds, not the tuck), so it does not darken the pill
+ * above it. Like every shadow under the 0.8 fill here, it shows through slightly (`MapChromeColourPixelsTest`'s
+ * shadowed-colour rule, 3% in light and 7% in dark as measured there).
  */
 internal val MAP_CARD_CORNER_RADIUS = 16.dp
 
@@ -65,10 +64,7 @@ internal val MAP_CARD_TUCK_SHADOW_DEPTH = 6.dp
  */
 internal const val MAP_CARD_TUCK_SHADOW_STEP_ALPHA = 0.03f
 
-/**
- * The search pill's shadow where it is solid, on the tabs with no map behind it. Over the map neither the pill nor the card has one
- * since dispatch 2026-11-05-06 (see this file's comment); it was the elevation the control pill and the icon bar had there too.
- */
+/** The shadow under the pill and the card, the elevation the control pill and the icon bar already use over the map. */
 internal val MAP_CARD_SHADOW_ELEVATION = 2.dp
 
 /**
@@ -114,9 +110,9 @@ internal data class MapCardCorners(val topLeft: Dp, val topRight: Dp, val bottom
 }
 
 /**
- * The card's surface: its [fill], drawn from [tuck] above its top down, less the pill's rounded shape above it (see this file's
- * comment). [tuck] 0 draws exactly the card's own shape. No shadow (dispatch 2026-11-05-06). No pointer input: the card stays
- * transparent to touches everywhere but its own controls.
+ * The card's surface: its shadow, cast by [corners]' shape on its own bounds, and its [fill], drawn from [tuck] above its
+ * top down, less the pill's rounded shape above it (see this file's comment). [tuck] 0 draws exactly the card's own shape.
+ * No pointer input: the card stays transparent to touches everywhere but its own controls.
  */
 internal fun Modifier.mapCardSurface(
     fill: Color,
@@ -137,6 +133,11 @@ internal fun Modifier.mapCardSurface(
     outline: BorderStroke? = null,
     outlineSides: MapChromeOutlineSides? = null,
 ): Modifier = this
+    .graphicsLayer {
+        shadowElevation = MAP_CARD_SHADOW_ELEVATION.toPx()
+        shape = corners.shape()
+        clip = false
+    }
     .drawBehind {
         val tuckPx = tuck.toPx()
         val shape = corners.shape()

@@ -44,9 +44,7 @@ val COLOUR_FIELDS: List<ColourFieldSpec> = listOf(
         layerId = MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS,
         sourceId = MapSourceIds.FORECAST_CHICKEN_OF_THE_WOODS,
         group = "chicken-of-the-woods",
-        // Title Case wherever shown (dispatch 2026-10-28-02 Amendment 2, RECORD -1766; the owner: "keep taxonomy proper"):
-        // common names in Title Case; a scientific binomial would keep its species lower case.
-        label = "Test Forecast: Chicken of the Woods (Synthetic Data)",
+        label = "Test forecast: chicken of the woods (synthetic data)",
         ramp = ColourRamp(
             listOf(
                 RampStop(0f, 0xFF80DEEA.toInt()),
@@ -61,7 +59,7 @@ val COLOUR_FIELDS: List<ColourFieldSpec> = listOf(
         layerId = MapLayerIds.FORECAST_CHANTERELLES,
         sourceId = MapSourceIds.FORECAST_CHANTERELLES,
         group = "chanterelles",
-        label = "Test Forecast: Chanterelles (Synthetic Data)",
+        label = "Test forecast: chanterelles (synthetic data)",
         ramp = ColourRamp(
             listOf(
                 RampStop(0f, 0xFFFFD54F.toInt()),

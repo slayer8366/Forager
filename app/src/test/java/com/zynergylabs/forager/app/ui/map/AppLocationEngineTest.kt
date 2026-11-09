@@ -25,7 +25,7 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36])
 class AppLocationEngineTest {
 
-    private val approximate = LocationFix.Update(lat = 45.51, lng = -121.71, altitude = 210.0, accuracyMeters = 120f, timestampEpochMillis = 1_700_000_000_123L, provider = FixProvider.NETWORK)
+    private val approximate = LocationFix.Update(lat = 45.51, lng = -122.61, altitude = 210.0, accuracyMeters = 120f, timestampEpochMillis = 1_700_000_000_123L, provider = FixProvider.NETWORK)
 
     private class Recording : LocationEngineCallback<LocationEngineResult> {
         val delivered = mutableListOf<Location>()
@@ -50,7 +50,7 @@ class AppLocationEngineTest {
 
         val location = heard.delivered.single()
         assertEquals(45.51, location.latitude, 0.0)
-        assertEquals(-121.71, location.longitude, 0.0)
+        assertEquals(-122.61, location.longitude, 0.0)
         assertTrue(location.hasAccuracy())
         assertEquals("the circle MapLibre draws is this radius", 120f, location.accuracy, 0f)
         assertEquals(1_700_000_000_123L, location.time)
@@ -63,7 +63,7 @@ class AppLocationEngineTest {
         val engine = AppLocationEngine()
         val heard = engine.listen()
 
-        engine.update(LocationFix.Update(45.5, -121.7, null, null, 1_700_000_000_000L, provider = FixProvider.GPS))
+        engine.update(LocationFix.Update(45.5, -122.6, null, null, 1_700_000_000_000L, provider = FixProvider.GPS))
 
         val location = heard.delivered.single()
         assertFalse(location.hasAccuracy())
