@@ -1,6 +1,6 @@
 # Forager — privacy policy
 
-**Last updated: 2026-10-23.** Applies to the Forager Android app (`com.zynergylabs.forager.app`) on Google Play.
+**Last updated: 2026-11-08.** Applies to the Forager Android app (`com.zynergylabs.forager.app`) on Google Play.
 
 This is the document Play's Data safety declaration points at. It is written to match what the code
 actually does; where a claim comes from a particular file, that file is named so the claim can be
@@ -9,12 +9,12 @@ checked rather than trusted.
 ## The short version
 
 Forager has no account, no sign-in, no sync and no analytics. Nothing you record — tracks, journal
-entries, photos, offline map regions, settings — is uploaded to the developer or to anyone else.
+entries, photos, waypoints, planned trips and their routes, offline map regions, settings — is uploaded to the developer or to anyone else.
 
 What is transmitted, while the phone is online, is **where you are looking**: the coordinates a
-search runs on, the map tiles for the area on screen, and the edges of any area you download for
-offline use. Those go to iNaturalist, Open-Meteo, the
-map tile providers, and a Cloudflare Worker run by the developer. They carry a location and your IP
+search runs on, the map tiles for the area on screen, the map tiles for an area you are choosing to
+download, and the edges of any area you download for offline use. Those go to iNaturalist, Open-Meteo, the
+map tile providers, and our map server on Cloudflare. They carry a location and your IP
 address, and they are logged by the services that receive them.
 
 Because location leaves the device and reaches third parties, the Play Data safety declaration for
@@ -26,10 +26,16 @@ conservative one.
 Stored in the app's own private storage, readable by no other app:
 
 - Recorded tracks and their individual GPS points (latitude, longitude, timestamp, elevation,
-  accuracy, speed).
+  accuracy, speed, speed accuracy, and air pressure from the phone's barometer where it has one;
+  `TrackPointEntity.kt`).
 - Journal / log entries, including any coordinate attached to a find.
 - Photos taken in the app or imported from the gallery (`filesDir/photos/`, `FilePhotoStore.kt`).
-- Downloaded offline map regions.
+- Waypoints, and planned trips. A trip can carry a route you plot: each stop's name and position,
+  the waypoint or trip a stop came from, and the path between the stops
+  (`PlannedTripRouteEntities.kt`). The route is worked out on the phone, from trail route data
+  already downloaded; plotting it sends nothing.
+- Downloaded offline map regions, with the trail routes and the extra map detail stored for each
+  region (`RegionDropOffMaps.kt`).
 - Preferences (units, map mode, and similar).
 
 None of this is transmitted by the app. It is deleted when you uninstall the app or clear its data.
@@ -40,11 +46,16 @@ Auto Backup and the device-to-device transfer that runs during a new phone's set
 therefore does not copy Forager's data to your Google account, and does not hand it to another
 device on your behalf. Moving your data belongs to the app rather than to the operating system, so
 Forager has its own **Backup**, in Tools, then Settings (`BackupSection.kt`). "Back up now" writes a
-single file, containing your tracks, journal entries, waypoints and photos, to a place you choose with
+single file, containing your tracks, journal entries, waypoints, planned trips with their routes, and
+photos (`JournalTables.kt`), to a place you choose with
 Android's own file picker. "Automatic backup" can repeat this daily, weekly or monthly into a folder you
 choose. The file is not encrypted and goes only where you put it: if you choose a cloud folder, that
 service's own terms apply to it. "Restore from backup" reads a file you pick and either replaces what is
 on the phone or merges it in. Forager never sends a backup anywhere on its own.
+
+You can also share a recorded track as a GPX file. The file holds the track's points and its
+waypoints, and goes only to the app or place you choose in Android's share sheet
+(`TrackExportPanel.kt`, `TrackGpxExporter.kt`). Forager does not send it anywhere itself.
 
 ## What is transmitted, to whom, and why
 
@@ -57,32 +68,41 @@ send.
 | iNaturalist (`api.inaturalist.org`) | Latitude and longitude of the searched area, a radius, a month, taxon filters (`INaturalistApi.kt`) | Which species have been observed near that place at that time of year |
 | Open-Meteo (`api.open-meteo.com`) | Latitude and longitude, forecast/past day counts (`OpenMeteoApi.kt`) | Rain, soil moisture and soil temperature for the trip window |
 | Open-Meteo archive (`archive-api.open-meteo.com`) | Latitude and longitude, a date range (`OpenMeteoArchiveApi.kt`) | Historical rainfall, for the fruiting-lag calculation |
-| OpenStreetMap (`tile.openstreetmap.org`), OpenTopoMap (`a.tile.opentopomap.org`) | Map tile coordinates — `z/x/y`, i.e. the map area being viewed (`Basemap.kt`) | Drawing the map when you choose OSM or Topo under "Map type" in Layers (the default is Trail, Forager Trail Map, below), and OpenStreetMap's map in place of Forager Trail Map if Trail Map's style fails to load (`MapMode.kt`, `OwnStreetFallback.kt`) |
-| `forager-pmtiles.brandonlee1-894.workers.dev` — a Cloudflare Worker operated by the developer | Forager Trail Map's style, its vector map tiles by `z/x/y`, and its fonts and icons (`StreetStyle.kt`, `OfflineStyle.kt`, `server/pmtiles-worker/`). For trail routes: the four edges of an area you download (south, west, north and east, to six decimal places), and a key that is the same in every copy of the app, so it identifies the app, not you (`RouteAreaClient.kt`, `server/pmtiles-worker/src/routing/`) | Drawing the map, which is Forager Trail Map unless you choose another, online and offline; downloading an offline region; and the trail routes stored with each downloaded region |
+| OpenStreetMap (`tile.openstreetmap.org`), OpenTopoMap (`a.tile.opentopomap.org`) | Map tile coordinates — `z/x/y`, i.e. the map area being viewed (`Basemap.kt`, `StreetMap.kt`) | Drawing the map when you choose Street or Topo under "Map type" in Layers (the default is Trail, Forager Trail Map, below); OpenStreetMap's map beneath Topo at low zoom when the map's night mode is on (`BasemapStyles.kt`); and OpenStreetMap's map in place of Forager Trail Map if Trail Map's style fails to load (`MapMode.kt`, `OwnTrailFallback.kt`) |
+| Our map server on Cloudflare (a Cloudflare Worker operated by the developer) | Forager Trail Map's style, its vector map tiles by `z/x/y`, its hill-shading images and its official-trails overlay tiles by `z/x/y`, and its fonts and icons (`TrailStyle.kt`, `OfflineStyle.kt`, `server/pmtiles-worker/`). For Offline maps: map tiles that cover the area under the pin, at a coarse zoom, and, after a download, detailed map tiles the download didn't include (`WorkerTrailMapDetail.kt`, `DropOffMapFetch.kt`). For trail routes: the four edges of an area you download (south, west, north and east, to six decimal places), and a key that is the same in every copy of the app, so it identifies the app, not you (`RouteAreaClient.kt`, `server/pmtiles-worker/src/routing/`) | Drawing the map, which is Forager Trail Map unless you choose another, online and offline; checking whether Forager Trail Map has full detail across an area before you download it; downloading an offline region; and the trail routes and map detail stored with each downloaded region |
 
 As with any HTTP request, each of these also reveals your IP address and ordinary request metadata
 to the recipient. Each recipient's own privacy policy governs what it then does with that.
 
 One thing the app does not request itself: tapping an observation to open it on iNaturalist hands a
 `https://www.inaturalist.org/observations/<id>` link to your browser or to the iNaturalist app
-(`AvailabilityPureFunctions.kt:198`). From that point it is an ordinary web visit made by that other
+(`AvailabilityPureFunctions.kt:214`). From that point it is an ordinary web visit made by that other
 app, under its own terms, not a request Forager makes.
 
-Downloading an offline region issues a large number of tile requests to the Cloudflare Worker in a
-short time, covering the whole region — that is the download. The app then asks the Worker for that
+While you choose an area in Offline maps, and the phone has signal, the app asks our map server for
+the map tiles that cover the area under the pin, at a coarse zoom, to check whether Forager Trail Map
+has full detail across it. It asks again each time the pin stops or the radius changes, and when the
+signal returns. This happens before you download anything, including when a trip's Download Maps
+opens the page with the trip's pin already set. The answers are kept in the app's memory until it
+closes, and are not stored (`WorkerTrailMapDetail.kt`, `AvailabilityOfflineDetail.kt`).
+
+Downloading an offline region issues a large number of tile requests to our map server in a
+short time, covering the whole region — that is the download. The app then asks our map server for that
 region's trail routes: one request carrying the region's edges, then one request per route file, each
 carrying the same edges. Every one of these route requests carries the app key (`RouteAreaClient.kt`).
 If the Worker's route data is replaced between the first request and the files, the app asks once more,
-the same way (`RouteAreaFetch.kt`). It asks again for a region whose routes are missing when you open
+the same way (`RouteAreaFetch.kt`). It also asks, once each, for detailed map tiles the download didn't
+include, which the way to a waypoint reads offline; these carry tile coordinates only, with no key
+(`DropOffMapFetch.kt`). It asks again for a region whose routes or map detail are missing when you open
 Offline maps with signal, when the signal returns while Offline maps is on screen, or when you tap "Try
 again" (`AvailabilityViewModelOfflineMaps.kt`). Once a region
 is downloaded, the map inside it can be drawn with no connection at all. Searching still makes
 requests.
 
-## The Cloudflare Worker
+## Our map server on Cloudflare
 
-The Worker above is operated by the developer of this app, on Cloudflare's platform, serving the
-map and the trail route data out of a Cloudflare R2 bucket.
+Our map server, named above, is a Cloudflare Worker operated by the developer of this app, on
+Cloudflare's platform, serving the map and the trail route data out of a Cloudflare R2 bucket.
 
 **We keep no request logs.** Workers Logs is explicitly disabled rather than left to the platform
 default: `wrangler.toml` sets `[observability] enabled = false`. Verified in the Cloudflare dashboard
@@ -125,10 +145,10 @@ figure applies.
 What our settings do keep for a set time is content, not records of requests. The Worker keeps
 copies of what it serves in Cloudflare's cache, at the location that served them, so the same thing
 asked for again is not read or cut again: map tiles and the map's tile descriptions for up to a day,
-under their tile address (`max-age=86400`, `server/pmtiles-worker/src/index.ts:509`, `:516`); the
-map's fonts and icons for up to seven days (`max-age=604800`, `index.ts:392`, `:447`); and a
+under their tile address (`max-age=86400`, `server/pmtiles-worker/src/index.ts:138`, `:458`, `:567`);
+the map's fonts and icons for up to seven days (`max-age=604800`, `index.ts:423`); and a
 trail-route file cut for an area for up to 30 days, under an address that includes the area's edges
-(`max-age=2592000`, `server/pmtiles-worker/src/routing/handler.ts:47`, `:128`). Each copy is kept
+(`max-age=2592000`, `server/pmtiles-worker/src/routing/handler.ts:47`, `:125`). Each copy is kept
 under its own address, and none records who asked for it or when.
 
 Nothing about these requests is linked to any account, because the app has none. Nothing is sold,
@@ -189,12 +209,19 @@ capture's EXIF.
   position; nothing is sent anywhere to produce them.
 - **Internet** — the requests listed above.
 
+You can revoke location permission at any time in Android Settings. Recording will not work without
+it, but the rest of the app will. Turning it off stops the app using your position; the map still
+loads tiles for the area on screen while you are online.
+
 ## No analytics, no ads, no tracking
 
 The app bundles no analytics, crash-reporting or advertising SDK. There is no telemetry of any
 kind: no usage events, no session data, no device fingerprint, no third-party identifier. Nothing
 about your use of the app is reported to the developer unless you write it in a message and send it
 yourself.
+
+The app writes diagnostic lines to the phone's own system log, some with a coarse map position; they
+stay on the phone (`ErrorLog`, `AppContainer.kt`).
 
 ## Children
 
@@ -204,7 +231,7 @@ what is described above.
 ## Deleting your data
 
 Everything Forager stores is on your device and can be deleted from inside the app, item by item —
-journal entries, photos, recorded tracks, waypoints, offline map regions and planned trips.
+journal entries, photos, recorded tracks, waypoints, offline map regions and planned trips (a trip's route goes with it; `PlannedTripRouteDao.kt`).
 Uninstalling removes all of it, including the database and the photo files; with
 `allowBackup="false"` there is no Android cloud copy to survive and reappear. A backup file you made with
 Forager's Backup is yours: it stays wherever you saved it, and you delete it there. Nothing is held on a server, so
