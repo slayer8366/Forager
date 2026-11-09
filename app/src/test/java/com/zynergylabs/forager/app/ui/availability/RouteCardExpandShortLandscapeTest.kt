@@ -35,7 +35,7 @@ import org.robolectric.shadows.ShadowDisplay
  * D37 (dispatch 2026-10-30-08, RECORD -2006; the owner: "Cover the top bar (Recommended)"), replacing D35's fix. On the S22 at
  * 640 x 360 dp, font 2.0, navigating in landscape, 3 and 6 stops, the handle did not open the card (docs/audits/2026-11-03-s22-session-9.md
  * on tools/s22-combined, B1). Not a broken handle: the flag flipped, but the card's cap (RouteCardPlacement.kt, maxHeight) was already
- * filled by the peek lines, so the rows got 0 dp (CI run 41635001490: the card 45.33..242 dp, peek and expanded alike). So, only there
+ * filled by the peek lines, so the rows got 0 dp (CI run 41635001490: the card from 45 1/3 dp to 242 dp, peek and expanded alike). So, only there
  * and only while expanded, the cap rises over the top strip; the navigation card stays; collapsing brings the strip back.
  *
  * The S22's insets (25 dp cutout on the left, 48 dp navigation bar on the right) and rotation, as RouteCardRecenterLeaveRoomTest. The
