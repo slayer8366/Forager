@@ -1,15 +1,19 @@
-name: Release to Play internal testing
+name: Release to Play production
 
 # Dispatch 2026-10-23-04 (owner's rulings in the planner's window, 2026-10-23: sign on GitHub, "Straight to Play
 # internal testing", "You approve in GitHub"). Builds the release bundle from main, signs it with the upload key,
-# checks the signature on the artifact itself, and uploads it to Play's internal track as a draft release. Nothing is
-# sent to testers until someone rolls the draft out in Play Console.
+# checks the signature on the artifact itself, and uploads it to Play's production track as a draft release (the
+# owner, 2026-11-09: "Have GitHub upload directly to the production instead of testing"; it was the internal track
+# until then). Nothing reaches the public until the owner rolls the draft out in Play Console, and Google reviews it.
+#
+# Release N is this file's run #N (the owner's absolute rule, 2026-11-09). Never dispatch this workflow for anything
+# but a release: a test or dry run here takes the next release's number.
 #
 # The gate is the GitHub environment `release`, not this file: its deployment-branch rule allows main only, and its
 # required reviewer (slayer8366) must approve every run before the job starts. Until approval, the job has no access
 # to the environment's secrets. A dispatch from any other branch is refused by the environment before any step runs.
 #
-# How to run (on main only): Actions -> "Release to Play internal testing" -> Run workflow, branch main; then approve
+# How to run (on main only): Actions -> "Release to Play production" -> Run workflow, branch main; then approve
 # the pending deployment. `gh workflow run play-release.yml --ref main` does the same. GitHub only offers the button once
 # this file is on the default branch (main), and the run uses this file as it is on main.
 #
@@ -45,7 +49,7 @@ env:
 
 jobs:
   release:
-    name: Build, sign, verify, upload to internal (draft)
+    name: Build, sign, verify, upload to production (draft)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     # Branch rule (main only) and required reviewer live on this environment, and so do the signing secrets.
@@ -217,8 +221,8 @@ jobs:
             echo "| commit | \`$GITHUB_SHA\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload to Play internal testing as a draft
-        # status: draft creates the release on the internal track without rolling it out; someone reviews and rolls
+      - name: Upload to Play production as a draft
+        # status: draft creates the release on the production track without rolling it out; someone reviews and rolls
         # it out in Play Console. Play rejects a versionCode it has already seen, so re-running the same commit fails
         # here rather than replacing anything.
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
@@ -226,7 +230,7 @@ jobs:
           serviceAccountJsonPlainText: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
           packageName: ${{ env.PACKAGE_NAME }}
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
-          tracks: internal
+          tracks: production
           status: draft
 
       - name: Delete the keystore and the service-account key file
