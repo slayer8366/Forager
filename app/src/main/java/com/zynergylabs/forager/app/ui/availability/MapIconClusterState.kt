@@ -163,6 +163,20 @@ internal class MapIconClusterState(
      */
     var navigationLowestBarTopInRootPx: Float? by mutableStateOf(null)
 
+    /**
+     * J8 (dispatch 2026-11-06-01 Amendment 1, RECORD -2183): the landscape navigation card's bounds in the root where it rests, not
+     * where it is drawn mid-glide or mid-slide: its columns, its top and bottom at its place ([NavigationCardLift]); written by the
+     * card while navigating, null otherwise. What the walker's dot is kept above ([navigationDotAboveCardBottomPx]).
+     */
+    var navigationCardRestingBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
+
+    /**
+     * J8 (RECORD -2183, the owner: "(b) Above top card (Recommended)"): the resting top, in the root, of whatever rests on the landscape
+     * navigation card (the route card), for the dot to be kept above it instead; null while nothing does, when the navigation card's
+     * own resting top is used. Written by the route card (on its own branch, #507); nothing writes it here yet.
+     */
+    var navigationRestingOnCardTopInRootPx: Float? by mutableStateOf(null)
+
     val sideAlignment: Alignment get() = if (isOnLeftSide) Alignment.CenterStart else Alignment.CenterEnd
 
     /**

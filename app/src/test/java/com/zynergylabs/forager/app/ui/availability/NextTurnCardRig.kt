@@ -38,6 +38,7 @@ import com.zynergylabs.forager.app.domain.model.WaypointDesignation
 import com.zynergylabs.forager.app.domain.nextturn.NextTurn
 import com.zynergylabs.forager.app.domain.nextturn.NextTurnArrow
 import com.zynergylabs.forager.app.domain.nextturn.NextTurnBlank
+import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.theme.ForagerTheme
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -108,6 +109,10 @@ abstract class NextTurnCardRig {
     private val compass = MutableStateFlow<CompassReading?>(CompassReading(281f, HeadingUncertainty.Estimated(2f), 0L))
     private var composed = false
 
+    /** Sorrel's J8 review, item 1.1: what the screen last asked the map for, read for the navigation view's padding. */
+    protected var mapRenderMode: MapRenderMode? = null
+        private set
+
     /** Real long-presses the map took. */
     protected var mapLongPresses = 0
         private set
@@ -134,7 +139,8 @@ abstract class NextTurnCardRig {
                             override fun declinationDegrees(latitude: Double, longitude: Double, altitudeMeters: Double?, epochMillis: Long): Float = 0f
                         }),
                         currentTime = CurrentTimeProvider { t + 1_000L },
-                        mapSlot = { _, _, _, _, _, _, _, _, modifier ->
+                        mapSlot = { _, _, mode, _, _, _, _, _, modifier ->
+                            mapRenderMode = mode
                             Box(modifier.testTag(NEXT_TURN_RIG_MAP_TAG).pointerInput(Unit) { detectTapGestures(onLongPress = { mapLongPresses++ }) })
                         },
                         searchInputs = AvailabilityScreenSearchInputs(

@@ -520,17 +520,23 @@ internal fun CompactMapTab(
                         waypointsLayerDrawn(renderMode.layers), plannedTripsLayerDrawn(renderMode.layers),
                     ),
                     // D29 (RECORD -1979, -1980): while navigating in landscape with the route card expanded, the walker's dot sits in the
-                    // open map beside the card, and goes back when it collapses.
-                    navigationSideInsets = if (navigation.isNavigating && cluster.landscape && bubbleSources.routePlotting?.state?.expanded == true) {
-                        navigationSideInsetsBesideCard(
-                            mapWidthPx = cluster.mapContentBoxWidthPx,
-                            cardInMap = routeCardBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx),
-                            lInMap = cluster.clusterBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx),
-                            gapPx = with(compassStripDensity) { Spacing.sm.toPx() },
-                        )
-                    } else {
-                        NavigationSideInsets.NONE
-                    },
+                    // open map beside the card, and goes back when it collapses. J8 (RECORD -2183, the owner: "Map moves dot up
+                    // (Recommended)", "(a) Landscape only"): and, while navigating in landscape, it is kept just above the card on top of
+                    // the navigation card where that card would cover it (navigationInsetsWithDotAboveCard).
+                    navigationSideInsets = navigationInsetsWithDotAboveCard(
+                        side = if (navigation.isNavigating && cluster.landscape && bubbleSources.routePlotting?.state?.expanded == true) {
+                            navigationSideInsetsBesideCard(
+                                mapWidthPx = cluster.mapContentBoxWidthPx,
+                                cardInMap = routeCardBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx),
+                                lInMap = cluster.clusterBoundsInRoot?.translate(-cluster.mapContentBoxLeftInRootPx, -cluster.mapContentBoxTopInRootPx),
+                                gapPx = with(compassStripDensity) { Spacing.sm.toPx() },
+                            )
+                        } else {
+                            NavigationSideInsets.NONE
+                        },
+                        applies = navigation.isNavigating && cluster.landscape,
+                        cluster = cluster,
+                    ),
                 )
                 // Dispatch 2026-10-30-08: the route card's Back, composed before the bubble's, the crowded list's and the fan's, so
                 // each of those, drawn over the card, closes first; off under the drawer, the menu and the pickers, as theirs are.

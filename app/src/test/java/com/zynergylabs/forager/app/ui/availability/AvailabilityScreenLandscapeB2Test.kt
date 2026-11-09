@@ -968,9 +968,10 @@ private val B2_DUSK_NOW: Long = java.time.Instant.parse("2026-10-07T01:00:00Z").
  */
 /**
  * The card's before-sunset line. Dispatch 2026-11-05-10, Amendment 1, H5 (the owner: "Shorten to Sunset: 4:52 PM ▪︎ Dark: 5:23 PM"): no
- * countdown. Was `Regex("Sunset .+ · in 37 min · dark .+")`.
+ * countdown. Was `Regex("Sunset .+ · in 37 min · dark .+")`. Since Sorrel's review of PR #500 (item 3.6) both times are pinned to the
+ * clock's shape, as `AvailabilityScreenSundownLineTest` pins them; was `Regex("Sunset: .+ \u25AA\uFE0E Dark: .+")`.
  */
-private val B2_DUSK_LINE = Regex("Sunset: .+ \u25AA\uFE0E Dark: .+")
+private val B2_DUSK_LINE = Regex("Sunset: \\d{1,2}:\\d{2} (AM|PM) \u25AA\uFE0E Dark: \\d{1,2}:\\d{2} (AM|PM)")
 
 /** A live fix, so the strip shows heading, elevation and coordinates rather than its no-fix line. */
 private fun b2FixStateAt(now: Long) = B2_SEARCHED_STATE.copy(
