@@ -17,6 +17,8 @@ package com.zynergylabs.forager.app.ui.availability
 // Understory amendment merged in #130.
 
 import com.zynergylabs.forager.app.ui.map.bubbleFloorOf
+import com.zynergylabs.forager.app.ui.map.MAP_CHROME_AFTER_CARD_Z
+import androidx.compose.ui.zIndex
 import com.zynergylabs.forager.app.ui.map.NavigationSideInsets
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.runtime.State
@@ -687,73 +689,76 @@ internal fun CompactMapTab(
                     isNavigating = navigation.isNavigating,
                 )
 
-                // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the
-                // strip's card above). Its comments are there.
-                CompactMapNavigationDisplay(
-                    uiState = uiState,
-                    navigation = navigation,
-                    landscape = landscape,
-                    isFullscreen = isFullscreen,
-                    cluster = cluster,
-                    controlsPadding = controlsPadding,
-                    trueHeading = trueHeading,
-                    navigationFacing = navigationFacing,
-                    currentTime = currentTime,
-                    showDecimalDegrees = showDecimalDegrees,
-                    recordingSundownLine = recordingSundownLine,
-                    quickSettings = quickSettings,
-                    sundownClock = sundownClock,
-                    layout = layout,
-                    // D32 (RECORD -1987): narrower from the L's side, edge to edge with the route card. D38 (RECORD -2006, the owner:
-                    // "Keep it narrow (Recommended)"): whether or not the route card shows, so Re-center's icon always has its spot
-                    // and nothing moves; this replaces D32's "back at its width" with the card closed, and D33's slide with it.
-                    narrowBy = routeCardRoom?.leaveRoom ?: 0.dp,
-                )
+                // "Bubble over the card" (RECORD -2187; BubbleFloor.kt): the chrome after the route card stays over a bubble raised over it.
+                Box(Modifier.matchParentSize().zIndex(MAP_CHROME_AFTER_CARD_Z)) {
+                    // The landscape navigation card, under the strip (dispatch 2026-10-12-08; in portrait the navigation info is inside the
+                    // strip's card above). Its comments are there.
+                    CompactMapNavigationDisplay(
+                        uiState = uiState,
+                        navigation = navigation,
+                        landscape = landscape,
+                        isFullscreen = isFullscreen,
+                        cluster = cluster,
+                        controlsPadding = controlsPadding,
+                        trueHeading = trueHeading,
+                        navigationFacing = navigationFacing,
+                        currentTime = currentTime,
+                        showDecimalDegrees = showDecimalDegrees,
+                        recordingSundownLine = recordingSundownLine,
+                        quickSettings = quickSettings,
+                        sundownClock = sundownClock,
+                        layout = layout,
+                        // D32 (RECORD -1987): narrower from the L's side, edge to edge with the route card. D38 (RECORD -2006, the owner:
+                        // "Keep it narrow (Recommended)"): whether or not the route card shows, so Re-center's icon always has its spot
+                        // and nothing moves; this replaces D32's "back at its width" with the card closed, and D33's slide with it.
+                        narrowBy = routeCardRoom?.leaveRoom ?: 0.dp,
+                    )
 
-                // "Return to Route", the legend, the bottom bar and the rail (RECORD -741: CompactMapBottomChrome, moved out unchanged;
-                // its comments are there). Composed here, after the ambient chrome and before the modal overlays below.
-                CompactMapBottomChrome(
-                    navigation = navigation,
-                    landscape = landscape,
-                    renderMode = renderMode,
-                    mapLayers = mapLayers,
-                    cluster = cluster,
-                    controlsPadding = controlsPadding,
-                    showBottomNav = showBottomNav,
-                    isFullscreen = isFullscreen,
-                    isDrawerOpen = isDrawerOpen,
-                    onBottomNavTabSelected = onBottomNavTabSelected,
-                    onBottomNavHeightMeasured = onBottomNavHeightMeasured,
-                    // Dispatch 2026-10-30-08, Amendment 4: the legend chip rises above the route card while it shows.
-                    routeCardHeight = routeCardHeightDp.dp,
-                    // D17 (RECORD -1958): the room beside the L runs to the card's left.
-                    routeCardSpanPx = routeCardSpanPx,
-                    // D17 (RECORD -1958): beside the L instead, while the card shows on the navigation card.
-                    reCenterBesideTheL = reCenterBesideTheL(routeCardRoom, cardShowing = routeCardSpanPx != null),
-                    creditSizePx = mapCreditSizePx,
-                    // D34 (RECORD -2005): the cards Re-center's word must not cover, in landscape navigation only (D38's scope).
-                    cardsInRoot = if (navigation.isNavigating && cluster.landscape) listOfNotNull(routeCardBoundsInRoot, cluster.navigationCardBoundsInRoot) else emptyList(),
-                )
+                    // "Return to Route", the legend, the bottom bar and the rail (RECORD -741: CompactMapBottomChrome, moved out unchanged;
+                    // its comments are there). Composed here, after the ambient chrome and before the modal overlays below.
+                    CompactMapBottomChrome(
+                        navigation = navigation,
+                        landscape = landscape,
+                        renderMode = renderMode,
+                        mapLayers = mapLayers,
+                        cluster = cluster,
+                        controlsPadding = controlsPadding,
+                        showBottomNav = showBottomNav,
+                        isFullscreen = isFullscreen,
+                        isDrawerOpen = isDrawerOpen,
+                        onBottomNavTabSelected = onBottomNavTabSelected,
+                        onBottomNavHeightMeasured = onBottomNavHeightMeasured,
+                        // Dispatch 2026-10-30-08, Amendment 4: the legend chip rises above the route card while it shows.
+                        routeCardHeight = routeCardHeightDp.dp,
+                        // D17 (RECORD -1958): the room beside the L runs to the card's left.
+                        routeCardSpanPx = routeCardSpanPx,
+                        // D17 (RECORD -1958): beside the L instead, while the card shows on the navigation card.
+                        reCenterBesideTheL = reCenterBesideTheL(routeCardRoom, cardShowing = routeCardSpanPx != null),
+                        creditSizePx = mapCreditSizePx,
+                        // D34 (RECORD -2005): the cards Re-center's word must not cover, in landscape navigation only (D38's scope).
+                        cardsInRoot = if (navigation.isNavigating && cluster.landscape) listOfNotNull(routeCardBoundsInRoot, cluster.navigationCardBoundsInRoot) else emptyList(),
+                    )
 
-                // The add-action menu, the map type panel and the centre-pin picker (RECORD -741: CompactMapPickers, moved out
-                // unchanged; its comments are there). Composed after the bottom bar and the rail, on purpose (see there).
-                CompactMapPickers(
-                    showActionMenuState = showActionMenuState,
-                    showMapTypePanelState = showMapTypePanelState,
-                    pendingActionState = pendingActionState,
-                    pendingTripLocationState = pendingTripLocationState,
-                    pendingWaypointLocationState = pendingWaypointLocationState,
-                    currentCameraCenter = { cameraCenter },
-                    searchLocationPick = searchLocationPick,
-                    onLogFindHere = onLogFindHere,
-                    mapMode = mapMode,
-                    onMapModeSelected = onMapModeSelected,
-                    landscape = landscape,
-                    cluster = cluster,
-                    controlsPadding = controlsPadding,
-                    isFullscreen = isFullscreen,
-                    night = renderMode.night,
-                )
+                    // The add-action menu, the map type panel and the centre-pin picker (RECORD -741: CompactMapPickers, moved out
+                    // unchanged; its comments are there). Composed after the bottom bar and the rail, on purpose (see there).
+                    CompactMapPickers(
+                        showActionMenuState = showActionMenuState,
+                        showMapTypePanelState = showMapTypePanelState,
+                        pendingActionState = pendingActionState,
+                        pendingTripLocationState = pendingTripLocationState,
+                        pendingWaypointLocationState = pendingWaypointLocationState,
+                        currentCameraCenter = { cameraCenter },
+                        searchLocationPick = searchLocationPick,
+                        onLogFindHere = onLogFindHere,
+                        mapMode = mapMode,
+                        onMapModeSelected = onMapModeSelected,
+                        landscape = landscape,
+                        cluster = cluster,
+                        controlsPadding = controlsPadding,
+                        isFullscreen = isFullscreen,
+                        night = renderMode.night,
+                    )
+                }
             }
         }
     }

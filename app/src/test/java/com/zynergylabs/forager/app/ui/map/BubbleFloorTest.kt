@@ -52,4 +52,20 @@ class BubbleFloorTest {
         val beside = place(anchor, BubbleFloor(top = 1400, left = free.topLeftX + 300, right = 1000), height = 150)
         assertEquals("the same place as with no card", free, beside)
     }
+    @Test
+    fun `with no room between the strip and the card the bubble is placed as with no card, and over it`() {
+        // The owner (RECORD -2187): "Bubble over the card (Recommended)". The S22 in landscape, card expanded: strip limit 52, card top 148, bubble 128.
+        val anchor = Offset(600f, 200f)
+        val free = place(anchor, null, height = 128, minY = 52)
+        val over = place(anchor, BubbleFloor(top = 148, left = 0, right = 1000), height = 128, minY = 52)
+        assertEquals("the same place as with no card", free.copy(overFloor = true), over)
+        assertTrue("reported over the card", over.overFloor)
+        assertTrue("precondition: with no card it is not over one", !free.overFloor)
+    }
+
+    @Test
+    fun `with room above the card the bubble is not over it`() {
+        val p = place(Offset(600f, 1500f), BubbleFloor(top = 1400, left = 0, right = 1000), height = 150, minY = 52)
+        assertTrue("kept above, not over", !p.overFloor)
+    }
 }

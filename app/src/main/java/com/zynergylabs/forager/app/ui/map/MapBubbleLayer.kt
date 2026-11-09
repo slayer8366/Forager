@@ -59,6 +59,8 @@ internal fun MapBubbleLayer(
     insetRight: Dp = 0.dp,
     /** "Kept above the card" (RECORD -2187): the route card's top as the bubble's lower limit where they meet (BubbleFloor.kt). */
     floor: BubbleFloor? = null,
+    /** Told whether the shown bubble fitted nowhere above [floor] and is placed over it (BubblePlacement.overFloor). */
+    onOverFloor: (Boolean) -> Unit = {},
     /**
      * Dispatch 2026-09-28-502, Amendment 1: a details sheet to open again, once, because Back ended the
      * waypoint navigation started from it ("Back to where you tapped Navigate"); [onReopenDetailsConsumed]
@@ -139,7 +141,7 @@ internal fun MapBubbleLayer(
     ) {
         shown?.let { bubble ->
             when (val target = bubble.tapped.target) {
-                is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight, floor = floor) { tip ->
+                is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight, floor = floor, onOverFloor = onOverFloor) { tip ->
                     ObservationBubble(
                         sighting = target.sighting,
                         onViewOnINaturalist = { onViewSightingOnINaturalist(target.sighting) },
@@ -150,7 +152,7 @@ internal fun MapBubbleLayer(
                 }
 
                 is MapBubbleTarget.FeatureTarget, is MapBubbleTarget.ReferenceTrailTarget -> bubble.content?.let { content ->
-                    AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight, floor = floor) { tip ->
+                    AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight, floor = floor, onOverFloor = onOverFloor) { tip ->
                         MapFeatureBubble(
                             content = content,
                             tipInBubble = tip,
