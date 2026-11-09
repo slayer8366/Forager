@@ -37,8 +37,8 @@ import kotlin.math.roundToInt
  *
  * **(1) The top corner reaches the side bar's line.** On the phone the corner's curve ended about 1 dp short of the side bar's line,
  * a band of map between. The navigation card's corner beside the side bar is the control: since RECORD -990 it runs out to that line's
- * centre, so in the corner's lowest rows, where its curve meets the side, the card's outermost pixel column is the ruled line over the
- * card's fill (`RouteCardOutlineReading.kt`: Bark at 40% by day, white at 40% at night). Read at the same rows, [CORNER_ROWS_DP] above
+ * centre, so in the corner's lowest rows, where its curve meets the side, the card's outermost pixel column is the ruled line
+ * (`RouteCardOutlineReading.kt`: Bark at 40% by day, white at 40% at night) over the map, past the card's own rounded fill. Read at the same rows, [CORNER_ROWS_DP] above
  * where the 16 dp corner meets the side (there a 1 dp line from that centre covers the whole outermost pixel; a line ending inside the
  * edge leaves it map), first on the navigation card alone, then on the route card at the same edge: plotting, and resting on the
  * navigation card. A control that fails means the reading is wrong, not the card.
@@ -74,22 +74,26 @@ abstract class RouteCardSideBarLineTests {
 
     /**
      * (1) A piece whose rounded top corner (16 dp) at [piece]'s side-bar edge meets the side bar: in the corner's lowest rows, the
-     * piece's outermost column is the ruled line over its fill (the fill read 4 dp further in, level with 5 dp in). Returns what is off.
+     * piece's outermost column is the ruled line over the map. Over the map, not the piece's fill: there the piece's own rounded fill has
+     * already curved inside that column, and a line run out to the side bar's line's centre lies past it (the control's first red,
+     * 42552237492, read #AEA7A0 there by day, the ruled line over the bare map #FAF8F3, where this first expected it over the fill). The
+     * map is read in the same column higher up the corner ([CORNER_MAP_DP], level with a third of a dp higher), outside both the fill
+     * and any line. Returns what is off.
      */
     private fun cornerOff(what: String, image: PixelMap, piece: DpRect, onRight: Boolean, dark: Boolean): List<String> {
         val edgePx = ((if (onRight) piece.right else piece.left).value * density).roundToInt()
+        val column = if (onRight) edgePx - 1 else edgePx
         val topPx = piece.top.value * density
-        val n = px(6.dp)
-        val ref = px(ROUTE_CARD_LINE_REFERENCE_DP.dp)
-        val further = px((ROUTE_CARD_LINE_REFERENCE_DP + 1).dp)
+        fun rowAt(dyDp: Float) = kotlin.math.floor(topPx + (16f - dyDp) * density).toInt()
+        val map = image[column, rowAt(CORNER_MAP_DP)]
+        val mapHigher = image[column, rowAt(CORNER_MAP_DP) - 1]
+        if (!map.near(mapHigher)) return listOf("$what: bad sample, the map ${CORNER_MAP_DP} dp up the corner ${map.hex()} is not level with a pixel higher ${mapHigher.hex()}")
+        val expected = routeCardRuledLine(dark).compositeOver(map)
         return CORNER_ROWS_DP.mapNotNull { dy ->
-            val y = kotlin.math.floor(topPx + (16f - dy) * density).toInt()
-            val edge = (0 until n).map { i -> image[if (onRight) edgePx - 1 - i else edgePx + i, y] }
-            val reference = edge[ref]
-            println("MEASURED $what, $dy dp above where its corner meets its side, inward from its edge: ${edge.take(4).map { it.hex() }}, fill ${reference.hex()}")
-            if (!reference.near(edge[further])) return@mapNotNull "$what, $dy dp up: bad sample, the fill 4 dp in ${reference.hex()} is not level with 5 dp in ${edge[further].hex()}"
-            val expected = routeCardRuledLine(dark).compositeOver(reference)
-            if (edge[0].near(expected)) null else "$what, $dy dp above where its corner meets its side: the outermost pixel reads ${edge[0].hex()}, not the ruled line over the fill ${expected.hex()} (the corner ends short of the side bar's line); inward ${edge.take(4).map { it.hex() }}"
+            val y = rowAt(dy)
+            val inward = (0 until 4).map { i -> image[if (onRight) column - i else column + i, y] }
+            println("MEASURED $what, $dy dp above where its corner meets its side, inward from its edge: ${inward.map { it.hex() }}, the map up the corner ${map.hex()}")
+            if (inward[0].near(expected)) null else "$what, $dy dp above where its corner meets its side: the outermost pixel reads ${inward[0].hex()}, not the ruled line over the map ${expected.hex()} (the corner ends short of the side bar's line); inward ${inward.map { it.hex() }}"
         }
     }
 
@@ -175,6 +179,9 @@ abstract class RouteCardSideBarLineTests {
          * per dp), and a line ending a stroke inside the edge leaves it outside the card's shape, map.
          */
         val CORNER_ROWS_DP = listOf(4f, 4.5f, 5f)
+
+        /** (1) Where the map is read in the outermost column: 8 dp up the corner, past where any 1 dp line there reaches (5.6 dp). */
+        const val CORNER_MAP_DP = 8f
     }
 }
 
