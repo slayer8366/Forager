@@ -57,7 +57,7 @@ import com.zynergylabs.forager.app.ui.map.MapMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.rememberTrueHeading
 import com.zynergylabs.forager.app.ui.map.SightingsMapSlot
-import com.zynergylabs.forager.app.ui.map.MapCameraMemory
+import com.zynergylabs.forager.app.ui.map.rememberMapCameraMemory
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 
 /**
@@ -269,8 +269,9 @@ fun AvailabilityScreen(
     val mapIconClusterPosition = rememberPersistedMapIconClusterPosition(uiState, onMapIconClusterPlacementChanged)
     // Part 1 layout fixes, item 4 (planner message 2026-09-28-98, under CLAUDE.md's UX defaults): the
     // camera the user left on the Maps tab, held here for the same reason, since the map and its camera
-    // leave composition with the tab. See MapCameraMemory. Session only.
-    val mapCameraMemory = remember { MapCameraMemory() }
+    // leave composition with the tab. See MapCameraMemory. Session only, except the last camera request applied, which RECORD -2192
+    // keeps across an activity recreation so a font or night-mode change does not fit an open route again (rememberMapCameraMemory).
+    val mapCameraMemory = rememberMapCameraMemory()
     // Dispatch 2026-09-29-57, item 8 (amendments -256 and -262): the return request "Open in Journal" leaves, held here for the
     // same reason as the camera. Session only, like the camera: a recreation forgets it and Back does what it did before.
     val mapReturnMemory = remember { MapReturnMemory() }

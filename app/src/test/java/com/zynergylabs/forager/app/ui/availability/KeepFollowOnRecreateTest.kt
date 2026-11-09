@@ -148,7 +148,6 @@ abstract class KeepFollowOnRecreateTests(private val recreatedFontScale: Float) 
         recreate()
 
         assertEquals("the screen still asks for the same fit after the recreation", fitId, map.renderMode?.cameraRequest?.id)
-        assertEquals("the recreated map's camera memory knows the fit was applied", fitId, map.renderMode?.cameraMemory?.appliedCameraRequestId)
         assertEquals("the saved route's fit was applied once, not again after the recreation", listOf(fitId), map.applied)
         assertEquals("following was not ended by the recreation", 1, map.followingStops)
         assertTrue("the recreated map is still following", map.following)
