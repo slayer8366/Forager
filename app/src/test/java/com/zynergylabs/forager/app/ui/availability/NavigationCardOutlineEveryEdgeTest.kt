@@ -135,7 +135,14 @@ abstract class NavigationCardOutlineEveryEdgeTests(private val dark: Boolean) {
         val card = bounds(NAVIGATION_HUD_TAG)
         if (routeCard) {
             val route = bounds(ROUTE_CARD_TAG)
-            assertTrue("the route card rests on the navigation card: route card $route, navigation card $card", route.bottom > card.top && route.top < card.top)
+            // Dispatch 2026-11-06-05, Amendment 6, A1 (RECORD -2187, the owner: the cards meet, "no overlap behind it"): the route card's
+            // bottom is the navigation card's top, and its fill runs on into that card's rounded top corners, so no map shows there and
+            // the navigation card's top line is the one line where they meet (claimed in pixels by RouteCardMeetsNavigationCardTests).
+            // So it meets that top (within 0.5 dp) or overlaps it. Was `route.bottom > card.top`, the 16 dp tuck behind it before A1.
+            assertTrue(
+                "the route card rests on the navigation card (meets its top within 0.5 dp, or overlaps it): route card $route, navigation card $card",
+                route.bottom >= card.top - 0.5.dp && route.top < card.top,
+            )
         }
         val name = "landscape-${if (rotation90) "rot90" else "rot270"}-${if (fullscreen) "fullscreen" else "bar-shown"}-${if (routeCard) "route-card" else "no-route-card"}"
         // E20: the side bar is on the right at both rotations (RECORD -956), so the card's end is its right edge.

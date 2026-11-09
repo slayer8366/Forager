@@ -59,10 +59,17 @@ abstract class RouteCardTuckedStaysTests(clock: com.zynergylabs.forager.app.doma
     }
 }
 
-/** The evening at font 2.0 in the S22's landscape window, where the open card makes the sundown line step aside (D42). */
+/**
+ * The evening at font 1.5 in the S22's landscape window, where the open card makes the sundown line step aside (D42). Was font 2.0;
+ * since dispatch 2026-11-06-01, Amendment 1, J3 step 3 and J6 (RECORD -2183, the owner: "Lines leave (as built)"), at 823 x 384 and
+ * font 2.0 the card with its evening line can't fit even moved up, so the line is off before any route card opens (RECORD -955;
+ * `RouteCardSundownStepsAsideFont20Test`: "sundown line shown 0, navigation card 266.0..384.0") and there is no line to step aside.
+ * Font 1.5 is D42's positive control there (`RouteCardSundownStepsAsideFont15Test`: the line on the card with no route card, off with
+ * it open), so the claim, tucked the line stays stepped aside, is read against a line that was there.
+ */
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 @RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 2.0f)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi", fontScale = 1.5f)
 class RouteCardTuckedStaysAsideTest : RouteCardTuckedStaysTests(clock = ROUTE_CARD_EVENING_CLOCK) {
 
     @Test
