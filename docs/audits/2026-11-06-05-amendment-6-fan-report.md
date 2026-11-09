@@ -382,8 +382,11 @@ Built on route-card from `880dcbcb6`, by Hazel (Opus).
   mid-fade`, `the copies were reported drawn before the pins leave`, and the two copy-shape tests (`but was:<[waypoint-pin]>`, the
   overlay no longer counting as the copy). Its RouteStopAccentPulseTest failures are the harness fault above, not the revert. The file was
   restored from a copy saved before the edit, and the forward line was confirmed present (2 occurrences, `git status` clean).
-- **Green, full CI on route-card**: see the hand-back. The last run before it, 42565984715, failed only the layer case's precondition
-  (10 frames came before the swell starts), fixed in `58e27f6b0`.
+- **Green, full CI on route-card**, run 42568457346 (`bdbf087f5`, pull_request): every job passed, 0 failed, 24 skipped. The run before,
+  42565984715, failed only the layer case's precondition: at 10 frames the swell had not yet started. Fixed in `58e27f6b0`.
+- **By name against run 42558222825**, from both runs' JUnit XML (both unit-test tasks): 6995 against 7006. 13 appeared, all passing: 5 in
+  RouteStopAccentPulseTest, 4 in FanAccentPulseTest, 2 in FanOpeningCentreAccentTest, and the 2 renamed attribution tucked tests. 2
+  dropped: those same 2 attribution tests under their old names. None changed status. 6995 + 13 - 2 = 7006.
 
 ## The attribution tests (Rowan's extra item, RECORD -2187)
 
