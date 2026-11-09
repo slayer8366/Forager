@@ -44,7 +44,8 @@ abstract class AttributionUnderCardTests {
 
     private fun px(value: androidx.compose.ui.unit.Dp): Int = with(composeRule.density) { value.roundToPx() }
 
-    private fun defaultsPx(): IntArray = intArrayOf(px(4.dp), px(4.dp), px(52.dp), px(4.dp))
+    /** MapLibre's own margins: 4 dp on every side, as the S22 shows them (RECORD -2187; was a 52 dp right margin, AttributionClearOfLTest). */
+    private fun defaultsPx(): IntArray = intArrayOf(px(4.dp), px(4.dp), px(4.dp), px(4.dp))
 
     private fun DpRect.inMapPx(): Rect {
         val slot = rig.bounds("map-slot")
