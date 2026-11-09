@@ -196,3 +196,51 @@ The S22 on combined build 5054 found two things after #511's camera memory. Pann
 
 ## Clean-up
 - Throwaway refs `hazel-follow3-red` and `hazel-follow3-revert` were deleted from origin after the runs. The revert worktree was removed.
+
+# Fix: navigation stopped on a recreated or returned map left the padding and tilt on (Hazel, 2026-11-09)
+
+Sorrel's review of #511 (`prompts/preserved/2026-11-09-sorrel-review-511-padding.md` on records-after-173) found that after a recreation or a tab round-trip while navigating and panned away, the restore puts the saved navigation padding, tilt and bearing on the new map, but stopping navigation there leaves them on. The owner chose "Fix tonight (Recommended)" (RECORD -2192).
+
+## The cause, re-read at cfa9824f8 [read]
+- The new map's `NavigationModeChange` is `remember { NavigationModeChange() }` per SightingsMap (`SightingsMap.kt:306`), so its `active` starts false.
+- `active` is set true only by `applyView` (`NavigationView.kt:463` at cfa9824f8, `:472` after this change), which runs only while following (`MapNavigationView.kt:71`, `if (!view.following) return@LaunchedEffect`).
+- The leave runs `leaveNavigation` only `if (state.navigationModeChange.active)` (`MapNavigationView.kt:54`). On the reopened, panned map it is skipped, so padding (from #511), tilt and bearing (before #511) stay on.
+
+## The change
+- `NavigationModeChange.holdRestoredView()` (`NavigationView.kt:364`) sets `active = true`. The setter is private, so Sorrel's literal `state.navigationModeChange.active = true` would not compile.
+- `applyFirstStyleCameraRestore` (`MapCameraMoves.kt:181-184`) applies the restore and, when it carried padding, marks the map as holding the view. Both restore sites in `MapStyleReload.kt` (`:119` before the style, `:187` on its load) call it.
+- **Why this mechanism and not Sorrel's second option (gating the leave on `active` or non-zero padding/tilt):** the leave branch runs on every run of that effect with no navigation view, and its keys include the loaded style. Gating on the camera would flatten a tilt or bearing the user set themselves outside navigation, at the next style swap or night-mode change. Marking at the restore acts only on the map that took the navigation view's camera. `restore.padding` is non-null only while navigating (`cameraRestoreFor`, `MapCameraMoves.kt:161`), so a map that reopens outside navigation is not marked and behaves as before.
+- If following resumes (Re-center), `applyView` sets `active` itself, as before. The only reader of `active` outside the class is `MapNavigationView.kt:54` (`git grep`).
+
+## Tests
+- `MapCameraRestorePaddingTest`, chain extended: the old map's snapshot, the saver across the recreation, `cameraRestoreFor` and the production `applyFirstStyleCameraRestore` on a fresh `NavigationModeChange`, then navigation's end: the gate of `MapNavigationView.kt:54` (mirrored in the test, because the effect needs a real MapView), then the real `leaveNavigation` on the fixture map.
+  - `navigation stopped on a map that reopened at the navigation view padding takes the padding tilt and bearing off`: the camera given to the native `easeTo` has padding (0,0,0,0), tilt 0, bearing 0, the same target, and `active` is false afterwards.
+  - `navigation stopped on a map that reopened with no navigation view leaves its camera as before`: not marked, no ease, the restored tilt stays (today's behaviour).
+- `CameraMapFixture` gains an opt-in `easing` view: an inert MapView holding the SDK's own `MapChangeReceiver`, because `Transform.easeCamera` registers its callback on the view (13.5.0 bytecode). It also records `easeTo` in `Recording.eased`, apart from `camera`, so the fixture's other users are unchanged (they pass no `easing`, and nothing they read changed).
+- **Revert**: 42597020907 on c258d4fd3 (`hazel-follow4-revert`), which removes the one line `if (restore.padding != null) navigationModeChange.holdRestoredView()`. Compile log: the debug and release builds succeeded. The only `error:` lines in the log are echoed script text, with no Kotlin ` e: ` lines. Filtered run: 12 cases, 1 failed, the new marked case: `navigation's end eased the camera: the leave ran on the reopened map`. The same single failure in the Street-map-deleted job's full run (6816 completed, 1 failed, 24 skipped). This failure can only come from this revert, and the not-marked case passed, as it should.
+  - The revert ran in its own worktree under /mnt/work/scratch, from a copy saved before editing. That worktree is removed. The PR file matches the saved copy (`cmp`), and `MapCameraMoves.kt:183` still holds the marking.
+- **Green**: PR run 42596934770 on 581664787, success.
+- **By name, against 42589007286**: base 6868 (6844 pass, 24 skip), PR 6870 (6846 pass, 24 skip). 0 changed outcome, 0 missing, and the 2 new cases pass.
+- The not-marked case passes before and after the change, so it is no evidence for the fix. It pins today's behaviour only.
+
+## S22 step
+5. Navigate, follow, then pan away (Re-center shows). Change the system font size and come back (the map stays panned, per step 1). Tap X on the navigation card, then tap locate. Expected: the walker sits at the centre of the map, with no tilt and north up. Before this fix: below centre, shifted sideways and tilted.
+
+## Confirmed and inferred
+- [observed] The runs, the compile log, the failure message and the by-name comparison above.
+- [read] The cause (file:line above), and that `active` has no other reader outside the class.
+- [inferred] That on the phone the leave's ease leaves the walker centred and flat at the next locate. The test shows the values reach MapLibre's `easeTo`. Only S22 step 5 shows the pixels.
+
+## Could not determine
+- Whether X on the navigation card reaches the leave branch with the location component activated, on the recreated map. The branch returns early otherwise (`MapNavigationView.kt:44-46`). I did not check this on a device.
+- What MapLibre does with the ease, past `easeTo`. The fixture's native map records the call only.
+
+## Premises that were wrong
+- Sorrel's suggested `state.navigationModeChange.active = true` does not compile: the setter is private (`NavigationView.kt:356-357`). Hence the member function.
+
+## Decided beyond scope (open to the owner)
+- Applied at both restore sites, not only the first, so the marking holds even if a style's own default camera replaced the first restore.
+- The tilt and bearing leftover that predates #511 is fixed by the same marking, since the leave flattens all three.
+
+## Clean-up
+- The throwaway ref `hazel-follow4-revert` was deleted from origin, and its worktree was removed.
