@@ -1,6 +1,6 @@
 # Forager — privacy policy
 
-**Last updated: 2026-11-08.** Applies to the Forager Android app (`com.zynergylabs.forager.app`) on Google Play.
+**Last updated: 2026-11-09.** Applies to the Forager Android app (`com.zynergylabs.forager.app`) on Google Play.
 
 This is the document Play's Data safety declaration points at. It is written to match what the code
 actually does; where a claim comes from a particular file, that file is named so the claim can be
