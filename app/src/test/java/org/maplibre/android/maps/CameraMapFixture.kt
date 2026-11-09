@@ -152,6 +152,9 @@ object CameraMapFixture {
         val controllerType = Class.forName("org.maplibre.android.location.LocationCameraController")
         val controller = inert(controllerType)
         set(controller, "maplibreMap", map)
+        // A tracking transition moves the camera through the controller's own transform (transitionToCurrentLocation, 13.5.0
+        // bytecode); reached only when the controller is enabled with a known location (dot-lift-after-recreate).
+        set(controller, "transform", transform)
         set(controller, "options", inert(LocationComponentOptions::class.java))
         set(controller, "internalCameraTrackingChangedListener", object : OnCameraTrackingChangedListener {
             override fun onCameraTrackingDismissed() = Unit
