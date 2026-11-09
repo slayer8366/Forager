@@ -1625,7 +1625,15 @@ and dp sizes.
   drawn there. The earlier red 42552237492 ran the first version of (1)'s check and is not cited for it.
 - Green: 42553872984 (ref `hazel-s22fix-green`, 565012447, the head pushed to route-card): every job green; 6,995 tests in the XML,
   6,971 passed, 24 skipped, 0 failed.
-- Reverts: running (42556154807 for (1), 42556157480 for (2)); results to follow.
+- Revert (1): 42556154807 (ref `hazel-s22fix-rev1`, 904f78c6f, on 565012447): the run-out's condition made false, one line in
+  `RouteCardFace.kt`. Its job log has 0 `e:` lines and "6971 tests completed, 8 failed, 24 skipped": the 8 corner cases, each "the
+  outermost pixel reads #FAF8F3 [day] / #1B1B1B [night], not the ruled line over the map", which only that revert can cause; every
+  control passed; nothing else failed.
+- Revert (2): 42556157480 (ref `hazel-s22fix-rev2`, 5831ab7c9): `railCorner = null`, one line in `CompactMapRoutePlotting.kt`. Its job
+  log has 0 `e:` lines and "6971 tests completed, 6 failed, 24 skipped": the 6 corner-line cases, each "reads #FAF8F3 / #1B1B1B, not
+  the ruled line over the map", 96 places each; nothing else failed.
+- Both reverts were built from copies saved before any edit, each into its own commit through a separate index; the working tree was
+  never edited, and the forward files were byte-compared with the saved copies (and `git diff 565012447 HEAD -- app` empty) after.
 
 ## By name against 42538164195 (b727d1bd4)
 
