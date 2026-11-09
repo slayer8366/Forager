@@ -34,6 +34,13 @@ object CameraMapFixture {
         /** The camera the last `easeTo` was given (an eased move: `Transform.easeCamera`); it also lands on [camera], as every animated move does. */
         var eased: CameraPosition? = null
         var trackingChanges = 0
+
+        /**
+         * What the native map answers for metres per pixel (`Projection.getMetersPerPixelAtLatitude`): 0 as before by default. A
+         * location component's transition reads it to choose an animated move over a jump (`Utils.immediateAnimation`), so a test
+         * that needs the SDK's own transition to run sets it (dot-lift-after-recreate).
+         */
+        var metersPerPixel = 0.0
         lateinit var cameraController: Any
 
         /**
@@ -123,6 +130,7 @@ object CameraMapFixture {
                 }
                 "getCameraPosition" -> recording.camera
                 "getCameraForLatLngBounds" -> recording.fit
+                "getMetersPerPixelAtLatitude" -> recording.metersPerPixel
                 else -> defaultFor(method.returnType)
             }
         } as NativeMap
@@ -139,7 +147,7 @@ object CameraMapFixture {
         set(uiSettings, "focalPointChangeListener", FocalPointChangeListener { _: PointF? -> })
         val map = MapLibreMap::class.java.declaredConstructors.single { it.parameterCount == 7 }
             .apply { isAccessible = true }
-            .newInstance(native, transform, uiSettings, null, null, dispatcher, ArrayList<Any>()) as MapLibreMap
+            .newInstance(native, transform, uiSettings, Projection(native, view), null, dispatcher, ArrayList<Any>()) as MapLibreMap
 
         val controllerType = Class.forName("org.maplibre.android.location.LocationCameraController")
         val controller = inert(controllerType)
@@ -164,5 +172,14 @@ object CameraMapFixture {
         set(component, "locationAnimatorCoordinator", coordinator)
         set(map, "locationComponent", component)
         return map to recording
+    }
+
+    /**
+     * The end of an animated move, as the native map reports it: `Transform.onCameraDidChange(true)`, which posts the move's
+     * `onFinish` to the main looper (13.5.0 bytecode). Idle the main looper after it for the callback to run.
+     */
+    fun finishAnimatedMove(map: MapLibreMap) {
+        val transform = field(map, "transform").get(map) as Transform
+        transform.onCameraDidChange(true)
     }
 }
