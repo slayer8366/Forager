@@ -1461,12 +1461,15 @@ three (Recommended)"**, and the second built 1.1 on top. The whole series is fas
   visible changes. Tests: `RouteCardNavigatedFromCardEndsTest` (2, the real screen: the card's Navigate by real touch, ended by Back
   and by the navigation card's ✕, then a navigation started the way a bubble starts it is not the card's) and one
   `RoutePlottingViewModelTest` case. Red 42525146220 ("the card's navigation ended by Back: none is the card's now", the same for the
-  ✕); revert 42529011439 (the screen's one line removed) failed the same 2 and no other new test; green 42527216431.
+  ✕); revert 42529011439 (the screen's one line removed) failed the same 2 and no other new test; the 3.2 tests pass in 42527216431,
+  which is red on the five re-claimed 1.1 cases (fixed in the second part; this line first called that run "green", Sorrel's
+  re-check, item 1.1).
 - **Item 2.2, built.** The strip's touch area keeps 48 dp and draws no press highlight (`RouteCardTuck.kt`, `indication = null`).
   Test: `RouteCardStripPressTest`, a real touch held in the touch area beside the 24 dp strip, the band between the strip and the
   touch area's edge compared pixel for pixel with the screen before the press, then lifting must bring the card back. Red 42527186082
-  (13,370 of 13,370 band pixels changed, #FEF7FF to #B1ACB2); revert 42529006236 failed it and no other new test; green 42527216431
-  (0 changed).
+  (13,370 of 13,370 band pixels changed, #FEF7FF to #B1ACB2); revert 42529006236 failed it and no other new test; the 2.2 test passes
+  in 42527216431 (0 changed), which is red on the five re-claimed 1.1 cases (fixed in the second part; this line first called that
+  run "green", Sorrel's re-check, item 1.1).
 - **Item 1.1, built to the owner's (c).** Wherever the landscape route card or its tucked strip meets the side bar (resting on the
   navigation card while navigating, the plotting card in that card's spot, and the strip's edge, navigating and plotting) the card
   draws no line of its own on that edge; the side bar's is the one line (RECORD -967). The decision is the navigation card's own
@@ -1505,14 +1508,15 @@ three (Recommended)"**, and the second built 1.1 on top. The whole series is fas
 
 ## By name against 42521097620
 
-6,936 tests there, 6,957 in 42536203917, 0 failing in either. 7 old names gone, all re-claims above renamed (3 in
+6,936 tests there, 6,957 in 42536203917, 0 failing in either: Gradle's "tests completed" figures, which leave out the 24 skipped; the
+JUnit XML holds 6,960 and 6,981 (Sorrel's re-check, item 1.1). 7 old names gone, all re-claims above renamed (3 in
 `RouteCardOutlineOnNavigationCardTest`, 2 each in the two landscape outline classes); 28 new names (the re-claimed and added cases,
 plus `RouteCardNavigatedFromCardEndsTest` 2, `RouteCardStripPressTest` 1, `RoutePlottingViewModelTest` 1). Every other test has the
 same outcome in both runs.
 
 ## Confirmed vs inferred
 
-- Confirmed: each revert ran (no compile errors in its log; 6,957 tests reported for 1.1's) and failed only on what its own edit
+- Confirmed: each revert ran (no compile errors in its log; 6,957 tests completed by Gradle's count, 6,981 in the XML, for 1.1's) and failed only on what its own edit
   can cause; the forward changes are at route-card's head.
 - Confirmed from CI output: in landscape plotting the card and its strip sit against the side bar (the strip at 719..743 dp on an
   823 dp screen with the 80 dp rail); the tests now assert that as a precondition.
@@ -1560,3 +1564,161 @@ same outcome in both runs.
     Fullscreen: the side bar slides away and the card's side there now shows its own faint line (a navigation bar is left on that
     side), as the navigation card's does. Move the icon bar to the right side: the card moves to the bottom left and keeps its line on
     every side.
+
+# S22 defects, fixed
+
+Hazel Cairnwright (Opus), 2026-11-08 UTC. RECORD -2187's bullet "S22 part A on the combined build 5032" (records-after-173): three
+defects sent back under -2190, the owner's go **"Fix the three"**. Seen on the combined build (tools/s22-combined 528de307b); built on
+route-card b727d1bd4 (#507 alone). Sorrel's re-check (`prompts/preserved/2026-11-08-sorrel-review-507-fixes.md`) items 1.1 and 1.2
+read with it. The phone's screenshots and dumps were read where they lie and nothing from them is copied here beyond pixel columns
+and dp sizes.
+
+## (1) The top corner at the side bar, fixed
+
+- **Cause** (Sorrel's 1.2, confirmed in pixels): the card's line lies inside its edge (stroked twice its width along its shape,
+  clipped to its fill), and the bare band (`routeCardBareBand`) took the line off the side bar's side from 1 dp below the top, the
+  corner's last few dp with it. So the curve ended one line inside the card, and map showed between it and the side bar's line (on
+  the phone: the arc's outer edge at x 2603, map 2604-2607, the side bar's line from 2608). RECORD -990 had fixed the same step for
+  the navigation card and the strip by running their shared-side corners "out to that line's centre" (`MapChromeOutline.kt`,
+  `leftShared`/`rightShared`); the route card draws its own path and did not get it.
+- **Change**: new `ui/route/RouteCardRailEdge.kt`. At rest, the card's line on the side bar's side is stroked along its shape laid
+  one stroke wider on that side (`routeCardRunOutOutline`), so its corner's line covers the same radii, from the same centre, as the
+  navigation card's run-out corner; it is let show inside the card's bounds, not only inside its narrower fill
+  (`routeCardRunOutLineClip`), as the navigation card's is clipped to its bounds. The run-out shape's straight side then lies wholly
+  past the bounds, so at rest no band is needed; sliding or tucked, the band stays as it was (the strip's cut edge). `RouteCardFace.kt`
+  chooses between them (a few lines). Read on the screen: the route card's corner now reads, pixel for pixel in the columns read, as
+  the navigation card's (by day #AEA7A0 #B2ABA4 #F2EEE3 against #AEA7A0 #B2ABA4 #F3EFE4 at 4.5 dp; at night the same within a level).
+- **Test** `RouteCardTopCornerMeetsSideBarTest` (8: plotting and resting on the navigation card, day and night, both rotations), in
+  new `RouteCardSideBarLineTests.kt`. The navigation card alone at the same edge is the control, read first on the same screen. In
+  the corner's lowest rows (4, 4.5 and 5 dp above where the 16 dp curve meets the side) the outermost column must be the ruled line
+  over the map (the map read in the same column 8 dp up the corner). The test's first version expected the line over the card's fill;
+  its control failed by day in run 42552237492 (the navigation card read #AEA7A0, the line over the map #FAF8F3, because there the
+  card's own rounded fill has already curved inside that column), so the check was wrong, not the card, and was corrected before
+  anything was cited (565012447).
+
+## (2) The edge beside the side bar's bottom corner, fixed
+
+- **Cause**: the side bar's inner bottom corner is rounded (RECORD -952), so over its 16 dp radius its line curves away from the
+  card's edge. The card is bare on that side (1.1), so nothing lined the edge there: on the phone map showed between the card's square
+  edge and the curve, about 12 dp, and the card's bottom line stopped at its edge. The same as the navigation card's E20/E21 (RECORD
+  -2181; `NavigationCardEndBesideRailCorner.kt` on #500, read with `git show origin/next-turn:...`, next-turn not merged).
+- **Change**: over the rows where the side bar's corner curves away beside the card (from the corner's top down to the card's bottom),
+  the card draws a line a stroke wide just past its edge, in the side bar's line's columns, continuing that line straight down; E21's
+  placement. The band rule (`routeCardRailCornerRows`) is E20's `railCornerBand` written again (three lines), because #500 is not in
+  this branch; once both PRs are in one tree they can be one function. `RouteCard` takes the corner as
+  `railCorner: RouteCardRailCorner?` (the gap below the card: the controls' bottom padding plus the card's lift, so it is null while
+  the card rests on the navigation card; the radius `MAP_CARD_CORNER_RADIUS`), passed from `CompactMapRoutePlotting.kt`.
+- **The tucked strip too.** The strip's edge is the same edge in the same place, and the S22's tucked screenshot shows the same map
+  there (columns 2608-2610 read the map colour from y 1400 down, the side bar's line curved away to 2612 and beyond), so the line is
+  drawn whether the card rests or is tucked. Listed below as a decision for the planner to confirm.
+- **Test** `RouteCardEndBesideSideBarCornerTest` (6: plotting by day and night at both rotations, tucked by day and night), read
+  against the same screen with no route card: in every row of the card's bottom 16 dp where the line's three columns are bare map
+  without the card (32 rows found in every case, so the spot is reached), with it they read the ruled line over that map; above the
+  corner they read as they do without the card (one line, the side bar's, no second).
+
+## Red, revert, green
+
+- Red: 42553871077 (ref `hazel-s22fix-red`, d7d93d2de, the tests alone on b727d1bd4): the 14 new tests failed and nothing else (in the
+  JUnit XML 6,957 passed + 14 failed + 24 skipped = 6,995). (1): "the outermost pixel reads #FAF8F3 [day] / #1B1B1B
+  [night], not the ruled line over the map ... (the corner ends short of the side bar's line)", the map where the line belongs; every
+  control passed. (2): "reads #FAF8F3, not the ruled line over the map #AEA7A0 (without the card #FAF8F3)", 96 places each, nothing
+  drawn there. The earlier red 42552237492 ran the first version of (1)'s check and is not cited for it.
+- Green: 42553872984 (ref `hazel-s22fix-green`, 565012447, the head pushed to route-card): every job green; 6,995 tests in the XML,
+  6,971 passed, 24 skipped, 0 failed.
+- Reverts: running (42556154807 for (1), 42556157480 for (2)); results to follow.
+
+## By name against 42538164195 (b727d1bd4)
+
+6,981 tests there, 6,995 in 42553872984 (XML counts, skipped included). 0 names gone, 14 new (the two classes above), 0 tests changed
+outcome; the 24 skipped are the same set.
+
+## (3) The credit "i" while tucked in landscape: diagnosed, not changed (a behaviour choice)
+
+- **What the dump shows**: 42-L-card-tucked.xml (icon bar left, a saved route's card tucked at the bottom right beside the side bar,
+  not navigating) has no attribution node. The card's bounds there are x 1268-2608, y 960-1440 px (3.75 px per dp); the side bar's from
+  x 2608; the strip is the card's last 24 dp, x 2518-2608.
+- **Where the "i" sits**: every landscape dump with the side bar shown and the "i" present (session s29, the side bar from x 2677 there)
+  has the "i" at x 2583-2662, y 1346-1425: its right edge 15 px (4 dp) inside the side bar's edge. Fullscreen (s28/18) puts it 15 px
+  from the screen's edge, and portrait 15 px from the edge. So MapLibre's own right margin is 4 dp and the end inset is the side bar's
+  width (`MapAttributionInsets.kt`, `attributionMarginsPx`). With the side bar from 2608, as in 42, the same rule puts the "i" at
+  x 2514-2593, y 1346-1425 (inferred from that rule; it is hidden there, so it is in no dump).
+- **Why it is hidden**: that rectangle lies under the strip (75 of its 79 px columns, x 2518-2593, and all its rows). The "i" is
+  handed what the card draws (`RouteCardAttributionCover.kt`): the whole card at rest, its strip once tucked. `attributionHiddenUnder`
+  (D28) hides the "i" when anything handed overlaps it. The strip overlaps it, so the "i" stays hidden. Not rendered under something
+  else, and not D28 misreading the card's resting bounds: the "i" is hidden on purpose, under the rule as built. That the strip still
+  counts was recorded as "Decided beyond scope" when the credit was built ("In every case tested the strip clears the 'i', so this
+  shows no difference today"), above in this report.
+- **Why the tests passed**: `AttributionWhileTuckedTest` (and `AttributionUnderCardTest`, `AttributionClearOfLTest`) work the "i"'s
+  rectangle out from an assumed MapLibre right margin of 52 dp ("right 146 px at 450 dpi", an older run record), not the 4 dp the
+  phone shows now. That puts the "i" 48 dp further from the side bar, where the 24 dp strip clears it (their print: strip 2157-2229 px,
+  "i" 2001-2073 at 3 px per dp). The check never saw the geometry that fails it: the CLAUDE.md family of a check that passes because it
+  never saw the data that could fail it. Not changed: re-claiming those tests to 4 dp turns the landscape case red until the behaviour
+  is chosen.
+- **Why this needs a choice**: the ruling's restatement was "tucked, the spot where the card rested is clear, so the 'i' shows there
+  again". In this placement the strip itself covers the "i"'s spot, so it is not clear. Options, for the owner through the planner:
+  (a) the strip does not count, and the "i" shows under it (the strip's 80% fill over three quarters of the "i", and the strip's
+  48 dp touch area over all of it, so a tap there brings the card back rather than opening the credit); (b) the "i" steps inboard of the strip while tucked, as it already steps clear of the L (`attributionEndInsetClearOf`),
+  and back when the card returns (D30 ruled out rising above the card, not stepping sideways; asking); (c) it stays hidden in this
+  placement, as built. Nothing is built for (3) until one is chosen.
+
+## Sorrel's 1.1 (wording), fixed
+
+The two bullets that cited run 42527216431 as "green" now say the 2.2 and 3.2 tests pass in it, and that it is red on the five
+re-claimed 1.1 cases, fixed in the second part. The by-name counts now say which they are: 6,936 and 6,957 are Gradle's "tests
+completed", leaving out the 24 skipped; the JUnit XML holds 6,960 and 6,981.
+
+## The combined build's test claims
+
+Checked against `/mnt/work/scratch/combine-500-507/test-claims.patch` and its `resolution.md` (read, not applied). Neither fix
+touches what those two edits claim. `NavigationCardOutlineEveryEdgeTest` reads the navigation card's own edges and corners; (1)
+changes only the route card's top corner, a card's height above the navigation card, and (2) draws nothing while the route card
+rests on the navigation card (the side bar's corner lies wholly below the route card there, `routeCardRailCornerRows` returns null).
+`RouteCardTuckedStaysTest`'s font change is about the sundown line, untouched. One interaction to note for the second merge: with
+#500 in the tree, E20/E21's band rule and (2)'s are the same three lines in two files, and the navigation card's lift (J3-J5) moves
+its bottom off the edge; the route card's `railCorner` reads its own bottom padding, so a plotting card is not lifted by it. Not run
+on the combined tree here.
+
+## Confirmed vs inferred
+
+- Confirmed (CI pixels): both defects reproduced in Robolectric before the fix, for the reasons the phone showed (map where the line
+  belongs), and gone after; the route card's corner reads as the navigation card's in the columns read; no other test changed outcome.
+- Confirmed (phone dumps and screenshots): the "i"'s placement rule (4 dp margin, end inset the side bar's width) from eight landscape
+  dumps and the fullscreen and portrait ones; the strip's bounds in 42; the map beside the tucked strip's bottom in 42.
+- Inferred: the "i"'s rectangle in 42 itself (hidden, so not dumped), from that rule. That the phone draws the run-out corner and the
+  corner line as Robolectric does: seen only in Robolectric, so for the S22 below.
+
+## Could not determine
+
+- Anything on a phone; the S22 was not touched (another session has it).
+- Whether the combined tree (with #500) passes these 14 tests unchanged; not run there.
+- Real system-bar insets: Robolectric reports none, so the side bar's corner sits at the screen's bottom in every test, as on the S22
+  in landscape (navigation bar on the side). With a bottom navigation bar in landscape the gap is the controls' bottom padding, read
+  from the same value E20 uses, but untested.
+
+## Premises that were wrong
+
+- None in the dispatch. One in this report's credit section: "In every case tested the strip clears the 'i', so this shows no
+  difference today" was true of the tests and false of the phone (the tests' 52 dp margin), above.
+- My own first reading of (1)'s control (the line over the card's fill), corrected by the control's own red, above.
+
+## Decided beyond scope (for the planner to confirm or overrule)
+
+- (2) also lines the tucked strip's edge beside the side bar's corner, not only the resting card's: the same edge in the same place,
+  and the phone's tucked screenshot shows the same map there.
+- (2)'s band rule is E20's written again rather than shared, because #500 is not in this branch.
+
+## Questions
+
+- (3): (a) the strip does not count, the "i" shows under it; (b) the "i" steps inboard of the strip while tucked; or (c) it stays
+  hidden in this placement as built? And the three tests' MapLibre margin (52 dp against the phone's 4 dp) re-claimed with whichever
+  is chosen.
+
+## S22 steps
+
+22. **The corner at the side bar (landscape).** Recording, the icon bar on the left, plot a route: the card at the bottom right by the
+    side bar. Zoom on the card's top-right corner: its curve runs into the side bar's line with no step and no map between, as the
+    navigation card's corner does. By night too, and with the phone turned the other way. Tap Navigate: the card resting on the
+    navigation card, the same at its top corner.
+23. **Beside the side bar's bottom corner.** The same card, not navigating: zoom on its bottom-right, where the side bar's corner
+    curves away. The card's right edge carries a faint line there, straight down from the side bar's line to the card's bottom line,
+    no map between them, no step. Tuck the card: the strip's edge the same. By night, and turned the other way.
