@@ -36723,3 +36723,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - The owner, to "Give it more memory before the next release?": **"Raise it (Recommended)"** (the option: "A Hazel raises the packaging step's memory in CI, small change, own PR; nothing in the app changes"); restated (own small PR from pre-main → more memory for the packaging step → Sorrel reviews → merge on the owner's word); go: **"Record it"**, **"Build it"**.
 - **Built (PR #509, ci-release-memory fb072a21c):** the daemon's heap (the packaging work runs in it) raised to 4 GB on ci.yml's release check step only; run 42509592023 green, its log showing -Xmx4096m. Sorrel (prompts/preserved/2026-11-08-sorrel-review-509.md): pass with items; the Play release workflow (release.yml:144, bundleRelease) still packages on 2 GB. The owner (2026-11-08T18:55:24Z): **"Yes, add it (Recommended)"** (the same line in the release workflow, on #509; Sorrel re-checks it); go: **"Record it"**, **"Build it"**, **"Merge #509"** (once done and green).
 **Notes:** Written by the planner by hand. Next free ID -2192.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2192
+**Timestamp:** 2026-11-09T02:51:08Z
+**Title:** The finish line for this release's building; release targeted tonight
+**Decision:**
+- **The owner, verbatim:** **"The end of these tasks is the finish line for the building in this release. After this, we will update the privacy policy and data safety, get ready for release target tonight."**
+- To the dot kept above a route card resting on the navigation card (J8's input, planned for after #500 merges): **"This release"**. To Elder's UX audit before promotion: **"Yes, as soon as merged"**. To the privacy policy and Data safety updates: **"Draft now in parallel"** (a helper drafts both for the owner's approval).
+- The remaining path: the #507 S22 defects (Hazel, then Sorrel, then S22); merges of #500, #507, #508 into pre-main on the owner's word; J8's route-card input on #507 after #500; Elder's audit; the owner's real-phone upgrade check (Play build at schema 22 to the release build); the owner's approval; the signed release.
+- **S22 part B (build 5032, evidence outside the repo) found two problems for the remaining path:** at font 2.0 the navigation card logs "navigation info overflows at 1020 px" about 30 times a second with its right part alternating 431/874 px (a layout loop, with or without the route card); and after a font change while navigating with the route card open, the map stayed at whole-world view. Both go to Hazel for diagnosis. Disclosed: the helper's first label dump printed the phone's real grid reference into its own session transcript (local only, nothing pushed).
+**Notes:** Written by the planner by hand. Next free ID -2193.
