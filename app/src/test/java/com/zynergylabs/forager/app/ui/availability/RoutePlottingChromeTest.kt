@@ -43,7 +43,9 @@ import org.robolectric.annotation.Config
  * the real screen and a real [RoutePlottingViewModel]:
  * - the owner: "Cluster stays above card (Recommended)". While the card shows, the cluster's lowest position is the card's top;
  *   when the card closes it goes back, and the height the user chose stays remembered (CLAUDE.md, UX defaults).
- * - the owner: "Pill sits above the card (Recommended)". "Return to Route" moves up to clear the card, and both stay tappable.
+ * - the owner: "Pill sits above the card (Recommended)". "Return to Route" moved up to clear the card, and both stay tappable.
+ *   Dispatch 2026-11-06-05, Amendment 1, plan step 1 (RECORD -2187), the owner: "(b) Card leaves room", replaces it: Re-center sits
+ *   under the card, which leaves room for it while navigating; both stay tappable (`RouteCardReCenterUnderCardTest` has the rest).
  * - the owner: "Chip rises above the card (Recommended)" (Amendment 4, RECORD -1872). The legend chip's bottom clears the card's
  *   top while the card shows, as the cluster and the pill do.
  */
@@ -110,7 +112,7 @@ class RoutePlottingChromeTest {
     }
 
     @Test
-    fun `Return to Route sits above the card, and real touches across each reach their own control`() {
+    fun `Re-center sits under the card, and real touches across each reach their own control`() {
         setScreen(navigating = true)
         startPlotting()
         val view = map.renderMode?.navigationView ?: throw AssertionError("navigating, so the map was asked for its navigation view")
@@ -120,7 +122,7 @@ class RoutePlottingChromeTest {
 
         val pill = bounds(RETURN_TO_ROUTE_TAG)
         val card = bounds(ROUTE_CARD_TAG)
-        assertTrue("the pill's bottom ${pill.bottom} is at or above the card's top ${card.top}", pill.bottom <= card.top + 0.5.dp)
+        assertTrue("the pill's top ${pill.top} is at or under the card's bottom ${card.bottom}", pill.top >= card.bottom - 0.5.dp)
 
         // The pill: one real touch at each of five points; each tap brings the view back, so it is moved away again first. The
         // pill is a stadium whose Surface clips its touches to that shape, so the corner points sit 12 dp in from the ends and 6 dp
@@ -141,7 +143,7 @@ class RoutePlottingChromeTest {
             assertTrue("and plotting went on", plotting.uiState.value.mode is RoutePlotMode.Plotting)
         }
 
-        // The card's Save, with the pill showing above it.
+        // The card's Save, with the pill showing under it.
         composeRule.runOnUiThread { map.renderMode!!.navigationView!!.onLeftView() }
         settle()
         assertTrue(shown(RETURN_TO_ROUTE_TAG))

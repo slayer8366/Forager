@@ -488,9 +488,10 @@ internal fun forecastCellFeatureId(cell: ForecastCell): String = "${cell.centre.
  * lands on the tapped point; when the clamp moves the card, the tail moves with the anchor, not
  * with the card). [topLeft] is the bubble's placed corner in the map box; [tipInBubble] is the
  * anchor in the bubble's own coordinates, so `topLeft + tipInBubble == anchor` wherever the clamp
- * put the card.
+ * put the card. [overFloor]: the bubble fitted nowhere between [minY] and the route card's top, so it is placed as the card were not
+ * there and is to be drawn over the card (BubbleFloor.kt).
  */
-data class BubblePlacement(val topLeftX: Int, val topLeftY: Int, val tipInBubble: Offset)
+data class BubblePlacement(val topLeftX: Int, val topLeftY: Int, val tipInBubble: Offset, val overFloor: Boolean = false)
 
 /**
  * Places a bubble of [bubbleWidth] by [bubbleHeight] px (the card plus [tailPx] of margin on every
@@ -510,6 +511,7 @@ fun bubblePlacement(
     maxHeight: Int,
     minY: Int,
     minX: Int = 0,
+    floor: BubbleFloor? = null,
 ): BubblePlacement {
     // The card's own half-extents: the placeable less the tail's margin on every side (the shell's
     // padding), so the tail's base sits on the visible card's edge.
@@ -524,6 +526,13 @@ fun bubblePlacement(
         return Offset(idealCentre.x - halfWidth, idealCentre.y - halfHeight)
     }
     var ideal = idealTopLeft(arrowAngleDeg)
+    // "Kept above the card" (RECORD -2187; BubbleFloor.kt): where the bubble meets the route card sideways, the card's top is the box's
+    // bottom, for the flip and the clamp below alike. The flip mirrors top to bottom, so the columns tested here are the placed ones.
+    val cardBottom = bubbleBottomLimit(maxHeight, floor, ideal.x.roundToInt().coerceIn(minX, (maxWidth - bubbleWidth).coerceAtLeast(minX)), bubbleWidth)
+    // The owner (RECORD -2187): "Bubble over the card (Recommended)": where no room is left between [minY] and the card's top, the card
+    // does not limit the bubble, which is drawn over it instead (BubbleFloor.kt).
+    val overFloor = cardBottom < maxHeight && cardBottom - bubbleHeight < minY
+    val bottom = if (overFloor) maxHeight else cardBottom
     // Flip below (dispatch 2026-09-29-57, amendment -262, the owner's "Flip below"): a card whose top would be
     // above [minY] does not fit above its glyph, and clamped down it would sit over the glyph it names. It opens
     // below instead, the arrow mirrored top to bottom so the tail points up from the card's top edge to the glyph
@@ -531,11 +540,11 @@ fun bubblePlacement(
     // neither above nor below, M1's clamp stands.
     if (ideal.y < minY) {
         val below = idealTopLeft((180f - arrowAngleDeg).mod(360f))
-        if (below.y >= minY && below.y + bubbleHeight <= maxHeight) ideal = below
+        if (below.y >= minY && below.y + bubbleHeight <= bottom) ideal = below
     }
     val x = ideal.x.roundToInt().coerceIn(minX, (maxWidth - bubbleWidth).coerceAtLeast(minX))
-    val y = ideal.y.roundToInt().coerceIn(minY, (maxHeight - bubbleHeight).coerceAtLeast(minY))
+    val y = ideal.y.roundToInt().coerceIn(minY, (bottom - bubbleHeight).coerceAtLeast(minY))
     // The tip is the anchor itself, in the bubble's coordinates: wherever the clamp put the card, the
     // tail is drawn from the card's edge to here (planner's M1 ruling).
-    return BubblePlacement(x, y, Offset(anchor.x - x, anchor.y - y))
+    return BubblePlacement(x, y, Offset(anchor.x - x, anchor.y - y), overFloor)
 }

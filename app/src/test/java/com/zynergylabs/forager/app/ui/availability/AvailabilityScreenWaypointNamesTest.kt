@@ -26,6 +26,7 @@ import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.route.PlottedRoute
 import com.zynergylabs.forager.app.domain.route.RouteStop
+import com.zynergylabs.forager.app.domain.route.RouteStopLink
 import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
@@ -196,7 +197,8 @@ class AvailabilityScreenWaypointNamesTest {
         setScreen()
         plotCreekToRidge()
 
-        assertEquals(listOf(RouteStop("Creek", CREEK.stop().position), RouteStop("Ridge", RIDGE.stop().position)), map.content?.plottedRoute?.stopNames)
+        // Since schema 24 a tapped stop also keeps its soft link (dispatch 2026-11-06-05, Amendment 2); the names are as before.
+        assertEquals(listOf(RouteStop("Creek", CREEK.stop().position, RouteStopLink.Waypoint(CREEK.id)), RouteStop("Ridge", RIDGE.stop().position, RouteStopLink.Waypoint(RIDGE.id))), map.content?.plottedRoute?.stopNames)
     }
 
     @Test

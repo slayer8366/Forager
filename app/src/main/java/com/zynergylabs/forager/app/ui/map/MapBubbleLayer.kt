@@ -23,7 +23,7 @@ import com.zynergylabs.forager.app.domain.ForecastCell
 import com.zynergylabs.forager.app.domain.GroundHeight
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.LatLng
-import com.zynergylabs.forager.app.domain.route.RouteStop
+import com.zynergylabs.forager.app.domain.route.asRouteStop
 import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.ui.availability.ObservationBubble
@@ -57,6 +57,10 @@ internal fun MapBubbleLayer(
     backEnabled: Boolean = true,
     insetLeft: Dp = 0.dp,
     insetRight: Dp = 0.dp,
+    /** "Kept above the card" (RECORD -2187): the route card's top as the bubble's lower limit where they meet (BubbleFloor.kt). */
+    floor: BubbleFloor? = null,
+    /** Told whether the shown bubble fitted nowhere above [floor] and is placed over it (BubblePlacement.overFloor). */
+    onOverFloor: (Boolean) -> Unit = {},
     /**
      * Dispatch 2026-09-28-502, Amendment 1: a details sheet to open again, once, because Back ended the
      * waypoint navigation started from it ("Back to where you tapped Navigate"); [onReopenDetailsConsumed]
@@ -137,7 +141,7 @@ internal fun MapBubbleLayer(
     ) {
         shown?.let { bubble ->
             when (val target = bubble.tapped.target) {
-                is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight) { tip ->
+                is MapBubbleTarget.SightingTarget -> AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight, floor = floor, onOverFloor = onOverFloor) { tip ->
                     ObservationBubble(
                         sighting = target.sighting,
                         onViewOnINaturalist = { onViewSightingOnINaturalist(target.sighting) },
@@ -148,7 +152,7 @@ internal fun MapBubbleLayer(
                 }
 
                 is MapBubbleTarget.FeatureTarget, is MapBubbleTarget.ReferenceTrailTarget -> bubble.content?.let { content ->
-                    AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight) { tip ->
+                    AnchoredAtScreenPoint(bubble.tapped.anchorPx, bubble.tapped.bearingDeg, modifier = Modifier.fillMaxSize(), minY = minY, insetLeft = insetLeft, insetRight = insetRight, floor = floor, onOverFloor = onOverFloor) { tip ->
                         MapFeatureBubble(
                             content = content,
                             tipInBubble = tip,
@@ -172,7 +176,7 @@ internal fun MapBubbleLayer(
                                     val waypoint = sources.waypoints.firstOrNull { it.id == id }
                                     onDismiss()
                                     if (waypoint != null) {
-                                        plotting.actions.onStartPlotting(RouteStop(waypoint.name, LatLng(waypoint.lat, waypoint.lng)))
+                                        plotting.actions.onStartPlotting(waypoint.asRouteStop())
                                     } else {
                                         Log.w(MAP_BUBBLE_LOG_TAG, "Waypoint $id is gone; plotting did not start.")
                                     }

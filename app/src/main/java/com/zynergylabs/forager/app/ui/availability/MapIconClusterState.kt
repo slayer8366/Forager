@@ -132,6 +132,13 @@ internal class MapIconClusterState(
     var navigationCardBoundsInRoot: androidx.compose.ui.geometry.Rect? by mutableStateOf(null)
 
     /**
+     * Dispatch 2026-11-06-04, Amendment 3 (RECORD -2186): whether Re-center's word at bottom centre covers no card
+     * ([reCenterWordFitsAtBottomCentre]), written by the bottom chrome, which measures the word; read by the icon cluster, whose
+     * locate row carries the ring only where it does not fit.
+     */
+    var reCenterWordFitsAtBottomCentre: Boolean by mutableStateOf(false)
+
+    /**
      * D42 (RECORD -2021, the owner: "Only where room is short"): the landscape navigation card's evening lines step aside for the route
      * card resting on it, which would not otherwise fit; written by the route card, read by the navigation card.
      */
@@ -166,7 +173,7 @@ internal class MapIconClusterState(
     /**
      * J8 (RECORD -2183, the owner: "(b) Above top card (Recommended)"): the resting top, in the root, of whatever rests on the landscape
      * navigation card (the route card), for the dot to be kept above it instead; null while nothing does, when the navigation card's
-     * own resting top is used. Written by the route card (on its own branch, #507); nothing writes it here yet.
+     * own resting top is used. Written by the route card while it rests there at peek (RouteCardRestingTop.kt, #507).
      */
     var navigationRestingOnCardTopInRootPx: Float? by mutableStateOf(null)
 

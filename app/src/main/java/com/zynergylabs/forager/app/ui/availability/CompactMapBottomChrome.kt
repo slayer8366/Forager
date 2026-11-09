@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -67,11 +68,12 @@ internal fun BoxScope.CompactMapBottomChrome(
     onBottomNavTabSelected: (CompactTab) -> Unit,
     onBottomNavHeightMeasured: (Float) -> Unit,
     /**
-     * Dispatch 2026-10-30-08: the route card's height while it shows, 0 dp otherwise. The legend chip (Amendment 4) sits above it;
-     * "Return to Route", now Re-center (Amendment 3), only where it shares the card's column (Amendment 17, part 2 ruled, RECORD -1943).
+     * Dispatch 2026-10-30-08: the route card's height while it shows, 0 dp otherwise. The legend chip (Amendment 4) sits above it.
+     * Re-center no longer rises for it: since dispatch 2026-11-06-05, Amendment 1, step 1 (RECORD -2187, the owner: "(b) Card leaves
+     * room"), the card leaves Re-center's room under it instead (RouteCardReCenterRoom.kt), and the height counts that room.
      */
     routeCardHeight: Dp = 0.dp,
-    /** Amendment 17, part 2 ruled (RECORD -1943): the route card's left and right in root px while it shows. */
+    /** The route card's left and right in root px while it shows, for the room beside the L (D17, D20). */
     routeCardSpanPx: ClosedFloatingPointRange<Float>? = null,
     /** D17 (RECORD -1958): Re-center sits beside the L, at the bottom, while the route card rests on the navigation card. */
     reCenterBesideTheL: Boolean = false,
@@ -104,12 +106,9 @@ internal fun BoxScope.CompactMapBottomChrome(
     // Motion Part 2, item 4 (scout N3; "Fade and grow"): it grows up from its bottom centre and shrinks back down;
     // item 5: from the moment it starts to leave (a tap on it, which brings the view back) it takes no touch.
     // Dispatch 2026-10-30-08: how far the legend chip (Amendment 4) rises while the route card shows, its height and a gap; nothing
-    // while it does not. "Return to Route" (Amendment 3) rises by the same, only for a card whose span it overlaps (below).
+    // while it does not. Re-center no longer rises with it (step 1 of dispatch 2026-11-06-05, Amendment 1, below).
     val routeCardLift = if (routeCardHeight > 0.dp) routeCardHeight + Spacing.sm else 0.dp
     val routeCardLiftPx = with(LocalDensity.current) { routeCardLift.toPx() }
-    val returnToRouteShown = isNavigating && !navigationFollowing
-    // Amendment 17, part 2 ruled: the pill's own span, which the lift does not move, so reading it here has no loop.
-    var returnToRouteSpanPx by remember { mutableStateOf<ClosedFloatingPointRange<Float>?>(null) }
     // D27 (RECORD -1976, the owner: "Icon only where room is short (Recommended)"), replacing D20's rise where room is short: beside
     // the L, it keeps its word where the word fits the gap between the L and the card, and shows its icon alone where it does not (the
     // pill measures that against [besideRoomPx]). D32 (RECORD -1987): both cards narrow so the icon always fits there
@@ -140,8 +139,14 @@ internal fun BoxScope.CompactMapBottomChrome(
     // that narrowed, so the icon fits).
     val besideCardLeftPx = (listOfNotNull(routeCardSpanPx?.start) + cardsInRoot.map { it.left }).filter { it >= besideLeftPx }.minOrNull()
     val besideRoomPx = reCenterRoomBesideTheL(besideLeftPx, besideCardLeftPx, with(LocalDensity.current) { Spacing.sm.toPx() })
-    val besideTheL = reCenterBesideTheL || reCenterWordCoversCard(reCenterWord, cardsInRoot)
-    val returnToRouteLift = if (!besideTheL && reCenterRisesForRouteCard(returnToRouteSpanPx, routeCardSpanPx)) routeCardLift else 0.dp
+    // Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186), the owner: "Ring replaces the pill": not in landscape navigation, where the
+    // ringed locate row is Re-center (ReCenterOnLocate.kt). Portrait as before. Amendment 3, the owner: "(b) Pill where it fits": only
+    // where Re-center's word at bottom centre would cover a card; where it fits, the pill shows there and the locate row has no ring.
+    // The icon cluster reads the same answer from the cluster's state, written once composition has applied.
+    val reCenterWordFits = reCenterWordFitsAtBottomCentre(reCenterWord, cardsInRoot)
+    SideEffect { cluster.reCenterWordFitsAtBottomCentre = reCenterWordFits }
+    val returnToRouteShown = reCenterPillShown(landscapeCluster, isNavigating, navigationFollowing, reCenterWordFits)
+    val besideTheL = reCenterGoesBesideTheL(reCenterBesideTheL, reCenterWordCoversCard(reCenterWord, cardsInRoot), reCenterWordFits)
     // D17 (RECORD -1958, the owner: "Into the open map, at the bottom (Recommended)"): while the card rests on the navigation card,
     // Re-center leaves the card's column for the open map beside the L (fixed on the screen's left while navigating, RECORD -955), at
     // the bottom, next to the record pill, a gap from the L's measured width; it never rises for the card there. Elsewhere, as before.
@@ -156,19 +161,16 @@ internal fun BoxScope.CompactMapBottomChrome(
             .align(if (besideTheL) AbsoluteAlignment.BottomLeft else Alignment.BottomCenter)
             .padding(controlsPadding)
             .padding(start = reCenterStart)
-            // Amendment 3 (the owner: "Pill sits above the card (Recommended)"): the card sits on the same bottom, so the pill
-            // rises by the card's height and a gap, and the two never overlap.
-            // Amendment 17, part 2 ruled (RECORD -1943): only for a card whose span it overlaps ([reCenterRisesForRouteCard]).
-            .padding(bottom = renderMode.bottomInset + reCenterClearance + returnToRouteLift),
+            // Dispatch 2026-11-06-05, Amendment 1, step 1 (RECORD -2187, the owner: "(b) Card leaves room", replacing -1861's "Pill
+            // sits above the card" and -1943's rise): Re-center never rises for the route card. In portrait the card leaves Re-center's
+            // room under it while navigating (RouteCardReCenterRoom.kt), so Re-center sits under the card at its own place; in landscape
+            // it shows only where its word covers no card (#506), so there is nothing to rise for.
+            .padding(bottom = renderMode.bottomInset + reCenterClearance),
     ) {
         ReturnToRoutePill(
             onClick = onReturnToRoute,
             roomPx = if (besideTheL) besideRoomPx ?: 0f else null,
-            modifier = (if (returnToRouteShown) Modifier.mapKeepOut(MapKeepOutIds.RETURN_TO_ROUTE) else Modifier)
-                .onGloballyPositioned { coordinates ->
-                    val left = coordinates.positionInRoot().x
-                    returnToRouteSpanPx = left..left + coordinates.size.width
-                },
+            modifier = if (returnToRouteShown) Modifier.mapKeepOut(MapKeepOutIds.RETURN_TO_ROUTE) else Modifier,
         )
     }
 

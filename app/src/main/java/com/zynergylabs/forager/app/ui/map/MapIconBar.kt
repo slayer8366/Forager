@@ -136,6 +136,12 @@ internal fun MapIconBar(
      */
     fullSquareHits: Boolean = false,
     /**
+     * Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186): whether the locate row carries its ring, standing in for Re-center
+     * (`locateRowStandsInForReCenter`: the Maps tab in landscape navigation, the camera off the follow). `false` for every
+     * other caller, the journal entry's map included.
+     */
+    locateRinged: Boolean = false,
+    /**
      * The bar's 5th (last) row — fullscreen-maps dispatch: a second map surface (the Cartography
      * entry map) needs this row to mean something other than "plan a trip or log a find here,"
      * since neither concept exists there. A "+" button captioned for trip-planning that actually
@@ -186,6 +192,12 @@ internal fun MapIconBar(
                 icon = Icons.Filled.MyLocation,
                 contentDescription = "Center on my location",
                 onClick = onLocateMe,
+                // Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186), replacing Amendment 1's ring on both maps; the owner: "Only have
+                // the ring in landscape when needing to re-center the map camera during navigation": Re-center's outline (#505,
+                // ReturnToRoutePill.kt), only while [locateRinged]. Amendment 4 (RECORD -2186), the owner: "Yes, same outline": the
+                // map chrome's own outline (mapChromeOutline: 1 dp, Bark at 40% by day, white at 40% at night), as Re-center's
+                // now is, in place of the solid 1 dp `onSurface` until then.
+                ring = if (locateRinged) mapChromeOutline() else null,
             )
             if (mapModePickerEnabled) {
                 // The map type panel (dispatch 2026-10-28-02; the Layers sheet from L0b until then). The old

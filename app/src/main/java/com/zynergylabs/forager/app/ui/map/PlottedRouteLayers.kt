@@ -4,13 +4,19 @@ import android.util.Log
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RouteStop
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toArgb
+import com.zynergylabs.forager.app.ui.map.fanout.FanKey
+import com.zynergylabs.forager.app.ui.map.layers.MapLayerIds
 import com.zynergylabs.forager.app.ui.theme.MapPalette
+import com.zynergylabs.forager.app.ui.theme.MushroomDeep
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.expressions.Expression
 import org.maplibre.android.style.layers.CircleLayer
 import org.maplibre.android.style.layers.LineLayer
 import org.maplibre.android.style.layers.Property
 import org.maplibre.android.style.layers.PropertyFactory
+import org.maplibre.android.style.layers.SymbolLayer
 import org.maplibre.android.style.sources.GeoJsonSource
 import org.maplibre.geojson.Feature
 import org.maplibre.geojson.FeatureCollection
@@ -33,7 +39,42 @@ import org.maplibre.geojson.Point
  * What the map draws of a plotted route: its [legs], [stopDots] (empty while plotting), and [stopNames], the stops whose
  * names are always drawn, while plotting and on a saved route (dispatch 2026-11-02-04, A2; WaypointNameLayers.kt).
  */
-data class PlottedRouteOnMap(val legs: List<RouteLeg>, val stopDots: List<LatLng> = emptyList(), val stopNames: List<RouteStop> = emptyList())
+data class PlottedRouteOnMap(
+    val legs: List<RouteLeg>,
+    val stopDots: List<LatLng> = emptyList(),
+    val stopNames: List<RouteStop> = emptyList(),
+    /** A saved route's selected stop's marker, drawn in the accent colour (dispatch 2026-11-06-05, Amendment 2, item 4); `null` for none. */
+    val selected: SelectedStopMarker? = null,
+)
+
+/**
+ * Where the selected stop's waypoint ([trip] false) or trip stands: its pin, or its flag, is drawn there again in the accent colour.
+ * [featureId] is that waypoint's or trip's own id, as its marker carries it, so the fan can tell which of its copies is this one
+ * (dispatch 2026-11-06-05, Amendment 6 B; [fanKey]).
+ */
+data class SelectedStopMarker(val at: LatLng, val trip: Boolean, val featureId: String) {
+    /** The marker this accent stands on, by its layer and id, as a fan names its members (Amendment 6 B). */
+    val fanKey: FanKey get() = FanKey(if (trip) MapLayerIds.PLANNED_TRIPS else MapLayerIds.WAYPOINTS, featureId)
+}
+
+/**
+ * The selected stop's accent (dispatch 2026-11-06-05, Amendment 1, step 4, the owner: "Accent colour"; Amendment 2, "Keep cream, judge
+ * on phone"; Amendment 6, "a dimmer cream by day", RECORD -2187): [RouteStopDimmerCream] #E3D3B5 by day, rust red [MushroomDeep]
+ * #A2612C at night (the owner: "Leave it"), per the palette, on the palette's own casing. The same colour is the fan's accent copy, through
+ * `MarkerIcon.WAYPOINT_ROUTE_SELECTED` / `PLANNED_TRIP_ROUTE_SELECTED` (FanRouteStopAccent.kt). For the owner to judge on the phone.
+ */
+internal fun routeStopSelectedColour(palette: MapPalette): Int =
+    (if (palette == MapPalette.NIGHT) MushroomDeep else RouteStopDimmerCream).toArgb()
+
+/**
+ * The day accent's dimmer cream (Amendment 6, RECORD -2187; the owner: "Also reduce the brightness of the highlight in day mode", then
+ * "Dimmer cream", "A slightly darker solid cream in place of today's"). It is [Cream] #EDE3D0 at the same hue and saturation (HSL about
+ * 39 degrees, 45%) with its lightness lowered from 0.87 to 0.80. A named colour of its own rather than one from the palette: the palette's
+ * warm neutrals a little darker than Cream (NeutralGray200 #CFC9BE, OutlineVariantLight #D5CEBF, SurfaceContainerHighestLight #E2DCCC)
+ * carry 15-27% saturation against Cream's 45%, so they read grey, not as a darker cream; MushroomContainerLight #F6DFC8 is peach and
+ * lighter. Rejected: Cream at 80% opacity over the pin colour, the owner's other offer, which they did not pick.
+ */
+internal val RouteStopDimmerCream = Color(0xFFE3D3B5)
 
 internal object PlottedRouteIds {
     const val SOURCE = "plotted-route"
@@ -43,6 +84,12 @@ internal object PlottedRouteIds {
     const val TRAIL_LAYER = "plotted-route-trail-layer"
     const val STRAIGHT_LAYER = "plotted-route-straight-layer"
     const val STOPS_LAYER = "plotted-route-stops-layer"
+    const val SELECTED_SOURCE = "plotted-route-selected"
+    const val SELECTED_LAYER = "plotted-route-selected-layer"
+    const val SELECTED_ICON_PROPERTY = "icon"
+    /** Amendment 7: the highlight's opacity and size in this frame (RouteStopAccentMotion.kt), read per feature by the accent layer. */
+    const val SELECTED_OPACITY_PROPERTY = "opacity"
+    const val SELECTED_SCALE_PROPERTY = "scale"
     const val PART_PROPERTY = "part"
     const val PART_TRAIL = "trail"
     const val PART_STRAIGHT = "straight"
@@ -146,10 +193,33 @@ internal fun addPlottedRouteLayers(style: Style, palette: MapPalette, belowLayer
         PropertyFactory.circleStrokeWidth(CASING_DP),
     )
     style.addLayerBelow(stops, belowLayerId)
+    // Dispatch 2026-11-06-05, Amendment 2, item 4: the selected stop's marker, drawn over the waypoints' own pins (and the trips' flags,
+    // which are under them), so the waypoint's pin is seen in the accent colour. Its two images are registered with every other marker's.
+    style.addSource(GeoJsonSource(PlottedRouteIds.SELECTED_SOURCE, FeatureCollection.fromFeatures(emptyList())))
+    val selected = SymbolLayer(PlottedRouteIds.SELECTED_LAYER, PlottedRouteIds.SELECTED_SOURCE).withProperties(
+        PropertyFactory.iconImage(Expression.get(PlottedRouteIds.SELECTED_ICON_PROPERTY)),
+        PropertyFactory.iconAllowOverlap(true),
+        PropertyFactory.iconAnchor(Property.ICON_ANCHOR_CENTER),
+        // Amendment 7: each highlight's fade and pulse, per feature, so a frame of the motion is new source data, never a new layer.
+        PropertyFactory.iconOpacity(Expression.coalesce(Expression.number(Expression.get(PlottedRouteIds.SELECTED_OPACITY_PROPERTY)), Expression.literal(1f))),
+        PropertyFactory.iconSize(Expression.coalesce(Expression.number(Expression.get(PlottedRouteIds.SELECTED_SCALE_PROPERTY)), Expression.literal(1f))),
+    )
+    if (style.getLayer(MapLayerIds.WAYPOINTS) != null) {
+        style.addLayerAbove(selected, MapLayerIds.WAYPOINTS)
+    } else {
+        Log.w(SIGHTINGS_MAP_TAG, "The waypoints layer is missing; a route's selected stop is drawn above everything.")
+        style.addLayer(selected)
+    }
 }
 
-/** What each of the route's sources receives for [route]; both empty for none, so a closed route clears the map. */
-internal fun plottedRouteFeatureCollections(route: PlottedRouteOnMap?): Map<String, FeatureCollection> = mapOf(
+/**
+ * What each of the route's sources receives for [route]; both empty for none, so a closed route clears the map. The selected stop's source
+ * receives [accent], the highlight's frame (Amendment 7), at rest unless given.
+ */
+internal fun plottedRouteFeatureCollections(
+    route: PlottedRouteOnMap?,
+    accent: RouteStopAccentFrame = RouteStopAccentFrame.settled(route?.selected),
+): Map<String, FeatureCollection> = mapOf(
     PlottedRouteIds.SOURCE to FeatureCollection.fromFeatures(
         plottedRouteParts(route?.legs.orEmpty()).map { part ->
             Feature.fromGeometry(LineString.fromLngLats(part.points.map { Point.fromLngLat(it.lng, it.lat) })).also {
@@ -160,12 +230,32 @@ internal fun plottedRouteFeatureCollections(route: PlottedRouteOnMap?): Map<Stri
     PlottedRouteIds.STOPS_SOURCE to FeatureCollection.fromFeatures(
         route?.stopDots.orEmpty().map { Feature.fromGeometry(Point.fromLngLat(it.lng, it.lat)) },
     ),
+    PlottedRouteIds.SELECTED_SOURCE to routeStopAccentFeatures(accent),
 )
 
-/** Pushes [route] to the current style; nothing in a style change (logged by [currentStyle]), which runs it again on load. */
+/** The selected stop's source for one [frame] of its highlight (Amendment 7): a point per highlight drawn, fading ones first, each with its opacity and size. */
+internal fun routeStopAccentFeatures(frame: RouteStopAccentFrame): FeatureCollection = FeatureCollection.fromFeatures(
+    frame.shown.map { shown ->
+        val marker = shown.marker
+        Feature.fromGeometry(Point.fromLngLat(marker.at.lng, marker.at.lat)).also {
+            val icon = if (marker.trip) MarkerIcon.PLANNED_TRIP_ROUTE_SELECTED else MarkerIcon.WAYPOINT_ROUTE_SELECTED
+            it.addStringProperty(PlottedRouteIds.SELECTED_ICON_PROPERTY, icon.imageId)
+            // Amendment 6 B: the marker it stands on, so the fan hides it while that marker is fanned (fanHiddenAccentKeys).
+            it.addStringProperty(FAN_ACCENT_KEY_PROPERTY, fanAccentKeyValue(marker.fanKey))
+            it.addNumberProperty(PlottedRouteIds.SELECTED_OPACITY_PROPERTY, shown.opacity)
+            it.addNumberProperty(PlottedRouteIds.SELECTED_SCALE_PROPERTY, shown.scale)
+        }
+    },
+)
+
+/**
+ * Pushes [route] to the current style; nothing in a style change (logged by [currentStyle]), which runs it again on load. Not the selected
+ * stop's source: its highlight moves frame by frame and is pushed by [routeStopAccentOnCurrentStyle] alone (Amendment 7), so a route
+ * change never draws it at rest for a frame in the middle of its fade.
+ */
 internal fun plottedRouteOnCurrentStyle(loaded: Style?, route: PlottedRouteOnMap?) {
     val style = currentStyle(loaded, "The plotted route") ?: return
-    plottedRouteFeatureCollections(route).forEach { (id, collection) ->
+    plottedRouteFeatureCollections(route).filterKeys { it != PlottedRouteIds.SELECTED_SOURCE }.forEach { (id, collection) ->
         val source = style.getSourceAs<GeoJsonSource>(id)
         if (source == null) {
             Log.w(SIGHTINGS_MAP_TAG, "The plotted route's source $id is missing; the route is not drawn.")

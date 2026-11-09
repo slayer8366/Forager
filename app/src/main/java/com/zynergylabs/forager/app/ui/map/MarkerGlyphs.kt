@@ -299,6 +299,11 @@ internal enum class MarkerIcon(
     WAYPOINT_JOURNAL_HALO("waypoint-journal-halo", MarkerGlyph.WAYPOINT, MapPalette::journalEntry, halo = true),
     FIND_JOURNAL_HALO("find-journal-halo", MarkerGlyph.FIND, MapPalette::journalEntry, halo = true),
     PHOTO_JOURNAL_HALO("photo-journal-halo", MarkerGlyph.PHOTO, MapPalette::journalEntry, halo = true),
+
+    // Dispatch 2026-11-06-05, Amendment 2, item 4: a saved route's selected stop, its pin or flag in the accent colour
+    // (PlottedRouteLayers.kt, routeStopSelectedColour).
+    WAYPOINT_ROUTE_SELECTED("waypoint-pin-route-selected", MarkerGlyph.WAYPOINT, ::routeStopSelectedColour),
+    PLANNED_TRIP_ROUTE_SELECTED("planned-trip-flag-route-selected", MarkerGlyph.PLANNED_TRIP, ::routeStopSelectedColour),
 }
 
 /** [icon]'s glyph drawn in [palette]'s colours: its own role's fill and the palette's casing, or, for a halo, its halo. */

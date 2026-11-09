@@ -71,6 +71,9 @@ internal fun waypointNavigationActions(
                     state.journalScreenState.topTab = JournalTopTab.CARTOGRAPHY
                     state.setCompactTab(CompactTab.JOURNAL)
                 }
+                // Dispatch 2026-11-06-05, Amendment 1, step 5: "One Back ends navigation, with the route card still open". The card
+                // never closed, so there is nothing to open again.
+                is WaypointNavigationOrigin.RouteCard -> Unit
             }
         }
     }

@@ -23,6 +23,7 @@ import com.zynergylabs.forager.app.domain.NavigationTargetKind
 import com.zynergylabs.forager.app.domain.WaypointNavigation
 import com.zynergylabs.forager.app.domain.route.RoutePlotDraft
 import com.zynergylabs.forager.app.domain.route.RouteStop
+import com.zynergylabs.forager.app.domain.route.RouteStopLink
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.ui.map.LocalGroundHeightSource
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_DETAILS_TAG
@@ -197,7 +198,7 @@ class TripBubbleActionsTest {
 
             composeRule.touchAcrossTag(MAP_BUBBLE_PLOT_ROUTE_TAG, fx, fy)
 
-            assertEquals(where, RoutePlotMode.Plotting(RoutePlotDraft(listOf(RouteStop("Saddle loop", SADDLE.location)))), plotting.uiState.value.mode)
+            assertEquals(where, RoutePlotMode.Plotting(RoutePlotDraft(listOf(RouteStop("Saddle loop", SADDLE.location, RouteStopLink.Trip(SADDLE.id))))), plotting.uiState.value.mode)
             assertEquals("$where: the bubble closes", 0, count(MAP_BUBBLE_TAG))
             composeRule.onNodeWithTag(ROUTE_CARD_COUNT_TAG).assertIsDisplayed()
             assertNull("$where: nothing is navigated to", viewModel.uiState.value.waypointNavigation)

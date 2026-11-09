@@ -5,6 +5,7 @@ import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.route.PlottedRoute
+import com.zynergylabs.forager.app.domain.route.RouteCardBackOrder
 import com.zynergylabs.forager.app.domain.route.RouteLeg
 import com.zynergylabs.forager.app.domain.route.RoutePlotDraft
 import com.zynergylabs.forager.app.domain.route.RouteStop
@@ -48,6 +49,27 @@ data class RoutePlottingUiState(
     val saveFailed: Boolean = false,
     val pendingDiscard: PlannedTrip? = null,
     val pendingDiscardFromTripPlanner: Boolean = false,
+    /**
+     * Dispatch 2026-11-06-05, Amendment 1, step 2 (RECORD -2187): the card swiped to the screen edge, leaving its tab. User-set, so it
+     * is kept across a tab change (CLAUDE.md, UX defaults); a route closed, cancelled, saved or opened starts untucked.
+     */
+    val tucked: Boolean = false,
+    /**
+     * Dispatch 2026-11-06-05, Amendment 2, item 4 (RECORD -2187): the saved route's selected stop, by index, picked by its marker or its
+     * row in the open card; the first until one is picked (the owner: "Go to the first waypoint"). Navigate goes to it.
+     */
+    val selectedStop: Int = 0,
+    /**
+     * Item 3: Navigate was tapped on this open card, so one Back ends that navigation with the card still open (Amendment 1, step 5),
+     * and the card's own Back tier stands aside while it runs. A route closed or opened starts without it, and it is cleared when that
+     * navigation ends (Sorrel's review of PR #507, note 3.2), so a later navigation not started from the card is not taken for the card's.
+     */
+    val navigatedFromCard: Boolean = false,
+    /**
+     * Amendment 3: the order the card's Navigate and fullscreen were entered in, so Back undoes whichever came last (the owner: "Yes,
+     * that's it"; `RouteCardBackOrder.kt`). A route closed or opened starts without it.
+     */
+    val backOrder: RouteCardBackOrder = RouteCardBackOrder(),
 )
 
 /** What the route card, the bubble and the Trip Planner ask of the plotting; [RoutePlottingViewModel] does each. */
@@ -64,6 +86,15 @@ interface RoutePlottingActions {
     fun onConfirmDiscard()
     fun onKeepPlotting()
     fun onCloseSavedRoute()
+    fun onSetTucked(tucked: Boolean)
+    fun onSelectStop(index: Int)
+    fun onNavigatedFromCard(inFullscreen: Boolean)
+    /** Note 3.2: the screen's waypoint navigation is not running (it ended, by any route, or none ran); clears [RoutePlottingUiState.navigatedFromCard]. */
+    fun onWaypointNavigationOver()
+    /** Amendment 3: fullscreen was left, by any route. */
+    fun onFullscreenLeft()
+    /** Amendment 3: Back ended the card's navigation while [inFullscreen]. */
+    fun onCardNavigationEndedByBack(inFullscreen: Boolean)
 }
 
 /**
@@ -75,6 +106,8 @@ data class RoutePlottingControls(
     val state: RoutePlottingUiState,
     val actions: RoutePlottingActions,
     val onReturnToTripPlanner: () -> Unit = {},
+    /** Amendment 3: ends the waypoint navigation the card's Navigate started, as the screen's Back does; nothing where there is none. */
+    val onEndNavigation: () -> Unit = {},
 )
 
 /**
@@ -190,10 +223,43 @@ class RoutePlottingViewModel(
         _uiState.update { it.copy(pendingDiscard = null) }
     }
 
-    /** Back on a saved route's card: the card and the line close. */
+    /** Back, or the card's ✕ (dispatch 2026-11-06-05, Amendment 1, step 3), on a saved route's card: the card and the line close. */
     override fun onCloseSavedRoute() {
         if (_uiState.value.mode !is RoutePlotMode.Showing) return
         _uiState.value = RoutePlottingUiState(expanded = _uiState.value.expanded)
+    }
+
+    /** The card swiped to its edge ([tucked]), or brought back by its tab; only while there is a card. */
+    override fun onSetTucked(tucked: Boolean) {
+        if (_uiState.value.mode == RoutePlotMode.Off) return
+        _uiState.update { it.copy(tucked = tucked) }
+    }
+
+    /** A saved route's stop picked, by its marker or its row (item 4); an index outside the route changes nothing. */
+    override fun onSelectStop(index: Int) {
+        val stops = (_uiState.value.mode as? RoutePlotMode.Showing)?.trip?.route?.stops ?: return
+        if (index !in stops.indices) return
+        _uiState.update { it.copy(selectedStop = index) }
+    }
+
+    /** The card's Navigate was tapped (item 3): its Back tier stands aside while that navigation runs, in the order of Amendment 3. */
+    override fun onNavigatedFromCard(inFullscreen: Boolean) {
+        if (_uiState.value.mode !is RoutePlotMode.Showing) return
+        _uiState.update { it.copy(navigatedFromCard = true, backOrder = it.backOrder.navigated(inFullscreen)) }
+    }
+
+    override fun onWaypointNavigationOver() {
+        if (!_uiState.value.navigatedFromCard) return
+        _uiState.update { it.copy(navigatedFromCard = false) }
+    }
+
+    override fun onFullscreenLeft() {
+        if (_uiState.value.backOrder == RouteCardBackOrder()) return
+        _uiState.update { it.copy(backOrder = it.backOrder.fullscreenLeft()) }
+    }
+
+    override fun onCardNavigationEndedByBack(inFullscreen: Boolean) {
+        _uiState.update { it.copy(backOrder = it.backOrder.navigationEndedByBack(inFullscreen)) }
     }
 
     /** Opens [trip]'s route with the card peeking (the dispatch: "peeks the card"). */

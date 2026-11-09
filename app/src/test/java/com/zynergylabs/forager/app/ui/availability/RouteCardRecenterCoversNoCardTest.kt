@@ -2,17 +2,12 @@ package com.zynergylabs.forager.app.ui.availability
 
 import android.view.Surface
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assert
-import androidx.compose.ui.test.assertContentDescriptionEquals
-import androidx.compose.ui.test.click
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
-import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.DpRect
 import androidx.compose.ui.unit.dp
-import com.zynergylabs.forager.app.ui.map.MAP_CREDIT_CAPTION_TAG
 import com.zynergylabs.forager.app.ui.route.ROUTE_CARD_TAG
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -60,55 +55,55 @@ abstract class RouteCardRecenterCoversNoCardTests(
         }
     }
 
+    /**
+     * Dispatch 2026-11-06-04, Amendment 2 (RECORD -2186), the owner: "Ring replaces the pill" (the option read: "In landscape
+     * navigation the pill doesn't show; the ringed locate icon is the re-center button. Portrait keeps the pill as now"). This case
+     * read D34's icon beside the L; Re-center no longer shows in landscape navigation, so it now reads that the pill is absent and
+     * that real touches across the locate row, which stands in for it, bring the navigation view back, with the card closed, and
+     * again after it opens and closes. D38's claims on the navigation card are kept as they were: narrowed from the L's side with
+     * the card closed, and unmoved by the card opening and closing ("Nothing moves").
+     */
     @Test
-    fun `with the route card closed, Re-center whose word would cover the navigation card is its icon beside the L, and real touches reach it`() {
+    fun `with the route card closed, Re-center does not show and real touches across the locate row standing in for it re-centre`() {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
         rig.setScreen(navigating = true)
         rig.applyInsets(left = 25.dp, right = 48.dp)
         rig.leaveNavigationView()
         assertEquals("precondition: no route card", 0, rig.count(ROUTE_CARD_TAG))
-        val pill = rig.bounds(RETURN_TO_ROUTE_TAG)
+        val locate = rig.described(LOCATE_ROW)
         val l = rig.bounds(MAP_ICON_CLUSTER_TAG)
         val navigation = rig.bounds(NAVIGATION_HUD_TAG)
         val strip = rig.bounds(BAR_STRIP)
-        println("D34 no card: Re-center ${pill.left.value}..${pill.right.value} x ${pill.top.value}..${pill.bottom.value}, L ${l.left.value}..${l.right.value}, navigation card ${navigation.left.value}..${navigation.right.value} x ${navigation.top.value}..${navigation.bottom.value}, strip ${strip.left.value}..${strip.right.value}")
+        println("A2 no card: locate ${locate.left.value}..${locate.right.value} x ${locate.top.value}..${locate.bottom.value}, L ${l.left.value}..${l.right.value}, navigation card ${navigation.left.value}..${navigation.right.value} x ${navigation.top.value}..${navigation.bottom.value}, strip ${strip.left.value}..${strip.right.value}")
         // The case is reached: Re-center's word, centred on the screen's bottom, would sit on the navigation card at the strip's width.
         assertTrue("precondition: the strip's left ${strip.left} is left of the screen's centre, so the word there is over the card", strip.left < rig.screen().right / 2)
         assertEquals("D38: the navigation card is narrowed from the L's side, card closed", (l.right + 8.dp + RETURN_TO_ROUTE_PILL_HEIGHT + 8.dp).value, navigation.left.value, 0.5f)
-        assertEquals("D34: Re-center is its icon alone, a 48 dp target: its width", 48f, (pill.right - pill.left).value, 0.5f)
-        assertEquals("D34: its height", 48f, (pill.bottom - pill.top).value, 0.5f)
-        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT).not(), { "D34: Re-center shows no word" })
-        composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assertContentDescriptionEquals(RETURN_TO_ROUTE_TEXT)
-        assertTrue("D34: Re-center's left ${pill.left} is next to the L's right ${l.right}", pill.left >= l.right && pill.left <= l.right + 16.dp)
-        rig.assertApart("Re-center and the navigation card", pill, navigation)
-        rig.assertApart("Re-center and the L", pill, l)
-        rig.assertApart("Re-center and the record pill", pill, rig.bounds(BAR_PILL))
-        rig.assertApart("Re-center and the credit", pill, rig.bounds(MAP_CREDIT_CAPTION_TAG))
-        rig.assertApart("Re-center and the search bar", pill, rig.bounds(SEARCH_ENTRY_BAR_TAG))
-        touchesReach("no card", pill)
+        assertEquals("Amendment 2: Re-center does not show, the ringed locate row replaces it", 0, rig.count(RETURN_TO_ROUTE_TAG))
+        rig.assertApart("the locate row and the navigation card", locate, navigation)
+        rig.assertApart("the locate row and the search bar", locate, rig.bounds(SEARCH_ENTRY_BAR_TAG))
+        touchesReach("no card")
         // Opening a route card and closing it again moves neither (D38: "Nothing moves").
         rig.plotTo(3)
         rig.leaveNavigationView()
-        rig.assertSame("route card open: Re-center", pill, rig.bounds(RETURN_TO_ROUTE_TAG))
+        assertEquals("route card open: Re-center does not show", 0, rig.count(RETURN_TO_ROUTE_TAG))
+        rig.assertSame("route card open: the locate row", locate, rig.described(LOCATE_ROW))
         assertNavigationUnmoved("route card open: the navigation card", navigation, rig.bounds(NAVIGATION_HUD_TAG))
         rig.closeCard()
         rig.leaveNavigationView()
-        rig.assertSame("route card closed again: Re-center", pill, rig.bounds(RETURN_TO_ROUTE_TAG))
+        assertEquals("route card closed again: Re-center does not show", 0, rig.count(RETURN_TO_ROUTE_TAG))
+        rig.assertSame("route card closed again: the locate row", locate, rig.described(LOCATE_ROW))
         assertNavigationUnmoved("route card closed again: the navigation card", navigation, rig.bounds(NAVIGATION_HUD_TAG))
-        touchesReach("closed again", pill)
+        touchesReach("closed again")
     }
 
-    private fun touchesReach(where: String, pill: DpRect) {
-        listOf(0.5f to 0.5f, -1f to -1f, 1f to -1f, -1f to 1f, 1f to 1f).forEach { (sx, sy) ->
-            rig.assertSame("$where: Re-center before the touch at ($sx, $sy)", pill, rig.bounds(RETURN_TO_ROUTE_TAG))
-            val restore = rig.map.renderMode!!.navigationView!!.restoreRequestId
-            composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).performTouchInput {
-                click(Offset(center.x + sx * (width / 2 - 12.dp.toPx()), center.y + sy * (height / 2 - 6.dp.toPx())))
-            }
-            rig.settle()
-            assertEquals("$where: a touch at ($sx, $sy) on Re-center", restore + 1, rig.map.renderMode!!.navigationView!!.restoreRequestId)
-            rig.leaveNavigationView()
-        }
+    private fun touchesReach(where: String) {
+        composeRule.assertLocateRowReCentres(
+            where = where,
+            restoreId = { rig.map.renderMode!!.navigationView!!.restoreRequestId },
+            settle = rig::settle,
+            before = { at -> assertEquals("$at: Re-center does not show", 0, rig.count(RETURN_TO_ROUTE_TAG)) },
+            after = { rig.leaveNavigationView() },
+        )
     }
 }
 
@@ -144,6 +139,12 @@ class RouteCardRecenterCoversNoCardWideTest {
 
     private val rig = RouteCardBarRig(composeRule, credit = S22_MAP_CREDIT)
 
+    /**
+     * Dispatch 2026-11-06-04, Amendment 3 (RECORD -2186), the owner: "(b) Pill where it fits" (the option: "A real fit test: where the
+     * Re-center word fits at bottom centre without covering a card, the pill shows there and there's no ring; where it doesn't fit,
+     * the ring"). This is D34's other side again, as before Amendment 2: the word covers no card here, so Re-center shows with it at
+     * bottom centre (the claim and name restored from pre-main), and real touches across the locate row still re-centre.
+     */
     @Test
     fun `where Re-center's word covers no card it keeps its word at bottom centre`() {
         Shadows.shadowOf(ShadowDisplay.getDefaultDisplay()).setRotation(Surface.ROTATION_90)
@@ -157,8 +158,13 @@ class RouteCardRecenterCoversNoCardWideTest {
         rig.assertSame("the navigation card is at the strip's width", DpRect(strip.left, navigation.top, strip.right, navigation.bottom), navigation)
         composeRule.onNodeWithTag(RETURN_TO_ROUTE_TAG).assert(hasText(RETURN_TO_ROUTE_TEXT), { "Re-center keeps its word" })
         rig.assertApart("Re-center and the navigation card", pill, navigation)
-        val screen = rig.screen()
         assertTrue("Re-center is not beside the L: its left ${pill.left}", pill.left > rig.bounds(MAP_ICON_CLUSTER_TAG).right + 16.dp)
-        println("D34 wide: screen ${screen.right.value}")
+        composeRule.assertLocateRowReCentres(
+            where = "wide",
+            restoreId = { rig.map.renderMode!!.navigationView!!.restoreRequestId },
+            settle = rig::settle,
+            before = { at -> assertEquals("$at: Re-center shows before it", 1, rig.count(RETURN_TO_ROUTE_TAG)) },
+            after = { rig.leaveNavigationView() },
+        )
     }
 }

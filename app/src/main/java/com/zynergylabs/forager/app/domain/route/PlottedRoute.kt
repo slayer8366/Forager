@@ -7,7 +7,8 @@ import com.zynergylabs.forager.app.domain.model.LatLng
  * docs/plans/2026-10-29-waypoint-route-plotting-plan.md, RECORD -1817 to -1827). Pure Kotlin: no Android, no Room.
  *
  * The route keeps its own copy of its stops, so deleting a waypoint later changes nothing (the plan, "A waypoint deleted
- * later"). Leg *i* joins stop *i* to stop *i + 1*.
+ * later"); since schema 24 a stop also keeps a soft link to its waypoint, cleared when that is deleted ([RouteStop.link]).
+ * Leg *i* joins stop *i* to stop *i + 1*.
  *
  * Refused at construction, so neither the plotting nor a stored row can hold one:
  * - fewer than two stops, or a leg count other than one fewer than the stops;
@@ -33,8 +34,22 @@ data class PlottedRoute(val stops: List<RouteStop>, val legs: List<RouteLeg>) {
     val totalMeters: Double get() = legs.sumOf { it.meters }
 }
 
-/** A copy of a waypoint as it was when the route was plotted: its name and position. No waypoint id is kept. */
-data class RouteStop(val name: String, val position: LatLng)
+/**
+ * A copy of a waypoint (or trip) as it was when the route was plotted: its name and position, and since schema 24 [link], a soft
+ * pointer to the record it came from (dispatch 2026-11-06-05, Amendment 2, the owner: "The link has to be a soft pointer. If the
+ * waypoint is deleted, the link is cleared and the stop stays"). The name and position are the stop; the link only says where
+ * Navigate goes. `null` for a stop saved before schema 24, and for one whose record was deleted.
+ */
+data class RouteStop(val name: String, val position: LatLng, val link: RouteStopLink? = null)
+
+/** What a [RouteStop] came from (dispatch 2026-11-06-05, Amendment 2): a waypoint or a planned trip, by id. */
+sealed interface RouteStopLink {
+    val id: String
+
+    data class Waypoint(override val id: String) : RouteStopLink
+
+    data class Trip(override val id: String) : RouteStopLink
+}
 
 /** One leg of a [PlottedRoute]: along trails, or a straight line with the reason there is no trail route. */
 sealed interface RouteLeg {

@@ -81,6 +81,8 @@ private val BUBBLE_TAIL_BASE_HALF_WIDTH = Spacing.xs
  * [insetLeft] and [insetRight] narrow the box the card is clamped into on each side, for chrome that sits over
  * the map there (the landscape L and the overlaid rail; dispatch 2026-09-29-57, amendment -262, item 3, the owner's
  * "Push the card clear"): the card moves, the tip stays on the anchor. Zero for a host with no such chrome.
+ * [floor] is chrome over the map's lower part (the route card) whose top ends the box where the card meets it (BubbleFloor.kt).
+ * [onOverFloor] is told, at each placement, whether the bubble fitted nowhere above that top and is placed as the card were not there.
  *
  * A custom [Layout] reporting the whole incoming size, with the child placed freely inside it, for
  * the reason the sighting bubble's placement always had: placing a child outside its parent's own
@@ -95,6 +97,8 @@ internal fun AnchoredAtScreenPoint(
     minY: Dp = 0.dp,
     insetLeft: Dp = 0.dp,
     insetRight: Dp = 0.dp,
+    floor: BubbleFloor? = null,
+    onOverFloor: (Boolean) -> Unit = {},
     content: @Composable (tipInBubble: State<Offset?>) -> Unit,
 ) {
     val screenDirectionFromPointDeg = (BUBBLE_BASE_DIRECTION_DEG - bearingDeg).mod(360f)
@@ -112,10 +116,12 @@ internal fun AnchoredAtScreenPoint(
             maxHeight = constraints.maxHeight,
             minY = minY.roundToPx(),
             minX = insetLeft.roundToPx(),
+            floor = floor,
         )
         layout(constraints.maxWidth, constraints.maxHeight) {
             // Read by the shell's tail at draw time, after this placement.
             tip.value = placement.tipInBubble
+            onOverFloor(placement.overFloor)
             placeable.placeRelative(placement.topLeftX, placement.topLeftY)
         }
     }

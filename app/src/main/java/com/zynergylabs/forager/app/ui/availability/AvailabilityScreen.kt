@@ -614,7 +614,8 @@ fun AvailabilityScreen(
     // Phase 2.6, PR 2: the Maps tab's bubbles' sources, built in AvailabilityScreenMapInputs.kt (its doc comment carries M1's notes).
     // Dispatch 2026-10-30-08: route plotting, with the way back to the Trip Planner a route was opened from (RoutePlottingTrips.kt).
     val routeLinks = rememberRoutePlottingLinks(mapControls.routePlotting, screenState)
-    val routePlotting = routeLinks.controls
+    // Dispatch 2026-11-06-05, Amendment 3: the card's tier ends its own navigation in fullscreen, as the screen's Back step does outside it.
+    val routePlotting = routeLinks.controls?.copy(onEndNavigation = { endWaypointNavigation(true) })
     CloseDeletedRoute(routePlotting, uiState.plannedTrips)
     val mapBubbleSources = availabilityMapBubbleSources(
         state = screenState,
