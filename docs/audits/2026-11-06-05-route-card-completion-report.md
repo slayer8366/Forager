@@ -1830,60 +1830,91 @@ strip; (c) as now.
     beside Directions, and "This stop's waypoint was moved or deleted" on its own line under them. Start a navigation to another
     waypoint: the buttons and the reason hide; end it: they come back.
 
-## The bubble above the card, built: stopped at a behaviour choice (landscape, card expanded)
+## The bubble above the card, built
 
 The owner (RECORD -2187, 2026-11-09T09:40:12Z): **"Kept above the card"**; the dispatch: **"Make the change this release actually"**.
+To the stop below (landscape, card expanded, no room): **"Bubble over the card (Recommended)"** (2026-11-09T10:28:19Z): only when a
+bubble cannot fit above the card, it draws over the card so it is seen whole; a tap away closes it as usual and the card is back.
+Where it fits above, it stays above.
 
-**Built (branch hazel-route-card-bubble, not merged into route-card).** The route card's drawn part ends the box the bubble is
-clamped into, as the strip's clearance (`minY`) starts it: `BubbleFloor.kt` (new), `bubblePlacement` (`MapBubbles.kt`, the
-flip and the clamp take `bottom` in place of `maxHeight` where the bubble meets the card sideways), passed through
-`AnchoredAtScreenPoint`, `MapBubbleLayer`, `CompactMapBubble`, from `routeCardCoverInRoot` (`AvailabilityCompactMapUi.kt`, the
-`CompactMapBubble` call). The drawn part is the whole card at peek or expanded, its 24 dp strip once tucked
-(`RouteCardAttributionCover.kt`), so a tucked card limits only a bubble that meets its strip. An anchor under the card: the clamp
-puts the bubble's bottom on the card's top and its tail runs on to the anchor under the card, which is what the clamp does at the
-strip when "Flip below" does not fit.
+**Kept above (first Hazel, unchanged).** The route card's drawn part ends the box the bubble is clamped into, as the strip's
+clearance (`minY`) starts it: `BubbleFloor.kt`, `bubblePlacement` (`MapBubbles.kt`), passed through `AnchoredAtScreenPoint`,
+`MapBubbleLayer`, `CompactMapBubble`, from `routeCardCoverInRoot` (`AvailabilityCompactMapUi.kt`, the `CompactMapBubble` call). The
+drawn part is the whole card at peek or expanded, its 24 dp strip once tucked, so a tucked card limits only a bubble that meets it.
 
-**Runs.** Red (test only, on route-card cf8b3a07f): 42595962890, portrait "tucked, over the strip: the bubble 23.3..303.3 x
-486.7..590.7 ends at or above 583.0", landscape "at peek: the bubble 319.0..599.0 x 159.7..263.7 ends at or above 256.0". With the
-change: 42596008047, portrait passes (tucked and peek: bubble bottom 571 against 583; expanded: 463 against 475), BubbleFloorTest
-3/3, MapBubblesTest 25/25, AvailabilityScreenMapBubblesTest 15/15, CartographyEntryMapBubblesTest 3/3; landscape passes tucked
-and peek (bubble bottom 244 against 256) and fails expanded: "the bubble 319.0..599.0 x 64.0..168.0 ends at or above 148.0".
+**Over the card where there is no room (this pass).**
+- `MapBubbles.kt:534-535`: where the card's top minus the bubble's height is above `minY`, `overFloor` is set and the box's bottom
+  goes back to the layer's own bottom, so the flip and the clamp place the bubble exactly as with no card;
+  `BubblePlacement.overFloor` (`:494`) carries it out (`:549`).
+- `MapBubble.kt:101, :124`: `AnchoredAtScreenPoint` reports it at each placement (`onOverFloor`); `MapBubbleLayer.kt:63, :144, :155`
+  passes it through.
+- `CompactMapBubble.kt:77, :111`: the layer takes `zIndex(BUBBLE_OVER_CARD_Z)` (1) only while its placement says over the card, so
+  it draws and hit-tests over the card, a sibling at 0 composed after it.
+- `AvailabilityCompactMapUi.kt:693`: the chrome composed after the card (the landscape navigation card, the bottom chrome, the
+  pickers) is wrapped in a `matchParentSize` Box at `MAP_CHROME_AFTER_CARD_Z` (2), always, so a raised bubble stays under it as it
+  does at rest. They were already last in that Box, so at rest nothing moves. Reasons and the two rejected ways (a second call site
+  after the card, which would lose the layer's remembered state on the switch; lowering the card, which would put it under the map)
+  are in `BubbleFloor.kt`'s header.
 
-**Why it stops.** In the S22's landscape window (823 x 384 dp) the expanded card's top is at 148 dp and the bubble may start no
-higher than about 52 dp (below the strip); a waypoint bubble is 104 dp drawn, 128 dp with its tail margin, so it fits between the
-strip and the expanded card nowhere the two meet sideways. The clamp then keeps the strip's limit (as it always has when a bubble
-fits neither above nor below) and the bubble's lower 20 dp stays under the card. Keeping it above the card there needs a choice the
-ruling does not make, for example: (a) as built, the strip wins and the bubble's foot stays under the expanded card; (b) the bubble
-moves sideways clear of the card (a new placement rule); (c) the bubble drawn over the card in that case.
+**Runs.**
+- Red, test only, on 385677c73 (the floor, no over-card): **42601824280**. Landscape: "expanded: the bubble 319.0..599.0 x
+  64.0..168.0 is where the card does not limit it, 319.0..599.0 x 159.66667..263.66666 (top) expected:<159.66667> but was:<64.0>"
+  (the clamp under the card, as predicted). Portrait 1/1 and BubbleFloorTest 3/3 pass.
+- First fix run, **42601970670**: everything passed except one landscape touch, "a touch at Offset(1693.3, 557.0) on the bubble over
+  the card left it open". That touch was 4 dp from the 32 dp close button, inside its 48 dp touch target, and it closed the bubble.
+  The test's exclusion margin was wrong, not the change. The margin is now 12 dp. A Details step was also dropped: in landscape the
+  bubble's actions sit left of the card, so no Details is over it.
+- Green, **42604906657** (4fb42b5fc): RouteCardBubbleAboveCard portrait 1/1 and landscape 1/1, BubbleFloorTest 5/5,
+  MapBubblesTest 25/25, AvailabilityScreenMapBubblesTest 15/15, CartographyEntryMapBubblesTest 3/3. Landscape expanded: the bubble
+  319..599 x 159.7..263.7 dp, where it was with the card tucked, over the card 495.3..743 x 148..384; 13 real touches on it over the
+  card, clear of its buttons, each left it open with the map and the card untouched; a tap away on the open map closed it and the
+  card kept its bounds and stayed expanded.
+- Revert, z-order (the layer never raised; `CompactMapBubble.kt:77` to `Modifier`), **42604910437**: compiled (no `e:` lines,
+  compileDebugKotlin and compileDebugUnitTestKotlin ran). One failure, landscape: "a touch at Offset(1537.8, 557.0) on the bubble over
+  the card did not reach the route card" (the card's state changed). This revert can cause that failure; the placement assertions
+  before it pass. An earlier run of the same revert on the previous test (42602049025) failed at the same touch.
+- Revert, the floor (`bubbleBottomLimit` returns `maxHeight`, `BubbleFloor.kt`), **42604915206**: compiled (no `e:` lines).
+  Failures: portrait "tucked, over the strip: the bubble 23.333334..303.33334 x 486.66666..590.6667 ends at or above 583.0";
+  landscape "at peek: the bubble 319.0..599.0 x 159.66667..263.66666 ends at or above 256.0"; BubbleFloorTest 3 of 5 (the card's top
+  never reached, and overFloor never set). All of them follow from this revert. A first try at this revert, **42602052001**, removed
+  the null check, did not compile ("Only safe (?.) or non-null asserted (!!.) calls are allowed on a nullable receiver of type
+  'BubbleFloor?'", the smart-cast trap CLAUDE.md names), and is not cited.
+- Each revert was pushed as a throwaway commit made without moving the branch, then the file was restored from a copy saved before
+  the edit. Afterwards the forward line was confirmed present (`grep -c` = 1, clean tree).
 
 ## Confirmed vs inferred
 
-- Confirmed by the runs above: red for the reason predicted (no limit from the card) in both rotations; with the change, portrait
-  and landscape peek and tucked hold; landscape expanded does not fit.
-- Confirmed from source: the strip's limit is `minY` and the clamp coerces to it last (`bubblePlacement`); the card reports its drawn
-  part to `routeCardCoverInRoot`.
-- Inferred, not run: the card resting on the navigation card limits the bubble the same way (same cover rect).
+- Confirmed by the runs above: landscape expanded shows the bubble whole, over the card, where it would be with no card; real
+  touches on it over the card reach the bubble, not the card or the map, and the z-order revert fails exactly there; a tap away
+  closes it and the card is whole; portrait and landscape peek and tucked still hold; the floor's revert fails them.
+- Confirmed from source: the bubble is composed before the chrome and the card after it in `CompactMapTab`'s Box; the three
+  composables after the card are the only siblings after it.
+- Inferred, not run: the wrapper changes nothing at rest for the navigation card, the bottom chrome and the pickers (same Box size,
+  same loose constraints, no pointer input of its own). The full suite is the evidence there (see the by-name comparison).
 
 ## Could not determine
 
-- No revert check and no full CI run: stopped at the choice first. Not seen on a phone.
+- Not seen on a phone. Robolectric reports zero insets, so the exact landscape geometry on the S22 (where the strip and card sit)
+  is the device's to show.
+- Whether a bubble raised over the card also draws over the chips under the strip or the landscape L in some window: it sits over
+  every sibling at 0 while raised. It is clamped clear of the strip (`minY`) and the L (the insets), and not of the chips. Not seen.
 
 ## Premises that were wrong
 
-- That the bubble can always be kept above the card the way it is kept below the strip: not in landscape with the card expanded.
+- None in the dispatch. My first test assumed a Details action would sit over the card in landscape; it does not (the actions are
+  left of the card), so that step was dropped. Its exclusion margin also ignored the 48 dp touch target.
 
 ## Decided beyond scope
 
-- The card's limit applies only where the bubble meets the card sideways (the strip is full width, the card is not); a bubble
-  beside the card is not pushed up.
-- The crowded stack's list bubble and the landscape navigation card are not given the limit.
-
-## Questions
-
-- Landscape, card expanded: (a), (b) or (c) above?
+- The chrome after the card is raised always (z 2), not only while a bubble is over the card, so that nothing depends on a second
+  switch. At rest it is the same order as before.
+- "No room" is tested where the card meets the bubble sideways, the same columns test as the floor.
 
 ## S22 steps
 
 25. **The bubble above the card.** Portrait: open a saved route's card, tuck it, tap a waypoint where the card rested, bring the card
     back: the bubble's bottom is on or above the card's top, its tail running under the card to the waypoint; expand: the same against
-    the expanded top. Landscape: the same at peek; tucked, a bubble away from the strip is not moved.
+    the expanded top. Landscape: the same at peek; tucked, a bubble away from the strip is not moved. Landscape, card expanded: the
+    bubble shows whole, over the card, where it was with the card tucked; tap on its text: it stays and the card does not react; tap the
+    open map beside the card: the bubble closes and the card is whole and still expanded. With the bubble over the card, open the Layers
+    panel: the panel is over the bubble.
