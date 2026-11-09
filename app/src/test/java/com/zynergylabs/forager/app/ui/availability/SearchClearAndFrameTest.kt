@@ -83,7 +83,7 @@ class SearchClearAndFrameTest {
         rig.setScreen()
         assertTrue("positive control: a fresh start reads <${defaultSummary()}>", summaryShown(defaultSummary()))
         pickChanterelle()
-        rig.searchCoordinates("45.326", "-122.634")
+        rig.searchCoordinates("45.3736", "-121.6959")
         assertEquals("positive control: the species is selected", chanterelle.toFilter(), rig.viewModel.uiState.value.taxonFilter)
         assertTrue("positive control: the bar names the species", summaryShown("${chanterelle.commonName} · ${defaultSummary().substringBefore(" · ")}", substring = true))
         val recentBefore = rig.viewModel.uiState.value.recentSearches
@@ -108,7 +108,7 @@ class SearchClearAndFrameTest {
     @Test
     fun `Clear also removes the map's View on Map chip`() {
         rig.setScreen()
-        rig.searchCoordinates("45.326", "-122.634")
+        rig.searchCoordinates("45.3736", "-121.6959")
         rig.touch(composeRule.onNodeWithText("List"))
         rig.settle()
         rig.touch(composeRule.onNodeWithText("View on Map"))
@@ -130,7 +130,7 @@ class SearchClearAndFrameTest {
 
     // ── Item 5 ──
 
-    private val near = Region(45.326, -122.634, 8)
+    private val near = Region(45.3736, -121.6959, 8)
     private val far = Region(-41.2865, 174.7762, 8)
 
     private fun touchRecentRow(coordinates: String) {
@@ -146,7 +146,7 @@ class SearchClearAndFrameTest {
     fun `a recent search far away hands the map its region and a new frame request, which ends following and frames it`() {
         rig.setScreen()
         rig.searchCoordinates("-41.2865", "174.7762")
-        rig.searchCoordinates("45.326", "-122.634")
+        rig.searchCoordinates("45.3736", "-121.6959")
         assertEquals("positive control: the map shows the near search", near, rig.mapRegion)
         val before = rig.mapSearchFrameRequestId
 
@@ -165,7 +165,7 @@ class SearchClearAndFrameTest {
     fun `each location search asks for a frame, a month change does not, and locate resumes following`() {
         rig.setScreen()
         val start = rig.mapSearchFrameRequestId
-        rig.searchCoordinates("45.326", "-122.634")
+        rig.searchCoordinates("45.3736", "-121.6959")
         assertEquals("coordinates asked for a frame", start + 1, rig.mapSearchFrameRequestId)
 
         // Search, the bottom row's current-location search.
@@ -205,7 +205,7 @@ class SearchClearAndFrameTest {
     @Test
     fun `a locate from before a search is not the pan target of the map that returns from the spinner`() {
         rig.setScreen()
-        rig.searchCoordinates("45.326", "-122.634")
+        rig.searchCoordinates("45.3736", "-121.6959")
         rig.settle()
         // Stands in for MainActivity's permission-granted call: the rig's locate button is not wired past the Activity's gate.
         composeRule.runOnUiThread { rig.viewModel.locateMe() }
@@ -239,7 +239,7 @@ class SearchClearAndFrameTest {
         // which the rig does not wire through).
         composeRule.runOnUiThread { rig.viewModel.locateMe() }
         rig.settle()
-        rig.searchCoordinates("45.326", "-122.634")
+        rig.searchCoordinates("45.3736", "-121.6959")
         rig.settle()
         assertNull("positive control: the search's map has no locate-me target", rig.mapFocusOverride)
 

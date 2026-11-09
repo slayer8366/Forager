@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.motion.clickableWithShapedPress
@@ -63,7 +64,13 @@ internal fun SourcesAndCreditsPage(onOpenSoftware: () -> Unit, modifier: Modifie
         DATA_SOURCE_SECTIONS.forEach { section ->
             Text(section.title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = Spacing.sm))
             section.credits.forEach { credit ->
-                SourceCreditRow(credit, onOpen = { openWebLink(context, credit.url) })
+                val url = credit.url
+                val linkLabel = credit.linkLabel
+                if (url != null && linkLabel != null) {
+                    SourceCreditRow(credit, linkLabel, onOpen = { openWebLink(context, url) })
+                } else {
+                    SourcePlainCreditRow(credit)
+                }
                 credit.detail?.let { detail ->
                     Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
@@ -75,23 +82,38 @@ internal fun SourcesAndCreditsPage(onOpenSoftware: () -> Unit, modifier: Modifie
 }
 
 @Composable
-private fun SourceCreditRow(credit: SourceCredit, onOpen: () -> Unit) {
+private fun SourceCreditRow(credit: SourceCredit, linkLabel: String, onOpen: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
             .testTag(sourceCreditRowTag(credit.key))
-            .clickableWithShapedPress(role = Role.Button, onClickLabel = "Open ${credit.linkLabel}", onClick = onOpen),
+            .clickableWithShapedPress(role = Role.Button, onClickLabel = "Open $linkLabel", onClick = onOpen),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
         Text(credit.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
         Text(
-            "${credit.linkLabel} ›",
+            "$linkLabel ›",
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.testTag(sourceCreditLinkTag(credit.key)),
         )
+    }
+}
+
+/** A source with nothing to link to (public domain): its credit alone, at a row's height, and no touch target. */
+@Composable
+private fun SourcePlainCreditRow(credit: SourceCredit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .testTag(sourceCreditRowTag(credit.key))
+            .semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(credit.text, style = MaterialTheme.typography.bodyLarge)
     }
 }
 

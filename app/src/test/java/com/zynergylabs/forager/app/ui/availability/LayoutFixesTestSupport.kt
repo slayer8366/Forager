@@ -26,6 +26,7 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.testing.MadeUpPlace
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
@@ -75,8 +76,8 @@ internal class LayoutFixesMapSlot {
     }
 }
 
-internal val LAYOUT_FIXES_REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
-internal val LAYOUT_FIXES_FIX_LOCATION = LatLng(45.3301, -122.6402)
+internal val LAYOUT_FIXES_REGION = Region(lat = MadeUpPlace.LAT, lng = MadeUpPlace.LNG, radiusKm = 15)
+internal val LAYOUT_FIXES_FIX_LOCATION = LatLng(45.3777, -121.7021)
 
 /** A searched state with a live fix, so the compass strip shows its coordinate readout. */
 internal val LAYOUT_FIXES_FIX_STATE = AvailabilityUiState(
@@ -89,7 +90,7 @@ internal val LAYOUT_FIXES_FIX_STATE = AvailabilityUiState(
         timestampEpochMillis = System.currentTimeMillis(),
         provider = FixProvider.GPS,
     ),
-)
+).withFixHeight()
 
 /** One saved day entry shown on the map, so J8's chip shows ("1 journal entry on map"). */
 internal val LAYOUT_FIXES_SHOWN_ENTRY_STATE = CartographyUiState(

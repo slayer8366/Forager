@@ -20,7 +20,7 @@ import org.maplibre.android.location.modes.CameraMode
 /**
  * What [SightingsMap] lays out, in its paint and touch order: the MapView in an [AndroidView] (its factory attaching
  * the one touch listener, which never consumes), the cover picture over it while a returning map reloads, and the
- * always-visible credit caption. Moved whole from [SightingsMap] by UI split Phase 2.2, PR 10 (dispatch
+ * credit caption, shown and then faded into the "i" (D25, D26: [MapCreditStrip]). Moved whole from [SightingsMap] by UI split Phase 2.2, PR 10 (dispatch
  * 2026-10-19-29), called last there, where it stood, so it is still composed after every effect and released first.
  * [modifier] is [SightingsMap]'s own; [fanSpace] is the latest one, as the layout always read. Holder states and
  * objects are read and written through [state]. The comments inside are the block's own.
@@ -34,6 +34,7 @@ internal fun SightingsMapLayout(
     drawnLayersState: MapLayersState,
     nightMode: Boolean,
     bottomInset: Dp,
+    onCreditSizeChanged: (androidx.compose.ui.unit.IntSize) -> Unit,
     fanSpace: MapFanSpace,
 ) {
     Box(modifier = modifier.fillMaxSize()) {
@@ -108,7 +109,15 @@ internal fun SightingsMapLayout(
                     state.mapSizePx = it
                     state.navigationMapHeightPx = it.height
                 }
-                .onViewportResized { state.mapView.post { state.mapLibreMap?.let(state::reanchorFocusedBubble) } },
+                .onViewportResized {
+                    state.mapView.post {
+                        state.mapLibreMap?.let { map ->
+                            state.reanchorFocusedBubble(map)
+                            // Dispatch 2026-11-04-02, A1: the crowded stack's list bubble too.
+                            state.reanchorCrowdedList(map)
+                        }
+                    }
+                },
         )
         // RECORD -761: the cover, over the map and under everything else; no pointer input, so touches reach the map.
         if (state.coverPicture != null && state.coverPhase != CoverPhase.GONE) {
@@ -135,13 +144,20 @@ internal fun SightingsMapLayout(
         // matters for this app's USGS/ODbL credit and shouldn't quietly become tap-only.
         // A list of credits since map layers L0a (A5): the basemap's, then each visible layer's own
         // (none of today's layers has one, so the text is exactly what it always was).
-        MapCreditCaption(
-            text = attributionCaption(mapCreditsFor(basemap, useOfflineTiles, activeLayerCredits(MAP_LAYER_REGISTRY, drawnLayersState), nightMode, ownStreet = OWN_STREET_FALLBACK.ownStreet())),
+        // D25, D26 (RECORD -1968, -1969): shown when this map is made or its words change, then faded into the "i" after 5 s or
+        // at the first pan or zoom, never while OpenStreetMap's tiles are drawn (MapCreditStrip.kt).
+        MapCreditStrip(
+            basemap = basemap,
+            useOfflineTiles = useOfflineTiles,
+            layerCredits = activeLayerCredits(MAP_LAYER_REGISTRY, drawnLayersState),
+            nightMode = nightMode,
+            ownTrail = OWN_TRAIL_FALLBACK.ownTrail(),
+            userCameraGestures = state.userCameraGestures,
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(bottom = bottomInset)
-                // RECORD -954: its laid-out width, for the "i" beside it in landscape.
-                .onSizeChanged { state.creditWidthPx = it.width },
+                // D13 (RECORD -1955): its size, for the compact Maps tab (since D24, D17's Re-center beside the L keeps clear of it).
+                .onSizeChanged { onCreditSizeChanged(it) },
         )
     }
 }

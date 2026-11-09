@@ -75,7 +75,7 @@ class DecodedPhotoSemanticsTest {
     }
 
     private fun entryWithPhoto() = MushroomLogEntry
-        .draft(id = "semantics-entry", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+        .draft(id = "semantics-entry", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1))
         .copy(photos = listOf(photo))
 
     private fun photoNodes() = composeRule.onAllNodesWithContentDescription("Log photo")

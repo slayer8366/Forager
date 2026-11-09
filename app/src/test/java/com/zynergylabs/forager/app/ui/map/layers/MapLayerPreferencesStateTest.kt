@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map.layers
 
+import com.zynergylabs.forager.app.ui.map.withReferenceTrailsHiddenUnlessLoaded
 import com.zynergylabs.forager.app.domain.MapLayerPreferences
 import com.zynergylabs.forager.app.ui.map.Basemap
 import com.zynergylabs.forager.app.ui.map.attributionCaption
@@ -126,11 +127,15 @@ class MapLayerPreferencesStateTest {
             registry,
             available = setOf(MapLayerIds.FORECAST_CHANTERELLES, MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS),
         )
-        val credits = mapCreditsFor(Basemap.OSM_STANDARD, useOfflineTiles = false, layerCredits = activeLayerCredits(registry, both))
-        assertEquals(listOf(mapAttributionFor(Basemap.OSM_STANDARD, false), "Synthetic test data"), credits)
-        assertEquals("© OpenStreetMap contributors · Synthetic test data", attributionCaption(credits))
+        // Step 8b: as the map draws it, with the official-trails band hidden on a style without it (SightingsMap.kt).
+        // Topographical by day since dispatch 2026-11-03-05 D7 (the Street map's credit lives in ui/map/street/).
+        val credits = mapCreditsFor(Basemap.OPEN_TOPO_MAP, useOfflineTiles = false, layerCredits = activeLayerCredits(registry, withReferenceTrailsHiddenUnlessLoaded(both, loaded = false)))
+        assertEquals(listOf(mapAttributionFor(Basemap.OPEN_TOPO_MAP, false), "Synthetic test data"), credits)
+        assertEquals("© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA) · Synthetic test data", attributionCaption(credits))
 
-        val none = withUnavailableColourFieldsHidden(MapLayersState.DEFAULT, registry, available = emptySet())
+        // Step 8b: as the map draws it, with the official-trails band hidden on a style without it (SightingsMap.kt), so
+        // the only credit in question here is the synthetic one.
+        val none = withReferenceTrailsHiddenUnlessLoaded(withUnavailableColourFieldsHidden(MapLayersState.DEFAULT, registry, available = emptySet()), loaded = false)
         assertEquals(emptyList<String>(), activeLayerCredits(registry, none))
 
         val userHidBoth = both.copy(
@@ -138,6 +143,6 @@ class MapLayerPreferencesStateTest {
                 (MapLayerIds.FORECAST_CHANTERELLES to LayerState(visible = false)) +
                 (MapLayerIds.FORECAST_CHICKEN_OF_THE_WOODS to LayerState(visible = false)),
         )
-        assertEquals(emptyList<String>(), activeLayerCredits(registry, userHidBoth))
+        assertEquals(emptyList<String>(), activeLayerCredits(registry, withReferenceTrailsHiddenUnlessLoaded(userHidBoth, loaded = false)))
     }
 }

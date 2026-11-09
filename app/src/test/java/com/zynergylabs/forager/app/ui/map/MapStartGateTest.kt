@@ -53,9 +53,9 @@ class MapStartGateTest {
 
     private fun composeRealMap() = composeRule.setContent {
         SightingsMapSlot(
-            Region(lat = 45.5, lng = -122.6, radiusKm = 5),
+            Region(lat = 45.5, lng = -121.19375, radiusKm = 5),
             MapOverlayContent(),
-            MapRenderMode(basemap = Basemap.OSM_STANDARD),
+            MapRenderMode(basemap = Basemap.OPEN_TOPO_MAP),
             null,
             {},
             {},

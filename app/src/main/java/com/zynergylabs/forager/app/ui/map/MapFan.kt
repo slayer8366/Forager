@@ -3,7 +3,9 @@ package com.zynergylabs.forager.app.ui.map
 import android.content.res.Resources
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.snapshotFlow
 import com.zynergylabs.forager.app.domain.JournalEntryHighlights
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
@@ -14,6 +16,7 @@ import com.zynergylabs.forager.app.ui.map.fanout.FanMember
 import com.zynergylabs.forager.app.ui.map.fanout.FanOutHideGate
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
+import com.zynergylabs.forager.app.ui.map.layers.LayerRenderer
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
 import kotlinx.coroutines.Job
@@ -42,7 +45,13 @@ internal fun MapFan(
     returnMemory: MapReturnMemory?,
     chromeColour: Int,
     resources: Resources,
+    /**
+     * A saved route's selected stop's highlight in this frame, whose fanned copy draws the accent (dispatch 2026-11-06-05, Amendment 6 B),
+     * fading and pulsing with it (Amendment 7); none by default.
+     */
+    accentFrame: RouteStopAccentFrame = RouteStopAccentFrame.NONE,
 ) {
+    val currentAccentFrame by rememberUpdatedState(accentFrame)
     // Layer visibility and opacity (map layers L0a, A3): each native layer's `visibility` layout
     // property and its opacity paint properties set from layersState through layerPaintFor, on the
     // loaded style's own layers — no setStyle, so nothing is rebuilt. Keyed on loadedStyle as well,
@@ -65,7 +74,9 @@ internal fun MapFan(
     // changes nothing, and the originals stay hidden (the planner's review of a5185a2f).
     val fanHideGate = remember(state.loadedStyle) { FanOutHideGate() }
     LaunchedEffect(state.loadedStyle, state.mapLibreMap, focusedObservationId) {
-        val style = state.loadedStyle ?: return@LaunchedEffect
+        // Dispatch 2026-10-25-02 (RECORD -1634): the style only while fully loaded, here and at each step below; a style
+        // change skips, logged, and the new style's load starts this effect again (loadedStyle is a key).
+        val style = currentStyle(state.loadedStyle, "The fan") ?: return@LaunchedEffect
         val map = state.mapLibreMap ?: return@LaunchedEffect
         val density = resources.displayMetrics.density
         val effectScope = this
@@ -75,7 +86,13 @@ internal fun MapFan(
         var hiddenFor: List<FanMember>? = null
         // True to start with, so a restart that finds the fan folding drops a wait that was still pending (gate.onFold) on its first pass.
         var wasOpen = true
-        snapshotFlow { Triple(state.fanOut.members, state.fanOut.progress, state.fanOut.wantOpen) }.collect { (members, progress, wantOpen) ->
+        // Amendment 6 B: the selected stop is read with the fan, so a stop picked from the open fan takes the accent on its copy at once.
+        // Amendment 7: and the highlight's frame while a fan is up, so its copy fades and pulses with it; with no fan it moves nothing here.
+        snapshotFlow {
+            val members = state.fanOut.members
+            FanStep(members, state.fanOut.progress, state.fanOut.wantOpen, if (members.isEmpty()) RouteStopAccentFrame.NONE else currentAccentFrame)
+        }.collect { (members, progress, wantOpen, accentNow) ->
+            if (currentStyle(style, "A fan step") == null) return@collect
             if (hiddenFor !== members) {
                 hiddenFor = members
                 waiting?.cancel()
@@ -87,13 +104,14 @@ internal fun MapFan(
                     // renderer reports the originals drawn, so the stack is never empty for a frame at the fold's end.
                     clearing = effectScope.launch {
                         clearCopiesWhenOriginalsDrawn(map, state.mapView, step.reveal) {
-                            pushFanFrame(style, fanFrameCollections(emptyList(), { fanMemberLatLng(map, it, 0f, density) }, focusedObservationId, 0f, drawOrder = orderedLayers(MAP_LAYER_REGISTRY, state.layersState)))
+                            // Dispatch 2026-10-25-02 (RECORD -1634): the wait spans frames; not on a replaced style (logged).
+                            if (currentStyle(style, "Clearing the fan's copies") != null) pushFanFrame(style, fanFrameCollections(emptyList(), { fanMemberLatLng(map, it, 0f, density) }, focusedObservationId, 0f, drawOrder = orderedLayers(MAP_LAYER_REGISTRY, state.layersState)))
                         }
                     }
                 }
                 if (step.awaiting) {
                     waiting = effectScope.launch {
-                        hideWhenCopiesDrawn(style, map, state.mapView, gate, members, step.generation) { state.fanOut.progress >= 1f }
+                        hideWhenCopiesDrawn(style, map, state.mapView, gate, members, step.generation, atRest = { state.fanOut.progress >= 1f }, accent = { currentAccentFrame.selectedKey })
                     }
                 }
             }
@@ -109,6 +127,8 @@ internal fun MapFan(
                 fanFrameCollections(
                     members, { fanMemberLatLng(map, it, progress, density) }, focusedObservationId, progress,
                     drawOrder = orderedLayers(MAP_LAYER_REGISTRY, state.layersState),
+                    accent = accentNow.selectedKey,
+                    accentMotion = accentNow.shown.associateBy { it.key },
                 ),
             )
         }
@@ -126,19 +146,30 @@ internal fun MapFan(
     // state (fanFadedPaint multiplies the resolved paint) and the restore on folding is the state's own
     // value. Device-only: see FanClarity.kt.
     LaunchedEffect(state.loadedStyle, drawnLayersState) {
-        val style = state.loadedStyle ?: return@LaunchedEffect
+        // Dispatch 2026-10-25-02 (RECORD -1634): as the fan's effect above, at the start and at each change.
+        val style = currentStyle(state.loadedStyle, "The fan's fade") ?: return@LaunchedEffect
         snapshotFlow { state.fanOut.isOpen }.collect { fanOpen ->
-            MAP_LAYER_REGISTRY.forEach { spec -> applyLayerPaint(style, fanFadedPaint(spec, layerPaintFor(spec, drawnLayersState), fanOpen)) }
+            if (currentStyle(style, "A fan fade") == null) return@collect
+            MAP_LAYER_REGISTRY.forEach { spec ->
+                val paint = fanFadedPaint(spec, layerPaintFor(spec, drawnLayersState), fanOpen)
+                // Step 8b: a layer the style carries (the official-trails band) takes its visibility only, and is
+                // passed over quietly on a style without it (ReferenceTrailsVisibility.kt). This is the switch's path.
+                if (spec.renderer == LayerRenderer.STYLE_LAYER) applyStyleLayerPaint(MapLibreStyleLayerSwitches(style), paint) else applyLayerPaint(style, paint)
+            }
         }
     }
 
     // Item 3: the circles' colour is the map chrome's, which follows the app's theme, so a theme change
     // recolours them on the loaded style (the layer was built with the colour current at style load).
     LaunchedEffect(state.loadedStyle, chromeColour) {
-        val style = state.loadedStyle ?: return@LaunchedEffect
+        // Dispatch 2026-10-25-02 (RECORD -1634): skipped in a style change, logged; the new style's load runs it again.
+        val style = currentStyle(state.loadedStyle, "The fan circles' colour") ?: return@LaunchedEffect
         if (fanCircleNeedsRecolour(state.fanCircleColour[0], chromeColour)) {
             applyFanCircleStyle(style, chromeColour, resources.displayMetrics.density)
             state.fanCircleColour[0] = chromeColour
         }
     }
 }
+
+/** One step of the fan as the drawing effect reads it: its members, progress and intent, and the selected stop's highlight (Amendment 6 B, 7). */
+private data class FanStep(val members: List<FanMember>, val progress: Float, val wantOpen: Boolean, val accent: RouteStopAccentFrame)

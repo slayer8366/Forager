@@ -55,8 +55,8 @@ class MushroomLogEntryMigrationTest {
     fun `a pre-existing entry keeps its coordinates, and a new entry saved with no location round-trips as null`() = runTest {
         val context = ApplicationProvider.getApplicationContext<Application>()
 
-        val legacyTrip = PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -122.66, date = "2026-09-01")
-        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -122.6), date = LocalDate.of(2026, 8, 1))
+        val legacyTrip = PlannedTripEntity(id = "trip-1", name = "Chanterelle Ridge", lat = 45.51, lng = -121.76, date = "2026-09-01")
+        val legacyEntry = MushroomLogEntry.draft(id = "entry-1", location = LatLng(45.5, -121.7), date = LocalDate.of(2026, 8, 1))
 
         val legacyDb = Room.databaseBuilder(context, LegacyForagerDatabaseV6::class.java, dbFile.absolutePath).build()
         try {
@@ -96,7 +96,7 @@ class MushroomLogEntryMigrationTest {
             // to build test fixture data, not itself evidence of anything about drafts) defaults
             // that way today; the migrated row correctly does not carry that default through.
             assertEquals(listOf(legacyEntry.copy(isDraft = false)), survivedEntries)
-            assertEquals(LatLng(45.5, -122.6), survivedEntries.single().foundAt)
+            assertEquals(LatLng(45.5, -121.7), survivedEntries.single().foundAt)
 
             // The migration this file exists to prove: a brand-new entry saved with no location at
             // all (only representable post-migration — lat/lng were NOT NULL before MIGRATION_6_7)

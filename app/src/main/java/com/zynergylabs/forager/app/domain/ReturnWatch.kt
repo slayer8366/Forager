@@ -112,6 +112,23 @@ class ReturnWatch(
      * setting's own default.
      */
     private val isReminderOn: () -> Boolean = { true },
+    /**
+     * The trail part of the way home shown now for a track, or `null` when none is (dispatch 2026-10-25-08, plan step
+     * 7 PR 1; RECORD -1631). [shownTrailOf] over `WayHomeWatch` in production. Called with [lock] held: it reads
+     * `WayHomeWatch.shown`'s value, which takes no lock, and `WayHomeWatch.progressFor`, which takes the way-home watch's
+     * own. That order, this lock then that one, is the only one: nothing the way-home watch calls under its lock takes
+     * this one (its `isReturning` reads [state]'s value). Every trail part shown on a return is kept for the rest of it
+     * and counts as on course beside the path, so following the app's own trail line home does not alert.
+     *
+     * The dotted part back along the walker's stray counts only while they head back along it (dispatch 2026-10-25-09
+     * Amendments 1 and 2; RECORD -1637, -1640, on Sorrel's 402-1), judged afresh on every reading by [isHeadingBackAlong].
+     * #402 first counted it whenever shown (RECORD -1635), and a walker straying steadily was re-routed every 50 m, the
+     * new dotted part reached back to them, and the alert never came. Only the dotted part of the way home shown now
+     * counts: an earlier one has no place of the walker on it. The line's last part, from where the walker joined the
+     * trail back to the start, is stored points from before Return, already in the path. The track-only way home is not
+     * counted (RECORD -1640, deferred).
+     */
+    private val wayHomeTrail: (trackId: String) -> ShownTrail? = { null },
 ) {
     private val _state = MutableStateFlow(ReturnWatchState())
     val state: StateFlow<ReturnWatchState> = _state.asStateFlow()
@@ -144,6 +161,11 @@ class ReturnWatch(
     // path: the start can reach the watch a moment after Return does. Null whenever no return is
     // under way, so a new return starts with a fresh judge, armed.
     private var judge: OffTrackJudge? = null
+
+    // The trail parts of every way home shown on this return, and the generation of the last one taken (RECORD -1631).
+    // The dotted part is not kept here: it is judged on each reading ([dottedPartNow]).
+    private val trailsShown = mutableListOf<List<LatLng>>()
+    private var lastTrailGeneration: Long? = null
 
     /** How many kept points the path a return is measured against has. For tests. */
     internal val pathPointCount: Int get() = synchronized(lock) { pathAtReturn.size }
@@ -186,6 +208,7 @@ class ReturnWatch(
         if (!holdFor(trackId)) return@synchronized false
         pathAtReturn = keptPoints.toList()
         judge = null
+        forgetTrails()
         returning = true
         offTrack = false
         leftArrivalCircle = false
@@ -200,6 +223,7 @@ class ReturnWatch(
             if (trackId != this.trackId) return
             pathAtReturn = emptyList()
             judge = null
+            forgetTrails()
             returning = false
             offTrack = false
             leftArrivalCircle = false
@@ -252,7 +276,9 @@ class ReturnWatch(
             if (returning && hasArrivedAfterLeaving(current, provider, start)) {
                 endReturnOnArrival()
             } else if (returning) {
-                val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current, provider)
+                val dotted = dottedPartNow(takeTrailShown(), LatLng(current.lat, current.lng))
+                val alsoOn = if (dotted.isEmpty()) trailsShown else trailsShown + listOf(dotted)
+                val verdict = (judge ?: OffTrackJudge(listOf(start) + pathAtReturn).also { judge = it }).next(current, provider, alsoOn = alsoOn)
                 offTrack = verdict.isOffTrack
                 shouldAlert = verdict.alert
             }
@@ -301,6 +327,7 @@ class ReturnWatch(
     private fun endReturnOnArrival() {
         pathAtReturn = emptyList()
         judge = null
+        forgetTrails()
         returning = false
         offTrack = false
         leftArrivalCircle = false
@@ -327,6 +354,33 @@ class ReturnWatch(
         keptPoints.clear()
         pathAtReturn = emptyList()
         judge = null
+        forgetTrails()
+    }
+
+    /**
+     * Keeps the trail part of the way home shown now, if it is one not yet kept on this return, and returns what is shown
+     * now, or `null`. Call with [lock] held.
+     */
+    private fun takeTrailShown(): ShownTrail? {
+        val id = trackId ?: return null
+        val shown = wayHomeTrail(id) ?: return null
+        if (shown.generation == lastTrailGeneration) return shown
+        lastTrailGeneration = shown.generation
+        if (shown.points.isNotEmpty()) trailsShown += shown.points
+        return shown
+    }
+
+    /** The dotted part of [shown] when the walker at [here] is heading back along it, else nothing. */
+    private fun dottedPartNow(shown: ShownTrail?, here: LatLng): List<LatLng> {
+        if (shown == null) return emptyList()
+        val line = shown.line ?: return emptyList()
+        return if (shown.trackBack.isNotEmpty() && isHeadingBackAlong(line, shown.place, here)) shown.trackBack else emptyList()
+    }
+
+    /** Call with [lock] held. */
+    private fun forgetTrails() {
+        trailsShown.clear()
+        lastTrailGeneration = null
     }
 
     /** Call with [lock] held, so the published states are in the order the changes happened. */

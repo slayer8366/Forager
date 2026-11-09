@@ -57,6 +57,33 @@ env:
   BUILD_TOOLS_VERSION: "37.0.0"
 
 jobs:
+  no-debug-sources:
+    name: No debug-only sources on pre-main or main
+    # pre-main and main build the shipped app; development builds are made on throwaway branches
+    # that are never merged (dispatch 2026-10-29-05). scripts/verify-no-debug-sources.sh says what
+    # it checks. A separate job rather than a step in build, so it answers in seconds and its
+    # result reads on its own.
+    #
+    # Which runs it guards, and how it tells them apart: a push to main or pre-main, a PR whose base
+    # is main or pre-main, and "Run this branch" only when the branch run is main or pre-main
+    # itself. A development-build branch run with `gh workflow run ci.yml --ref <branch>` is a
+    # workflow_dispatch whose ref is that branch, not main or pre-main, so the job is skipped there
+    # and the rest of the workflow builds it as usual. A push to dev is skipped for the same reason.
+    # If such a branch is ever opened as a PR into pre-main or main, its base_ref matches and the
+    # job fails, which is the point.
+    if: >-
+      (github.event_name == 'pull_request' &&
+        (github.base_ref == 'pre-main' || github.base_ref == 'main')) ||
+      (github.event_name != 'pull_request' &&
+        (github.ref == 'refs/heads/pre-main' || github.ref == 'refs/heads/main'))
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - name: Check out
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Check for debug-only sources
+        run: ./scripts/verify-no-debug-sources.sh
+
   build:
     name: Build, test, publish APK
     # Pinned rather than ubuntu-latest: `latest` silently moves to the next image, which is a
@@ -187,8 +214,11 @@ jobs:
           TESTS: ${{ inputs.tests }}
         run: |
           set -euo pipefail
+          # Two test JVMs (dispatch 2026-10-26-08): testDebugUnitTestOlderSdks runs the classes on Android
+          # SDKs other than 36 (gradle/older-sdk-tests.gradle.kts) and testDebugUnitTest the rest. The second
+          # finalizes the first, so it runs even when the first fails; it is named here so the command says so.
           if [ -z "${TESTS//[[:space:]]/}" ]; then
-            ./gradlew --stacktrace testDebugUnitTest
+            ./gradlew --stacktrace testDebugUnitTest testDebugUnitTestOlderSdks
             exit 0
           fi
           if [[ "$TESTS" == *$'\n'* ]]; then
@@ -220,7 +250,10 @@ jobs:
           for ((i = 1; i < ${#args[@]}; i += 2)); do
             printf 'Test filter pattern: %s\n' "${args[i]}"
           done
-          ./gradlew --stacktrace testDebugUnitTest "${args[@]}"
+          # The filter goes to both tasks; forager.filteredTestRun lets the one it matches nothing in pass
+          # empty. A filter matching nothing in either still fails the summary below ("no tests ran").
+          ./gradlew --stacktrace -Pforager.filteredTestRun=true \
+            testDebugUnitTest "${args[@]}" testDebugUnitTestOlderSdks "${args[@]}"
 
       - name: Summarize the test results
         # Runs even when the test task failed, so the summary reports the failure rather than
@@ -238,12 +271,31 @@ jobs:
           import sys
           import xml.etree.ElementTree as ET
 
-          results = sorted(glob.glob("app/build/test-results/testDebugUnitTest/TEST-*.xml"))
+          # Both test tasks' XML (dispatch 2026-10-26-08). On an unfiltered run each must have written some,
+          # and no class may appear in both: a class in both ran twice, a class in neither did not run.
+          task_dirs = ("testDebugUnitTest", "testDebugUnitTestOlderSdks")
+          filtered = bool(os.environ.get("TESTS", "").strip())
+          results = []
+          for task in task_dirs:
+              found = sorted(glob.glob("app/build/test-results/{}/TEST-*.xml".format(task)))
+              if not found and not filtered:
+                  sys.exit(
+                      "No JUnit XML in app/build/test-results/{}/. The test task "
+                      "produced no results at all, which is a failure, not an empty pass.".format(task)
+                  )
+              print("{}: {} result files".format(task, len(found)))
+              results += found
           if not results:
               sys.exit(
-                  "No JUnit XML in app/build/test-results/testDebugUnitTest/. The test task "
+                  "No JUnit XML from either test task. The filtered run "
                   "produced no results at all, which is a failure, not an empty pass."
               )
+          seen_in = {}
+          for path in results:
+              seen_in.setdefault(os.path.basename(path), []).append(path)
+          twice = sorted(name for name, paths in seen_in.items() if len(paths) > 1)
+          if twice:
+              sys.exit("Test classes ran in both test tasks: " + ", ".join(twice))
 
           keys = ("tests", "failures", "errors", "skipped")
           totals = dict.fromkeys(keys, 0)
@@ -486,7 +538,84 @@ jobs:
           path: |
             app/build/reports/tests/testDebugUnitTest/
             app/build/test-results/testDebugUnitTest/
+            app/build/reports/tests/testDebugUnitTestOlderSdks/
+            app/build/test-results/testDebugUnitTestOlderSdks/
           if-no-files-found: error
+
+  # The Street map, OpenStreetMap's raster, deleted (dispatch 2026-11-03-05 D7, D8; RECORD -2001, the owner: "We will
+  # migrate away from OSM altogether so we should keep all OSM references detached and easily removable from this point
+  # on"). Deletes its place, app/src/{main,test}/.../ui/map/street/, and its one registration line in MapTypes.kt, checks
+  # that nothing else names it, then builds the debug APK and runs every unit test. Without it a failed Trail Map draws
+  # from the downloads, else Topographical (the owner's "Downloads, then Topo", RECORD -2003). A separate job, so the
+  # build job above is unchanged; set up as that job is. Counts come from the JUnit XML, and the run fails if any test
+  # of the Street map's place ran (the deletion did not take) or if the without-Street fallback's own tests did not.
+  street-removable:
+    name: The app builds and its tests pass with the Street map deleted
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
+        with:
+          distribution: temurin
+          java-version: "21"
+      - uses: gradle/actions/setup-gradle@67621b124fd2e251c5e8a0e6e3b91318f2287669 # v6.3.0
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.m2/repository/org/robolectric
+          key: robolectric-${{ runner.os }}-${{ hashFiles('gradle/libs.versions.toml') }}
+          restore-keys: robolectric-${{ runner.os }}-
+      - name: Install the Android SDK with the repo's own setup script
+        run: ./scripts/setup-android-sdk.sh
+      - name: Delete the Street map, its tests and its one registration line
+        run: |
+          set -euo pipefail
+          base=com/zynergylabs/forager/app/ui/map/street
+          test -d "app/src/main/java/$base" && test -d "app/src/test/java/$base"
+          find "app/src/main/java/$base" "app/src/test/java/$base" -type f | sort
+          rm -r "app/src/main/java/$base" "app/src/test/java/$base"
+          types=app/src/main/java/com/zynergylabs/forager/app/ui/map/MapTypes.kt
+          line='add(com.zynergylabs.forager.app.ui.map.street.StreetMap)'
+          count="$(grep -c -F "$line" "$types" || true)"
+          [ "$count" = 1 ] || { echo "::error::expected the Street map's registration line once in $types, found $count"; exit 1; }
+          grep -v -F "$line" "$types" > "$types.new"
+          mv "$types.new" "$types"
+          if git grep -n -E 'ui\.map\.street|\bStreetMap\b' -- app/src; then
+            echo "::error::something outside the Street map's place still names it"
+            exit 1
+          fi
+          git diff --stat
+      - name: Build the debug APK without the Street map
+        run: ./gradlew --stacktrace assembleDebug
+      - name: Run every unit test without the Street map
+        run: ./gradlew --stacktrace testDebugUnitTest testDebugUnitTestOlderSdks
+      - name: Read the counts
+        if: always()
+        shell: python3 {0}
+        run: |
+          import glob, sys
+          import xml.etree.ElementTree as ET
+          paths = glob.glob("app/build/test-results/testDebugUnitTest/*.xml") + glob.glob("app/build/test-results/testDebugUnitTestOlderSdks/*.xml")
+          if not paths:
+              sys.exit("No JUnit XML: the tests produced no results, which is a failure.")
+          totals = dict.fromkeys(("tests", "failures", "errors", "skipped"), 0)
+          classes = set()
+          for path in paths:
+              suite = ET.parse(path).getroot()
+              for key in totals:
+                  totals[key] += int(suite.get(key, 0))
+              classes.add(suite.get("name"))
+          print(f"{len(paths)} suites: {totals}")
+          street = sorted(c for c in classes if ".ui.map.street." in c)
+          if street:
+              sys.exit(f"Street map tests ran, so the deletion did not take: {street}")
+          needed = "com.zynergylabs.forager.app.ui.map.TrailMapFallbackWithoutStandInTest"
+          if needed not in classes:
+              sys.exit(f"{needed} did not run")
+          if totals["tests"] == 0 or totals["failures"] or totals["errors"]:
+              sys.exit(f"not green without the Street map: {totals}")
 
   # Android lint on the debug variant (production release T3; dispatch 2026-10-17-03, owner's go RECORD -1195).
   # A separate job, so the build job above is unchanged. lintDebug fails on any error (lint's abortOnError default)
@@ -570,11 +699,18 @@ jobs:
 
       - name: Compile and package the release variant without signing
         # The log goes under app/build (gitignored), so it cannot mark the checkout dirty for resolveBuildIdentity.
+        # Gradle daemon heap 4 GB for this job only, over gradle.properties' 2 GB (RECORD -2191): run 42504332419
+        # ran out of heap in packageReleaseBundle and packageRelease, whose bundletool and APK-packaging work runs
+        # inside the daemon (no-isolation workers), not in a separate process. The whole value is replaced, so the
+        # file encoding from gradle.properties is repeated. ubuntu-24.04 on a public repo has 16 GB.
         run: |
           set -euo pipefail
           mkdir -p app/build
           log=app/build/release-compile-gradle.log
-          ./gradlew --stacktrace --console=plain packageRelease packageReleaseBundle 2>&1 | tee "$log"
+          ./gradlew --stacktrace --console=plain "-Dorg.gradle.jvmargs=-Xmx4096m -Dfile.encoding=UTF-8" \
+            packageRelease packageReleaseBundle 2>&1 | tee "$log"
+          # The daemon is still alive here; its own arguments show whether the heap setting reached it.
+          echo "Gradle daemon heap: $(jps -lv | grep GradleDaemon | grep -o -- '-Xmx[0-9]*[mMgG]' || echo 'not found')"
 
           # A green Gradle exit is only evidence if the release compile actually ran in this invocation, and the
           # outputs it claims exist. Each check below names what it guards against.
@@ -654,6 +790,46 @@ jobs:
         if: always()
         with: { name: route-cutter-junit, path: route-cutter-junit.xml, if-no-files-found: error }
 
+  # The map style's own checkers (dispatch 2026-11-01-coder-11 step (d); Sorrel's carried fix on #448): until now they ran
+  # only on the machine that changed a style. The job fetches the pinned fonts, icons and cut-outs (fetch-assets.sh checks
+  # each against its sums), builds sprites v5 and v6, regenerates every street style and fails if the result differs from
+  # what is committed (a style edited by hand, or a generator change not regenerated), then runs v2's and v4's checks:
+  # the night contrast and limits, the trail spec, the style spec, and each sprite against a fresh build. No Gradle.
+  map-style:
+    name: Map style checkers pass, and the styles regenerate to what is committed
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: map-style
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with: { node-version: "24.22.1" }
+      - name: Install the locked dependencies
+        run: npm ci
+      - name: Fetch and check the pinned fonts, icons and sprite cut-outs
+        run: ./fetch-assets.sh
+      - name: Build sprites v5 and v6
+        run: |
+          node tools/build-sprite-v5.mjs
+          node tools/build-sprite-v5.mjs v6
+      - name: The Trail Map styles regenerate to what is committed
+        # git status, not only git diff: a file the generator writes that is not committed is a difference too
+        # (dispatch 2026-11-03-05, which added trail-v4 beside the frozen street files).
+        run: |
+          npm run -s generate:trail
+          changed="$(git status --porcelain -- . ../server/pmtiles-worker/src/)"
+          if [ -n "$changed" ]; then
+            echo "$changed"
+            echo "::error::A committed Trail Map style differs from the generator's output, or one it writes is not committed: run npm run generate:trail"
+            exit 1
+          fi
+      - name: v2's checks
+        run: npm run check:trail
+      - name: v4's checks (trail-v4)
+        run: npm run check:trail:v4
+
   # The tile Worker's route tests (server/pmtiles-worker/test/worker.test.mjs, and since dispatch 2026-10-23-01 the
   # route-data routes in test/routing.test.mjs), run against dist/index.js, the bundle
   # the owner pastes into the dashboard (dispatch 2026-10-22-01 Amendment 2, RECORD -1556: the owner, "Yes, add it").
@@ -689,7 +865,8 @@ jobs:
         run: >-
           node --test --test-reporter=spec --test-reporter-destination=stdout
           --test-reporter=junit --test-reporter-destination=pmtiles-worker-junit.xml
-          test/worker.test.mjs test/routing.test.mjs
+          test/worker.test.mjs test/routing.test.mjs test/cross-folder.test.mjs test/self-contained.test.mjs
+          test/check-release.test.mjs
       - name: Summarize from the JUnit XML
         if: always()
         run: |

@@ -110,7 +110,7 @@ class AvailabilityScreenNavigationViewTest {
         val set: (@Composable () -> Unit) -> Unit = restoration?.let { r -> { content: @Composable () -> Unit -> r.setContent(content) } } ?: { content -> composeRule.setContent(content) }
         set {
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 recording = AvailabilityScreenRecording(
                     isRecording = true,
                     tripStartWarning = tripStartWarning,
@@ -190,8 +190,17 @@ class AvailabilityScreenNavigationViewTest {
 
     private fun pillShown() = composeRule.onAllNodesWithTag(RETURN_TO_ROUTE_TAG).fetchSemanticsNodes().isNotEmpty()
 
-    private fun headingLabel(): String =
-        composeRule.onNodeWithTag(NAVIGATION_HUD_HEADING_TAG).fetchSemanticsNode().config[SemanticsProperties.Text].joinToString { it.text }
+    /**
+     * Dispatch 2026-11-05-10, Amendment 1, H3 (the owner: "In the status space (Recommended)"): the compass notice in the card's status
+     * space, "" with none. Was `headingLabel()`, the card's heading label (ruling E: "this label is the notice"), which H1 took off the
+     * card; with the compass facing up the label read the heading ("80° E"), now the strip's.
+     */
+    private fun notice(): String =
+        // The tag's own string, NAVIGATION_HUD_COMPASS_NOTICE_TAG, so this compiles before H3 (tests first).
+        composeRule.onAllNodesWithTag("navigation-hud-compass-notice").fetchSemanticsNodes().singleOrNull()?.let { it.config[SemanticsProperties.Text].joinToString { t -> t.text } } ?: ""
+
+    /** H1: the card draws no heading of its own. */
+    private fun cardHasNoHeading() = assertTrue("the card draws no heading (H1)", composeRule.onAllNodesWithTag(NAVIGATION_HUD_HEADING_TAG).fetchSemanticsNodes().isEmpty())
 
     @Test
     fun `the navigation view is asked for with Return, following and facing up, and not before or after`() {
@@ -217,12 +226,12 @@ class AvailabilityScreenNavigationViewTest {
     }
 
     /**
-     * A move away shows "Return to Route"; a real touch on it brings the view back and it follows
+     * A move away shows "Re-center"; a real touch on it brings the view back and it follows
      * again. Five touches across the pill's own bounds, each after its own move away (CLAUDE.md: a
      * finger is not a point; a semantic click asserts wiring, not routing).
      */
     @Test
-    fun `a move away shows Return to Route, and a real touch anywhere on it brings the view back`() {
+    fun `a move away shows Re-center, and a real touch anywhere on it brings the view back`() {
         setScreen()
         switchReturning(true)
         val firstId = view()!!.restoreRequestId
@@ -230,7 +239,7 @@ class AvailabilityScreenNavigationViewTest {
             userMovesTheMapAway()
             assertTrue("move $index shows the pill", pillShown())
             assertFalse(view()!!.following)
-            composeRule.onNodeWithText("Return to Route").assertExists()
+            composeRule.onNodeWithText("Re-center").assertExists()
             val b = boundsOf(RETURN_TO_ROUTE_TAG)
             val inset = 4.dp
             val samples = listOf(
@@ -249,7 +258,7 @@ class AvailabilityScreenNavigationViewTest {
 
     /** CLAUDE.md, the `Surface` pitfall: real long-presses beside the pill, either side of it along its height, reach the map. */
     @Test
-    fun `long-presses beside Return to Route reach the map`() {
+    fun `long-presses beside Re-center reach the map`() {
         setScreen()
         switchReturning(true)
         userMovesTheMapAway()
@@ -269,7 +278,7 @@ class AvailabilityScreenNavigationViewTest {
         assertTrue("the pill is still there", pillShown())
     }
 
-    /** Ruling D: locate while navigating brings the navigation view back, as "Return to Route" does. A real touch on it. */
+    /** Ruling D: locate while navigating brings the navigation view back, as "Re-center" does. A real touch on it. */
     @Test
     fun `locate while navigating asks for the navigation view again`() {
         setScreen()
@@ -310,19 +319,20 @@ class AvailabilityScreenNavigationViewTest {
 
     /**
      * The owner's step path for a stuck compass, through the screen: "Compass calibrating…" in the
-     * HUD's heading label (ruling E) while it is retried, the map still facing as it was; after 15 s
-     * north-up, and the label says so; good readings held for the trust judge's 2 s bring facing-up
-     * back by themselves, and the label's heading.
+     * card's status space (H3; was the HUD's heading label, ruling E) while it is retried, the map still facing as it was; after 15 s
+     * north-up, and the notice says so; good readings held for the trust judge's 2 s bring facing-up
+     * back by themselves, and the notice goes.
      */
     @Test
     fun `a stuck compass reads Compass calibrating, then north-up after 15 s, then facing-up again on recovery`() {
         setScreen()
         switchReturning(true)
-        assertEquals("80° E", headingLabel())
+        assertEquals("facing up, no notice", "", notice())
+        cardHasNoHeading()
 
         compass.value = CompassReading(80f, HeadingUncertainty.Estimated(20f), 1_000L)
         settle()
-        assertEquals("Compass calibrating…", headingLabel())
+        assertEquals("Compass calibrating…", notice())
         assertEquals(NavigationFacing.CALIBRATING, view()!!.facing)
 
         now += 14_000L
@@ -331,7 +341,8 @@ class AvailabilityScreenNavigationViewTest {
 
         now += 2_000L
         settle()
-        assertEquals("Compass unavailable · north up", headingLabel())
+        assertEquals("No compass", notice()) // Amendment 1, H9 (the owner: "Shorten to \"No compass\" (Recommended)"): was "Compass unavailable · north up".
+        cardHasNoHeading()
         assertEquals(NavigationFacing.NORTH_UP, view()!!.facing)
         assertTrue("north-up still follows", view()!!.following)
 
@@ -340,7 +351,7 @@ class AvailabilityScreenNavigationViewTest {
         compass.value = CompassReading(90f, HeadingUncertainty.Estimated(2f), 4_000L)
         settle()
         assertEquals(NavigationFacing.FACING_UP, view()!!.facing)
-        assertEquals("90° E", headingLabel())
+        assertEquals("facing up again, the notice goes", "", notice())
     }
 
     @Test
@@ -349,12 +360,13 @@ class AvailabilityScreenNavigationViewTest {
         setScreen()
         switchReturning(true)
         assertEquals(NavigationFacing.NORTH_UP, view()!!.facing)
-        assertEquals("Compass unavailable · north up", headingLabel())
+        assertEquals("No compass", notice()) // Amendment 1, H9 (the owner: "Shorten to \"No compass\" (Recommended)"): was "Compass unavailable · north up".
+        cardHasNoHeading()
     }
 
-    /** Continuation -432: a notice shown while "Return to Route" is up sits above it, not over it. */
+    /** Continuation -432: a notice shown while "Re-center" is up sits above it, not over it. */
     @Test
-    fun `a snackbar shown while Return to Route is up sits above it`() {
+    fun `a snackbar shown while Re-center is up sits above it`() {
         setScreen()
         switchReturning(true)
         userMovesTheMapAway()
@@ -396,7 +408,7 @@ class AvailabilityScreenNavigationViewTest {
     }
 
     @Test
-    fun `Return to Route brings the view back at the walker's zoom, without asking for the set one`() {
+    fun `Re-center brings the view back at the walker's zoom, without asking for the set one`() {
         setScreen()
         switchReturning(true)
         theMapAppliesTheStartZoom()
@@ -441,7 +453,7 @@ class AvailabilityScreenNavigationViewTest {
 
     /** "Nothing fully obstructs the map view": the pill's fill is the map chrome's 80%. */
     @Test
-    fun `Return to Route has the map chrome's 80 percent fill`() {
+    fun `Re-center has the map chrome's 80 percent fill`() {
         setScreen()
         switchReturning(true)
         userMovesTheMapAway()

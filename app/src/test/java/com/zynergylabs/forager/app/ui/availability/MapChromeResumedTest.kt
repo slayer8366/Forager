@@ -61,7 +61,7 @@ private val RESUMED_ENTRY = CartographyEntry.draft(id = "entry-resumed", date = 
 
 private val RESUMED_ENTRY_MAP = CartographyEntryMapData(
     trackPolylines = emptyList(),
-    findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -122.61))),
+    findMarkers = listOf(RecordPoint("find-1", LatLng(45.51, -121.71))),
     waypointMarkers = emptyList(),
     photoMarkers = emptyList(),
     offlineRegionCircles = emptyList(),

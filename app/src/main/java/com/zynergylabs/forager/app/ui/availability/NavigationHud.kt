@@ -202,12 +202,21 @@ internal fun NavigationHud(
      * lines would take the card's top above it, they leave the card ([eveningStackFitsBelow]); the alerts are unaffected.
      */
     eveningLineTopLimitInRootPx: Float? = null,
+    /** D42 (RECORD -2021): the evening lines step aside for the route card resting on this card; [onEveningShown] is told when they show. */
+    eveningStepsAside: Boolean = false,
+    onEveningShown: (Boolean) -> Unit = {},
+    /** J7 (dispatch 2026-11-06-01, Amendment 1): see [NavigationInfo]'s own. */
+    eveningOffForRoom: Boolean = false,
     /**
      * RECORD -844, -845: the return has ended on arrival and the display holds "Arrived" until it closes by
      * itself. The large slot reads "Arrived" whatever the fix says ([heldArrivalReadout]), so a drive-off
      * inside the hold does not turn it back into a distance.
      */
     arrivalHeld: Boolean = false,
+    /** The strip's live height above sea level (dispatch 2026-10-28-13); see [NavigationInfo]. */
+    heightMeters: Double? = null,
+    /** J3 step 3 and J4: see [NavigationInfo]'s own. */
+    onHeightWithEvening: (heightPx: Float, landscapeLargeText: Boolean) -> Unit = { _, _ -> },
     /** Dispatch 2026-10-12-06: the rounded card's corners, and how far its fill reaches up behind the piece above (RoundedMapCard.kt). */
     cardCorners: MapCardCorners = MapCardCorners.BOTTOM,
     tuck: Dp = 0.dp,
@@ -245,7 +254,12 @@ internal fun NavigationHud(
                 backByLine = backByLine,
                 eveningLineBottomLimitInRootPx = eveningLineBottomLimitInRootPx,
                 eveningLineTopLimitInRootPx = eveningLineTopLimitInRootPx,
+                eveningStepsAside = eveningStepsAside,
+                onEveningShown = onEveningShown,
+                eveningOffForRoom = eveningOffForRoom,
                 arrivalHeld = arrivalHeld,
+                heightMeters = heightMeters,
+                onHeightWithEvening = onHeightWithEvening,
             )
         }
     }

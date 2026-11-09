@@ -14,7 +14,6 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenu
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -36,6 +35,8 @@ import com.zynergylabs.forager.app.domain.model.DistanceUnit
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuBorder
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuShadowElevation
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.mapChromeContentColor
@@ -140,7 +141,8 @@ internal fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, o
             onValueChange = {},
             readOnly = true,
             label = { Text("Month") },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            // No trailing arrow (dispatch 2026-10-28-02; the owner: "Remove all Chevrons from the drop down lists, those are
+            // banned from the app."). A tap on the field still opens the menu (menuAnchor below).
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
@@ -153,6 +155,9 @@ internal fun MonthSelector(selectedMonth: Int, onMonthSelected: (Int) -> Unit, o
             expanded = expanded,
             onDismissRequest = { expanded = false },
             containerColor = monthMenuColor,
+            // Over the map: no shadow, the map-chrome hairline; solid elsewhere, as Material draws it (dispatch 2026-11-05-06).
+            shadowElevation = mapChromeMenuShadowElevation(overMap),
+            border = mapChromeMenuBorder(overMap),
             modifier = Modifier
                 .testTag(MONTH_MENU_TAG)
                 .mapChromeContainerColor(monthMenuColor),

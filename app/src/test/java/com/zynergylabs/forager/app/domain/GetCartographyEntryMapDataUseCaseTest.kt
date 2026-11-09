@@ -59,7 +59,7 @@ class GetCartographyEntryMapDataUseCaseTest {
         ).build()
         trackRepository = RoomTrackRepository(database.trackDao())
         mushroomLogRepository = RoomMushroomLogRepository(database.mushroomLogDao())
-        useCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, RoomKeptTrackPathRepository(database.cartographyEntryDao()))
+        useCase = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, RoomKeptTrackPathRepository(database.cartographyEntryDao()), ErrorLog { _, _, _ -> })
     }
 
     @After
@@ -82,14 +82,14 @@ class GetCartographyEntryMapDataUseCaseTest {
             name = "Ridge Loop",
             startedAtEpochMillis = 1_000L,
             endedAtEpochMillis = 2_000L,
-            points = listOf(TrackPoint(lat = 45.20, lng = -122.50, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)),
+            points = listOf(TrackPoint(lat = 45.20, lng = -121.09375, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)),
         )
         val trackTwo = Track(
             id = "track-2",
             name = "Creek Trail",
             startedAtEpochMillis = 3_000L,
             endedAtEpochMillis = 4_000L,
-            points = listOf(TrackPoint(lat = 46.00, lng = -123.00, altitude = null, accuracyMeters = null, timestampEpochMillis = 3_000L)),
+            points = listOf(TrackPoint(lat = 46.00, lng = -121.59375, altitude = null, accuracyMeters = null, timestampEpochMillis = 3_000L)),
         )
         trackRepository.create(trackOne).getOrThrow()
         trackRepository.appendPoints(trackOne.id, trackOne.points).getOrThrow()
@@ -107,8 +107,8 @@ class GetCartographyEntryMapDataUseCaseTest {
 
         assertEquals(2, result.trackPolylines.size)
         // Each polyline carries its kept track's own id (map layers L0a).
-        assertEquals(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50))), result.trackPolylines[0])
-        assertEquals(RecordPolyline("track-2", listOf(LatLng(46.00, -123.00))), result.trackPolylines[1])
+        assertEquals(RecordPolyline("track-1", listOf(LatLng(45.20, -121.09375))), result.trackPolylines[0])
+        assertEquals(RecordPolyline("track-2", listOf(LatLng(46.00, -121.59375))), result.trackPolylines[1])
     }
 
     // Edited by F3 (was: "a kept track deleted from Records draws nothing and does not error", asserting
@@ -123,7 +123,7 @@ class GetCartographyEntryMapDataUseCaseTest {
                 TrackDecision(trackId = "deleted-track", name = "Gone Now Loop", distanceMeters = 100.0, durationMillis = 1_000L, pointCount = 2, kept = true),
             ),
         )
-        val saved = listOf(LatLng(45.20, -122.50), LatLng(45.21, -122.51))
+        val saved = listOf(LatLng(45.20, -121.09375), LatLng(45.21, -121.10375))
         savePath("entry-1", "deleted-track", saved)
 
         val result = useCase(entry, galleryPhotos = emptyList())
@@ -152,7 +152,7 @@ class GetCartographyEntryMapDataUseCaseTest {
     fun `the live track is drawn, not the saved path, while the track exists`() = runTest {
         val live = Track(
             id = "track-1", name = "Ridge Loop", startedAtEpochMillis = 1_000L, endedAtEpochMillis = 2_000L,
-            points = listOf(TrackPoint(lat = 45.20, lng = -122.50, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)),
+            points = listOf(TrackPoint(lat = 45.20, lng = -121.09375, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)),
         )
         trackRepository.create(live).getOrThrow()
         trackRepository.appendPoints(live.id, live.points).getOrThrow()
@@ -161,12 +161,12 @@ class GetCartographyEntryMapDataUseCaseTest {
 
         val result = useCase(entry, galleryPhotos = emptyList())
 
-        assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50)))), result.trackPolylines)
+        assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -121.09375)))), result.trackPolylines)
     }
 
     @Test
     fun `a withheld track's saved path is not drawn`() = runTest {
-        savePath("entry-1", "deleted-track", listOf(LatLng(45.20, -122.50)))
+        savePath("entry-1", "deleted-track", listOf(LatLng(45.20, -121.09375)))
         val entry = baseEntry.copy(trackDecisions = listOf(TrackDecision("deleted-track", "Gone", 100.0, 1_000L, 1, kept = false)))
 
         val result = useCase(entry, galleryPhotos = emptyList())
@@ -176,7 +176,7 @@ class GetCartographyEntryMapDataUseCaseTest {
 
     @Test
     fun `another entry's saved path for the same track is not drawn`() = runTest {
-        savePath("entry-2", "deleted-track", listOf(LatLng(45.20, -122.50)))
+        savePath("entry-2", "deleted-track", listOf(LatLng(45.20, -121.09375)))
         val entry = baseEntry.copy(trackDecisions = listOf(TrackDecision("deleted-track", "Gone", 100.0, 1_000L, 1, kept = true)))
 
         val result = useCase(entry, galleryPhotos = emptyList())
@@ -199,7 +199,7 @@ class GetCartographyEntryMapDataUseCaseTest {
     fun `a saved path that cannot be read draws nothing for that track, the other tracks still draw, and nothing throws`() = runTest {
         val live = Track(
             id = "track-1", name = "Ridge Loop", startedAtEpochMillis = 1_000L, endedAtEpochMillis = 2_000L,
-            points = listOf(TrackPoint(lat = 45.20, lng = -122.50, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)),
+            points = listOf(TrackPoint(lat = 45.20, lng = -121.09375, altitude = null, accuracyMeters = null, timestampEpochMillis = 1_000L)),
         )
         trackRepository.create(live).getOrThrow()
         trackRepository.appendPoints(live.id, live.points).getOrThrow()
@@ -211,9 +211,9 @@ class GetCartographyEntryMapDataUseCaseTest {
             ),
         )
 
-        val result = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, failing)(entry, galleryPhotos = emptyList())
+        val result = GetCartographyEntryMapDataUseCase(trackRepository, mushroomLogRepository, failing, ErrorLog { _, _, _ -> })(entry, galleryPhotos = emptyList())
 
-        assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -122.50)))), result.trackPolylines)
+        assertEquals(listOf(RecordPolyline("track-1", listOf(LatLng(45.20, -121.09375)))), result.trackPolylines)
     }
 
     @Test
@@ -228,8 +228,8 @@ class GetCartographyEntryMapDataUseCaseTest {
             startedAtEpochMillis = 1_000L,
             endedAtEpochMillis = 2_000L,
             points = listOf(
-                TrackPoint(lat = 45.20, lng = -122.50, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = 1_250L),
-                TrackPoint(lat = 45.20, lng = -122.50, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = 1_750L),
+                TrackPoint(lat = 45.20, lng = -121.09375, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = 1_250L),
+                TrackPoint(lat = 45.20, lng = -121.09375, altitude = 111.6, accuracyMeters = null, timestampEpochMillis = 1_750L),
             ),
         )
         trackRepository.create(track).getOrThrow()
@@ -264,7 +264,7 @@ class GetCartographyEntryMapDataUseCaseTest {
 
     @Test
     fun `a kept find with a resolved coordinate becomes a find marker`() = runTest {
-        val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.5, -122.5), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
+        val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.5, -121.09375), date = LocalDate.of(2026, 8, 1)).copy(isDraft = false)
         mushroomLogRepository.save(find).getOrThrow()
 
         val entry = baseEntry.copy(
@@ -275,7 +275,7 @@ class GetCartographyEntryMapDataUseCaseTest {
 
         val result = useCase(entry, galleryPhotos = emptyList())
 
-        assertEquals(listOf(RecordPoint("find-1", LatLng(45.5, -122.5))), result.findMarkers)
+        assertEquals(listOf(RecordPoint("find-1", LatLng(45.5, -121.09375))), result.findMarkers)
     }
 
     @Test
@@ -310,17 +310,17 @@ class GetCartographyEntryMapDataUseCaseTest {
     @Test
     fun `waypoints and offline regions resolve directly from the entry's own snapshot, no repository involved`() = runTest {
         val entry = baseEntry.copy(
-            waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.4, lng = -122.4, kept = true)),
-            offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.6, lng = -122.6, radiusKm = 10, kept = true)),
+            waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.4, lng = -120.99375, kept = true)),
+            offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.6, lng = -121.19375, radiusKm = 10, kept = true)),
         )
 
         val result = useCase(entry, galleryPhotos = emptyList())
 
-        assertEquals(listOf(RecordPoint("w1", LatLng(45.4, -122.4))), result.waypointMarkers)
+        assertEquals(listOf(RecordPoint("w1", LatLng(45.4, -120.99375))), result.waypointMarkers)
         assertEquals(1, result.offlineRegionCircles.size)
         assertEquals("1", result.offlineRegionCircles.single().recordId)
         assertEquals(45.6, result.offlineRegionCircles.single().region.lat, 0.0)
-        assertEquals(-122.6, result.offlineRegionCircles.single().region.lng, 0.0)
+        assertEquals(-121.19375, result.offlineRegionCircles.single().region.lng, 0.0)
         assertEquals(10, result.offlineRegionCircles.single().region.radiusKm)
     }
 
@@ -329,14 +329,14 @@ class GetCartographyEntryMapDataUseCaseTest {
         val entry = baseEntry.copy(photos = listOf(PhotoAttachment(photoId = "p1", attachedAtEpochMillis = 1_000L)))
         val galleryPhotos = listOf(
             GalleryPhoto(
-                photo = LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L, latitude = 45.7, longitude = -122.7),
+                photo = LogPhoto(id = "p1", relativePath = "photos/p1.jpg", createdAtEpochMillis = 1_000L, latitude = 45.7, longitude = -121.29375),
                 referencingEntryIds = emptyList(),
             ),
         )
 
         val result = useCase(entry, galleryPhotos)
 
-        assertEquals(listOf(RecordPoint("p1", LatLng(45.7, -122.7))), result.photoMarkers)
+        assertEquals(listOf(RecordPoint("p1", LatLng(45.7, -121.29375))), result.photoMarkers)
     }
 
     @Test
@@ -366,13 +366,13 @@ class GetCartographyEntryMapDataUseCaseTest {
     @Test
     fun `allPoints flattens every resolved category together`() = runTest {
         val entry = baseEntry.copy(
-            waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.4, lng = -122.4, kept = true)),
-            offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.6, lng = -122.6, radiusKm = 10, kept = true)),
+            waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.4, lng = -120.99375, kept = true)),
+            offlineRegionDecisions = listOf(OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.6, lng = -121.19375, radiusKm = 10, kept = true)),
         )
 
         val result = useCase(entry, galleryPhotos = emptyList())
 
-        assertEquals(setOf(LatLng(45.4, -122.4), LatLng(45.6, -122.6)), result.allPoints.toSet())
+        assertEquals(setOf(LatLng(45.4, -120.99375), LatLng(45.6, -121.19375)), result.allPoints.toSet())
     }
 
     /** A saved-path row as the delete-time copy writes it, seeded directly so these tests do not depend on that copy. */

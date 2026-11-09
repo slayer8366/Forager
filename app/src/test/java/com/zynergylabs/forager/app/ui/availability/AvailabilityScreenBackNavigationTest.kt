@@ -36,6 +36,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -184,6 +185,7 @@ class AvailabilityScreenBackNavigationTest {
             unitSystemPreferenceRepository = BackNavStubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = BackNavStubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(BackNavStubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         composeRule.setContent {
             val uiState by viewModel.uiState.collectAsState()
@@ -361,8 +363,8 @@ class AvailabilityScreenBackNavigationTest {
         // Latitude and Longitude are the dropdown's first row, with no fold (dispatch
         // 2026-09-28-697), so no header is tapped here.
         composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG).performClick()
-        composeRule.onNodeWithText("Latitude").performTextReplacement("45.326")
-        composeRule.onNodeWithText("Longitude").performTextReplacement("-122.634")
+        composeRule.onNodeWithText("Latitude").performTextReplacement("45.3736")
+        composeRule.onNodeWithText("Longitude").performTextReplacement("-121.6959")
         composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG).performScrollTo().performClick()
         composeRule.waitForIdle()
     }
@@ -629,12 +631,12 @@ class AvailabilityScreenBackNavigationTest {
         composeRule.onNodeWithText("Journal").performClick()
         composeRule.onNodeWithText("Records").performClick()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.RECORDED_TRACKS)).performClick()
-        composeRule.onNodeWithText("No recorded tracks yet.").assertIsDisplayed()
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertIsDisplayed()
 
         pressBack()
 
         // Still on Records, now on Finds — not bounced out to Cartography or Maps.
-        composeRule.onNodeWithText("No recorded tracks yet.").assertDoesNotExist()
+        composeRule.onNodeWithText("No recorded tracks yet. Tap the record button on the map to record one.").assertDoesNotExist()
         composeRule.onNodeWithTag(com.zynergylabs.forager.app.ui.log.recordsFilterChipTestTag(com.zynergylabs.forager.app.ui.log.RecordsSubTab.FINDS)).assertIsSelected()
         composeRule.onNodeWithText("Records").assertIsSelected()
     }
@@ -1169,7 +1171,7 @@ class AvailabilityScreenBackNavigationTest {
 
 private val BackNavStubMapSlot: MapSlot = { _, _, _, _, _, _, _, onCameraIdle, modifier ->
     Column(modifier.testTag("map-slot")) {
-        Button(onClick = { onCameraIdle(LatLng(45.326, -122.634)) }) { Text("Simulate pan to test location") }
+        Button(onClick = { onCameraIdle(LatLng(45.3736, -121.6959)) }) { Text("Simulate pan to test location") }
     }
 }
 

@@ -6,6 +6,7 @@ import android.content.Intent
 import android.location.LocationManager
 import androidx.test.core.app.ApplicationProvider
 import com.zynergylabs.forager.app.ForagerApplication
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.TrackRepository
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackRecordingMode
@@ -285,6 +286,7 @@ class TrackRecordingServiceTest {
             getTrackOriginWaypoint = container.getTrackOriginWaypointUseCase,
             alreadyRecordingMessage = "Forager is already recording a track. Stop it before starting another.",
             abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         try {
             viewModel.startRecording()
@@ -411,6 +413,7 @@ class TrackRecordingServiceTest {
             alreadyRecordingMessage = "Forager is already recording a track. Stop it before starting another.",
             abandonedTrackSweepOnce = container.abandonedTrackSweepOnce,
             trackEnds = container.trackEnds.latest,
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         try {
             viewModel.startRecording()

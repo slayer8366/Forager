@@ -10,7 +10,7 @@ class GeoDistanceTest {
 
     @Test
     fun `identical points are zero metres apart`() {
-        val point = LatLng(45.5, -122.6)
+        val point = LatLng(45.5, -121.19375)
 
         assertEquals(0.0, GeoDistance.metersBetween(point, point), 1e-9)
     }
@@ -69,7 +69,7 @@ class GeoDistanceTest {
 
     @Test
     fun `bounding box is centred on the search point`() {
-        val center = LatLng(45.326, -122.634)
+        val center = LatLng(45.3736, -120.28965)
         val box = GeoDistance.boundingBox(center, radiusKm = 15)
 
         assertEquals(center.lat, (box.north + box.south) / 2.0, 1e-9)
@@ -87,7 +87,7 @@ class GeoDistanceTest {
      */
     @Test
     fun `bounding box north-south span matches the requested radius in real metres`() {
-        val center = LatLng(45.326, -122.634)
+        val center = LatLng(45.3736, -120.28965)
         val radiusKm = 20
         val box = GeoDistance.boundingBox(center, radiusKm)
 
@@ -123,7 +123,7 @@ class GeoDistanceTest {
 
     @Test
     fun `zero radius collapses the box onto the centre point`() {
-        val center = LatLng(45.326, -122.634)
+        val center = LatLng(45.3736, -120.28965)
         val box = GeoDistance.boundingBox(center, radiusKm = 0)
 
         assertEquals(center.lat, box.north, 1e-9)
@@ -169,7 +169,7 @@ class GeoDistanceTest {
 
     @Test
     fun `bearing due north is zero`() {
-        val bearing = GeoDistance.initialBearingDegrees(LatLng(45.0, -122.0), LatLng(46.0, -122.0))
+        val bearing = GeoDistance.initialBearingDegrees(LatLng(45.0, -120.59375), LatLng(46.0, -120.59375))
 
         assertEquals(0.0, bearing, 0.5)
     }
@@ -183,7 +183,7 @@ class GeoDistanceTest {
 
     @Test
     fun `bearing due south is 180 degrees`() {
-        val bearing = GeoDistance.initialBearingDegrees(LatLng(45.0, -122.0), LatLng(44.0, -122.0))
+        val bearing = GeoDistance.initialBearingDegrees(LatLng(45.0, -120.59375), LatLng(44.0, -120.59375))
 
         assertEquals(180.0, bearing, 0.5)
     }
@@ -198,14 +198,14 @@ class GeoDistanceTest {
 
     @Test
     fun `circlePolygonPoints closes its own ring, first and last point identical`() {
-        val ring = GeoDistance.circlePolygonPoints(LatLng(45.326, -122.634), radiusKm = 5)
+        val ring = GeoDistance.circlePolygonPoints(LatLng(45.3736, -120.28965), radiusKm = 5)
 
         assertEquals(ring.first(), ring.last())
     }
 
     @Test
     fun `circlePolygonPoints returns pointCount plus one points, plus the closing point`() {
-        val ring = GeoDistance.circlePolygonPoints(LatLng(45.326, -122.634), radiusKm = 5, pointCount = 12)
+        val ring = GeoDistance.circlePolygonPoints(LatLng(45.3736, -120.28965), radiusKm = 5, pointCount = 12)
 
         assertEquals(13, ring.size)
     }
@@ -213,7 +213,7 @@ class GeoDistanceTest {
     /** Every ring point should sit the requested radius from the centre, the same round-trip GeoDistanceTest already uses for boundingBox's own edges. */
     @Test
     fun `every circlePolygonPoints ring point sits the requested radius from the centre`() {
-        val center = LatLng(45.326, -122.634)
+        val center = LatLng(45.3736, -120.28965)
         val radiusKm = 10
         val ring = GeoDistance.circlePolygonPoints(center, radiusKm)
 
@@ -224,7 +224,7 @@ class GeoDistanceTest {
 
     @Test
     fun `a zero radius collapses circlePolygonPoints onto the centre`() {
-        val center = LatLng(45.326, -122.634)
+        val center = LatLng(45.3736, -120.28965)
         val ring = GeoDistance.circlePolygonPoints(center, radiusKm = 0)
 
         ring.forEach { point ->
@@ -254,7 +254,7 @@ class GeoDistanceTest {
 
     @Test
     fun `boundingRegion of a single point centres on it with the minimum radius`() {
-        val point = LatLng(45.326, -122.634)
+        val point = LatLng(45.3736, -120.28965)
         val region = GeoDistance.boundingRegion(listOf(point))!!
 
         assertEquals(point.lat, region.lat, 1e-9)

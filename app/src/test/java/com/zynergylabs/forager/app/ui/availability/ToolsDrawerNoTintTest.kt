@@ -88,7 +88,7 @@ abstract class ToolsDrawerNoTintTests(private val landscape: Boolean) {
         composeRule.setContent {
             rotationSeen = LocalView.current.display?.rotation
             AvailabilityScreen(
-                uiState = AvailabilityUiState(liveFix = fix),
+                uiState = AvailabilityUiState(liveFix = fix).withFixHeight(),
                 recording = AvailabilityScreenRecording(
                     isRecording = false,
                 ),

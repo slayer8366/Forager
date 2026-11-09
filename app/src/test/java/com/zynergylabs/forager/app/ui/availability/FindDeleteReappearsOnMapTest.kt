@@ -32,6 +32,7 @@ import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PhotoStore
@@ -113,8 +114,8 @@ class FindDeleteReappearsOnMapTest {
     @After
     fun tearDown() = Dispatchers.resetMain()
 
-    private val findA = find("find-a", 45.30)
-    private val findB = find("find-b", 45.31)
+    private val findA = find("find-a", 45.40)
+    private val findB = find("find-b", 45.41)
 
     private class Rig(
         val repository: FindStore,
@@ -153,6 +154,7 @@ class FindDeleteReappearsOnMapTest {
             getTodaysForecast = GetTodaysForecastUseCase(NoWeather),
             // The real read is the database the delete removes from: the same store, read at the moment it is asked.
             getMapRecords = { MapRecords.NONE.copy(findMarkers = repository.markers()) },
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         val log = MushroomLogViewModel(
             getEntries = GetMushroomLogEntriesUseCase(repository),
@@ -172,6 +174,7 @@ class FindDeleteReappearsOnMapTest {
             updatePhotoLocation = UpdatePhotoLocationUseCase(repository),
             // As MainActivity wires it.
             onFindDeleted = { id -> availability.onFindDeleted(id) },
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         return Rig(repository, log, availability)
     }
@@ -270,7 +273,7 @@ class FindDeleteReappearsOnMapTest {
 }
 
 private fun find(id: String, lat: Double) =
-    MushroomLogEntry.draft(id = id, location = LatLng(lat, -122.6), date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
+    MushroomLogEntry.draft(id = id, location = LatLng(lat, -121.75), date = LocalDate.of(2026, 9, 20)).copy(isDraft = false)
 
 /** Finds kept in memory; [markers] is what the map's read makes of them, and every [delete] call is recorded. */
 private class FindStore(initial: List<MushroomLogEntry>, private val deleteShouldFail: Boolean) : MushroomLogRepository {

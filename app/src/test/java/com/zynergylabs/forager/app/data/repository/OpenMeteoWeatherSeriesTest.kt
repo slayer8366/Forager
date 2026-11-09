@@ -22,7 +22,7 @@ import java.time.LocalDate
  */
 class OpenMeteoWeatherSeriesTest {
 
-    private val region = Region(lat = 45.5, lng = -122.6, radiusKm = 10)
+    private val region = Region(lat = 45.5, lng = -121.19375, radiusKm = 10)
     private val referenceDay: LocalDate = LocalDate.of(2026, 8, 16)
     private val firstDay: LocalDate = referenceDay.minusDays(2)
     private val dates = listOf(firstDay, firstDay.plusDays(1), referenceDay, referenceDay.plusDays(1))

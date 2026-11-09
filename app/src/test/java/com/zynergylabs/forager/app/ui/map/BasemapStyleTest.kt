@@ -7,6 +7,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
@@ -114,7 +115,8 @@ class BasemapStyleTest {
         }
         val night = json.parseToJsonElement(styleJsonFor(Basemap.OPEN_TOPO_MAP, night = true)).jsonObject.getValue("sources").jsonObject
         val attributions = night.values.map { it.jsonObject.getValue("attribution").jsonPrimitive.content }
-        assertEquals(listOf(Basemap.OSM_STANDARD.fullAttribution, full).sorted(), attributions.sorted())
+        // With the raster drawn under it at night, if any (the Street map's: ui/map/street/StreetMapFallbackTest; D7).
+        assertEquals(listOfNotNull(nightLowZoomBasemap(Basemap.OPEN_TOPO_MAP)?.fullAttribution, full).sorted(), attributions.sorted())
     }
 
     /**
@@ -138,7 +140,7 @@ class BasemapStyleTest {
     /**
      * Dispatch 2026-10-18-05 Part 2: the vector Street style declares fonts and icons, and every URL in it names only the
      * owner's mapping Worker: its tiles, its glyphs and its sprite. Read from the copies the Worker bundles and serves
-     * (`server/pmtiles-worker/src/street-style-v{1,2}.json`, which `map-style/tools/check-street-night.mjs` holds equal
+     * (`server/pmtiles-worker/src/street-style-v{1,2}.json`, which `map-style/tools/check-trail-night.mjs` holds equal
      * to the generated v2 and to frozen v1), as text, so a URL anywhere in the document counts, not only in the three
      * known fields. v2 (dispatch 2026-10-22-03) uses sprite v5; v1 keeps v4.
      */
@@ -194,7 +196,7 @@ class BasemapStyleTest {
      */
     @Test
     fun `the OSM-derived sources declare x-y order in their tile template`() {
-        assertEquals("https://tile.openstreetmap.org/{z}/{x}/{y}.png", tileTemplateFor(Basemap.OSM_STANDARD))
+        // The Street map's, https://tile.openstreetmap.org/{z}/{x}/{y}.png, is held in ui/map/street/StreetMapTest (D7).
         assertEquals("https://a.tile.opentopomap.org/{z}/{x}/{y}.png", tileTemplateFor(Basemap.OPEN_TOPO_MAP))
     }
 
@@ -212,16 +214,19 @@ class BasemapStyleTest {
 
     /**
      * Dispatch 2026-10-22-01: Forager Trail Map is a [Basemap] entry but not a raster. Where a raster has to draw it
-     * (the -1513 fallback, `OwnStreetFallback`), the style is OpenStreetMap's exactly, day and night, and its own vector
+     * (the -1513 fallback, `OwnTrailFallback`), the style is OpenStreetMap's exactly, day and night, and its own vector
      * tile URL never lands in a raster source.
      */
     @Test
-    fun `Forager Trail Map's raster stand-in is OpenStreetMap's style exactly, never its own vector tiles`() {
+    // The stand-in is the Street map's while it is in the app (ui/map/street/StreetMapFallbackTest) and Topographical with
+    // none (TrailMapFallbackWithoutStandInTest): dispatch 2026-11-03-05 D7, D8.
+    fun `Forager Trail Map's raster stand-in is the stand-in's style exactly, never its own vector tiles`() {
         assertFalse(Basemap.FORAGER_TRAIL.isRaster)
-        assertEquals(Basemap.OSM_STANDARD, Basemap.FORAGER_TRAIL.rasterDrawn())
+        val standIn = Basemap.FORAGER_TRAIL.rasterDrawn()
+        assertTrue(standIn.isRaster)
         listOf(false, true).forEach { night ->
             val style = styleJsonFor(Basemap.FORAGER_TRAIL, night)
-            assertEquals("night=$night", styleJsonFor(Basemap.OSM_STANDARD, night), style)
+            assertEquals("night=$night", styleJsonFor(standIn, night), style)
             assertFalse("night=$night", style.contains(Basemap.FORAGER_TRAIL.tileUrlTemplate))
         }
         Basemap.entries.filter { it.isRaster }.forEach { assertEquals(it, it.rasterDrawn()) }

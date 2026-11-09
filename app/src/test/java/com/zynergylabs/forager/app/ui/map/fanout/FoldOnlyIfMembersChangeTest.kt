@@ -44,8 +44,8 @@ class FoldOnlyIfMembersChangeTest {
 
     /** The markers of [keys] within a touch size of one another: a stack, as the device had. Opened by a real tap on it. */
     private fun openStack(vararg keys: FanKey) {
-        keys.forEachIndexed { i, key -> scene.add(key.layerId, key.featureId, 45.0 + 0.0001 * (i % 2), -122.0 - 0.0001 * (i / 2)) }
-        handler.onMapTap(LatLng(45.0, -122.0), scene.xPx(-122.0), scene.yPx(45.0))
+        keys.forEachIndexed { i, key -> scene.add(key.layerId, key.featureId, 44.9 + 0.0001 * (i % 2), -122.0 - 0.0001 * (i / 2)) }
+        handler.onMapTap(LatLng(44.9, -122.0), scene.xPx(-122.0), scene.yPx(44.9))
         assertTrue("setup: a tap on the stack opened it", fan.isOpen)
         assertEquals("setup", keys.toSet(), fan.members.map { it.key }.toSet())
     }
@@ -63,8 +63,8 @@ class FoldOnlyIfMembersChangeTest {
         val generation = fan.generation
 
         // A record added elsewhere, and one deleted elsewhere: the map's content re-emits, no member is touched.
-        scene.add(MapLayerIds.FINDS, "elsewhere", 45.2, -122.2)
-        scene.add(MapLayerIds.FINDS, "deleted-elsewhere", 45.3, -122.3)
+        scene.add(MapLayerIds.FINDS, "elsewhere", 45.1, -122.2)
+        scene.add(MapLayerIds.FINDS, "deleted-elsewhere", 45.2, -122.3)
         handler.onContentChanged()
         remove(FanKey(MapLayerIds.FINDS, "deleted-elsewhere"))
         handler.onContentChanged()
@@ -126,12 +126,12 @@ class FoldOnlyIfMembersChangeTest {
         val generation = fan.generation
 
         val moved = scene.markers.first { it.featureId == "b" }
-        scene.markers[scene.markers.indexOf(moved)] = moved.copy(lat = 45.00015)
+        scene.markers[scene.markers.indexOf(moved)] = moved.copy(lat = 44.90015)
         handler.onContentChanged()
 
         assertTrue(fan.isOpen)
         assertEquals(setOf(a, b, c), fan.members.map { it.key }.toSet())
-        assertEquals(45.00015, fan.members.first { it.key == b }.lat, 1e-9)
+        assertEquals(44.90015, fan.members.first { it.key == b }.lat, 1e-9)
         assertNotEquals("re-fanned over the new place", generation, fan.generation)
     }
 
@@ -155,8 +155,8 @@ class FoldOnlyIfMembersChangeTest {
 
     @Test
     fun `5 - Back after a delete gives a fan of the survivors, still open after the content effects that follow`() {
-        scene.add(a.layerId, a.featureId, 45.0, -122.0)
-        scene.add(c.layerId, c.featureId, 45.0, -122.0001)
+        scene.add(a.layerId, a.featureId, 44.9, -122.0)
+        scene.add(c.layerId, c.featureId, 44.9, -122.0001)
         // b was in the fan when "Open in Journal" was tapped, and was then deleted from its page.
         memory.openFanKeys = listOf(a, b, c)
         memory.remember("b", Offset(200f, 300f), 0f)
@@ -231,8 +231,8 @@ class FoldOnlyIfMembersChangeTest {
 
     @Test
     fun `6d - the return after Back still reopens when the first style it sees is a real one`() {
-        scene.add(a.layerId, a.featureId, 45.0, -122.0)
-        scene.add(b.layerId, b.featureId, 45.0, -122.0001)
+        scene.add(a.layerId, a.featureId, 44.9, -122.0)
+        scene.add(b.layerId, b.featureId, 44.9, -122.0001)
         memory.openFanKeys = listOf(a, b)
         memory.remember("b", Offset(200f, 300f), 0f) // "Open in Journal" on b
         assertTrue(memory.onFindClosed("b")) // Back: the keys now wait for the new map
@@ -249,8 +249,8 @@ class FoldOnlyIfMembersChangeTest {
 
     @Test
     fun `6e - the return after a delete still reopens the survivors, and a later replaced style keeps them`() {
-        scene.add(a.layerId, a.featureId, 45.0, -122.0)
-        scene.add(c.layerId, c.featureId, 45.0, -122.0001)
+        scene.add(a.layerId, a.featureId, 44.9, -122.0)
+        scene.add(c.layerId, c.featureId, 44.9, -122.0001)
         memory.openFanKeys = listOf(a, b, c)
         memory.remember("b", Offset(200f, 300f), 0f)
         assertTrue(memory.onFindDeleted("b"))

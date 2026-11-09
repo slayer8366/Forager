@@ -21,6 +21,7 @@ import com.zynergylabs.forager.app.domain.MushroomRepository
 import com.zynergylabs.forager.app.domain.MutableClock
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
@@ -78,7 +79,7 @@ import org.junit.Test
 // own default-radius dispatch) — this fixture has to match that default, not an arbitrary value,
 // since every test that runs searchTestRegion() and then asserts against REGION.radiusKm needs the
 // two to agree.
-private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 8)
+private val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 8)
 
 private val COUNTS = listOf(
     SpeciesObservationCount(
@@ -209,6 +210,7 @@ class AvailabilityViewModelOfflineCacheTest {
         unitSystemPreferenceRepository = OfflineCacheStubUnitSystemPreferenceRepository,
         appThemePreferenceRepository = OfflineCacheStubAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(OfflineCacheStubTripPlanningWeatherProvider),
+        entryReferenceCounts = NoEntryReferenceCounts,
     )
 
     /** Drives the real coordinate-entry callbacks rather than reaching into state. */

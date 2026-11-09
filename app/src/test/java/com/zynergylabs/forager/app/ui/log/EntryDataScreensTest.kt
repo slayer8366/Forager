@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.log
 
+import androidx.compose.runtime.CompositionLocalProvider
+import com.zynergylabs.forager.app.ui.availability.FixedOffsetSeaLevelConverter
+import com.zynergylabs.forager.app.ui.format.LocalSeaLevelConverter
 import android.app.Application
 import android.content.ComponentName
 import androidx.activity.ComponentActivity
@@ -142,14 +145,14 @@ class EntryDataScreensTest {
             trackRepository.create(Track(id = TRACK_ID, name = "Ridge Loop", startedAtEpochMillis = t0, endedAtEpochMillis = t0 + 110_000L, points = emptyList())).getOrThrow()
             trackRepository.appendPoints(
                 TRACK_ID,
-                (0 until 12).map { i -> TrackPoint(lat = 45.0 + 0.001 * i, lng = -122.0, altitude = if (heights) 100.0 + 5.0 * i else null, accuracyMeters = 5f, timestampEpochMillis = t0 + i * 10_000L) },
+                (0 until 12).map { i -> TrackPoint(lat = 44.9 + 0.001 * i, lng = -120.59375, altitude = if (heights) 100.0 + 5.0 * i else null, accuracyMeters = 5f, timestampEpochMillis = t0 + i * 10_000L) },
             ).getOrThrow()
             trackRepository.end(TRACK_ID, t0 + 110_000L).getOrThrow()
-            waypointRepository.save(Waypoint(id = START_ID, lat = 45.0, lng = -122.0, altitude = null, name = "Start", note = "", createdAtEpochMillis = t0, trackId = TRACK_ID, designation = WaypointDesignation.ORIGIN)).getOrThrow()
-            waypointRepository.save(Waypoint(id = DROPPED_ID, lat = 45.005, lng = -122.0, altitude = null, name = "Big fir", note = "", createdAtEpochMillis = t0 + 50_000L, trackId = TRACK_ID)).getOrThrow()
-            waypointRepository.save(Waypoint(id = END_ID, lat = 45.011, lng = -122.0, altitude = null, name = "End", note = "", createdAtEpochMillis = t0 + 110_000L, trackId = TRACK_ID, designation = WaypointDesignation.END)).getOrThrow()
-            waypointRepository.save(Waypoint(id = LOOSE_ID, lat = 45.2, lng = -122.2, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = t0 + 3_600_000L)).getOrThrow()
-            logRepository.save(MushroomLogEntry.draft(id = FIND_ID, location = LatLng(45.5, -122.6), date = DAY).copy(isDraft = false, ownIdentification = "Chanterelle")).getOrThrow()
+            waypointRepository.save(Waypoint(id = START_ID, lat = 44.9, lng = -120.59375, altitude = null, name = "Start", note = "", createdAtEpochMillis = t0, trackId = TRACK_ID, designation = WaypointDesignation.ORIGIN)).getOrThrow()
+            waypointRepository.save(Waypoint(id = DROPPED_ID, lat = 44.905, lng = -120.59375, altitude = null, name = "Big fir", note = "", createdAtEpochMillis = t0 + 50_000L, trackId = TRACK_ID)).getOrThrow()
+            waypointRepository.save(Waypoint(id = END_ID, lat = 44.911, lng = -120.59375, altitude = null, name = "End", note = "", createdAtEpochMillis = t0 + 110_000L, trackId = TRACK_ID, designation = WaypointDesignation.END)).getOrThrow()
+            waypointRepository.save(Waypoint(id = LOOSE_ID, lat = 45.1, lng = -120.79375, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = t0 + 3_600_000L)).getOrThrow()
+            logRepository.save(MushroomLogEntry.draft(id = FIND_ID, location = LatLng(45.4, -121.19375), date = DAY).copy(isDraft = false, ownIdentification = "Chanterelle")).getOrThrow()
         }
         viewModel = CartographyViewModel(
             getEntries = GetCartographyEntriesUseCase(entryRepository),
@@ -178,6 +181,8 @@ class EntryDataScreensTest {
             assertTrue("the entry is saved, so it opens in its report", !entry().isDraft)
         }
         composeRule.setContent {
+            // Dispatch 2026-10-28-13: a zero sea-level offset, so the labels read the stored heights this test pins.
+            CompositionLocalProvider(LocalSeaLevelConverter provides FixedOffsetSeaLevelConverter(0.0)) {
             val uiState by viewModel.uiState.collectAsState()
             CartographyScreen(
                 uiState = uiState,
@@ -214,6 +219,7 @@ class EntryDataScreensTest {
                 entryModeState = remember { mutableStateOf(mode) },
                 onSetEntryGroupIncluded = viewModel::onSetEntryGroupIncluded,
             )
+        }
         }
         composeRule.waitForIdle()
         if (mode == CartographyEntryMode.EDIT) {
@@ -430,7 +436,7 @@ class EntryDataScreensTest {
         setScreen(
             mode = CartographyEntryMode.VIEW,
             mapData = EMPTY_MAP_DATA.copy(
-                waypointMarkers = listOf(RecordPoint(DROPPED_ID, LatLng(45.005, -122.0)), RecordPoint(LOOSE_ID, LatLng(45.2, -122.2))),
+                waypointMarkers = listOf(RecordPoint(DROPPED_ID, LatLng(44.905, -120.59375)), RecordPoint(LOOSE_ID, LatLng(45.1, -120.79375))),
             ),
         )
         fun tap(id: String, at: LatLng) {
@@ -439,13 +445,13 @@ class EntryDataScreensTest {
             composeRule.waitForIdle()
         }
 
-        tap(DROPPED_ID, LatLng(45.005, -122.0))
+        tap(DROPPED_ID, LatLng(44.905, -120.59375))
         composeRule.onNode(hasText("Big fir") and hasAnyAncestor(hasTestTag(MAP_BUBBLE_TAG))).assertExists()
         composeRule.onNode(hasText("0.3 mi walked from the start") and hasAnyAncestor(hasTestTag(MAP_BUBBLE_TAG))).assertExists()
 
         composeRule.runOnUiThread { checkNotNull(capturedRenderMode).onCloseBubble() }
         composeRule.waitForIdle()
-        tap(LOOSE_ID, LatLng(45.2, -122.2))
+        tap(LOOSE_ID, LatLng(45.1, -120.79375))
         composeRule.onNode(hasText("Creek pin") and hasAnyAncestor(hasTestTag(MAP_BUBBLE_TAG))).assertExists()
         composeRule.onAllNodesWithText("walked from the start", substring = true).assertCountEquals(0)
     }
@@ -463,7 +469,7 @@ class EntryDataScreensTest {
     private fun addLaterWaypointAndReopen() {
         runBlocking {
             RoomWaypointRepository(database.waypointDao()).save(
-                Waypoint(id = LATER_ID, lat = 45.3, lng = -122.3, altitude = null, name = "Later pin", note = "", createdAtEpochMillis = dayStartMillis() + 15 * 3_600_000L),
+                Waypoint(id = LATER_ID, lat = 45.2, lng = -120.89375, altitude = null, name = "Later pin", note = "", createdAtEpochMillis = dayStartMillis() + 15 * 3_600_000L),
             ).getOrThrow()
         }
         composeRule.runOnIdle {

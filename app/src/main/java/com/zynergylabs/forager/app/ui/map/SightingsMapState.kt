@@ -3,6 +3,9 @@ package com.zynergylabs.forager.app.ui.map
 import androidx.compose.runtime.MutableIntState
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.State
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.unit.IntSize
@@ -14,6 +17,8 @@ import com.zynergylabs.forager.app.domain.model.Sighting
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.map.fanout.CameraMoveClassifier
 import com.zynergylabs.forager.app.ui.map.fanout.FanReopenCoordinator
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
+import com.zynergylabs.forager.app.ui.map.fanout.StackCamera
 import com.zynergylabs.forager.app.ui.map.fanout.MapTapHandler
 import com.zynergylabs.forager.app.ui.map.fanout.MarkerFanOutState
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
@@ -77,7 +82,6 @@ internal class SightingsMapState(
     private val cameraIdleCountState: MutableIntState,
     private val navigationMapHeightPxState: MutableIntState,
     private val mapSizePxState: MutableState<IntSize>,
-    private val creditWidthPxState: MutableIntState,
     // Objects made once for the MapView's life (unkeyed remember in SightingsMap), shared by reference.
     /** The position look last handed to MapLibre. */
     val appliedPositionLook: Array<PositionLook>,
@@ -161,6 +165,12 @@ internal class SightingsMapState(
         get() = attributionDefaultMarginsState.value
         set(value) { attributionDefaultMarginsState.value = value }
 
+    /**
+     * Counts the user's own camera gestures (MapLibre's gesture reason, MapListeners.kt): the credit strip fades at the first
+     * one after it shows (D25, D26; MapCreditStrip.kt). Made with this holder, so it lives as long as this MapView.
+     */
+    var userCameraGestures by mutableIntStateOf(0)
+
     /** Counts camera idles; the forecast cells' feed is keyed on it. */
     var cameraIdleCount: Int
         get() = cameraIdleCountState.intValue
@@ -175,11 +185,6 @@ internal class SightingsMapState(
     var mapSizePx: IntSize
         get() = mapSizePxState.value
         set(value) { mapSizePxState.value = value }
-
-    /** The credit strip's laid-out width, for the attribution placement. */
-    var creditWidthPx: Int
-        get() = creditWidthPxState.intValue
-        set(value) { creditWidthPxState.intValue = value }
 
     /**
      * What this MapView last asked `setStyle` for (RECORD -1513): written by the style effect just before `setStyle`, read
@@ -230,6 +235,19 @@ internal class SightingsMapState(
             }
         }
     }
+
+    /**
+     * Dispatch 2026-11-04-02, A1 (RECORD -2039): the crowded stack's list bubble follows its stack as a record's bubble follows
+     * its glyph, at the same calls ([reanchorFocusedBubble]'s: every camera idle, every move while navigating, a resize): the
+     * list's spot projected again, through the host's own [com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost.followList].
+     * Nothing for a map with no host or no list.
+     */
+    fun reanchorCrowdedList(map: MapLibreMap) {
+        tapHandlerRef.crowdedHost?.followList(
+            { at -> map.projection.toScreenLocation(MapLibreLatLng(at.lat, at.lng)).let { it.x to it.y } },
+            map.cameraPosition.bearing.toFloat(),
+        )
+    }
 }
 
 /**
@@ -238,6 +256,24 @@ internal class SightingsMapState(
  */
 internal class TapHandlerRef {
     var handler: MapTapHandler? = null
+
+    /** Dispatch 2026-10-27-07: the host's crowded-stack state, given by the Maps tab ([MapRenderMode.crowdedStacks]); `null` on a map with none. */
+    var crowdedHost: CrowdedStackHost? = null
+        set(value) {
+            field = value
+            stackCamera?.let { value?.attachCamera(it) }
+        }
+
+    /**
+     * Amendment 1, S2: this map's crowded-stack camera, set when the map is built (`MapListeners`) and cleared as it goes, so the
+     * host, which outlives the map, restores through the live map ([CrowdedStackHost.attachCamera]).
+     */
+    var stackCamera: StackCamera? = null
+        set(value) {
+            field?.let { old -> crowdedHost?.detachCamera(old) }
+            field = value
+            value?.let { crowdedHost?.attachCamera(it) }
+        }
 }
 
 /**

@@ -3,20 +3,25 @@ package com.zynergylabs.forager.app.ui.availability
 // Moved unchanged from AvailabilityCompactMapUi.kt (dispatch 2026-10-19-14, UI split Phase 1, PR 9a).
 
 import androidx.compose.foundation.layout.BoxScope
-import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
-import com.zynergylabs.forager.app.ui.log.RecordDetailsTarget
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import com.zynergylabs.forager.app.ui.map.BUBBLE_OVER_CARD_Z
+import com.zynergylabs.forager.app.ui.map.BubbleFloor
 import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
@@ -39,6 +44,7 @@ internal fun BoxScope.CompactMapBubble(
     noticeInsetDp: Dp,
     minY: Dp,
     backEnabled: Boolean,
+    floor: BubbleFloor?,
     navigation: CompactMapNavigation,
 ) {
     val context = LocalContext.current
@@ -65,7 +71,10 @@ internal fun BoxScope.CompactMapBubble(
     val bubbleClusterInset = if (landscapeCluster) noticeInsetDp else 0.dp
     val bubbleInsetLeft = controlsPadding.calculateLeftPadding(bubbleLayoutDirection) + if (cluster.isOnLeftSide) bubbleClusterInset else 0.dp
     val bubbleInsetRight = controlsPadding.calculateRightPadding(bubbleLayoutDirection) + if (cluster.isOnLeftSide) 0.dp else bubbleClusterInset
+    // "Bubble over the card" (RECORD -2187; BubbleFloor.kt): raised over the route card only while its placement found no room above it.
+    var overCard by remember { mutableStateOf(false) }
     MapBubbleLayer(
+        modifier = if (overCard) Modifier.zIndex(BUBBLE_OVER_CARD_Z) else Modifier,
         tapped = tapped,
         onDismiss = onCloseBubble,
         // Item 8: "Open in Journal" remembers where the find was opened from (its id, the fan open then, the bubble's
@@ -96,11 +105,16 @@ internal fun BoxScope.CompactMapBubble(
             onCloseBubble()
         },
         minY = minY,
+        // "Kept above the card" (RECORD -2187): the route card's top limits the bubble from below as the strip's clearance does
+        // from above (BubbleFloor.kt); worked out where this is called, from the card's drawn bounds.
+        floor = floor,
+        onOverFloor = { overCard = it },
         backEnabled = backEnabled,
         insetLeft = bubbleInsetLeft,
         insetRight = bubbleInsetRight,
-        // Dispatch -502, Amendment 1: Back ended a waypoint navigation started in the waypoint's details sheet here.
-        reopenDetails = (waypointReopen as? WaypointNavigationOrigin.MapDetails)?.let { RecordDetailsTarget.WaypointDetails(it.waypointId) },
+        // Dispatch -502, Amendment 1: Back ended a waypoint navigation started in the waypoint's details sheet here; since
+        // dispatch 2026-11-05-05 (A8), or a trip's in its card (reopenedDetails, NavigationReopen.kt).
+        reopenDetails = reopenedDetails(waypointReopen),
         onReopenDetailsConsumed = onWaypointReopenConsumed,
     )
 }

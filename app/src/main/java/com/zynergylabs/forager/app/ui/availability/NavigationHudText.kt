@@ -2,6 +2,10 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Moved unchanged from NavigationHud.kt (dispatch 2026-10-19-03, UI split Phase 1, PR 1).
 
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeNote
+import com.zynergylabs.forager.app.domain.NavigationTargetKind
+import com.zynergylabs.forager.app.domain.wayto.WayToWaypointNote
+import com.zynergylabs.forager.app.domain.wayto.textFor
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 
 internal const val NAVIGATION_HUD_TAG = "navigation-hud"
@@ -49,8 +53,12 @@ internal const val ALTITUDE_LABEL = "Alt"
 /** The heading's dash while the compass waits for a fix: the status line carries [NO_FIX_MESSAGE] (owner's call). */
 internal const val NO_HEADING_TEXT = "—"
 
-/** A fix that carries no altitude. A status that names itself, so it wears no [ALTITUDE_LABEL]. */
-internal const val ELEVATION_UNAVAILABLE_TEXT = "Elevation unavailable"
+/**
+ * No height to show: a fix that carries none, or a phone that cannot convert to sea level. One phrase for both (dispatch
+ * 2026-10-28-13; the owner: "One: \"Alt unavailable\" (Recommended)"); was "Elevation unavailable". A status that
+ * names itself, so it wears no [ALTITUDE_LABEL] and never reads "Alt Alt unavailable".
+ */
+internal const val ELEVATION_UNAVAILABLE_TEXT = "Alt unavailable"
 
 /** The large slot's words once the walker has arrived at the start (dispatch 2026-09-28-497). */
 internal const val ARRIVED_TEXT = "Arrived"
@@ -60,3 +68,51 @@ internal const val ROUTE_UNAVAILABLE_TEXT = "Unable to calculate route"
 
 /** The navigation display's back-by line (dispatch 2026-09-28-645). */
 internal const val NAVIGATION_HUD_BACK_BY_LINE_TAG = "navigation-hud-back-by-line"
+
+/** The way home's notes' shared tail, dropped in their short forms (dispatch 2026-10-24-10). */
+private const val WAY_HOME_NOTE_TAIL = " · following your track"
+
+/** The leaves-area notice's short form: the owner's words, RECORD -1613, "Route leaves your downloaded area". */
+internal const val LEAVES_AREA_SHORT_TEXT = "Route leaves your downloaded area"
+
+/** A way-home note where the whole one does not fit: the leaves-area notice's short form, or the note without its tail. */
+internal fun wayHomeNoteShortText(note: WayHomeNote): String =
+    if (note == WayHomeNote.LEAVES_AREA) LEAVES_AREA_SHORT_TEXT else note.text.removeSuffix(WAY_HOME_NOTE_TAIL)
+
+/**
+ * The quiet off-trail notice in the status line (plan step 7 PR 3; RECORD -1631, the owner: "Off trail · Return to Route
+ * along your track (Recommended)", short form "Return to Route"). Not a button: "Re-center" is the one control.
+ */
+internal const val OFF_TRAIL_TEXT = "Off trail · Return to Route along your track"
+internal const val OFF_TRAIL_SHORT_TEXT = "Return to Route"
+
+/**
+ * The same quiet notice on the way to a waypoint (step 6 PR 4, dispatch 2026-10-27-01; RECORD -1725, the owner:
+ * "Off trail · Head back to the line" (Recommended), short form "Off trail"). The waypoint's line has no track to
+ * return along, so the way home's words would not fit it.
+ */
+internal const val WAYPOINT_OFF_TRAIL_TEXT = "Off trail · Head back to the line"
+internal const val WAYPOINT_OFF_TRAIL_SHORT_TEXT = "Off trail"
+
+/** Back on the trail line, shown for `BACK_ON_TRAIL_SHOW_MILLIS` (RECORD -445's words, -1631). */
+internal const val BACK_ON_TRAIL_TEXT = "Back on trail"
+
+/**
+ * The way to a waypoint's notes whose words the navigation card shows (dispatch 2026-11-05-10, Amendment 1, F2, widening F1; RECORD
+ * -2181). The owner: "Keep the ones asking something": "Remove the ones that only say why (no routes here, another area, far from any
+ * trail, no clear way in…). Keep "Trail routes not downloaded" and "Trail routes need an app update", since you could act on them."
+ * F1: "the straight line is the explanation". The other 11 leave the status line empty, in a trip's words as in a waypoint's. Each
+ * note still chooses the straight line, its retry (WayToRetry) and its log line (FindWayToWaypointUseCase); only the card's words go.
+ */
+internal val WAY_TO_NOTES_ON_CARD: Set<WayToWaypointNote> = setOf(WayToWaypointNote.ROUTES_NOT_DOWNLOADED, WayToWaypointNote.ROUTES_NEED_APP_UPDATE)
+
+/** The way to a waypoint's notes' shared tail, dropped in their short forms (step 6 PR 3; RECORD -1652 Q4: "short forms drop the tail"). */
+private const val WAY_TO_WAYPOINT_NOTE_TAIL = " · straight line"
+
+/**
+ * A way-to-waypoint note where the whole one does not fit (step 6 PR 3, dispatch 2026-10-26-11): the note without its
+ * tail, or, for the leaves-area note, the way home's short form, which RECORD -1665 keeps as it is. In [kind]'s words
+ * (dispatch 2026-11-05-05, A8: a trip's name "the trip" where a waypoint's name "the waypoint", [textFor]).
+ */
+internal fun wayToWaypointNoteShortText(note: WayToWaypointNote, kind: NavigationTargetKind = NavigationTargetKind.WAYPOINT): String =
+    if (note == WayToWaypointNote.LEAVES_AREA) LEAVES_AREA_SHORT_TEXT else note.textFor(kind).removeSuffix(WAY_TO_WAYPOINT_NOTE_TAIL)

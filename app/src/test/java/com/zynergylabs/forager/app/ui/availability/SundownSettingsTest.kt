@@ -19,11 +19,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.geometry.Offset
 import androidx.test.core.app.ApplicationProvider
-import androidx.compose.ui.unit.height
 import com.zynergylabs.forager.app.data.repository.DataStoreSundownPreferencesRepository
 import com.zynergylabs.forager.app.domain.CompassProvider
 import com.zynergylabs.forager.app.domain.CompassReading
@@ -55,13 +53,15 @@ import org.robolectric.Shadows
 import org.robolectric.annotation.Config
 
 /**
- * Tools > "Sundown" (dispatch 2026-09-28-592, plan task T4; the owner's step path, RECORD -592; in
- * Settings until dispatch 2026-09-28-707 moved it to the Tools drawer), on the real
- * [AvailabilityScreen] and the real [AvailabilityViewModel] over the real DataStore repository:
- * "Sundown alerts" on by default, "Dark under trees" at 1 h with the owner's sentence, each changed
- * by real touches across its row, and both read back by a recreated repository and a new ViewModel,
- * the way a restart reads them. Since -707 the rows are reached with one tap, Tools, and Settings
- * no longer shows them.
+ * The two "Sundown" settings (dispatch 2026-09-28-592, plan task T4; the owner's step path, RECORD -592), on the real
+ * [AvailabilityScreen] and the real [AvailabilityViewModel] over the real DataStore repository: "Sundown alerts" on by
+ * default, "Dark under trees" at 1 h, each changed by real touches across its row, and both read back by a recreated
+ * repository and a new ViewModel, the way a restart reads them.
+ *
+ * Reached through the map's ⋮ quick settings since dispatch 2026-10-27-14 Amendment 1 (RECORD -1751; the owner: "remove
+ * the Sundown and Dark Under Trees portion from the tools menu since it's redundant"). They were in Settings until
+ * dispatch 2026-09-28-707, then in the Tools drawer; the Tools section and its explanation line ("Drop it") are gone,
+ * which this class also holds, and Settings still does not show them.
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
@@ -109,7 +109,7 @@ class SundownSettingsTest {
         errorLog = { _, message, error -> errors += "$message $error" },
     )
 
-    private fun setScreen(viewModel: AvailabilityViewModel) {
+    private fun setScreen(viewModel: AvailabilityViewModel, open: Opened = Opened.QUICK_SETTINGS) {
         composeRule.setContent {
             val state by viewModel.uiState.collectAsState()
             AvailabilityScreen(
@@ -153,11 +153,15 @@ class SundownSettingsTest {
             )
         }
         composeRule.waitForIdle()
-        // Opening Tools is not the claim here; the touches on the Sundown rows are. One tap since
-        // dispatch 2026-09-28-707, where it was Tools then Settings.
-        composeRule.onNodeWithText("Tools").performClick()
+        // Opening the menu is not the claim here; the touches on the Sundown rows are.
+        when (open) {
+            Opened.QUICK_SETTINGS -> composeRule.onNodeWithTag(MAP_QUICK_SETTINGS_BUTTON_TAG).performTouchInput { click(center) }
+            Opened.TOOLS -> composeRule.onNodeWithText("Tools").performClick()
+        }
         composeRule.waitForIdle()
     }
+
+    private enum class Opened { QUICK_SETTINGS, TOOLS }
 
     private fun checked(tag: String): Boolean {
         // The row merges the checkbox's state into its own semantics.
@@ -167,14 +171,14 @@ class SundownSettingsTest {
     }
 
     private fun selected(minutes: Int): Boolean {
-        val node = composeRule.onNodeWithTag(darknessMarginTag(minutes)).fetchSemanticsNode()
+        val node = composeRule.onNodeWithTag(quickDarknessMarginTag(minutes)).fetchSemanticsNode()
         return node.config.getOrNull(SemanticsProperties.Selected) == true ||
             node.children.any { it.config.getOrNull(SemanticsProperties.Selected) == true }
     }
 
-    /** A real touch at [fraction] across the row's width, at its vertical centre. */
+    /** A real touch at [fraction] across the row's width, at its vertical centre (the menu's rows are all on screen). */
     private fun touchRow(tag: String, fraction: Float) {
-        composeRule.onNodeWithTag(tag).performScrollTo().performTouchInput { click(Offset(width * fraction, height / 2f)) }
+        composeRule.onNodeWithTag(tag).performTouchInput { click(Offset(width * fraction, height / 2f)) }
         composeRule.waitForIdle()
     }
 
@@ -204,18 +208,15 @@ class SundownSettingsTest {
     }
 
     @Test
-    fun `the section reads as confirmed, alerts on and an hour selected by default`() {
+    fun `the quick settings' Sundown rows read alerts on and an hour selected by default`() {
         val (repository, _) = repository()
         setScreen(viewModelOver(repository))
-        composeRule.onNodeWithTag(SUNDOWN_ALERTS_TAG).performScrollTo()
-        assertTrue(composeRule.onAllNodesWithText("Sundown").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("Sundown alerts").fetchSemanticsNodes().isNotEmpty())
         assertTrue(composeRule.onAllNodesWithText("Dark under trees").fetchSemanticsNodes().isNotEmpty())
-        assertTrue(composeRule.onAllNodesWithText("Woods get dark before sunset. Alerts allow this much extra.").fetchSemanticsNodes().isNotEmpty())
         for (label in listOf("30 min", "45 min", "1 h", "1 h 30")) {
             assertTrue(label, composeRule.onAllNodesWithText(label).fetchSemanticsNodes().isNotEmpty())
         }
-        assertEquals(true, checked(SUNDOWN_ALERTS_TAG))
+        assertEquals(true, checked(QUICK_SUNDOWN_ALERTS_TAG))
         assertEquals(listOf(false, false, true, false), listOf(30, 45, 60, 90).map(::selected))
     }
 
@@ -225,15 +226,15 @@ class SundownSettingsTest {
         setScreen(viewModelOver(repository))
 
         for (fraction in listOf(0.1f, 0.5f, 0.9f)) {
-            val before = checked(SUNDOWN_ALERTS_TAG)
-            touchRow(SUNDOWN_ALERTS_TAG, fraction)
-            assertEquals("a touch at $fraction across the alerts row flips it", !before, checked(SUNDOWN_ALERTS_TAG))
+            val before = checked(QUICK_SUNDOWN_ALERTS_TAG)
+            touchRow(QUICK_SUNDOWN_ALERTS_TAG, fraction)
+            assertEquals("a touch at $fraction across the alerts row flips it", !before, checked(QUICK_SUNDOWN_ALERTS_TAG))
         }
-        assertEquals("three flips from on is off", false, checked(SUNDOWN_ALERTS_TAG))
+        assertEquals("three flips from on is off", false, checked(QUICK_SUNDOWN_ALERTS_TAG))
 
-        touchRow(darknessMarginTag(30), 0.9f)
+        touchRow(quickDarknessMarginTag(30), 0.9f)
         assertEquals(listOf(true, false, false, false), listOf(30, 45, 60, 90).map(::selected))
-        touchRow(darknessMarginTag(45), 0.1f)
+        touchRow(quickDarknessMarginTag(45), 0.1f)
         assertEquals(listOf(false, true, false, false), listOf(30, 45, 60, 90).map(::selected))
         awaitOnMainLooper(5_000, "the watch told 45") { stored.lastOrNull() == 45 }
         assertEquals("the watch is told each stored margin", listOf(30, 45), stored)
@@ -256,40 +257,49 @@ class SundownSettingsTest {
     }
 
     /**
-     * Dispatch 2026-09-28-707, step 1: the section is near the top of the Tools page, the next thing
-     * under the Trip Planner's one-line header (collapsed when the drawer opens), inside the open
-     * drawer sheet and in its upper third, with the Off-track reminder as its last row.
+     * Dispatch 2026-10-27-14 Amendment 1 (RECORD -1751), the owner's step path: "Tools > no Sundown section; the Trip
+     * Planner and the rest move up". Nothing of the section is drawn: its title, its rows, the explanation line ("Drop
+     * it") and the off-track reminder's sentence; the Trip Planner, Offline maps and Settings rows are still there.
      */
     @Test
-    fun `Tools shows the Sundown section near the top, under the Trip Planner's header, with the off-track reminder in it`() {
+    fun `Tools no longer shows the Sundown section, and the Trip Planner and the rows under it stay`() {
         val (repository, _) = repository()
-        setScreen(viewModelOver(repository))
+        setScreen(viewModelOver(repository), open = Opened.TOOLS)
 
         val sheet = composeRule.onNodeWithTag(TOOLS_DRAWER_SHEET_TAG).getBoundsInRoot()
-        val section = composeRule.onNodeWithTag(TOOLS_SUNDOWN_SECTION_TAG).getBoundsInRoot()
         val tripPlanner = composeRule.onNodeWithText("Trip Planner").getBoundsInRoot()
-        assertTrue("the section is inside the open sheet: $section in $sheet", section.left >= sheet.left && section.right <= sheet.right && section.top >= sheet.top)
-        assertTrue("the section is under the Trip Planner's header: $section, $tripPlanner", section.top >= tripPlanner.bottom)
-        assertTrue("and near the top, in the sheet's upper third: ${section.top} of $sheet", section.top - sheet.top <= sheet.height / 3)
-        val offTrack = composeRule.onNodeWithTag(OFF_TRACK_REMINDER_TAG).getBoundsInRoot()
-        assertTrue("the off-track reminder is in the section: $offTrack in $section", offTrack.top >= section.top && offTrack.bottom <= section.bottom)
+        assertTrue("the Tools page is showing: the Trip Planner's header is in the sheet ($tripPlanner in $sheet)", tripPlanner.top >= sheet.top && tripPlanner.bottom <= sheet.bottom)
+        assertTrue("the Settings row is still there", composeRule.onAllNodesWithText("Settings").fetchSemanticsNodes().isNotEmpty())
+        assertSundownNotShown("Tools")
     }
 
-    /** Dispatch 2026-09-28-707, step 2: Settings no longer shows the section, its explanation or the off-track reminder. */
+    /** Dispatch 2026-09-28-707, step 2, still held: Settings does not show the Sundown rows or the off-track reminder. */
     @Test
-    fun `Settings no longer shows the Sundown section or the off-track reminder`() {
+    fun `Settings does not show the Sundown rows or the off-track reminder`() {
         val (repository, _) = repository()
-        setScreen(viewModelOver(repository))
+        setScreen(viewModelOver(repository), open = Opened.TOOLS)
         composeRule.onNodeWithText("Settings").performClick()
         composeRule.waitForIdle()
 
         // Settings is the page now showing: one of its own rows is there.
         assertTrue(composeRule.onAllNodesWithText("Night Maps").fetchSemanticsNodes().isNotEmpty())
-        assertEquals(0, composeRule.onAllNodesWithTag(SUNDOWN_ALERTS_TAG).fetchSemanticsNodes().size)
-        assertEquals(0, composeRule.onAllNodesWithTag(OFF_TRACK_REMINDER_TAG).fetchSemanticsNodes().size)
-        assertEquals(0, composeRule.onAllNodesWithText(DARK_UNDER_TREES_EXPLANATION).fetchSemanticsNodes().size)
+        assertSundownNotShown("Settings")
+    }
+
+    /** No text of the old Sundown section anywhere on screen, and no quick-settings row either (the ⋮ menu is closed). */
+    private fun assertSundownNotShown(where: String) {
+        for (text in listOf(
+            "Sundown",
+            "Sundown alerts",
+            "Dark under trees",
+            "Woods get dark before sunset. Alerts allow this much extra.",
+            "Off-track reminder: your phone buzzes if you head away from your start.",
+        )) {
+            assertEquals("$where shows \"$text\"", 0, composeRule.onAllNodesWithText(text).fetchSemanticsNodes().size)
+        }
+        assertEquals(0, composeRule.onAllNodesWithTag(QUICK_SUNDOWN_ALERTS_TAG).fetchSemanticsNodes().size)
         for (minutes in listOf(30, 45, 60, 90)) {
-            assertEquals(0, composeRule.onAllNodesWithTag(darknessMarginTag(minutes)).fetchSemanticsNodes().size)
+            assertEquals(0, composeRule.onAllNodesWithTag(quickDarknessMarginTag(minutes)).fetchSemanticsNodes().size)
         }
     }
 

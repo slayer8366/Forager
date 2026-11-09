@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import android.util.Log
 import android.view.Gravity
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -24,7 +25,7 @@ internal fun MapAttributionInsets(
     bottomInset: Dp,
     attributionEndInset: Dp,
     attributionKeepClear: Rect?,
-    attributionBesideCredit: Boolean,
+    attributionHideUnder: List<Rect> = emptyList(),
 ) {
     // Part 1 layout fixes, item 5 (Part 1's device check, flag 3; planner message 2026-09-28-98): MapLibre's
     // attribution button ("i") keeps from the bottom what the always-visible caption keeps
@@ -57,27 +58,38 @@ internal fun MapAttributionInsets(
             )
         }
     }
-    // RECORD -954 (the owner: "Have the map i next to the open street maps logo"; "Just landscape"): in a short landscape window
-    // the button moves to the bottom start, just past the credit strip's measured end, its bottom on the strip's bottom. It is
-    // MapLibre's own attribution control, so it moves through the same two UiSettings calls as before (gravity and margins), not
-    // as a composable; it opens what it always opened. Portrait and every other map keep the bottom-end corner.
-    // The credit strip's laid-out width is creditWidthPx, above.
-    val besideCreditGapPx = with(LocalDensity.current) { ATTRIBUTION_BESIDE_CREDIT_GAP_DP.dp.roundToPx() }
-    val creditBottomPx = with(LocalDensity.current) { bottomInset.roundToPx() }
+    // D24 (dispatch 2026-10-30-08, RECORD -1966; the owner: "Bottom right, as in portrait (Recommended)"): the button sits in the
+    // bottom-end corner in every window. This replaces RECORD -954, which put it at the bottom start beside the credit strip in a
+    // short landscape window.
     val logoBesideAttributionOffsetPx = with(LocalDensity.current) { (ATTRIBUTION_BUTTON_DP + LOGO_ATTRIBUTION_GAP_DP).dp.roundToPx() }
-    LaunchedEffect(state.mapLibreMap, state.attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection, attributionBesideCredit, state.creditWidthPx, creditBottomPx) {
+    // D28 with D30 (dispatch 2026-10-30-08, RECORD -1979, -1980): the button, and the logo beside it, hidden while a card covers the
+    // button where it is placed, shown again when that clears (attributionHiddenUnder).
+    val buttonPx = with(LocalDensity.current) { ATTRIBUTION_BUTTON_DP.dp.roundToPx() }
+    val hidden = state.attributionDefaultMargins?.let { defaults ->
+        attributionHiddenUnder(
+            covers = attributionHideUnder,
+            mapWidthPx = state.mapSizePx.width,
+            mapHeightPx = state.mapSizePx.height,
+            defaults = defaults,
+            bottomInsetPx = attributionBottomPx,
+            endInsetPx = attributionEndPx,
+            isRtl = layoutDirection == LayoutDirection.Rtl,
+            buttonPx = buttonPx,
+        )
+    } ?: false
+    LaunchedEffect(state.mapLibreMap, hidden) {
+        val map = state.mapLibreMap ?: return@LaunchedEffect
+        if (map.uiSettings.isAttributionEnabled == !hidden && map.uiSettings.isLogoEnabled == !hidden) return@LaunchedEffect
+        Log.i(ATTRIBUTION_LOG_TAG, if (hidden) "a card covers the attribution's corner: the \"i\" and the logo hidden" else "the attribution's corner is clear: the \"i\" and the logo shown")
+        map.uiSettings.isAttributionEnabled = !hidden
+        map.uiSettings.isLogoEnabled = !hidden
+    }
+    LaunchedEffect(state.mapLibreMap, state.attributionDefaultMargins, attributionBottomPx, attributionEndPx, layoutDirection) {
         val map = state.mapLibreMap ?: return@LaunchedEffect
         val defaults = state.attributionDefaultMargins ?: return@LaunchedEffect
         val isRtl = layoutDirection == LayoutDirection.Rtl
-        val attributionGravity: Int
-        val attributionMargins: IntArray
-        if (attributionBesideCredit && state.creditWidthPx > 0) {
-            attributionGravity = Gravity.BOTTOM or Gravity.START
-            attributionMargins = attributionBesideCreditMarginsPx(defaults, state.creditWidthPx, besideCreditGapPx, creditBottomPx, isRtl)
-        } else {
-            attributionGravity = Gravity.BOTTOM or Gravity.END
-            attributionMargins = attributionMarginsPx(defaults, attributionBottomPx, attributionEndPx, isRtl = isRtl)
-        }
+        val attributionGravity = Gravity.BOTTOM or Gravity.END
+        val attributionMargins = attributionMarginsPx(defaults, attributionBottomPx, attributionEndPx, isRtl = isRtl)
         map.uiSettings.setAttributionGravity(attributionGravity)
         val (left, top, right, bottom) = attributionMargins
         map.uiSettings.setAttributionMargins(left, top, right, bottom)
@@ -91,3 +103,6 @@ internal fun MapAttributionInsets(
         map.uiSettings.setLogoMargins(logoLeft, logoTop, logoRight, logoBottom)
     }
 }
+
+/** D28: the log tag for the attribution's hide and show. */
+private const val ATTRIBUTION_LOG_TAG = "ForagerAttribution"

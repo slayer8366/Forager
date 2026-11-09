@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.log
 
+import com.zynergylabs.forager.app.domain.FakeEntryReferenceCountSource
 import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.requestDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.undoDeleteOfflineRegion
@@ -234,7 +235,7 @@ class JournalPendingDeleteTest {
             deleteGalleryPhoto = DeleteGalleryPhotoUseCase(logRepository, photoStore),
             locationProvider = PendingDeleteUnusedLocationProvider,
             updatePhotoLocation = UpdatePhotoLocationUseCase(logRepository),
-            getPhotoEntryReferenceCount = { id -> photoJournalCounts[id] ?: 0 },
+            entryReferenceCounts = FakeEntryReferenceCountSource(photos = photoJournalCounts),
         )
         availabilityViewModel = AvailabilityViewModel(
             locationProvider = PendingDeleteUnusedLocationProvider,
@@ -258,7 +259,7 @@ class JournalPendingDeleteTest {
             unitSystemPreferenceRepository = PendingDeleteUnitSystem,
             appThemePreferenceRepository = PendingDeleteTheme,
             getTodaysForecast = GetTodaysForecastUseCase(PendingDeleteWeather),
-            getOfflineRegionReferenceCount = { id -> regionReferenceCounts[id] ?: 0 },
+            entryReferenceCounts = FakeEntryReferenceCountSource(offlineRegions = regionReferenceCounts),
         )
         trackViewModel = TrackRecordingViewModel(
             trackRepository = trackRepository,
@@ -275,7 +276,7 @@ class JournalPendingDeleteTest {
             getTracks = GetTracksUseCase(trackRepository),
             returnWatch = ReturnWatch(ComputeReturnToStartUseCase(), { _: Alert -> }),
             alertAudibility = PendingDeleteAudible,
-            getWaypointReferenceCount = { id -> waypointReferenceCounts[id] ?: 0 },
+            entryReferenceCounts = FakeEntryReferenceCountSource(waypoints = waypointReferenceCounts),
         )
         cartographyRepository = PendingDeleteCartographyRepository(cartographyEntries)
         cartographyViewModel = CartographyViewModel(
@@ -312,7 +313,7 @@ class JournalPendingDeleteTest {
                     onOpenCameraForAlbum = {},
                     onOpenCameraForCartographyEntry = {},
                     mapSlot = PD_STUB_MAP,
-                    pickerRegion = Region(lat = 45.326, lng = -122.634, radiusKm = 15),
+                    pickerRegion = Region(lat = 45.3736, lng = -120.28965, radiusKm = 15),
                     basemap = Basemap.DEFAULT,
                     onOpenEntry = logViewModel::onOpenEntry,
                     onCloseEntry = logViewModel::onCloseEntry,
@@ -548,14 +549,16 @@ class JournalPendingDeleteTest {
     @Test
     fun `swiping a region row hides it, warns of its references, and runs no tile delete yet`() {
         setScreen(chip = RecordsSubTab.OFFLINE_MAPS)
-        composeRule.onNodeWithText("Tile budget: 150", substring = true).assertExists()
+        // Since T1 (dispatch 2026-10-26-21, RECORD -1703) each area counts by its estimate, not its stored count (100 and
+        // 50 here): Ridge 243 and Saddle 238, 5 km each, zooms 10 to 15.
+        composeRule.onNodeWithText("Tile budget: 481", substring = true).assertExists()
 
         // Two row positions: the first region, then (after Undo) the second.
         swipeRowLeft(RecordType.OFFLINE_MAPS, "7")
         composeRule.onNodeWithText("Offline map deleted · used in 2 journal entries").assertIsDisplayed()
         composeRule.onNodeWithText("Ridge").assertDoesNotExist()
         // Its tiles are still on disk, so the budget still counts them until the delete runs.
-        composeRule.onNodeWithText("Tile budget: 150", substring = true).assertExists()
+        composeRule.onNodeWithText("Tile budget: 481", substring = true).assertExists()
         assertEquals(emptyList<Long>(), offlineMapRepository.deletedIds)
         touchUndo()
         composeRule.onNodeWithText("Ridge").assertExists()
@@ -567,7 +570,7 @@ class JournalPendingDeleteTest {
     }
 
     @Test
-    fun `the region row has no Delete button any more`() {
+    fun `the region row has no text Delete control at rest`() {
         setScreen(chip = RecordsSubTab.OFFLINE_MAPS)
         composeRule.onNodeWithText("Ridge").assertExists()
         composeRule.onNodeWithTag(swipeToDeleteTag(RecordType.OFFLINE_MAPS, "7")).assertExists()
@@ -1435,8 +1438,8 @@ private const val SNACKBAR_LONG_MILLIS = 10_000L
 private val PD_TIME = CurrentTimeProvider { 1_000L }
 
 private val PD_WAYPOINTS = listOf(
-    Waypoint(id = "wp-creek", lat = 45.5, lng = -122.6, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = 1_758_100_000_000L),
-    Waypoint(id = "wp-oak", lat = 45.6, lng = -122.7, altitude = null, name = "Big oak", note = "", createdAtEpochMillis = 1_758_000_000_000L),
+    Waypoint(id = "wp-creek", lat = 45.5, lng = -121.19375, altitude = null, name = "Creek pin", note = "", createdAtEpochMillis = 1_758_100_000_000L),
+    Waypoint(id = "wp-oak", lat = 45.6, lng = -121.29375, altitude = null, name = "Big oak", note = "", createdAtEpochMillis = 1_758_000_000_000L),
 )
 
 private val PD_EMPTY_MAP_DATA = CartographyEntryMapData(
@@ -1497,8 +1500,8 @@ private class PendingDeleteTrackRepository : TrackRepository {
 }
 
 private val PD_REGIONS = listOf(
-    OfflineRegionSummary(id = 7L, name = "Ridge", region = Region(45.5, -122.6, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 100, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_300_000_000L),
-    OfflineRegionSummary(id = 8L, name = "Saddle", region = Region(45.3, -122.4, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 50, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_200_000_000L),
+    OfflineRegionSummary(id = 7L, name = "Ridge", region = Region(45.5, -121.19375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 100, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_300_000_000L),
+    OfflineRegionSummary(id = 8L, name = "Saddle", region = Region(45.37, -120.99375, 5), minZoom = 10.0, maxZoom = 15.0, tileCount = 50, sizeBytes = 1_000_000L, createdAtEpochMillis = 1_758_200_000_000L),
 )
 
 /** Regions kept in memory; every [deleteRegion] call (MapLibre's tile delete and the row, in the real one) is recorded. */

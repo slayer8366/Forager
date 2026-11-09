@@ -105,7 +105,7 @@ class CartographyEntryReportScreenTest {
         // Not baseEntry as-is: a fully empty entry hits the Stage 2d empty-entry message instead of
         // this screen's ordinary body, which is a separate case covered below — one kept waypoint
         // keeps this test in the ordinary body while text/tags stay blank/empty.
-        val entry = baseEntry.copy(waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.5, lng = -122.6, kept = true)))
+        val entry = baseEntry.copy(waypointDecisions = listOf(WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.5, lng = -121.19375, kept = true)))
 
         composeRule.setContent {
             CartographyEntryReportScreen(entry = entry, galleryPhotos = emptyList(), distanceUnit = DistanceUnit.MILES, mapSlot = NoOpMapSlot, night = false, getMapData = { _, _ -> EmptyCartographyEntryMapData }, getCoveringOfflineRegion = { _, _ -> null }, getCurrentLocation = { LocationResult.LocationUnavailable }, onEdit ={}, onDeleteEntry = {}, onBack = {})
@@ -171,10 +171,10 @@ class CartographyEntryReportScreenTest {
                 TrackDecision(trackId = "t1", name = "Ridge Loop", distanceMeters = 4_828.0, durationMillis = 5_400_000L, pointCount = 240, kept = true),
             ),
             waypointDecisions = listOf(
-                WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.5, lng = -122.6, kept = true),
+                WaypointDecision(waypointId = "w1", name = "Trailhead", lat = 45.5, lng = -121.19375, kept = true),
             ),
             offlineRegionDecisions = listOf(
-                OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.5, lng = -122.6, radiusKm = 10, kept = true),
+                OfflineRegionDecision(offlineRegionId = 1L, name = "Ridge Region", lat = 45.5, lng = -121.19375, radiusKm = 10, kept = true),
             ),
         )
 

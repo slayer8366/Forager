@@ -161,7 +161,7 @@ internal fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
                     modifier = Modifier.fillMaxWidth(),
                 )
                 Text(
-                    if (status.paused) DOWNLOAD_PAUSED else "${status.downloaded} / ${status.total} tiles",
+                    if (status.paused) DOWNLOAD_PAUSED else downloadProgressPercent(status.downloaded, status.total),
                     style = MaterialTheme.typography.bodySmall,
                 )
             } else {
@@ -177,6 +177,14 @@ internal fun OfflineDownloadStatusContent(status: OfflineMapStatus) {
         )
     }
 }
+
+/**
+ * The progress line while tiles download: a percentage only (dispatch 2026-10-26-21 Amendment 1, T1; RECORD -1703), the
+ * whole percent reached, so it reads 100% only once every resource is in. It was "x / y tiles", MapLibre's resource
+ * counts, which on Trail Map v3 also count the official-trails band's tiles and so ran to about double the "~N tiles"
+ * the picker had promised. [total] is above 0 wherever this is shown.
+ */
+internal fun downloadProgressPercent(downloaded: Int, total: Int): String = "${downloaded.toLong() * 100 / total}%"
 
 /**
  * What a download's progress says while it waits for signal, in place of the count (dispatch 2026-10-23-06 Amendment 4,

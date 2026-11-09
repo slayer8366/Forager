@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.map
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import androidx.compose.ui.geometry.Offset
 import com.zynergylabs.forager.app.domain.ForecastBlock
 import com.zynergylabs.forager.app.domain.ForecastCell
@@ -11,6 +12,9 @@ import com.zynergylabs.forager.app.domain.HighlightedRecord
 import com.zynergylabs.forager.app.domain.HighlightedRecordKind
 import com.zynergylabs.forager.app.domain.JournalEntryOnMap
 import com.zynergylabs.forager.app.domain.model.DistanceUnit
+import com.zynergylabs.forager.app.domain.GroundHeight
+import com.zynergylabs.forager.app.domain.model.UnitSystem
+import com.zynergylabs.forager.app.domain.model.formatWholeLength
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.LogPhoto
@@ -22,13 +26,13 @@ import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.TrackDecision
 import com.zynergylabs.forager.app.domain.model.TrackPointRecord
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
 import com.zynergylabs.forager.app.domain.ComputeTrackStatisticsUseCase
 import com.zynergylabs.forager.app.domain.MgrsConverter
 import com.zynergylabs.forager.app.domain.isOfflineRegionStale
 import com.zynergylabs.forager.app.domain.model.MgrsCoordinate
 import com.zynergylabs.forager.app.domain.model.formatDistanceKm
 import com.zynergylabs.forager.app.domain.model.formatDistanceMeters
-import com.zynergylabs.forager.app.ui.availability.decimalDegreesLabel
 import com.zynergylabs.forager.app.ui.availability.offlineRegionSizeLabel
 import com.zynergylabs.forager.app.ui.availability.rectEdgeIntersection
 import com.zynergylabs.forager.app.ui.log.formatTrackDuration
@@ -96,10 +100,20 @@ sealed interface MapBubbleTarget {
 
     /** A record or a cell, by the layer it was tapped on and its feature id; [at] is the tapped map position. */
     data class FeatureTarget(val kind: MapBubbleKind, val layerId: String, val featureId: String, val at: LatLng) : MapBubbleTarget
+
+    /**
+     * Step 8c (dispatch 2026-10-26-16): an official-trails band, tapped on [layerId] at [at]. It names no app record, so
+     * it carries what its bubble reads ([record], from the feature itself); like a line, its bubble keeps the tap point.
+     */
+    data class ReferenceTrailTarget(val layerId: String, val record: ReferenceTrailRecord, val at: LatLng) : MapBubbleTarget
 }
 
 /** The [TappedMapThing] a feature tap makes, or `null` for a layer no bubble is built for. */
 fun tappedThingOf(tap: MapFeatureTap): TappedMapThing? {
+    // Step 8c: a band's tap carries its record; its empty feature id is never looked up.
+    tap.referenceTrail?.let { record ->
+        return TappedMapThing(MapBubbleTarget.ReferenceTrailTarget(tap.layerId, record, tap.at), tap.screenPoint, tap.bearingDeg)
+    }
     val kind = mapBubbleKindOf(tap.layerId) ?: return null
     return TappedMapThing(MapBubbleTarget.FeatureTarget(kind, tap.layerId, tap.featureId, tap.at), tap.screenPoint, tap.bearingDeg)
 }
@@ -176,7 +190,7 @@ data class MapRecordSources(
     val openFindLabel: String = OPEN_IN_JOURNAL_LABEL,
     /**
      * J8: for each record highlighted on this map, the shown entries that keep it
-     * (`JournalEntryHighlights.keptIn`), while the "Journal entries" switch shows the highlights;
+     * (`JournalEntryHighlights.keptIn`), while the "Journal Entries" switch shows the highlights;
      * empty on a map with no highlights (the entry map) and while the switch is off. A bubble names
      * these entries and opens one through [onOpenEntry].
      */
@@ -185,10 +199,21 @@ data class MapRecordSources(
     val onOpenEntry: ((String) -> Unit)? = null,
     /**
      * Dispatch 2026-09-28-502: a waypoint's "Navigate", in its bubble and its details sheet, given where it
-     * was tapped. Only the Maps tab passes one (the owner: "only Maps, the sheet and Records"); `null`, an
-     * entry map's, offers Directions only.
+     * was tapped. The Maps tab passes one, and since RECORD -890 a journal entry's map does too; `null`
+     * (tests only) offers none. In a bubble, Directions is offered only where Navigate cannot reach (RECORD -1819); on the
+     * card it sits beside Navigate (dispatch 2026-11-05-05, A5; RECORD -2140).
      */
     val onNavigateToWaypoint: ((WaypointNavigationOrigin) -> Unit)? = null,
+    /**
+     * Route plotting (dispatch 2026-10-30-08, step 3; the planner's ruling on Q11: carried here, so the scaffold is unchanged):
+     * a waypoint bubble's "Plot route", and what the Maps tab's taps, card and Back read. Only the Maps tab passes one.
+     */
+    val routePlotting: RoutePlottingControls? = null,
+    /**
+     * Dispatch 2026-11-05-05 (Amendment 1, A8): a trip's "Navigate", in its bubble and its card, given where it was tapped (an
+     * origin of kind TRIP). Only the Maps tab passes one, the one map with trips; `null` offers none.
+     */
+    val onNavigateToTrip: ((WaypointNavigationOrigin) -> Unit)? = null,
 )
 
 /** The Maps tab's find action (owner's M1 ruling 2). */
@@ -218,7 +243,7 @@ sealed interface MapBubbleContent {
      */
     data class Photo(val photo: LogPhoto, val date: String, val attachedTo: String?, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
-    /** A waypoint: its name and MGRS; Directions, and details while its record exists ([hasDetails]). */
+    /** A waypoint: its name and MGRS; Navigate and details while its record exists ([hasDetails]), Directions otherwise (RECORD -1819). */
     data class WaypointContent(
         val waypoint: Waypoint,
         val mgrs: String?,
@@ -226,13 +251,23 @@ sealed interface MapBubbleContent {
         val keptIn: List<JournalEntryOnMap> = emptyList(),
         /** "0.3 mi walked from the start" on an entry map (RECORD -867); `null` everywhere else and when it is not known. */
         val fromStart: String? = null,
+        /**
+         * "Elevation 1352 ft", the ground's height at the waypoint's spot (dispatch 2026-11-03-07; [waypointElevationLine]).
+         * `null` until the height is read ([MapBubbleLayer]), and when there is none, which draws no line (A2).
+         */
+        val elevation: String? = null,
     ) : MapBubbleContent
 
     /** A track: its title, date, distance and duration; details. */
     data class TrackContent(val trackId: String, val title: String, val date: String?, val distance: String, val duration: String, val hasDetails: Boolean = true, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
 
-    /** A planned trip: what its Trip Planner row shows; Directions. */
-    data class Trip(val trip: PlannedTrip, val date: String, val mgrs: String?, val coordinates: String) : MapBubbleContent
+    /**
+     * A planned trip (dispatch 2026-11-05-05, A1; RECORD -2140, the owner: "Remove the long/lat coordinates from the Trip icon,
+     * and keep the military style"): its name, [date] (null for an undated trip, schema 23, which shows no date line), its
+     * MGRS line, and [elevation] as a waypoint's bubble has it, `null` until read and where none is known; then Navigate,
+     * Plot route and Details.
+     */
+    data class Trip(val trip: PlannedTrip, val date: String?, val mgrs: String?, val elevation: String? = null) : MapBubbleContent
 
     /** An offline region: its name, radius, size, and whether it is stale; details. */
     data class Region(val regionId: Long, val name: String, val radius: String, val size: String, val stale: Boolean, val keptIn: List<JournalEntryOnMap> = emptyList()) : MapBubbleContent
@@ -250,7 +285,18 @@ sealed interface MapBubbleContent {
         val dates: String,
         val referenceClass: String,
     ) : MapBubbleContent
+
+    /**
+     * An official-trails band (step 8c; RECORD -1680, -1681): [title] says whose trail it is, "Forest Service trail 017 ·
+     * Three Blaze" or "BLM trail · Badlands Rock", and [note] that routes follow the trail map, not this layer. No action:
+     * the record is the agency's, with nothing in the app to open.
+     */
+    data class ReferenceTrail(val title: String, val note: String) : MapBubbleContent
 }
+
+/** [record]'s bubble: its two lines, as [ReferenceTrailRecord] writes them. */
+fun referenceTrailBubble(record: ReferenceTrailRecord): MapBubbleContent.ReferenceTrail =
+    MapBubbleContent.ReferenceTrail(title = record.firstLine, note = record.secondLine)
 
 /**
  * What [target]'s bubble says, looked up by its feature id in [sources]; `null` when the record is
@@ -291,13 +337,12 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
                     ?.let { kept -> MapBubbleContent.WaypointContent(kept, mgrsOf(LatLng(kept.lat, kept.lng)), hasDetails = false, fromStart = fromStart) }
         }
         MapBubbleKind.PLANNED_TRIP -> sources.plannedTrips.firstOrNull { it.id == id }?.let { trip ->
-            // The Trip Planner row's lines (AvailabilityTripsWaypointsUi's PlannedTripRow): name,
-            // date, MGRS when there is one, decimal degrees.
+            // The Trip Planner row's lines (AvailabilityTripsWaypointsUi's PlannedTripRow) but its decimal degrees, which
+            // dispatch 2026-11-05-05 (A1) took off: name, date, MGRS when there is one. The elevation joins in the layer.
             MapBubbleContent.Trip(
                 trip = trip,
-                date = displayDate(trip.date),
+                date = trip.date?.let(::displayDate),
                 mgrs = mgrsOf(trip.location),
-                coordinates = decimalDegreesLabel(trip.location.lat, trip.location.lng),
             )
         }
         MapBubbleKind.TRACK -> (sources.tracks.firstOrNull { it.id == id }?.let { track ->
@@ -340,6 +385,16 @@ fun mapBubbleContentFor(target: MapBubbleTarget.FeatureTarget, sources: MapRecor
 /** A waypoint's distance from the start as its entry-map bubble writes it (RECORD -867): "0.3 mi walked from the start". */
 internal fun waypointFromStartLine(meters: Double, distanceUnit: DistanceUnit): String =
     "${formatDistanceMeters(meters, distanceUnit)} walked from the start"
+
+/**
+ * The waypoint bubble's elevation line (dispatch 2026-11-03-07; the owner: "Example: Elevation 372 ft.", then "Elevation
+ * 1352 ft (Recommended)"): the word, a space, and the height in the Units setting as a whole number with no thousands
+ * separator ([formatWholeLength], as the strip's "Alt 1352 ft"). `null` for a height not known, which draws no line (A2).
+ */
+internal fun waypointElevationLine(height: GroundHeight, distanceUnit: DistanceUnit): String? = when (height) {
+    is GroundHeight.Known -> "Elevation ${formatWholeLength(height.metres, UnitSystem.forDistanceUnit(distanceUnit))}"
+    is GroundHeight.Unknown -> null
+}
 
 /** A find's date as its gallery tile captions it ("Find on <date>", `FindsGalleryScreen`). */
 private fun findDateLabel(find: MushroomLogEntry): String = "Find on ${displayDate(find.foundOn)}"
@@ -433,9 +488,10 @@ internal fun forecastCellFeatureId(cell: ForecastCell): String = "${cell.centre.
  * lands on the tapped point; when the clamp moves the card, the tail moves with the anchor, not
  * with the card). [topLeft] is the bubble's placed corner in the map box; [tipInBubble] is the
  * anchor in the bubble's own coordinates, so `topLeft + tipInBubble == anchor` wherever the clamp
- * put the card.
+ * put the card. [overFloor]: the bubble fitted nowhere between [minY] and the route card's top, so it is placed as the card were not
+ * there and is to be drawn over the card (BubbleFloor.kt).
  */
-data class BubblePlacement(val topLeftX: Int, val topLeftY: Int, val tipInBubble: Offset)
+data class BubblePlacement(val topLeftX: Int, val topLeftY: Int, val tipInBubble: Offset, val overFloor: Boolean = false)
 
 /**
  * Places a bubble of [bubbleWidth] by [bubbleHeight] px (the card plus [tailPx] of margin on every
@@ -455,6 +511,7 @@ fun bubblePlacement(
     maxHeight: Int,
     minY: Int,
     minX: Int = 0,
+    floor: BubbleFloor? = null,
 ): BubblePlacement {
     // The card's own half-extents: the placeable less the tail's margin on every side (the shell's
     // padding), so the tail's base sits on the visible card's edge.
@@ -469,6 +526,13 @@ fun bubblePlacement(
         return Offset(idealCentre.x - halfWidth, idealCentre.y - halfHeight)
     }
     var ideal = idealTopLeft(arrowAngleDeg)
+    // "Kept above the card" (RECORD -2187; BubbleFloor.kt): where the bubble meets the route card sideways, the card's top is the box's
+    // bottom, for the flip and the clamp below alike. The flip mirrors top to bottom, so the columns tested here are the placed ones.
+    val cardBottom = bubbleBottomLimit(maxHeight, floor, ideal.x.roundToInt().coerceIn(minX, (maxWidth - bubbleWidth).coerceAtLeast(minX)), bubbleWidth)
+    // The owner (RECORD -2187): "Bubble over the card (Recommended)": where no room is left between [minY] and the card's top, the card
+    // does not limit the bubble, which is drawn over it instead (BubbleFloor.kt).
+    val overFloor = cardBottom < maxHeight && cardBottom - bubbleHeight < minY
+    val bottom = if (overFloor) maxHeight else cardBottom
     // Flip below (dispatch 2026-09-29-57, amendment -262, the owner's "Flip below"): a card whose top would be
     // above [minY] does not fit above its glyph, and clamped down it would sit over the glyph it names. It opens
     // below instead, the arrow mirrored top to bottom so the tail points up from the card's top edge to the glyph
@@ -476,11 +540,11 @@ fun bubblePlacement(
     // neither above nor below, M1's clamp stands.
     if (ideal.y < minY) {
         val below = idealTopLeft((180f - arrowAngleDeg).mod(360f))
-        if (below.y >= minY && below.y + bubbleHeight <= maxHeight) ideal = below
+        if (below.y >= minY && below.y + bubbleHeight <= bottom) ideal = below
     }
     val x = ideal.x.roundToInt().coerceIn(minX, (maxWidth - bubbleWidth).coerceAtLeast(minX))
-    val y = ideal.y.roundToInt().coerceIn(minY, (maxHeight - bubbleHeight).coerceAtLeast(minY))
+    val y = ideal.y.roundToInt().coerceIn(minY, (bottom - bubbleHeight).coerceAtLeast(minY))
     // The tip is the anchor itself, in the bubble's coordinates: wherever the clamp put the card, the
     // tail is drawn from the card's edge to here (planner's M1 ruling).
-    return BubblePlacement(x, y, Offset(anchor.x - x, anchor.y - y))
+    return BubblePlacement(x, y, Offset(anchor.x - x, anchor.y - y), overFloor)
 }

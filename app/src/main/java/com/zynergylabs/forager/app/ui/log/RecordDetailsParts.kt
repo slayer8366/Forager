@@ -9,8 +9,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
-import androidx.compose.material.icons.Icons
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,8 +19,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import com.zynergylabs.forager.app.ui.theme.Spacing
-import androidx.compose.material.icons.filled.ExpandLess
-import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.runtime.MutableState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -114,11 +110,9 @@ internal fun DetailsFold(content: @Composable () -> Unit) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
+        // No arrow (dispatch 2026-10-28-02; the owner: "Remove all Chevrons from the drop down lists, those are banned from
+        // the app."). The row's click label above still says which a tap will do.
         Text(DETAILS_FOLD_TITLE, style = MaterialTheme.typography.titleSmall, modifier = Modifier.weight(1f))
-        Icon(
-            imageVector = if (open) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
-            contentDescription = null,
-        )
     }
     if (open) content()
 }

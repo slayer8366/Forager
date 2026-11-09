@@ -40,6 +40,8 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuBorder
+import com.zynergylabs.forager.app.ui.map.mapChromeMenuShadowElevation
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
 import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.mapChromeContentColor
@@ -170,7 +172,7 @@ internal fun SpeciesSearchControls(
             // is the fix, not new behavior invented on top of the component.
             // The menu's default container role, passed explicitly, and its content colour pinned to
             // the role's own (`contentColorFor` matches a colour-scheme role exactly; see
-            // `MapLayersSheet`), as J8's menus do (`journalMenuContentColor`).
+            // `mapChromeFill`'s doc, MapChrome.kt:103-109), as J8's menus do (`journalMenuContentColor`).
             // Owner, verbatim "1 A" (planner message 2026-09-28-77, Q3): at the map chrome's alpha on its
             // own over the Maps tab, stacking over the 0.8 search panel; solid where no map is drawn.
             val suggestionsColor = mapChromeFill(navigationBarContainerColor(), suggestionsOverMap)
@@ -179,6 +181,9 @@ internal fun SpeciesSearchControls(
                 expanded = suggestionsOpen,
                 onDismissRequest = onDismissTaxonSuggestions,
                 containerColor = suggestionsColor,
+                // Over the map: no shadow, the map-chrome hairline; solid elsewhere, as Material draws it (dispatch 2026-11-05-06).
+                shadowElevation = mapChromeMenuShadowElevation(suggestionsOverMap),
+                border = mapChromeMenuBorder(suggestionsOverMap),
                 modifier = Modifier
                     .testTag(TAXON_SUGGESTIONS_MENU_TAG)
                     .mapChromeContainerColor(suggestionsColor),

@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
+import com.zynergylabs.forager.app.domain.budgetTilesUsed
 import com.zynergylabs.forager.app.domain.estimateOfflineTileCount
 import com.zynergylabs.forager.app.domain.estimateServedOfflineTileCount
 import com.zynergylabs.forager.app.domain.model.Region
@@ -39,7 +40,7 @@ fun AvailabilityViewModel.onOfflineMapNameChanged(text: String) = offlineMaps.on
 fun AvailabilityViewModel.onDownloadAgain(id: Long) {
     val row = _uiState.value.offlineRegions.firstOrNull { it.id == id && !it.isDownloaded } ?: return
     val estimatedTiles = estimateServedOfflineTileCount(row.region)
-    val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - _uiState.value.offlineRegions.sumOf { it.tileCount }
+    val remainingBudget = OfflineMapRepository.TILE_COUNT_LIMIT - _uiState.value.offlineRegions.budgetTilesUsed()
     if (estimatedTiles > remainingBudget) {
         _uiState.update { it.withTileBudgetExceeded(estimatedTiles, remainingBudget) }
         return
@@ -53,13 +54,21 @@ fun AvailabilityViewModel.onDownloadAgain(id: Long) {
  * still wants them are fetched once (dispatch 2026-10-23-03; the owner: "Automatic, button as backup"). Its limits:
  * one attempt per opening, after the list is read, never a loop; nothing at all with no signal (the maps' own
  * state, read at the opening); a region already being fetched is not fetched twice.
+ *
+ * The drop-off map copy rides the same moment with its own selection (dispatch 2026-11-04-09; the owner: "Automatic
+ * (Recommended)", "refreshes it by itself whenever there's signal"): one pass for each downloaded area not yet whole,
+ * launched after the route fetch so its timing is unchanged. With no signal, no pass, and the log says so.
  */
 fun AvailabilityViewModel.onOfflineMapsOpened() {
     val listed = offlineMaps.onOfflineMapsOpened()
-    if (noSignal()) return
+    if (noSignal()) {
+        offlineRoutes.noteNoSignalForDropOffMaps()
+        return
+    }
     viewModelScope.launch {
         listed.join()
         offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
+        offlineRoutes.fetchDropOffMaps(offlineRoutes.regionsNeedingDropOffMaps())
     }
 }
 
@@ -71,11 +80,33 @@ fun AvailabilityViewModel.onOfflineMapsOpened() {
 fun AvailabilityViewModel.onOfflineMapsSignalReturned() {
     if (noSignal()) return
     offlineRoutes.fetch(offlineRoutes.regionsNeedingRoutes())
+    // Dispatch 2026-11-04-09 B1 P2: the drop-off map copy's passes too.
+    offlineRoutes.fetchDropOffMaps(offlineRoutes.regionsNeedingDropOffMaps())
+    // Known bug 14 (dispatch 2026-11-02-02, A9): the picker's area, which could not be asked about without signal.
+    offlineMaps.detail.lastSettled?.let { offlineMaps.detail.ask(it) }
 }
 
-/** "Try again" on a region's trail routes: one more fetch of that region, shown only after an attempt failed. */
+/**
+ * The Offline Maps picker's area has settled: the pin stopped, or the radius moved, or the picker opened (known bug 14,
+ * dispatch 2026-11-02-02, A3 to A9). With signal, the map server is asked whether it has the Trail Map's detail across the
+ * area, and the line shows if any part is outside it (the owner, RECORD -2144: "If any part is outside"). With no signal it
+ * is not asked: no line, logged (the owner: "With no signal it can't ask, so no warning, logged").
+ */
+fun AvailabilityViewModel.onOfflineAreaSettled(area: Region) {
+    if (noSignal()) {
+        offlineMaps.detail.noteNoSignal(area)
+        return
+    }
+    offlineMaps.detail.ask(area)
+}
+
+/**
+ * "Try again" on a region's trail routes: one more fetch of that region, shown only after an attempt failed. Also that
+ * region's drop-off map pass when it is not yet whole (dispatch 2026-11-04-09, which names "Try again" beside the opening).
+ */
 fun AvailabilityViewModel.onTryAgainRoutes(id: Long) {
     offlineRoutes.fetch(listOf(id))
+    offlineRoutes.fetchDropOffMaps(offlineRoutes.regionsNeedingDropOffMaps().filter { it == id })
 }
 
 /**
@@ -113,7 +144,8 @@ fun AvailabilityViewModel.onDownloadOfflineMaps() {
     val region = Region(lat, lng, state.offlineMapRadiusKm)
     val name = state.offlineMapNameText.trim().ifBlank { "Region ${state.offlineRegions.size + 1}" }
 
-    val tilesAlreadyUsed = state.offlineRegions.sumOf { it.tileCount }
+    // Each area counts by its own estimate, not MapLibre's count of every source's tiles (budgetTileCount; T1, RECORD -1703).
+    val tilesAlreadyUsed = state.offlineRegions.budgetTilesUsed()
     // Against the zoom the deployed source actually serves (SERVED_MAX_ZOOM, now equal to MAX_ZOOM;
     // the min inside is kept as the seam for their next divergence) — the same function the
     // panel's "~N tiles" label uses, so the gate and the label agree; see

@@ -88,11 +88,11 @@ class LogEntryDetailScreenTest {
 
     @Test
     fun `an entry with a location shows its coordinates`() {
-        val entry = MushroomLogEntry.draft(id = "with-location-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+        val entry = MushroomLogEntry.draft(id = "with-location-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1))
 
         setScreen(entry)
 
-        composeRule.onNodeWithText("Found at 45.3260, -122.6340").assertIsDisplayed()
+        composeRule.onNodeWithText("Found at 45.3736, -121.6959").assertIsDisplayed()
     }
 
     @Test
@@ -121,7 +121,7 @@ class LogEntryDetailScreenTest {
 
     @Test
     fun `the location button reads Change Location once the entry has one set`() {
-        val locatedEntry = MushroomLogEntry.draft(id = "with-location-1", location = LatLng(45.326, -122.634), date = LocalDate.of(2026, 8, 1))
+        val locatedEntry = MushroomLogEntry.draft(id = "with-location-1", location = LatLng(45.3736, -121.6959), date = LocalDate.of(2026, 8, 1))
 
         setScreen(locatedEntry)
 

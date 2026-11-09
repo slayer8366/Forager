@@ -80,8 +80,18 @@ private const val METERS_PER_FOOT = 0.3048
  * considered and did not adopt coarser rounding for GPS height error).
  */
 fun formatWholeLength(meters: Double, unitSystem: UnitSystem): String = when (unitSystem) {
-    UnitSystem.METRIC -> "${meters.roundToInt()} m"
-    UnitSystem.IMPERIAL -> "${(meters / METERS_PER_FOOT).roundToInt()} ft"
+    UnitSystem.METRIC -> "${wholeLength(meters, unitSystem)} m"
+    UnitSystem.IMPERIAL -> "${wholeLength(meters, unitSystem)} ft"
+}
+
+/**
+ * The number [formatWholeLength] prints, without its unit: whole metres, or whole feet (metres ÷ 0.3048), each `roundToInt`.
+ * For a figure printed beside one that already names the unit, as the route card's climb and descent do (dispatch
+ * 2026-10-30-08, Amendment 6: "Elevation: +240 ft (↑ 320 ↓ 80)").
+ */
+fun wholeLength(meters: Double, unitSystem: UnitSystem): Int = when (unitSystem) {
+    UnitSystem.METRIC -> meters.roundToInt()
+    UnitSystem.IMPERIAL -> (meters / METERS_PER_FOOT).roundToInt()
 }
 
 /**

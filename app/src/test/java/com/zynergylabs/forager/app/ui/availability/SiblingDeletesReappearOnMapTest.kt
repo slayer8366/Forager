@@ -32,6 +32,7 @@ import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.MushroomLogRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PhotoStore
@@ -154,6 +155,7 @@ class SiblingDeletesReappearOnMapTest {
             getTodaysForecast = GetTodaysForecastUseCase(SibNoWeather),
             // The real reads are the stores the deletes remove from, read at the moment they are asked.
             getMapRecords = { MapRecords.NONE.copy(photoMarkers = photoRepo.markers(), offlineRegionCircles = regionStore.circles()) },
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         val log = MushroomLogViewModel(
             getEntries = GetMushroomLogEntriesUseCase(photoRepo),
@@ -173,6 +175,7 @@ class SiblingDeletesReappearOnMapTest {
             updatePhotoLocation = UpdatePhotoLocationUseCase(photoRepo),
             // As MainActivity wires it.
             onPhotoDeleted = { id -> availability.onPhotoDeleted(id) },
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
         return Rig(photoRepo, regionStore, log, availability)
     }
@@ -350,7 +353,7 @@ class SiblingDeletesReappearOnMapTest {
 }
 
 private fun galleryPhoto(id: String) = GalleryPhoto(
-    photo = LogPhoto(id = id, relativePath = "photos/$id.jpg", createdAtEpochMillis = 1L, latitude = 45.3, longitude = -122.6),
+    photo = LogPhoto(id = id, relativePath = "photos/$id.jpg", createdAtEpochMillis = 1L, latitude = 44.8, longitude = -121.19375),
     referencingEntryIds = emptyList(),
 )
 
@@ -390,7 +393,7 @@ private object SucceedingPhotoStore : PhotoStore {
 private class RegionStore(initial: List<Long>, private val deleteShouldFail: Boolean) : OfflineMapRepository {
     private val regions = initial.map {
         OfflineRegionSummary(
-            id = it, name = "region $it", region = Region(45.3, -122.6, 10), minZoom = 8.0, maxZoom = 12.0,
+            id = it, name = "region $it", region = Region(44.8, -121.19375, 10), minZoom = 8.0, maxZoom = 12.0,
             tileCount = 1, sizeBytes = 1L, createdAtEpochMillis = 1L,
         )
     }.associateByTo(LinkedHashMap()) { it.id }

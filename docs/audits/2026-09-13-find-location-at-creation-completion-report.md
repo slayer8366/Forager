@@ -141,11 +141,11 @@ was identical to the pushed commit afterwards.
 
 | revert | failures produced |
 |---|---|
-| `createEntry(location ?: freshDeviceLocation(), …)` → `createEntry(location, …)` | 3: "expected LatLng(45.5, -122.6) but was null"; the logged-discard assertion; the inside-the-bound case |
-| age check `>= LOST_AFTER_MILLIS` → `< 0` (never fires) | 1: "a fix past the bound must not become the find's location expected null, but was LatLng(45.5, -122.6)" |
-| camera branch back to `patchCameraCaptureLocation(photoId)` | 2: the promotion case, "expected LatLng(45.5, -122.6) but was null"; the closed-find case (its log line never written) |
-| `if (entry.foundAt != null) return` removed | 1: "expected LatLng(45.0, -122.0) but was LatLng(45.5, -122.6)" |
-| picker: always `fallback` | 1: "expected Region(44.05, -121.31, 1) but was Region(45.326, -122.634, 15)" |
+| `createEntry(location ?: freshDeviceLocation(), …)` → `createEntry(location, …)` | 3: "expected LatLng(45.5, -121.6) but was null"; the logged-discard assertion; the inside-the-bound case |
+| age check `>= LOST_AFTER_MILLIS` → `< 0` (never fires) | 1: "a fix past the bound must not become the find's location expected null, but was LatLng(45.5, -121.6)" |
+| camera branch back to `patchCameraCaptureLocation(photoId)` | 2: the promotion case, "expected LatLng(45.5, -121.6) but was null"; the closed-find case (its log line never written) |
+| `if (entry.foundAt != null) return` removed | 1: "expected LatLng(45.0, -121.0) but was LatLng(45.5, -121.6)" |
+| picker: always `fallback` | 1: "expected Region(44.05, -121.31, 1) but was Region([a point near the owner's home; removed 2026-11-06], 15)" |
 
 **Not revert-checked:** the "closed find" guard on its own (`entry == null || entry.id != findId`).
 Removing the null half does not compile (smart cast), and removing only the id half leaves the

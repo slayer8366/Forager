@@ -32,7 +32,7 @@ internal fun createMushroomLogViewModel(
     container.deleteGalleryPhotoUseCase,
     container.locationProvider,
     container.updatePhotoLocationUseCase,
-    getPhotoEntryReferenceCount = { id -> photoEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forPhoto, errorLog) },
+    entryReferenceCounts = container.entryReferenceCountSource,
     // Find-location-at-creation dispatch, Fix 1: the held live fix, read at the
     // moment a find is started. AvailabilityViewModel is the one live collector.
     currentFix = { availability.uiState.value.liveFix },

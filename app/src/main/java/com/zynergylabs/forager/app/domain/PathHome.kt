@@ -92,6 +92,14 @@ import com.zynergylabs.forager.app.domain.model.Waypoint
  * the 15 s track poll, not per fix. Points only ever append during a recording, so the graph
  * could be kept incrementally; not done until a measurement says it is needed.
  *
+ * ## The climb along it (dispatch 2026-10-26-19 Amendment 1; RECORD -1689)
+ *
+ * [PathHome.climb] is the climb and descent along the same route home, from the stored points' barometric heights
+ * ([climbAlongRoute]), for the walking time's climbing allowance ([CLIMB_ALLOWANCE_SECONDS_PER_METER]). The hop and the
+ * leg to the origin have no stored heights and are counted flat. The route's own heights are counted from the most
+ * recent stored point, where the distance is, so no climb is left out that the distance counts. The heights are computed
+ * over the whole track on every call; their cost on the 15 s sundown tick is measured in `ClimbAllowanceCostTest`.
+ *
  * `null` when the track has no usable points: there is no path to measure, and a straight-line
  * substitute would be exactly the confidently-short number this exists to avoid.
  */
@@ -99,7 +107,7 @@ fun pathHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand: 
     val points = track.points
     if (points.isEmpty()) return null
 
-    val joined = joinedTrackHome(points)
+    val joined = joinedTrackRoute(points)
     val mostRecent = points.last()
     val hopMeters = GeoDistance.metersBetween(current, LatLng(mostRecent.lat, mostRecent.lng))
     val first = points.first()
@@ -112,6 +120,7 @@ fun pathHome(track: Track, current: LatLng, origin: Waypoint?, previousHopBand: 
         originLegMeters = originLegMeters,
         pointCount = points.size,
         joinsOnRoute = joined.joinsOnRoute,
+        climb = climbAlongRoute(points, joined.route),
     )
 }
 
@@ -149,6 +158,12 @@ data class PathHome(
     val pointCount: Int,
     /** How many self-joins the route home crosses ([JoinedTrackHome.joinsOnRoute]); zero means the plain retrace. */
     val joinsOnRoute: Int = 0,
+    /**
+     * The climb and descent along the way back, for the climbing allowance ([CLIMB_ALLOWANCE_SECONDS_PER_METER]):
+     * [WayBackClimb.NoBarometer] on a track without barometric heights, `null` when whoever built this did not measure
+     * it (no allowance either way). See [pathHome], "The climb along it"; along the way home shown, `WayHomeLine`.
+     */
+    val climb: WayBackClimb? = null,
 ) {
     /** The hop as counted: nothing in [HopBand.NONE], otherwise as measured. */
     val hopCountedMeters: Double get() = if (hopBand == HopBand.NONE) 0.0 else hopMeters

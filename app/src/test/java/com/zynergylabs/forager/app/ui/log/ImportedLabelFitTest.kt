@@ -68,7 +68,7 @@ class ImportedLabelFitTest {
 
     private val start = Instant.parse("2026-09-27T19:23:46Z").toEpochMilli()
     private val importedAt = Instant.parse("2026-10-07T17:07:00Z").toEpochMilli()
-    private val points = listOf(TrackPoint(45.5, -122.6, null, null, start), TrackPoint(45.6, -122.6, null, null, start + 60_000L))
+    private val points = listOf(TrackPoint(45.5, -121.6, null, null, start), TrackPoint(45.6, -121.6, null, null, start + 60_000L))
 
     /** The longest real title seen: the S22 day check's imported Forager export, named by its file. */
     private val longTitle = "forager-track-2026-09-27-192346"

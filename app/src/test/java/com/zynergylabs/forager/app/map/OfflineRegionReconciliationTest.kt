@@ -186,7 +186,7 @@ class OfflineRegionReconciliationTest {
             reconcileOfflineRegions(
                 live = listOf(
                     LiveRegion(1, true, finishedMetadata(), 10, 100, styleUrl = OFFLINE_STYLE_URL),
-                    LiveRegion(2, true, finishedMetadata(), 10, 100, styleUrl = STREET_STYLE_URL),
+                    LiveRegion(2, true, finishedMetadata(), 10, 100, styleUrl = TRAIL_STYLE_URL),
                     LiveRegion(3, true, finishedMetadata(), 10, 100, styleUrl = null),
                 ),
                 dao = dao,
@@ -196,7 +196,7 @@ class OfflineRegionReconciliationTest {
                 routes = FakeRegionRouteFolders(),
             )
         }
-        assertEquals(mapOf(1L to OFFLINE_STYLE_URL, 2L to STREET_STYLE_URL, 3L to null), shown.associate { it.id to it.styleUrl })
+        assertEquals(mapOf(1L to OFFLINE_STYLE_URL, 2L to TRAIL_STYLE_URL, 3L to null), shown.associate { it.id to it.styleUrl })
     }
 
     private fun row(id: Long) = OfflineRegionEntity(id, "Row $id", 1.0, 2.0, 5, 6.0, 12.0, 1_000L)
@@ -213,7 +213,7 @@ class OfflineRegionReconciliationTest {
 
     @Test
     fun `a Room row with no MapLibre region is offered as not downloaded, with its stored centre, radius and zoom`() {
-        val rows = listOf(row(1), row(2).copy(name = "Cedar Creek", lat = 45.5, lng = -122.6, radiusKm = 8, minZoom = 10.0, maxZoom = 15.0))
+        val rows = listOf(row(1), row(2).copy(name = "Cedar Creek", lat = 45.5, lng = -121.19375, radiusKm = 8, minZoom = 10.0, maxZoom = 15.0))
 
         val listed = notDownloadedRegions(rows, liveIds = setOf(1L))
 
@@ -221,7 +221,7 @@ class OfflineRegionReconciliationTest {
         val region = listed.single()
         assertEquals(false, region.isDownloaded)
         assertEquals("Cedar Creek", region.name)
-        assertEquals(com.zynergylabs.forager.app.domain.model.Region(lat = 45.5, lng = -122.6, radiusKm = 8), region.region)
+        assertEquals(com.zynergylabs.forager.app.domain.model.Region(lat = 45.5, lng = -121.19375, radiusKm = 8), region.region)
         assertEquals(10.0, region.minZoom, 0.0)
         assertEquals(15.0, region.maxZoom, 0.0)
         assertEquals(0, region.tileCount)

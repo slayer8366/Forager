@@ -17,19 +17,19 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The own Street's water at night: [STREET_NIGHT_WATER], `#163f4b`, on every water fill and line (dispatch 2026-10-22-03,
+ * The own Street's water at night: [TRAIL_NIGHT_WATER], `#163f4b`, on every water fill and line (dispatch 2026-10-22-03,
  * the owner's "Darker water fill", then "Same as water" for streams), in place of -1343's lighter `#8ec5f0`; labels and
  * everything else stay pure inversion (-1288) or their own named exceptions, and the offline style is untouched.
  *
  * The rule is the owner's "Rules from your colours", with the planner's numbers (Forager-cartography,
  * `docs/design/2026-10-22-night-colours-rulings.md`, "The planner's call: the checker numbers"): relative luminance at
  * most 0.050 and blue at most 96, and at least 1.05:1 against every night land fill the app draws, read from the served
- * v2 style and put through the app's own [streetNightRecolourOf]. `map-style/tools/check-street-night.mjs` holds the
- * same numbers on the design side.
+ * style the app loads (v3 since dispatch 2026-10-26-21, v2 before) and put through the app's own [trailNightRecolourOf].
+ * `map-style/tools/check-trail-night.mjs` holds the same numbers on the design side.
  */
 class NightWaterTest {
 
-    private val style = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v2.json").readText()).jsonObject
+    private val style = Json.parseToJsonElement(File("../server/pmtiles-worker/src/street-style-v3.json").readText()).jsonObject
     private val palette = style.getValue("metadata").jsonObject.getValue("forager:palette").jsonObject
 
     private fun colour(name: String) = palette.getValue(name).jsonPrimitive.content
@@ -83,20 +83,20 @@ class NightWaterTest {
 
     @Test
     fun `the app's night water is the design's`() {
-        assertEquals(colour("nightWater"), STREET_NIGHT_WATER)
+        assertEquals(colour("nightWater"), TRAIL_NIGHT_WATER)
     }
 
     @Test
     fun `night water is under the ruled ceiling, and the lighter blue it replaces is not`() {
-        val water = argb(STREET_NIGHT_WATER)
-        assertTrue("night water $STREET_NIGHT_WATER has luminance ${luminance(water)} and blue ${water and 0xFF}", underWaterCeiling(water))
+        val water = argb(TRAIL_NIGHT_WATER)
+        assertTrue("night water $TRAIL_NIGHT_WATER has luminance ${luminance(water)} and blue ${water and 0xFF}", underWaterCeiling(water))
         // -1343's #8ec5f0: luminance 0.52, blue 240. The rule exists to turn it away.
         assertFalse("the lighter blue #8ec5f0 passed the ceiling", underWaterCeiling(argb("#8ec5f0")))
     }
 
     @Test
     fun `night water reads at 1_05 to 1 or better on every night land fill the app draws`() {
-        val water = argb(STREET_NIGHT_WATER)
+        val water = argb(TRAIL_NIGHT_WATER)
         // Every fill and background outside the water source layer, recoloured by the app's own Street night.
         val nightLand = layers()
             .filter { it.getValue("type").jsonPrimitive.content in setOf("fill", "background") && it["source-layer"]?.jsonPrimitive?.content != WATER_SOURCE_LAYER }
@@ -104,7 +104,7 @@ class NightWaterTest {
                 val id = layer.getValue("id").jsonPrimitive.content
                 val property = if (layer.getValue("type").jsonPrimitive.content == "background") "background-color" else "fill-color"
                 val value = layer["paint"]?.jsonObject?.get(property) ?: return@flatMap emptyList()
-                val outcome = streetNightRecolourOf(LayerColourProperty(id, property, valueOf(value)), layer["source-layer"]?.jsonPrimitive?.content)
+                val outcome = trailNightRecolourOf(LayerColourProperty(id, property, valueOf(value)), layer["source-layer"]?.jsonPrimitive?.content)
                 coloursIn((outcome as NightRecolour.Recoloured).night).map { id to it }
             }
         // The sample has to hold the fills that could fail: the forest, the wetland and the bare rock at their night
@@ -126,11 +126,11 @@ class NightWaterTest {
             val sourceLayer = layer["source-layer"]?.jsonPrimitive?.content
             val id = layer.getValue("id").jsonPrimitive.content
             NIGHT_RECOLOURED_PROPERTIES.getOrDefault(type, emptyList()).mapNotNull { property ->
-                paint[property]?.let { value -> Triple(id, sourceLayer, streetNightRecolourOf(LayerColourProperty(id, property, valueOf(value)), sourceLayer)) }
+                paint[property]?.let { value -> Triple(id, sourceLayer, trailNightRecolourOf(LayerColourProperty(id, property, valueOf(value)), sourceLayer)) }
             }
         }
         val water = outcomes.filter { it.second == WATER_SOURCE_LAYER }
-        val night = StyleColourValue.Literal(STREET_NIGHT_WATER)
+        val night = StyleColourValue.Literal(TRAIL_NIGHT_WATER)
         val drawn = water.filter { it.first in setOf("water", "water_stream", "water_river") }
         assertEquals(listOf("water", "water_stream", "water_river"), drawn.map { it.first })
         drawn.forEach { assertEquals(it.first, night, (it.third as NightRecolour.Recoloured).night) }
@@ -138,8 +138,8 @@ class NightWaterTest {
         assertTrue("the water labels are walked", labels.isNotEmpty())
         labels.forEach { assertTrue("${it.first} keeps the inversion", (it.third as NightRecolour.Recoloured).night != night) }
         // Everything not drawn from water is the plain inversion, apart from the -1345 layer exceptions and the fills that
-        // draw a STREET_NIGHT_FILL_COLOURS colour, which NightExceptionsTest holds. Those fills are exactly the forest's.
-        val differing = outcomes.filter { it.second != WATER_SOURCE_LAYER && it.first !in STREET_NIGHT_LAYER_COLOURS }
+        // draw a TRAIL_NIGHT_FILL_COLOURS colour, which NightExceptionsTest holds. Those fills are exactly the forest's.
+        val differing = outcomes.filter { it.second != WATER_SOURCE_LAYER && it.first !in TRAIL_NIGHT_LAYER_COLOURS }
             .filter { (_, _, outcome) -> offlineNightRecolourOf(outcome.property) != outcome }
         assertEquals(listOf("landcover/fill-color", "landuse_park/fill-color"), differing.map { "${it.first}/${it.third.property.property}" })
     }

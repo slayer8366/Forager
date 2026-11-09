@@ -1,0 +1,95 @@
+package com.zynergylabs.forager.app.domain.wayto
+
+import com.zynergylabs.forager.app.domain.wayhome.WayHome
+import com.zynergylabs.forager.app.domain.wayhome.WayHomePartKind
+import java.io.File
+
+/**
+ * What [FindWayToWaypointUseCase] found (dispatch 2026-10-26-10, step 6 PR 2; the rulings are RECORD -1652 and -1653).
+ * Step 6 PR 3 (dispatch 2026-10-26-11) puts it on the map and in the HUD (`ui/availability/AvailabilityWaypointRoute`).
+ */
+sealed interface WayToWaypointResult {
+    /**
+     * The way to the waypoint along trails, in [WayHome]'s three slots so the way home's placing, figure, line ahead and
+     * drawing take it unchanged (the step 6 report's choice, accepted by the dispatch):
+     * - [WayHome.trackBack] holds the **lead-in**, a straight leg from the walker to the trail point nearest them (Q1 (a));
+     * - [WayHome.trail] holds the **trail route** between the two trail points;
+     * - [WayHome.trackToStart] holds the **final leg**, a straight leg from the trail point nearest the waypoint to the
+     *   waypoint (Q2).
+     *
+     * Both legs are [WayHomePartKind.STRAIGHT], never a track kind: dotted means "your own track" (RECORD -1589). The
+     * slot names read oddly here ("trackToStart" holding the final leg); that is naming debt the report chose over a
+     * second line type and copies of the four functions that read one.
+     */
+    data class AlongTrails(
+        val way: WayHome,
+        /**
+         * The route data folder the way was found on (dispatch 2026-11-06-01, Amendment 1, H4), for the next turn's
+         * junctions; `null` only where a result is built without one, in tests, and then the junctions are unread.
+         */
+        val routeData: File? = null,
+    ) : WayToWaypointResult
+
+    /** No trail route: today's straight line to the waypoint, with [note] saying why. */
+    data class StraightLine(val note: WayToWaypointNote) : WayToWaypointResult
+}
+
+/**
+ * Why the way to a waypoint is today's straight line (RECORD -1652 Q4, the owner: "Approve as written"; confirmed at
+ * -1653): the way home's notes with "· straight line" in place of "· following your track", since the fallback here is
+ * the straight line (the leaves-area note too, RECORD -1665), and three of the waypoint's own.
+ */
+enum class WayToWaypointNote(val text: String) {
+    /**
+     * No downloaded region covers either end, the server has no routes for the area, or the build lacks an end's square
+     * (listed as missing, or with no route file in the folder, RECORD -1667).
+     */
+    NO_TRAIL_ROUTES("No trail routes here · straight line"),
+
+    /** An end's region has routes not on the phone: never fetched, or the fetch failed (RECORD -1592, -1595). */
+    ROUTES_NOT_DOWNLOADED("Trail routes not downloaded · straight line"),
+
+    /** An end's region's routes were refused because of this app (RECORD -1597). */
+    ROUTES_NEED_APP_UPDATE("Trail routes need an app update · straight line"),
+
+    /** An end's region's routes are being fetched now (RECORD -1592). */
+    ROUTES_FETCHING("Getting trail routes… · straight line"),
+
+    /** Routes are stored and cannot be read: a damaged region, a file missing or corrupt, or the regions unreadable. */
+    ROUTES_UNREADABLE("Trail routes couldn't be read · straight line"),
+
+    /** Both ends are near trails and no trail route joins them, the engine failed, or it could not be built. */
+    NO_ROUTE_FOUND("Couldn't find a trail route · straight line"),
+
+    /**
+     * The trail route runs outside the downloaded area. RECORD -1665, the owner: "Add '· straight line'" (Amendment 1,
+     * item 1), in place of the way home's second sentence, which stays the way home's. Where a short form is shown it
+     * stays "Route leaves your downloaded area" (the same record); PR 3 shows it.
+     */
+    LEAVES_AREA("This route leaves your downloaded area · straight line"),
+
+    /** No trail within the engine's reach of the waypoint, 250 m (Q2: "a waypoint over 250 m from any trail"). */
+    WAYPOINT_FAR_FROM_TRAIL("The waypoint is far from any trail · straight line"),
+
+    /** No trail within the engine's reach of the walker, 250 m. */
+    WALKER_FAR_FROM_TRAIL("You're far from any trail · straight line"),
+
+    /** The walker and the waypoint are not both inside one downloaded area with routes. */
+    WAYPOINT_IN_ANOTHER_AREA("The waypoint is in another area · straight line"),
+
+    /**
+     * No way in to the waypoint passes the gates (way-to dispatch 2026-10-28, rule 4 of the owner's ruling: "say so
+     * plainly"). For a pin at a building: no drop-off on a street whose straight leg crosses no other building, fence or
+     * river. For a pin off a trail: the leg from the trail crosses one.
+     */
+    WAY_IN_BLOCKED("No clear way in to the waypoint · straight line"),
+
+    /** The lead-in from the walker to the route crosses a building, fence or river. Walking on can change it. */
+    LEAD_IN_BLOCKED("No clear way from you to the route · straight line"),
+
+    /**
+     * The map round an end could not vouch for the gates: a tile not stored, or a tile set from before fences were
+     * carried. Never a pass (the planner, 10-28).
+     */
+    MAP_NOT_CHECKED("Couldn't check the map for houses, fences or water · straight line"),
+}

@@ -171,6 +171,9 @@ internal fun activateLiveLocationIfPermitted(
     // Dispatch 2026-10-19-37: the map springs back from a small nudge (MapRenderMode.nudgeSpringBack), so it takes
     // the plain nudge's options (PlainMapNudge.kt). `false`: the ordinary options, exactly as before.
     nudgeSpringBack: Boolean = false,
+    // dot-lift-after-recreate: told when the location component's own transition for the mode set here has ended
+    // (setLiveLocationCameraMode); nothing by default.
+    onCameraTransitionEnded: () -> Unit = {},
 ) {
     if (!hasLocationPermission(context)) return
     val locationComponent = map.locationComponent
@@ -187,7 +190,7 @@ internal fun activateLiveLocationIfPermitted(
     // COMPASS, not NORMAL: the puck itself points the device's own heading, the same live sensor
     // the compass strip's heading text already reads — matching, not duplicating, that readout.
     locationComponent.renderMode = RenderMode.COMPASS
-    locationComponent.cameraMode = restoreCameraMode ?: CameraMode.TRACKING
+    setLiveLocationCameraMode(locationComponent, restoreCameraMode ?: CameraMode.TRACKING, onCameraTransitionEnded)
     if (restoreCameraMode == null) {
         map.easeCamera(CameraUpdateFactory.zoomTo(FIRST_ACTIVATION_ZOOM))
     }

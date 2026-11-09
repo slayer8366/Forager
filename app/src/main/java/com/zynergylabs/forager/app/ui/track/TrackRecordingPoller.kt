@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.track
 
+import com.zynergylabs.forager.app.domain.KeptTail
 import com.zynergylabs.forager.app.domain.NETWORK_FIXES_RECORDING_NOTICE
 import com.zynergylabs.forager.app.domain.TrackRepository
 import com.zynergylabs.forager.app.domain.isMostlyNetworkFixes
@@ -8,6 +9,7 @@ import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel.Companion.PO
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 
 /**
@@ -30,6 +32,14 @@ import kotlinx.coroutines.launch
  * fix, so polling at roughly that same cadence ([POLL_INTERVAL_MILLIS]) shows breadcrumbs about as
  * fresh as the data actually is, without adding a reactive-query layer this database has never
  * needed anywhere else.
+ *
+ * ## The kept points not yet written (dispatch 2026-10-26-05, RECORD -1651)
+ *
+ * Polled alone, the line ended at the last written point, up to a write (30 s) and a poll (15 s) behind the walker.
+ * So [begin] also collects [keptTail], the service's newest kept points (`AppContainer.recordingKeptTail`), into
+ * [TrackRecordingUiState.recordingKeptTail], on each point kept; the line drawn is
+ * [TrackRecordingUiState.recordingLine]. The flow is a `StateFlow` with no lock behind it, so nothing here waits on
+ * the service's thread. [cancel] and [cancelOnCleared] stop it with the poll. What is written, and when, is unchanged.
  */
 internal class TrackRecordingPoller(
     private val uiState: () -> TrackRecordingUiState,
@@ -40,9 +50,12 @@ internal class TrackRecordingPoller(
     private val handStartPointToWatch: () -> Unit,
     /** The ViewModel's one notice counter, `++recordingNoticeIds`, shared with the trip-start warning and the background prompt. */
     private val nextNoticeId: () -> Int,
+    /** The service's newest kept points (`AppContainer.recordingKeptTail.tail`); `null`, none collected. */
+    private val keptTail: StateFlow<KeptTail>? = null,
 ) {
 
     private var pollingJob: Job? = null
+    private var keptTailJob: Job? = null
 
     /** The track the 15 s poll last read for the active recording: what the route tick routes along. */
     var lastPolledTrack: Track? = null
@@ -69,6 +82,8 @@ internal class TrackRecordingPoller(
     }
 
     fun begin(trackId: String) {
+        keptTailJob?.cancel()
+        keptTailJob = keptTail?.let { tail -> scope().launch { tail.collect { kept -> updateState { it.copy(recordingKeptTail = kept) } } } }
         pollingJob?.cancel()
         pollingJob = scope().launch {
             while (true) {
@@ -95,10 +110,13 @@ internal class TrackRecordingPoller(
     fun cancel() {
         pollingJob?.cancel()
         pollingJob = null
+        keptTailJob?.cancel()
+        keptTailJob = null
     }
 
     /** `onCleared`'s own line: cancels the poll and, as before, leaves the field as it is. */
     fun cancelOnCleared() {
         pollingJob?.cancel()
+        keptTailJob?.cancel()
     }
 }

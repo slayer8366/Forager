@@ -1,8 +1,13 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.ErrorLog
+import com.zynergylabs.forager.app.domain.KeptLiveHeight
 import com.zynergylabs.forager.app.domain.LastKnownLocationSource
 import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.LocationTracker
+import com.zynergylabs.forager.app.domain.PressureProvider
+import com.zynergylabs.forager.app.domain.SeaLevelConverter
+import com.zynergylabs.forager.app.domain.ShownHeight
 import com.zynergylabs.forager.app.domain.acceptLiveFix
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
@@ -19,12 +24,29 @@ import kotlinx.coroutines.launch
  * planner to this series). `onEnteredForeground`, `onLeftForeground` and `onLocationPermissionGranted` keep
  * the foreground flag and every condition, in their order, and call [begin], [isCollecting] and [cancel]
  * where they used the job before. Each is synchronous.
+ *
+ * **The live height** (dispatch 2026-10-28-13, RECORD -1792): each accepted fix's height is converted to sea level by
+ * [seaLevelConverter] and, with the barometer's readings from [pressureProvider], steadied by [LiveHeight] into
+ * [AvailabilityUiState.shownHeight]. A refused fix is not used for height, as it is not used for anything that acts.
+ *
+ * **When the barometer is read** (Amendment 3, RECORD -1797; the owner: "Map tab only (Recommended)"): here, only while
+ * the Maps tab is showing ([onMapsTabShownChanged]) and the live fix is collected (the app in the foreground, the
+ * permission held). The recording service reads its own while recording, on any tab, unchanged.
+ *
+ * **Back on the map** (Amendment 4, RECORD -1808, superseding Amendment 3's "nothing from before the tab was left is
+ * reused" for gaps under 10 minutes): within 10 minutes of the barometer stopping, the steadying carries on from the
+ * kept anchor, steadied at once; later, it starts afresh with N1's first minute and blend. A tab change, a pause and the
+ * screen going off all stop the barometer the same way ([stopBarometer]), so all three are kept alike. See
+ * [KeptLiveHeight].
  */
 internal class AvailabilityLiveLocation(
     private val updateState: ((AvailabilityUiState) -> AvailabilityUiState) -> Unit,
     private val scope: () -> CoroutineScope,
     private val locationTracker: LocationTracker,
     private val lastKnownLocation: LastKnownLocationSource,
+    private val pressureProvider: PressureProvider,
+    private val seaLevelConverter: SeaLevelConverter,
+    private val errorLog: ErrorLog,
 ) {
 
     /**
@@ -34,6 +56,14 @@ internal class AvailabilityLiveLocation(
      */
     private var liveFixJob: Job? = null
 
+    /** The live steadying, kept across the barometer's stops ([KeptLiveHeight]). */
+    private val height = KeptLiveHeight(errorLog)
+
+    /** The barometer's collection, a child of [liveFixJob], running only while [mapsTabShown]. */
+    private var barometerJob: Job? = null
+    private var mapsTabShown = false
+    private var fixesEnded = false
+
     /** Whether the live collection is running: the ViewModel's former `liveFixJob?.isActive == true`. */
     val isCollecting: Boolean
         get() = liveFixJob?.isActive == true
@@ -42,6 +72,39 @@ internal class AvailabilityLiveLocation(
     fun cancel() {
         liveFixJob?.cancel()
         liveFixJob = null
+        stopBarometer()
+    }
+
+    /**
+     * Whether the Maps tab is showing, from the screen ([AvailabilityScreenMapControls.onMapsTabShownChanged]). Starts or
+     * stops the barometer to match (Amendment 3).
+     */
+    fun onMapsTabShownChanged(shown: Boolean) {
+        mapsTabShown = shown
+        syncBarometer()
+    }
+
+    private fun syncBarometer() {
+        val parent = liveFixJob
+        val wanted = mapsTabShown && parent != null && parent.isActive && !fixesEnded
+        if (wanted && barometerJob == null) {
+            height.onBarometerStarted()
+            // A child of the live-fix job: cancelled with it, as before.
+            barometerJob = scope().launch(parent!!) {
+                pressureProvider.readings.collect { reading ->
+                    val shown = if (reading == null) height.onNoBarometer() else height.onPressure(reading)
+                    if (shown != null) showHeight(shown)
+                }
+            }
+        } else if (!wanted && barometerJob != null) {
+            stopBarometer()
+        }
+    }
+
+    private fun stopBarometer() {
+        barometerJob?.cancel()
+        barometerJob = null
+        height.onBarometerStopped()
     }
 
     /**
@@ -61,6 +124,8 @@ internal class AvailabilityLiveLocation(
      * the strip's own "unavailable" text covers that honestly, unchanged.
      */
     fun begin() {
+        // Amendment 4: no fresh steadying here. The anchor kept at the stop ([cancel]) decides on the first reading back.
+        fixesEnded = false
         liveFixJob = scope().launch {
             readLastKnownLocation()
             locationTracker.fixes.collect { fix ->
@@ -72,11 +137,24 @@ internal class AvailabilityLiveLocation(
                     // The whole fix, accuracy and timestamp included — see
                     // AvailabilityUiState.liveFix's own doc comment (HUD-foundations dispatch, Item 1).
                     updateState { it.copy(liveFix = fix) }
+                    // Converted first, then handed to the steadying current at that moment ([height] may have been
+                    // replaced while the conversion ran).
+                    val seaLevel = seaLevelConverter.seaLevel(fix.lat, fix.lng, fix.altitude)
+                    height.onFix(seaLevel, fix.timestampEpochMillis)?.let(::showHeight)
                 } else if (fix is LocationFix.Update) {
                     onRefusedFix(fix)
                 }
             }
+            // The fixes ended (a missing permission): the barometer stops too, so it is never read with no fixes to steady.
+            fixesEnded = true
+            stopBarometer()
         }
+        // The barometer, if the Maps tab is showing ([syncBarometer]).
+        syncBarometer()
+    }
+
+    private fun showHeight(shown: ShownHeight) {
+        updateState { if (it.shownHeight == shown) it else it.copy(shownHeight = shown) }
     }
 
     /**

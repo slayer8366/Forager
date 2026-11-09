@@ -15,10 +15,8 @@ import com.zynergylabs.forager.app.domain.model.TrackPoint
  * ([smoothedGpsHeights]): a phone with no barometer, and every walk recorded before version 21. The owner, RECORD -864:
  * "Measuring height is wonky, on a flat walk it showed fluctuating values ... The phone was in my pocket."
  */
-fun trackHeights(points: List<TrackPoint>): List<Double?> {
-    val withPressure = points.count { it.pressureHpa != null }
-    return if (withPressure > 0 && withPressure * 2 >= points.size) barometricHeights(points) else smoothedGpsHeights(points)
-}
+fun trackHeights(points: List<TrackPoint>): List<Double?> =
+    if (isBarometricTrack(points)) barometricHeights(points) else smoothedGpsHeights(points)
 
 /**
  * GPS heights with their spikes and short jitter taken out, in two passes over each unbroken run of points that carry a

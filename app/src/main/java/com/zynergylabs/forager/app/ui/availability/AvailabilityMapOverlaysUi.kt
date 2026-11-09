@@ -79,6 +79,7 @@ import com.zynergylabs.forager.app.ui.theme.navigationBarContainerColor
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorDark
 import com.zynergylabs.forager.app.ui.map.MapIconStackButtonColorLight
 import com.zynergylabs.forager.app.ui.map.MapBubbleShell
+import com.zynergylabs.forager.app.ui.map.mapChromeOutline
 import com.zynergylabs.forager.app.ui.map.MapSlot
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
 import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
@@ -143,7 +144,7 @@ internal fun TripDatePickerDialog(
     // dialog's; it is left clear, so the dialog's one fill is what the map shows through (CLAUDE.md,
     // UX defaults: layered fills composite to the map chrome's value, they do not each carry it). The
     // dialog gives its surface `contentColorFor` of its container, which matches a colour-scheme role
-    // exactly (see `MapLayersSheet`), so the content colour is pinned to the default container's own.
+    // exactly (see `mapChromeFill`'s doc, MapChrome.kt:103-109), so the content colour is pinned to the default container's own.
     val dialogColors = DatePickerDefaults.colors(
         containerColor = mapChromeFill(navigationBarContainerColor(), overMap = true),
     )
@@ -215,13 +216,15 @@ internal fun WaypointNameDialog(defaultName: String, onConfirm: (String) -> Unit
     // through this exact same scaffold, is fine). The one structural difference from
     // TripDatePickerDialog left once AlertDialog vs. plain Dialog was ruled out is this property.
     // Raised only after a centre-pin pick on a map (compact and wide): always over a map. The fill at the
-    // map chrome's alpha, and its content colour pinned to the fill's own role (see `MapLayersSheet`).
+    // map chrome's alpha, and its content colour pinned to the fill's own role (see `mapChromeFill`'s doc, MapChrome.kt:103-109).
     val dialogColor = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val dialogContentColor = contentColorFor(navigationBarContainerColor())
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Surface(
             shape = RoundedCornerShape(Spacing.md),
-            shadowElevation = 4.dp,
+            // No shadow (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"): under the 0.8 fill it
+            // showed as a band darker than the fill inside the edges. It had 4 dp. The map-chrome hairline in its place.
+            border = mapChromeOutline(),
             color = dialogColor,
             contentColor = dialogContentColor,
             modifier = Modifier.testTag(WAYPOINT_NAME_DIALOG_TAG).mapChromeContainerColor(dialogColor),

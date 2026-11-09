@@ -48,25 +48,25 @@ class MapBubblesTest {
 
     private val day = LocalDate.of(2026, 9, 12)
 
-    private val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.51, -122.61), date = day)
+    private val find = MushroomLogEntry.draft(id = "find-1", location = LatLng(45.51, -121.71), date = day)
         .copy(isDraft = false, ownIdentification = "Chanterelle", photos = listOf(LogPhoto("ph-1", "photos/ph-1.jpg", 1_000L)))
-    private val unnamedFind = MushroomLogEntry.draft(id = "find-2", location = LatLng(45.52, -122.62), date = day).copy(isDraft = false)
-    private val photo = GalleryPhoto(LogPhoto("ph-1", "photos/ph-1.jpg", 1_700_000_000_000L, 45.53, -122.63), referencingEntryIds = listOf("find-1"))
-    private val loosePhoto = GalleryPhoto(LogPhoto("ph-2", "photos/ph-2.jpg", null, 45.54, -122.64), referencingEntryIds = emptyList())
-    private val waypoint = Waypoint("wp-1", 45.55, -122.65, null, "Creek pin", "", 1_000L)
-    private val trip = PlannedTrip("trip-1", "Saddle loop", LatLng(45.56, -122.66), LocalDate.of(2026, 10, 3))
+    private val unnamedFind = MushroomLogEntry.draft(id = "find-2", location = LatLng(45.52, -121.72), date = day).copy(isDraft = false)
+    private val photo = GalleryPhoto(LogPhoto("ph-1", "photos/ph-1.jpg", 1_700_000_000_000L, 45.53, -121.73), referencingEntryIds = listOf("find-1"))
+    private val loosePhoto = GalleryPhoto(LogPhoto("ph-2", "photos/ph-2.jpg", null, 45.54, -121.74), referencingEntryIds = emptyList())
+    private val waypoint = Waypoint("wp-1", 45.55, -121.75, null, "Creek pin", "", 1_000L)
+    private val trip = PlannedTrip("trip-1", "Saddle loop", LatLng(45.56, -121.76), LocalDate.of(2026, 10, 3))
     private val track = Track(
         id = "trk-1",
         name = "Morning loop",
         startedAtEpochMillis = 1_700_000_000_000L,
         endedAtEpochMillis = 1_700_003_600_000L,
         points = listOf(
-            TrackPoint(45.50, -122.60, null, 5f, 1_700_000_000_000L),
-            TrackPoint(45.51, -122.60, null, 5f, 1_700_003_600_000L),
+            TrackPoint(45.50, -121.70, null, 5f, 1_700_000_000_000L),
+            TrackPoint(45.51, -121.70, null, 5f, 1_700_003_600_000L),
         ),
     )
     private val now = 1_800_000_000_000L
-    private val freshRegion = OfflineRegionSummary(7L, "Forest Park", Region(45.57, -122.67, 5), 0.0, 15.0, 1200, 12_300_000L, now - TimeUnit.DAYS.toMillis(3))
+    private val freshRegion = OfflineRegionSummary(7L, "Forest Park", Region(45.57, -121.77, 5), 0.0, 15.0, 1200, 12_300_000L, now - TimeUnit.DAYS.toMillis(3))
     private val staleRegion = freshRegion.copy(id = 8L, name = "Old coast", createdAtEpochMillis = now - TimeUnit.DAYS.toMillis(90))
 
     private val sources = MapRecordSources(
@@ -83,7 +83,7 @@ class MapBubblesTest {
     )
 
     private fun target(kind: MapBubbleKind, layerId: String, id: String) =
-        MapBubbleTarget.FeatureTarget(kind, layerId, id, LatLng(45.5, -122.6))
+        MapBubbleTarget.FeatureTarget(kind, layerId, id, LatLng(45.5, -121.7))
 
     // Which layers take a bubble.
 
@@ -113,9 +113,9 @@ class MapBubblesTest {
 
     @Test
     fun `a feature tap becomes the tapped thing, anchored where it was tapped`() {
-        val tap = MapFeatureTap(MapLayerIds.WAYPOINTS, "wp-1", Offset(120f, 340f), 30f, LatLng(45.55, -122.65))
+        val tap = MapFeatureTap(MapLayerIds.WAYPOINTS, "wp-1", Offset(120f, 340f), 30f, LatLng(45.55, -121.75))
         assertEquals(
-            TappedMapThing(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-1").copy(at = LatLng(45.55, -122.65)), Offset(120f, 340f), 30f),
+            TappedMapThing(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-1").copy(at = LatLng(45.55, -121.75)), Offset(120f, 340f), 30f),
             tappedThingOf(tap),
         )
         assertNull(tappedThingOf(tap.copy(layerId = MapLayerIds.SEARCH_CENTRE)))
@@ -125,7 +125,7 @@ class MapBubblesTest {
     fun `only a point feature is focused for re-anchoring, and only a sighting sets the focused observation`() {
         val point = TappedMapThing(target(MapBubbleKind.FIND, MapLayerIds.FINDS, "find-1"), Offset.Zero, 0f)
         val line = TappedMapThing(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-1"), Offset.Zero, 0f)
-        val cell = TappedMapThing(target(MapBubbleKind.FORECAST_CELL, MapLayerIds.FORECAST_CHANTERELLES, "45.5,-122.6"), Offset.Zero, 0f)
+        val cell = TappedMapThing(target(MapBubbleKind.FORECAST_CELL, MapLayerIds.FORECAST_CHANTERELLES, "45.5,-121.7"), Offset.Zero, 0f)
         val sighting = TappedMapThing(MapBubbleTarget.SightingTarget(SIGHTING), Offset.Zero, 0f)
 
         assertEquals(FocusedMapFeature(MapLayerIds.FINDS, "find-1"), point.focusedFeature)
@@ -141,14 +141,14 @@ class MapBubblesTest {
     fun `a focused point is re-found in the lists the map draws, and a record no longer drawn is not`() {
         val trips = listOf(trip)
         val waypoints = listOf(waypoint)
-        val finds = listOf(RecordPoint("find-1", LatLng(45.51, -122.61)))
-        val photos = listOf(RecordPoint("ph-1", LatLng(45.53, -122.63)))
+        val finds = listOf(RecordPoint("find-1", LatLng(45.51, -121.71)))
+        val photos = listOf(RecordPoint("ph-1", LatLng(45.53, -121.73)))
         fun at(layer: String, id: String) = focusedFeaturePosition(FocusedMapFeature(layer, id), trips, waypoints, finds, photos)
 
-        assertEquals(LatLng(45.56, -122.66), at(MapLayerIds.PLANNED_TRIPS, "trip-1"))
-        assertEquals(LatLng(45.55, -122.65), at(MapLayerIds.WAYPOINTS, "wp-1"))
-        assertEquals(LatLng(45.51, -122.61), at(MapLayerIds.FINDS, "find-1"))
-        assertEquals(LatLng(45.53, -122.63), at(MapLayerIds.PHOTOS, "ph-1"))
+        assertEquals(LatLng(45.56, -121.76), at(MapLayerIds.PLANNED_TRIPS, "trip-1"))
+        assertEquals(LatLng(45.55, -121.75), at(MapLayerIds.WAYPOINTS, "wp-1"))
+        assertEquals(LatLng(45.51, -121.71), at(MapLayerIds.FINDS, "find-1"))
+        assertEquals(LatLng(45.53, -121.73), at(MapLayerIds.PHOTOS, "ph-1"))
         assertNull(at(MapLayerIds.FINDS, "deleted"))
         assertNull(at(MapLayerIds.KEPT_TRACKS, "trk-1"))
     }
@@ -185,7 +185,7 @@ class MapBubblesTest {
 
     @Test
     fun `a waypoint shows its name and MGRS`() {
-        val mgrs = (MgrsConverter.convert(LatLng(45.55, -122.65)) as MgrsCoordinate.Grid).value
+        val mgrs = (MgrsConverter.convert(LatLng(45.55, -121.75)) as MgrsCoordinate.Grid).value
         assertEquals(
             MapBubbleContent.WaypointContent(waypoint, mgrs),
             mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-1"), sources, is24HourClock = false),
@@ -194,9 +194,9 @@ class MapBubblesTest {
 
     @Test
     fun `an entry map's kept waypoint gone from Records is named from the entry's snapshot, with no details`() {
-        val kept = Waypoint("wp-gone", 45.4, -122.5, null, "Old gate", "", 0L)
+        val kept = Waypoint("wp-gone", 45.4, -121.6, null, "Old gate", "", 0L)
         val content = mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-gone"), sources.copy(snapshotWaypoints = listOf(kept)), is24HourClock = false)
-        assertEquals(MapBubbleContent.WaypointContent(kept, (MgrsConverter.convert(LatLng(45.4, -122.5)) as MgrsCoordinate.Grid).value, hasDetails = false), content)
+        assertEquals(MapBubbleContent.WaypointContent(kept, (MgrsConverter.convert(LatLng(45.4, -121.6)) as MgrsCoordinate.Grid).value, hasDetails = false), content)
         // A waypoint still in Records is the record, with details, even when a snapshot exists too.
         assertEquals(true, (mapBubbleContentFor(target(MapBubbleKind.WAYPOINT, MapLayerIds.WAYPOINTS, "wp-1"), sources.copy(snapshotWaypoints = listOf(kept)), is24HourClock = false) as MapBubbleContent.WaypointContent).hasDetails)
     }
@@ -208,7 +208,7 @@ class MapBubblesTest {
      */
     @Test
     fun `on an entry map a waypoint's bubble gives the distance walked from the start`() {
-        val kept = Waypoint("wp-gone", 45.4, -122.5, null, "Old gate", "", 0L)
+        val kept = Waypoint("wp-gone", 45.4, -121.6, null, "Old gate", "", 0L)
         val entryMap = sources.copy(
             distanceUnit = DistanceUnit.MILES,
             snapshotWaypoints = listOf(kept),
@@ -281,13 +281,26 @@ class MapBubblesTest {
         assertEquals(null, mapBubbleContentFor(target(MapBubbleKind.TRACK, MapLayerIds.KEPT_TRACKS, "trk-nowhere"), sources, is24HourClock = false))
     }
 
+    // Dispatch 2026-11-05-05 (A1; RECORD -2140, the owner: "Remove the long/lat coordinates from the Trip icon, and keep the
+    // military style"): was `a planned trip shows what its Trip Planner row shows`, which expected the row's four lines, the
+    // decimal degrees "45.5600, -121.7600" among them. Now name, date and MGRS, with no coordinates, and no elevation until
+    // the bubble's layer reads one (as a waypoint's).
     @Test
-    fun `a planned trip shows what its Trip Planner row shows`() {
-        val mgrs = (MgrsConverter.convert(LatLng(45.56, -122.66)) as MgrsCoordinate.Grid).value
+    fun `a planned trip shows its name, date and MGRS, without the coordinates`() {
+        val mgrs = (MgrsConverter.convert(LatLng(45.56, -121.76)) as MgrsCoordinate.Grid).value
         assertEquals(
-            MapBubbleContent.Trip(trip, "Oct 3, 2026", mgrs, "45.5600, -122.6600"),
+            MapBubbleContent.Trip(trip, "Oct 3, 2026", mgrs),
             mapBubbleContentFor(target(MapBubbleKind.PLANNED_TRIP, MapLayerIds.PLANNED_TRIPS, "trip-1"), sources, is24HourClock = false),
         )
+    }
+
+    // Schema 23 (dispatch 2026-10-30-02): an undated trip's bubble has no date line.
+    @Test
+    fun `an undated planned trip's bubble has no date`() {
+        val undated = trip.copy(id = "trip-2", date = null)
+        val content = mapBubbleContentFor(target(MapBubbleKind.PLANNED_TRIP, MapLayerIds.PLANNED_TRIPS, "trip-2"), sources.copy(plannedTrips = listOf(undated)), is24HourClock = false)
+
+        assertEquals(null, (content as MapBubbleContent.Trip).date)
     }
 
     @Test
@@ -328,46 +341,46 @@ class MapBubblesTest {
 
     @Test
     fun `the tapped cell is re-read from the store by its group, week and block`() = runBlocking {
-        val tapped = cellAt(45.5, -122.6, 0.37)
-        val neighbour = cellAt(45.6, -122.6, 0.9)
+        val tapped = cellAt(45.5, -121.7, 0.37)
+        val neighbour = cellAt(45.6, -121.7, 0.9)
         val store = RecordingStore(listOf(neighbour, tapped))
 
-        val found = lookUpForecastCell(store, "chanterelles", week, LatLng(45.47, -122.62), forecastCellFeatureId(tapped))
+        val found = lookUpForecastCell(store, "chanterelles", week, LatLng(45.47, -121.72), forecastCellFeatureId(tapped))
 
         assertEquals(tapped, found)
         assertEquals(1, store.requests.size)
         val (group, askedWeek, blocks) = store.requests.single()
         assertEquals("chanterelles", group)
         assertEquals(week, askedWeek)
-        assertTrue("the tapped cell's block is asked for ($blocks)", ForecastBlock(45, -123) in blocks)
+        assertTrue("the tapped cell's block is asked for ($blocks)", ForecastBlock(45, -122) in blocks)
         // A cell the store no longer has, or a store with no forecast data, gives no bubble.
-        assertNull(lookUpForecastCell(RecordingStore(emptyList()), "chanterelles", week, LatLng(45.47, -122.62), forecastCellFeatureId(tapped)))
+        assertNull(lookUpForecastCell(RecordingStore(emptyList()), "chanterelles", week, LatLng(45.47, -121.72), forecastCellFeatureId(tapped)))
         assertNull(
-            lookUpForecastCell(com.zynergylabs.forager.app.domain.AbsentForecastCellStore, "chanterelles", week, LatLng(45.47, -122.62), forecastCellFeatureId(tapped)),
+            lookUpForecastCell(com.zynergylabs.forager.app.domain.AbsentForecastCellStore, "chanterelles", week, LatLng(45.47, -121.72), forecastCellFeatureId(tapped)),
         )
     }
 
     @Test
     fun `a tap near a block edge finds a cell centred in the next block`() = runBlocking {
         // The finger is at 45.97, inside the cell centred on 46.0, which belongs to block 46.
-        val tapped = cellAt(46.0, -122.6, 0.12)
+        val tapped = cellAt(46.0, -121.7, 0.12)
         val store = RecordingStore(listOf(tapped))
-        assertEquals(tapped, lookUpForecastCell(store, "chanterelles", week, LatLng(45.97, -122.6), forecastCellFeatureId(tapped)))
+        assertEquals(tapped, lookUpForecastCell(store, "chanterelles", week, LatLng(45.97, -121.7), forecastCellFeatureId(tapped)))
     }
 
     @Test
     fun `the cell bubble's numbers are the stored cell's, beside its layer name, dates and the reference class`() {
-        val cell = cellAt(45.5, -122.6, 0.37)
+        val cell = cellAt(45.5, -121.7, 0.37)
         assertEquals(
             MapBubbleContent.Cell(
-                layerName = "Test forecast: chanterelles (synthetic data)",
+                layerName = "Test Forecast: Chanterelles (Synthetic Data)",
                 chance = "37%",
                 range = "Uncertainty 21% to 58%",
                 drivers = listOf("rain, last 14 days: 62 mm", "soil temperature: 11"),
                 dates = "Week of Sep 28, 2026, weather to Sep 26, 2026",
                 referenceClass = LEGEND_REFERENCE_CLASS,
             ),
-            forecastCellBubble("Test forecast: chanterelles (synthetic data)", cell),
+            forecastCellBubble("Test Forecast: Chanterelles (Synthetic Data)", cell),
         )
     }
 
@@ -468,6 +481,6 @@ class MapBubblesTest {
     }
 
     private companion object {
-        val SIGHTING = Sighting(42L, 1L, "Cantharellus formosus", "Chanterelle", 45.5, -122.6, LocalDate.of(2026, 8, 1), null, 10)
+        val SIGHTING = Sighting(42L, 1L, "Cantharellus formosus", "Chanterelle", 45.5, -121.7, LocalDate.of(2026, 8, 1), null, 10)
     }
 }

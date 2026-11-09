@@ -7,6 +7,8 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.EntryMapFrame
 import com.zynergylabs.forager.app.domain.ForecastCellStore
 import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.referencetrails.ReferenceTrailRecord
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import com.zynergylabs.forager.app.ui.map.layers.ForecastCellsShown
 import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import java.time.LocalDate
@@ -243,11 +245,18 @@ data class MapRenderMode(
      */
     val attributionKeepClear: androidx.compose.ui.geometry.Rect? = null,
     /**
-     * RECORD -954 (the owner: "Have the map i next to the open street maps logo"; "Just landscape"): MapLibre's attribution
-     * button sits beside the map credit strip at the bottom start, rather than in the bottom end corner. Only the compact Maps tab
-     * in a short landscape window sets it; portrait and every other map keep the bottom-end corner.
+     * D28 (dispatch 2026-10-30-08, RECORD -1979, -1980; the owner: "Hide while a card covers it (Recommended)"): the measured bounds, in
+     * this map's own pixels, of the cards drawn over it (the route card, and the landscape navigation card while navigating). Where
+     * any of them intersects MapLibre's attribution button ("i") as placed, the button and the logo beside it are hidden, and they come
+     * back when the corner clears (`attributionHiddenUnder`). Empty for every caller but the compact Maps tab.
      */
-    val attributionBesideCredit: Boolean = false,
+    val attributionHideUnder: List<androidx.compose.ui.geometry.Rect> = emptyList(),
+    /**
+     * Dispatch 2026-10-30-08, D13 (RECORD -1955): told the map credit strip's laid-out size, in px, whenever it changes. Since D24
+     * (RECORD -1966) removed D13's rise, its one reader is D17's Re-center beside the L (`reCenterClearanceBesideTheL`), which keeps
+     * clear of the strip. A no-op for every other caller. Remembered by its one setter, so the render mode still compares equal across recompositions.
+     */
+    val onCreditSizeChanged: (androidx.compose.ui.unit.IntSize) -> Unit = {},
     /**
      * Where a fan's member keys are written while it is open, and where the fan to reopen after Back from a
      * find opened on the map is waiting (dispatch 2026-09-29-57, item 8). `null` for every caller but the compact
@@ -280,13 +289,31 @@ data class MapRenderMode(
      * only": the centre-pin pickers keep MapLibre's own drag, so a small move still places the pin.
      */
     val nudgeSpringBack: Boolean = false,
+    /**
+     * Step 8b (dispatch 2026-10-26-15 Amendment 2): told whether this map's loaded style draws the official-trails band
+     * (Trail Map's street-v3 with its reference layers, and not under Topographical), after each style load, so the
+     * Maps tab's host can grey Tools > Map Layers' "Trails" switch when it would do nothing (dispatch 2026-10-28-02). `{}` by default, a
+     * non-capturing lambda, so every existing caller's [MapRenderMode] still compares equal. Here rather than on
+     * [MapSlot] for the parameter-count reason [layers] gives.
+     */
+    val onReferenceTrailsShown: (Boolean) -> Unit = {},
+    /**
+     * Dispatch 2026-10-27-07 (RECORD -1736): where a crowded stack's list and its Back steps live, for a stack whose fan does not
+     * fit, which zooms in, then fans. `null` (every caller but the compact Maps tab) keeps the fan past the edge, logged.
+     */
+    val crowdedStacks: CrowdedStackHost? = null,
 )
 
 /**
  * A camera frame to apply once: [id] names the request, so a map that has applied it does not
  * apply it again, and [frame] is where the camera goes.
  */
-data class MapCameraRequest(val id: String, val frame: EntryMapFrame)
+data class MapCameraRequest(
+    val id: String,
+    val frame: EntryMapFrame,
+    /** The user asked for it (a saved route opened, dispatch 2026-10-30-08): it ends GPS following first ([cameraRequestStopsFollowing]). */
+    val stopsFollowing: Boolean = false,
+)
 
 /**
  * What a map needs to draw its colour fields from stored cells (map layers L0b, B5): the store, the
@@ -316,6 +343,10 @@ data class MapForecastFeed(
  * coordinates, as `onSightingTap`'s is; [bearingDeg] is the camera's bearing; [at] is the tapped
  * map position. For a point feature re-anchored at a camera idle ([MapOverlayContent.focusedFeature]),
  * [screenPoint] and [at] are the glyph's own.
+ *
+ * [referenceTrail] (step 8c, dispatch 2026-10-26-16): set for a tap on an official-trails band, whose feature names no
+ * app record, so the bubble is read from the feature itself; [featureId] is then empty and never looked up
+ * ([tappedThingOf] reads [referenceTrail] first; build one with [forReferenceTrail]). `null` for every other tap.
  */
 data class MapFeatureTap(
     val layerId: String,
@@ -323,4 +354,11 @@ data class MapFeatureTap(
     val screenPoint: Offset,
     val bearingDeg: Float,
     val at: LatLng,
-)
+    val referenceTrail: ReferenceTrailRecord? = null,
+) {
+    companion object {
+        /** A tap on an official-trails band on [layerId], read as [record]. */
+        fun forReferenceTrail(layerId: String, record: ReferenceTrailRecord, screenPoint: Offset, bearingDeg: Float, at: LatLng) =
+            MapFeatureTap(layerId, featureId = "", screenPoint = screenPoint, bearingDeg = bearingDeg, at = at, referenceTrail = record)
+    }
+}

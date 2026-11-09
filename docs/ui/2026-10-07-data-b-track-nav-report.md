@@ -262,11 +262,11 @@ The planner kept the fold's session-only state and accepted the 24-hour title mi
 
 ### Shorter decimals
 
-`coordinatesStripText` (`ui/availability/AvailabilityPureFunctions.kt`) now writes the pair as "45.3262, -122.6340",
-where it wrote "Lat. 45.3262 Long. -122.6340".
+`coordinatesStripText` (`ui/availability/AvailabilityPureFunctions.kt`) now writes the pair as "45.3736, -121.6959",
+where it wrote "Lat. 45.3736 Long. -121.6959".
 
 - The strip and the display both read this one function, so both change. The tap to switch format is unchanged.
-- The pair is formatted in `Locale.US`, so a phone set to a comma-decimal language cannot print "45,3262, -122,6340".
+- The pair is formatted in `Locale.US`, so a phone set to a comma-decimal language cannot print "45,3736, -121,6959".
   Before, it used the phone's locale. That is a coder's choice, and it is new.
 - Estimated fit: the pair is about 115 dp. The full strip line "Facing 315° NW · Alt 9843 ft · 45.5200, -122.6800"
   is about 316 dp, inside the strip's 326 and the display row's 344 (Noto Sans estimate, as above).

@@ -34,12 +34,12 @@ class MapLegendTest {
     @Test
     fun `collapsed, the chip names the one visible layer, or reads 2 layers, and expanded lists them top of the draw order first`() {
         val one = mapLegendFor(effective(both, hidden(MapLayerIds.FORECAST_CHANTERELLES)), registry, COLOUR_FIELDS, emptyMap())
-        assertEquals("Test forecast: chicken of the woods (synthetic data)", one?.collapsedLabel)
+        assertEquals("Test Forecast: Chicken of the Woods (Synthetic Data)", one?.collapsedLabel)
 
         val two = mapLegendFor(effective(both), registry, COLOUR_FIELDS, emptyMap())
         assertEquals("2 layers", two?.collapsedLabel)
         assertEquals(
-            listOf("Test forecast: chanterelles (synthetic data)", "Test forecast: chicken of the woods (synthetic data)"),
+            listOf("Test Forecast: Chanterelles (Synthetic Data)", "Test Forecast: Chicken of the Woods (Synthetic Data)"),
             two?.layers?.map { it.name },
         )
         assertEquals(COLOUR_FIELDS.single { it.layerId == MapLayerIds.FORECAST_CHANTERELLES }.ramp, two?.layers?.first()?.ramp)

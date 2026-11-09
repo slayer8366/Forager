@@ -31,6 +31,7 @@ import com.zynergylabs.forager.app.domain.MapRecordKind
 import com.zynergylabs.forager.app.domain.MapRecordReadFailure
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.MushroomRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PlannedTripRepository
@@ -135,6 +136,7 @@ class AvailabilityViewModelMapLayersTest {
             // A Sunday: the week the store is asked about is the Monday before it.
             today = { LocalDate.of(2026, 10, 4) },
             trackEnds = trackEnds,
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
     }
 

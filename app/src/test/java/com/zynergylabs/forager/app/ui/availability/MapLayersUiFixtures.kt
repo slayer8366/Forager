@@ -1,5 +1,8 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
+import com.zynergylabs.forager.app.domain.model.LatLng
+import com.zynergylabs.forager.app.domain.wayto.WayToWaypointResult
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
@@ -71,6 +74,13 @@ import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import com.zynergylabs.forager.app.domain.model.UnitSystem
 import com.zynergylabs.forager.app.domain.model.WeatherSeries
 import com.zynergylabs.forager.app.ui.log.MushroomLogUiState
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.junit4.ComposeTestRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTouchInput
 import com.zynergylabs.forager.app.ui.map.MapOverlayContent
 import com.zynergylabs.forager.app.ui.map.MapRenderMode
 import com.zynergylabs.forager.app.ui.map.MapSlot
@@ -84,6 +94,8 @@ import com.zynergylabs.forager.app.domain.model.CartographyEntry
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.Track
 import com.zynergylabs.forager.app.domain.model.Waypoint
+import com.zynergylabs.forager.app.domain.CurrentTimeProvider
+import com.zynergylabs.forager.app.domain.SystemCurrentTimeProvider
 import com.zynergylabs.forager.app.ui.log.CartographyUiState
 
 /**
@@ -94,7 +106,31 @@ import com.zynergylabs.forager.app.ui.log.CartographyUiState
  */
 
 /** The Layers row's description at the default basemap (the dispatch, B1): Street since it became the opening map (dispatch 2026-10-18-04, Amendment 2; RECORD -1297); was Topographical. */
-internal const val LAYERS_ROW_DESCRIPTION = "Layers: Trail map. Choose the map type and overlays."
+internal const val LAYERS_ROW_DESCRIPTION = "Layers: Trail map. Choose the map type."
+
+/** Dispatch 2026-10-28-02: opens the Tools drawer with a real touch on the bottom nav's (or the rail's) "Tools". */
+internal fun ComposeTestRule.openTools() {
+    onNodeWithText("Tools").performTouchInput { click(center) }
+    waitForIdle()
+}
+
+/** A real touch on Tools > Map Layers' header, which opens or closes the fold. The drawer must be open. */
+internal fun ComposeTestRule.toggleMapLayersFold() {
+    onNodeWithTag(collapsibleSectionHeaderTag(MAP_LAYERS_SECTION_TITLE)).performScrollTo().performTouchInput { click(center) }
+    waitForIdle()
+}
+
+/** Tools, then Map Layers, each by a real touch, on a screen where Map Layers is still folded (its first opening). */
+internal fun ComposeTestRule.openToolsMapLayers() {
+    openTools()
+    toggleMapLayersFold()
+}
+
+/** Closes the Tools drawer by a real touch on its header's close button. */
+internal fun ComposeTestRule.closeTools() {
+    onNodeWithContentDescription("Close search options").performTouchInput { click(center) }
+    waitForIdle()
+}
 
 /** Both synthetic groups, as the debug store reports them with the switch on. */
 internal val BOTH_FORECAST_GROUPS: Set<String> = COLOUR_FIELDS.map { it.group }.toSet()
@@ -208,9 +244,26 @@ internal fun mapLayersViewModel(
     basemapPreferences: BasemapPreferenceRepository = InMemoryBasemapPreference(),
     // RECORD -711: where the icon cluster's side and height are kept. Defaulted to nothing stored, which opens it where it always opened.
     clusterPlacements: MapIconClusterPlacementRepository = InMemoryClusterPlacement(),
+    // Step 6 PR 1 (dispatch 2026-10-26-06): the waypoint line's lookup by id and its clock. Defaulted to none stored and the system clock.
+    readWaypoint: suspend (String) -> Result<Waypoint?> = { Result.success(null) },
+    currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
+    // Step 6 PR 3 (dispatch 2026-10-26-11): the way to a waypoint along trails. Defaulted to none, today's straight line.
+    findWayToWaypoint: (suspend (LatLng, LatLng, Float?) -> WayToWaypointResult)? = null,
+    // Dispatch 2026-11-06-01, H4 (2b-1): each trail line's junctions for the next turn. Defaulted to none, as before.
+    readRouteTurns: com.zynergylabs.forager.app.domain.nextturn.RouteTurnsReader? = null,
+    // Dispatch 2026-10-27-14: Settings > Map > "Crowded icons". Defaulted to nothing stored, which is "Zoom in, then fan".
+    crowdedIcons: com.zynergylabs.forager.app.domain.CrowdedIconsPreferenceRepository = NoStoredCrowdedIcons,
+    // Dispatch 2026-11-02-04: Settings > Map > "Waypoint names". Defaulted to nothing stored, which is on.
+    waypointNames: com.zynergylabs.forager.app.domain.WaypointNamesPreferenceRepository = NoStoredWaypointNames,
+    // Dispatch 2026-10-28-08: the live journal-entry counts. Defaulted to none, every count reading 0, as before.
+    entryReferenceCounts: com.zynergylabs.forager.app.domain.EntryReferenceCountSource = com.zynergylabs.forager.app.domain.NoEntryReferenceCounts,
+    // Dispatch 2026-10-30-08 Amendment 8: the Units setting. Defaulted to metric, as before.
+    unitSystemPreferences: UnitSystemPreferenceRepository = MapLayersUiUnitSystemPreferenceRepository,
+    // Dispatch 2026-11-05-05: a planned-trip store a test can hold back; by default the fixed list above, as before.
+    tripRepository: PlannedTripRepository? = null,
 ): AvailabilityViewModel {
     val searchCache = InMemorySearchCacheRepository()
-    val plannedTripRepository = MapLayersUiPlannedTripRepository(plannedTrips)
+    val plannedTripRepository = tripRepository ?: MapLayersUiPlannedTripRepository(plannedTrips)
     return AvailabilityViewModel(
         locationProvider = MapLayersUiLocationProvider,
         locationTracker = locationTracker,
@@ -231,7 +284,7 @@ internal fun mapLayersViewModel(
         offlineMapRepository = offlineMapRepository,
         errorLog = errorLog,
         mapPreferencesRepository = MapLayersUiMapPreferencesRepository,
-        unitSystemPreferenceRepository = MapLayersUiUnitSystemPreferenceRepository,
+        unitSystemPreferenceRepository = unitSystemPreferences,
         appThemePreferenceRepository = MapLayersUiAppThemePreferenceRepository,
         getTodaysForecast = GetTodaysForecastUseCase(MapLayersUiTripPlanningWeatherProvider),
         getMapRecords = getMapRecords,
@@ -252,6 +305,13 @@ internal fun mapLayersViewModel(
         setBatterySaverEnabled = setBatterySaverEnabled,
         basemapPreferenceRepository = basemapPreferences,
         mapIconClusterPlacementRepository = clusterPlacements,
+        readWaypoint = readWaypoint,
+        currentTime = currentTime,
+        findWayToWaypoint = findWayToWaypoint,
+        readRouteTurns = readRouteTurns,
+        crowdedIconsRepository = crowdedIcons,
+        waypointNamesRepository = waypointNames,
+        entryReferenceCounts = entryReferenceCounts,
     )
 }
 
@@ -276,11 +336,20 @@ internal fun MapLayersTestScreen(
     // Applied to the ViewModel's state before the screen reads it, for a state the ViewModel cannot reach (sightings
     // held with no region); identity by default.
     uiStateTransform: (AvailabilityUiState) -> AvailabilityUiState = { it },
+    // Dispatch 2026-10-30-08: route plotting's state and actions; none by default, as before.
+    routePlotting: RoutePlottingControls? = null,
+    // Dispatch 2026-10-30-08, Amendment 3: navigation and recording, for "Return to Route" over the route card; none by default.
+    navigation: AvailabilityScreenNavigation = AvailabilityScreenNavigation(),
+    recording: AvailabilityScreenRecording = AvailabilityScreenRecording(),
+    // The screen's clock (its sundown line, among others); the real one by default, as before.
+    currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
 ) {
     val viewModelState by viewModel.uiState.collectAsState()
     val uiState = uiStateTransform(viewModelState)
     AvailabilityScreen(
         uiState = uiState,
+        navigation = navigation,
+        recording = recording,
         searchInputs = AvailabilityScreenSearchInputs(
             onUseCurrentLocation = viewModel::useCurrentLocation,
             onManualLatChanged = viewModel::onManualLatChanged,
@@ -306,10 +375,14 @@ internal fun MapLayersTestScreen(
             onOfflineMapsOpened = viewModel::onOfflineMapsOpened,
             onDownloadOfflineMaps = viewModel::onDownloadOfflineMaps,
             onDeleteOfflineRegion = viewModel::onDeleteOfflineRegion,
+            // Dispatch 2026-11-05-08: a Trip Planner trip's Download Maps, as MainActivity wires it.
+            tripDownloadMaps = TripDownloadMapsActions(onOpen = viewModel::onDownloadMapsForTrip, onLeft = viewModel::onLeftTripOfflineMaps),
         ),
         settings = AvailabilityScreenSettings(
             onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
             onThemeModeChanged = viewModel::onThemeModeChanged,
+            onCrowdedIconsModeChanged = viewModel::onCrowdedIconsModeChanged,
+            onWaypointNamesChanged = viewModel::onWaypointNamesChanged,
         ),
         mapSlot = mapSlot,
         mapControls = AvailabilityScreenMapControls(
@@ -321,6 +394,7 @@ internal fun MapLayersTestScreen(
             onMapModeSelected = viewModel::onMapModeSelected,
             onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
             forecastCellStore = store,
+            routePlotting = routePlotting,
         ),
         records = AvailabilityScreenRecords(
             waypoints = waypoints,
@@ -340,6 +414,7 @@ internal fun MapLayersTestScreen(
         entryReportData = AvailabilityScreenEntryReportData(
             getCartographyEntryMapData = getCartographyEntryMapData,
         ),
+        currentTime = currentTime,
     )
 }
 

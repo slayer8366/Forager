@@ -11,6 +11,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
 import com.zynergylabs.forager.app.domain.AppThemePreferenceRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
@@ -139,7 +140,7 @@ private class LichenAwareApi : INaturalistApi {
                 ObservationDto(
                     id = taxon.id,
                     taxon = TaxonDto(id = taxon.id, name = taxon.name, preferredCommonName = taxon.common),
-                    location = "45.${300 + index},-122.634",
+                    location = "45.${3476 + index * 10},-121.6959",
                     observedOn = "2025-08-14",
                     // Fixture represents ordinary, non-obscured sightings -- unrelated to what this
                     // test file covers (category filtering). ObservationDto.obscured defaults to
@@ -157,7 +158,7 @@ private object StubTaxonSearchRepository : TaxonSearchRepository {
 }
 
 private class FixedLocationProvider : LocationProvider {
-    override suspend fun getCurrentLocation() = LocationResult.Success(lat = 45.326, lng = -122.634)
+    override suspend fun getCurrentLocation() = LocationResult.Success(lat = 45.3736, lng = -121.6959)
 }
 
 private object FilterTestNoOpLocationTracker : LocationTracker {
@@ -262,13 +263,14 @@ class AvailabilityViewModelFilterTest {
             unitSystemPreferenceRepository = StubUnitSystemPreferenceRepository,
             appThemePreferenceRepository = StubAppThemePreferenceRepository,
             getTodaysForecast = GetTodaysForecastUseCase(StubTripPlanningWeatherProvider),
+            entryReferenceCounts = NoEntryReferenceCounts,
         )
     }
 
     /** Drives the real coordinate-entry callbacks rather than reaching into state. */
     private fun AvailabilityViewModel.searchReferenceRegion() {
-        onManualLatChanged("45.326")
-        onManualLngChanged("-122.634")
+        onManualLatChanged("45.3736")
+        onManualLngChanged("-121.6959")
         searchManualCoordinates()
     }
 

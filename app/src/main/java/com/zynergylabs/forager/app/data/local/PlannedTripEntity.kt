@@ -19,6 +19,6 @@ data class PlannedTripEntity(
     val name: String,
     val lat: Double,
     val lng: Double,
-    /** ISO-8601 (`yyyy-MM-dd`, [java.time.LocalDate.toString]/[java.time.LocalDate.parse]) — Room has no native LocalDate column type. */
-    val date: String,
+    /** ISO-8601 (`yyyy-MM-dd`, [java.time.LocalDate.toString]/[java.time.LocalDate.parse]) — Room has no native LocalDate column type. Nullable since schema 23 ([MIGRATION_22_23]): a route trip may have no date. */
+    val date: String?,
 )

@@ -26,7 +26,6 @@ import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.theme.Bark
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.MapIconBarAccent
@@ -94,7 +93,7 @@ internal fun MapIconBar(
     onLocateMe: () -> Unit,
     onResetOrientation: () -> Unit,
     mapMode: MapMode,
-    /** Opens the Layers sheet (map layers L0b, B1), which replaced the basemap-only `MapModePicker`. */
+    /** Opens the map type panel ([MapTypePanel], dispatch 2026-10-28-02), which replaced the Layers sheet (L0b) as that sheet had replaced `MapModePicker`. */
     onOpenLayers: () -> Unit,
     onAdd: () -> Unit,
     modifier: Modifier = Modifier,
@@ -136,6 +135,12 @@ internal fun MapIconBar(
      * squares takes a touch: the shape lies inside their union. `false` for every other caller.
      */
     fullSquareHits: Boolean = false,
+    /**
+     * Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186): whether the locate row carries its ring, standing in for Re-center
+     * (`locateRowStandsInForReCenter`: the Maps tab in landscape navigation, the camera off the follow). `false` for every
+     * other caller, the journal entry's map included.
+     */
+    locateRinged: Boolean = false,
     /**
      * The bar's 5th (last) row — fullscreen-maps dispatch: a second map surface (the Cartography
      * entry map) needs this row to mean something other than "plan a trip or log a find here,"
@@ -187,11 +192,17 @@ internal fun MapIconBar(
                 icon = Icons.Filled.MyLocation,
                 contentDescription = "Center on my location",
                 onClick = onLocateMe,
+                // Dispatch 2026-11-06-04 Amendment 2 (RECORD -2186), replacing Amendment 1's ring on both maps; the owner: "Only have
+                // the ring in landscape when needing to re-center the map camera during navigation": Re-center's outline (#505,
+                // ReturnToRoutePill.kt), only while [locateRinged]. Amendment 4 (RECORD -2186), the owner: "Yes, same outline": the
+                // map chrome's own outline (mapChromeOutline: 1 dp, Bark at 40% by day, white at 40% at night), as Re-center's
+                // now is, in place of the solid 1 dp `onSurface` until then.
+                ring = if (locateRinged) mapChromeOutline() else null,
             )
             if (mapModePickerEnabled) {
-                // Map layers L0b, B1: the Layers sheet. The old description's night clause ("Night
-                // mode on/off") went with it: the picker never had a night control, and Night Maps
-                // is Settings' checkbox.
+                // The map type panel (dispatch 2026-10-28-02; the Layers sheet from L0b until then). The old
+                // description's night clause ("Night mode on/off") went at L0b: the picker never had a night
+                // control, and Night Maps is Settings' checkbox.
                 MapBarIconButton(
                     icon = Icons.Filled.Layers,
                     contentDescription = layersButtonDescription(mapMode),
@@ -206,7 +217,8 @@ internal fun MapIconBar(
             Surface(
                 shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
                 color = barFill,
-                shadowElevation = 2.dp,
+                // No shadow (dispatch 2026-11-05-06, RECORD -2154, the owner: "Thin outline (Recommended)"): narrow as it is, its 2 dp
+                // shadow darkened the whole 0.8 fill a little (Phase 1 report, section 2). Its hairline was already here.
                 border = barBorder,
                 modifier = Modifier.matchParentSize().testTag(MAP_ICON_BAR_TAG).mapChromeContainerColor(barFill),
             ) {}
@@ -217,7 +229,7 @@ internal fun MapIconBar(
             shape = RoundedCornerShape(MAP_ICON_BAR_CORNER_RADIUS),
             color = barFill,
             contentColor = barContentColor,
-            shadowElevation = 2.dp,
+            // No shadow (dispatch 2026-11-05-06), as above.
             border = barBorder,
             modifier = modifier.testTag(MAP_ICON_BAR_TAG).mapChromeContainerColor(barFill),
         ) { rows() }

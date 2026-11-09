@@ -65,7 +65,7 @@ class GetMapRecordsUseCaseTest {
                 listOf(
                     find("saved", LatLng(45.5, -122.5)),
                     find("saved-no-location", at = null),
-                    find("new-draft", LatLng(45.6, -122.6), isDraft = true),
+                    find("new-draft", LatLng(45.6, -122.58), isDraft = true),
                     // A re-edit's draft is its own row; the committed row it points at is what draws.
                     find("re-edit-draft", LatLng(46.0, -123.0), isDraft = true, draftOf = "saved"),
                 ),
@@ -99,12 +99,12 @@ class GetMapRecordsUseCaseTest {
 
     /**
      * The owner's ruling on Q6 (planner message 3 on dispatch 2026-09-28-03): "Leave it out". A track
-     * with no end time is being recorded; the Recording trail layer draws it, and it joins Tracks once
+     * with no end time is being recorded; the Recording Tracks layer draws it, and it joins Tracks once
      * it has ended.
      */
     @Test
     fun `the track being recorded is left out of Tracks until it has ended`() = runTest {
-        val recording = track("recording", listOf(point(45.3, -122.3), point(45.31, -122.31)), endedAt = null)
+        val recording = track("recording", listOf(point(44.28, -122.3), point(44.31, -122.31)), endedAt = null)
 
         val whileRecording = useCase(tracks = Result.success(listOf(recording)))()
         assertEquals(emptyList<RecordPolyline>(), whileRecording.trackPolylines)
@@ -122,8 +122,8 @@ class GetMapRecordsUseCaseTest {
     @Test
     fun `a find, photo or offline region with a pending delete is left out, and nothing else is`() = runTest {
         val records = useCase(
-            entries = Result.success(listOf(find("kept", LatLng(45.5, -122.5)), find("deleting", LatLng(45.6, -122.6)))),
-            photos = Result.success(listOf(photo("kept", 45.4, -122.4), photo("deleting", 45.3, -122.3))),
+            entries = Result.success(listOf(find("kept", LatLng(45.5, -122.5)), find("deleting", LatLng(45.6, -122.58)))),
+            photos = Result.success(listOf(photo("kept", 45.4, -122.4), photo("deleting", 45.28, -122.3))),
             tracks = Result.success(listOf(track("walked", listOf(point(45.1, -122.1))))),
             regions = Result.success(listOf(region(7L, 45.0, -122.0, 10), region(8L, 46.0, -121.0, 10))),
         )()
@@ -185,6 +185,21 @@ class GetMapRecordsUseCaseTest {
             assertEquals("$failing: tracks", if (failing == MapRecordKind.TRACKS) 0 else 1, records.trackPolylines.size)
             assertEquals("$failing: offline regions", if (failing == MapRecordKind.OFFLINE_REGIONS) 0 else 1, records.offlineRegionCircles.size)
         }
+    }
+
+    /**
+     * Dispatch 2026-10-27-05: when the finds cannot be read, which finds are saved and located is unknown, so a photo
+     * linked to any entry is left out; a standalone one still draws, and the finds failure is the one reported. The four
+     * rulings themselves are held through the real screen, in `FindPhotosOffMapTest`.
+     */
+    @Test
+    fun `when the finds cannot be read, a photo linked to an entry is left out and a standalone one still draws`() = runTest {
+        val error = IOException("finds unreadable")
+        val linked = photo("linked", 45.4, -122.4).copy(referencingEntryIds = listOf("find-1"))
+        val records = useCase(entries = Result.failure(error), photos = Result.success(listOf(linked, photo("standalone", 45.5, -122.5))))()
+
+        assertEquals(listOf("standalone"), records.photoMarkers.map { it.recordId })
+        assertEquals(listOf(MapRecordReadFailure(MapRecordKind.FINDS, error)), records.failures)
     }
 
     private class FakeLogRepository(

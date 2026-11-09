@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import com.zynergylabs.forager.app.domain.CrowdedIconsMode
 import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.ForagingSelection
@@ -7,7 +8,9 @@ import com.zynergylabs.forager.app.domain.LocationFix
 import com.zynergylabs.forager.app.domain.MapRecords
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PendingDelete
+import com.zynergylabs.forager.app.domain.ShownHeight
 import com.zynergylabs.forager.app.domain.WaypointNavigation
+import com.zynergylabs.forager.app.domain.liveHeightToShowMeters
 import com.zynergylabs.forager.app.domain.withoutPending
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.AvailabilityForecast
@@ -114,6 +117,12 @@ data class AvailabilityUiState(
     val plannedTrips: List<PlannedTrip> = emptyList(),
     val plannedTripsErrorMessage: String? = null,
     /**
+     * Whether [plannedTrips] has been read yet (dispatch 2026-11-05-05, Amendment 1, A8), as the waypoints' `waypointsLoaded`
+     * is: until it is, a trip being navigated to that is not in the list is waited for, not taken as deleted. Set by the
+     * first read that succeeds; a failed read leaves it as it was, and is logged and shown in the Trip Planner.
+     */
+    val plannedTripsLoaded: Boolean = false,
+    /**
      * The Seasonal tab's test of [com.zynergylabs.forager.app.domain.FruitingPatternAssumptions.FRUITING_LAG_DAYS]
      * against real historical sightings and rainfall for the current search — see
      * [com.zynergylabs.forager.app.domain.GetSeasonalPatternUseCase]. Fetched lazily on tab open, keyed on
@@ -185,7 +194,7 @@ data class AvailabilityUiState(
      * [offlineDownloadStatus]'s in-flight/last-attempt state.
      */
     val offlineRegions: List<OfflineRegionSummary> = emptyList(),
-    /** How many Cartography entries currently keep a reference to each offline region (by id) — Journal Stage 2b's 4b deletion warning. Loaded alongside [offlineRegions]; a region missing from this map has never been counted, treated as zero the same as an explicit zero. */
+    /** How many Cartography entries currently keep a reference to each offline region (by id) — Journal Stage 2b's 4b deletion warning. Live since dispatch 2026-10-28-08 (`EntryReferenceCountSource`), not loaded with [offlineRegions]; a region missing from this map has no committed entry keeping it, and reads as zero. */
     val offlineRegionEntryReferenceCounts: Map<Long, Int> = emptyMap(),
     /**
      * The offline region whose delete was asked for (a swipe on its Records row, journal redesign J4)
@@ -229,6 +238,10 @@ data class AvailabilityUiState(
      * failure (logged, [nightModeMaps] left `false`), so it can never hold the map blank forever.
      */
     val nightModeMapsLoaded: Boolean = false,
+    /** Settings > Map > "Crowded icons" (dispatch 2026-10-27-14); the Maps tab writes it into its crowded-stack host. */
+    val crowdedIconsMode: CrowdedIconsMode = CrowdedIconsMode.DEFAULT,
+    /** Settings > Map > "Waypoint names" (dispatch 2026-11-02-04), on by default; the Maps tab hands it to its map. */
+    val waypointNamesShown: Boolean = true,
     /**
      * The Maps tab's basemap (dispatch 2026-09-28-708): restored at start from
      * [com.zynergylabs.forager.app.domain.BasemapPreferenceRepository] and kept in step with every pick
@@ -323,6 +336,13 @@ data class AvailabilityUiState(
      */
     val liveFix: LocationFix.Update? = null,
     /**
+     * The live height above sea level, steadied by the barometer (dispatch 2026-10-28-13, RECORD -1792): the one
+     * height the strip, the navigation card and the Return control read ([liveAltitudeMeters]). `null` before the
+     * first fix; [ShownHeight.Unavailable] when there is no height to show. Never [liveFix]'s raw height itself: that is put
+     * in only where it is shown, by [liveAltitudeMeters] (RECORD -2022).
+     */
+    val shownHeight: ShownHeight? = null,
+    /**
      * The newest fix the live gate refused ([com.zynergylabs.forager.app.domain.acceptLiveFix]: over 50 m, or
      * not from GPS, dispatch 2026-09-28-527):
      * an approximate reading, shown and never acted on (dispatch 2026-09-28-510; see
@@ -345,6 +365,19 @@ data class AvailabilityUiState(
      * no recording: the live fix it measures from is this ViewModel's own.
      */
     val waypointNavigation: WaypointNavigation? = null,
+    /**
+     * The dashed line to the waypoint being navigated to (dispatch -502), worked out by [AvailabilityWaypointLine]
+     * and held here, so it outlives a tab change (step 6 PR 1, dispatch 2026-10-26-06: moved from the screen's own
+     * `remember`). `null` with no navigation, before the first fix, and once arrived. The screen draws it only while
+     * its own resolved target is found: the one rule for a deleted or Undo-pending waypoint (RECORD -1657).
+     */
+    val waypointStraightLine: StraightLine? = null,
+    /**
+     * The way to that waypoint along trails (step 6 PR 3, dispatch 2026-10-26-11), worked out by [AvailabilityWaypointRoute]
+     * from this ViewModel's own fixes, in the foreground only (RECORD -1652 Q5). `null` with no navigation and while the
+     * route is worked out, when the HUD and the map are today's straight ones; see [WaypointRouteShown].
+     */
+    val waypointRoute: WaypointRouteShown? = null,
     /**
      * The system of units this person reads, restored from
      * [com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository.getUnitSystem] at startup and
@@ -374,6 +407,12 @@ data class AvailabilityUiState(
     val offlineRouteFetchingIds: Set<Long> = emptySet(),
     /** Regions whose route fetch failed this session, at download or automatically; only these offer "Try again". */
     val offlineRouteFailedIds: Set<Long> = emptySet(),
+    /** Known bug 14 (dispatch 2026-11-02-02): the map server's last answer on the Offline Maps picker's area; see [OfflineDetailAnswer]. */
+    val offlineDetail: OfflineDetailAnswer? = null,
+    /** Dispatch 2026-11-05-08: the trip a Trip Planner Download Maps opened Offline Maps for, until the user leaves; see [TripMapsOpening]. */
+    val offlineMapsTripOpening: TripMapsOpening? = null,
+    /** Counts each trip's Download Maps, so a picker already on screen, panned or not, starts again on the trip's pin (B3). */
+    val offlineMapPinRequest: Int = 0,
 ) {
     /**
      * [offlineRegions] without [pendingOfflineRegionDelete]: what the Journal's region rows, the All
@@ -395,8 +434,13 @@ data class AvailabilityUiState(
      */
     val liveLocation: LatLng? get() = liveFix?.let { LatLng(it.lat, it.lng) }
 
-    /** See [liveLocation] — the same fix's altitude, `null` whenever the device didn't report one. */
-    val liveAltitudeMeters: Double? get() = liveFix?.altitude
+    /**
+     * The live height above sea level ([shownHeight]), or, until the first conversion arrives and on a phone that cannot
+     * convert, [liveFix]'s own GPS height (RECORD -2022, [liveHeightToShowMeters]). `null` with no fix, or none of either
+     * ("Alt unavailable"). Until dispatch 2026-10-28-13 this was always [liveFix]'s own altitude: the height above the
+     * ellipsoid, about 21 m low in western Oregon.
+     */
+    val liveAltitudeMeters: Double? get() = if (liveFix == null) null else liveHeightToShowMeters(shownHeight, liveFix.altitude)
 
     /**
      * The position true north is worked out at (declination), dispatch 2026-09-28-510: the gated fix,

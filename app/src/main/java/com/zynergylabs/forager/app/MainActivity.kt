@@ -1,13 +1,18 @@
 package com.zynergylabs.forager.app
 
+import com.zynergylabs.forager.app.ui.route.RoutePlottingViewModel
+import com.zynergylabs.forager.app.ui.route.RoutePlottingControls
 import com.zynergylabs.forager.app.ui.availability.commitDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.onAutoSaveLocationToPhotosChanged
 import com.zynergylabs.forager.app.ui.availability.onBatterySaverChanged
+import com.zynergylabs.forager.app.ui.availability.onCrowdedIconsModeChanged
+import com.zynergylabs.forager.app.ui.availability.onWaypointNamesChanged
 import com.zynergylabs.forager.app.ui.availability.onDarknessMarginChanged
 import com.zynergylabs.forager.app.ui.availability.onDistanceUnitSelected
 import com.zynergylabs.forager.app.ui.availability.onDownloadAgain
 import com.zynergylabs.forager.app.ui.availability.onDownloadOfflineMaps
 import com.zynergylabs.forager.app.ui.availability.onMapFullscreenChanged
+import com.zynergylabs.forager.app.ui.availability.onNavigateToTrip
 import com.zynergylabs.forager.app.ui.availability.onNavigateToWaypoint
 import com.zynergylabs.forager.app.ui.availability.onNightModeMapsChanged
 import com.zynergylabs.forager.app.ui.availability.onOffTrackReminderChanged
@@ -18,9 +23,13 @@ import com.zynergylabs.forager.app.ui.availability.onOfflineMapRadiusChanged
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapsOpened
 import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
 import com.zynergylabs.forager.app.ui.availability.onSundownAlertsEnabledChanged
+import com.zynergylabs.forager.app.ui.availability.onOfflineAreaSettled
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapsSignalReturned
 import com.zynergylabs.forager.app.ui.availability.onThemeModeChanged
 import com.zynergylabs.forager.app.ui.availability.onTryAgainRoutes
+import com.zynergylabs.forager.app.ui.availability.onDownloadMapsForTrip
+import com.zynergylabs.forager.app.ui.availability.onLeftTripOfflineMaps
+import com.zynergylabs.forager.app.ui.availability.TripDownloadMapsActions
 import com.zynergylabs.forager.app.ui.availability.requestDeleteOfflineRegion
 import com.zynergylabs.forager.app.ui.availability.undoDeleteOfflineRegion
 import android.Manifest
@@ -48,6 +57,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
+import com.zynergylabs.forager.app.domain.model.withLiveHeight
 import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
 import com.zynergylabs.forager.app.domain.model.LatLng
@@ -175,6 +185,23 @@ class MainActivity : ComponentActivity() {
                 CameraFormatViewModel(
                     getCameraFormat = container.cameraFormatRepository::getCameraFormat,
                     setCameraFormat = container.cameraFormatRepository::setCameraFormat,
+                    errorLog = androidErrorLog,
+                )
+            }
+        }
+    }
+
+    /**
+     * Route plotting on the Maps tab (dispatch 2026-10-30-08, step 3): Activity-scoped, so a route being plotted survives a tab
+     * change (CLAUDE.md, UX defaults). A save reloads the Trip Planner's list through the screen's own loader.
+     */
+    private val routePlottingViewModel: RoutePlottingViewModel by viewModels {
+        viewModelFactory {
+            initializer {
+                RoutePlottingViewModel(
+                    routeLeg = container.plotRoute::leg,
+                    saveRoute = { route, name, date -> container.savePlottedRoute(route, name, date) },
+                    onSaved = { viewModel.plannedTrips.loadPlannedTrips() },
                     errorLog = androidErrorLog,
                 )
             }
@@ -343,6 +370,7 @@ class MainActivity : ComponentActivity() {
             // AvailabilityUiState.themeMode (Settings' Light/Dark/System Default choice), so
             // ForagerTheme needs the resolved boolean below rather than the other way around.
             val uiState by viewModel.uiState.collectAsState()
+            val routePlottingState by routePlottingViewModel.uiState.collectAsState()
             val backupUiState by backupViewModel.uiState.collectAsState()
             // RECORD -660/-661: a corrupt settings file was reset; the screen shows the one-time snackbar.
             val settingsResetPending by container.settingsResetNotice.pending.collectAsState()
@@ -384,7 +412,7 @@ class MainActivity : ComponentActivity() {
                 }
                 enableEdgeToEdge(statusBarStyle = statusBarStyle, navigationBarStyle = statusBarStyle)
             }
-            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal, offlineRegions = uiState.offlineRegions) {
+            ForagerThemeWithNoSignal(darkTheme = effectiveDarkTheme, noSignal = noSignal, offlineRegions = uiState.offlineRegions, seaLevelConverter = container.seaLevelConverter, groundHeightSource = container.groundHeightSource) {
                 val logUiState by mushroomLogViewModel.uiState.collectAsState()
                 val inAppCameraTarget by inAppCameraViewModel.target.collectAsState()
                 val cameraGridMode by cameraGridModeViewModel.mode.collectAsState()
@@ -501,11 +529,15 @@ class MainActivity : ComponentActivity() {
                         // tile delete runs when its Undo snackbar ends (pendingDeleteNotices below).
                         onDeleteOfflineRegion = viewModel::requestDeleteOfflineRegion,
                         onDownloadAgain = viewModel::onDownloadAgain,
-                        routeActions = OfflineRouteActions(onTryAgain = viewModel::onTryAgainRoutes, onSignalReturned = viewModel::onOfflineMapsSignalReturned),
+                        routeActions = OfflineRouteActions(onTryAgain = viewModel::onTryAgainRoutes, onSignalReturned = viewModel::onOfflineMapsSignalReturned, onAreaSettled = viewModel::onOfflineAreaSettled),
+                        // Dispatch 2026-11-05-08: a Trip Planner trip's Download Maps.
+                        tripDownloadMaps = TripDownloadMapsActions(onOpen = viewModel::onDownloadMapsForTrip, onLeft = viewModel::onLeftTripOfflineMaps),
                     ),
                     settings = AvailabilityScreenSettings(
                         onDistanceUnitSelected = viewModel::onDistanceUnitSelected,
                         onNightModeMapsChanged = viewModel::onNightModeMapsChanged,
+                        onCrowdedIconsModeChanged = viewModel::onCrowdedIconsModeChanged,
+                        onWaypointNamesChanged = viewModel::onWaypointNamesChanged,
                         onAutoSaveLocationToPhotosChanged = viewModel::onAutoSaveLocationToPhotosChanged,
                         onSundownAlertsEnabledChanged = viewModel::onSundownAlertsEnabledChanged,
                         onDarknessMarginChanged = viewModel::onDarknessMarginChanged,
@@ -527,12 +559,14 @@ class MainActivity : ComponentActivity() {
                         },
                         onMapFullscreenChanged = viewModel::onMapFullscreenChanged,
                         onMapShown = viewModel::onMapShown,
+                        onMapsTabShownChanged = viewModel::onMapsTabShownChanged,
                         onMapLayerVisibilityChanged = viewModel::onMapLayerVisibilityChanged,
                         onMapModeSelected = viewModel::onMapModeSelected,
                         onMapIconClusterPlacementChanged = viewModel::onMapIconClusterPlacementChanged,
                         onMapLayerOpacityChanged = viewModel::onMapLayerOpacityChanged,
                         onColourFieldMoved = viewModel::onColourFieldMoved,
                         forecastCellStore = container.forecastCellStore,
+                        routePlotting = RoutePlottingControls(routePlottingState, routePlottingViewModel),
                     ),
                     cameraCaptureFiles = container.cameraCaptureFiles,
                     cameraInputs = AvailabilityScreenCamera(
@@ -651,7 +685,9 @@ class MainActivity : ComponentActivity() {
                         tripStartWarning = trackUiState.tripStartWarning,
                         backgroundRunPrompt = trackUiState.backgroundRunPrompt,
                         networkFixesNotice = trackUiState.networkFixesNotice,
-                        breadcrumbPoints = trackUiState.breadcrumbPoints.map { LatLng(it.lat, it.lng) },
+                        // Dispatch 2026-10-26-05 (RECORD -1651): the stored track and the kept points not yet written, so the
+                        // line reaches the walker's dot.
+                        breadcrumbPoints = trackUiState.recordingLine.map { LatLng(it.lat, it.lng) },
                         recordingSundownLine = trackUiState.sundownLine,
                         recordingBackBy = trackUiState.backBy,
                         onBackByChoice = trackRecordingViewModel::setBackBy,
@@ -660,7 +696,8 @@ class MainActivity : ComponentActivity() {
                     compassProvider = container.compassProvider,
                     computeTrueHeading = container.computeTrueHeadingUseCase,
                     navigation = AvailabilityScreenNavigation(
-                        returnToStart = trackUiState.returnToStart,
+                        // Dispatch 2026-10-28-13: the height difference from the strip's live height, not the raw fixes'.
+                        returnToStart = trackUiState.returnToStart?.withLiveHeight(uiState.shownHeight),
                         isReturning = trackUiState.isReturning,
                         isArrivalHeld = trackUiState.isArrivalHeld,
                         isOffTrack = trackUiState.isOffTrack,
@@ -669,11 +706,12 @@ class MainActivity : ComponentActivity() {
                             if (trackUiState.isReturning || trackUiState.isArrivalHeld) trackRecordingViewModel.stopReturn() else trackRecordingViewModel.startReturn()
                         },
                         navigationTarget = trackUiState.originWaypoint,
-                        returnRoute = returnRouteOf(trackUiState.routeHome),
-                        routeLine = trackUiState.routeLine,
+                        returnRoute = returnRouteOf(trackUiState.routeHome, trackUiState.wayHomeNote, trackUiState.wayHomeOffTrail, trackUiState.nextTurn),
+                        routeLine = trackUiState.routeLineShown,
                         onRetryRoute = trackRecordingViewModel::retryRoute,
                         // Dispatch 2026-09-28-502: Navigate on a chosen waypoint, ending it, and whether the waypoints have loaded.
                         onNavigateToWaypoint = viewModel::onNavigateToWaypoint,
+                        onNavigateToTrip = viewModel::onNavigateToTrip,
                         onStopWaypointNavigation = viewModel::onStopWaypointNavigation,
                     ),
                     records = AvailabilityScreenRecords(

@@ -5,9 +5,12 @@ import android.content.res.Resources
 import android.util.Log
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.MutableState
+import androidx.compose.runtime.State
 import com.zynergylabs.forager.app.map.OFFLINE_STYLE_URL
 import com.zynergylabs.forager.app.map.currentOfflineRenderStyleUrl
 import com.zynergylabs.forager.app.ui.map.layers.MAP_LAYER_REGISTRY
+import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.orderedLayers
 import org.maplibre.android.maps.Style
 
@@ -31,6 +34,13 @@ internal fun MapStyleReload(
     resources: Resources,
     appCompassEngine: TrueHeadingCompassEngine?,
     appLocationEngine: AppLocationEngine?,
+    /**
+     * Step 8b: set on each style load to whether the style draws the official-trails band
+     * ([applyReferenceTrailsOnStyleLoad]); [SightingsMap] draws, credits and reports with it.
+     */
+    referenceTrailsLoaded: MutableState<Boolean>,
+    /** Step 8b: the layer choices as the map was given them, before the band is hidden for a style without it. */
+    chosenLayers: State<MapLayersState>,
 ) {
     // Style swap: basemap, palette, the offline style (Stage 2e-ii), or effective night (colour
     // build C1: nightMode is a key, and AppliedMapStyle.night is compared). Keyed on the inputs
@@ -57,15 +67,18 @@ internal fun MapStyleReload(
     // OnDidFailLoadingMapListener registered in the DisposableEffect above, never swallowed; what
     // the user should be *told* in that state is a decision the pre-build report lists and this
     // dispatch did not make.
-    // RECORD -1513: the switch as the map uses it, off for the rest of the process once the own Street has failed to load
-    // (OwnStreetFallback.kt). Read here, in composition, so the fallback relaunches this effect and reloads the style.
-    val ownStreet = OWN_STREET_FALLBACK.ownStreet()
-    LaunchedEffect(state.mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded, ownStreet) {
+    // RECORD -1513: the switch as the map uses it, off for the rest of the process once Trail Map has failed to load
+    // (OwnTrailFallback.kt). Read here, in composition, so the fallback relaunches this effect and reloads the style.
+    val ownTrail = OWN_TRAIL_FALLBACK.ownTrail()
+    // Dispatches 2026-10-27-11 and -13 (RECORD -1742, -1748): patterns lost on the tiles a reload keeps, a MapLibre 13.5.0
+    // fault worked around in PatternRelayout.kt. Told of each request below and each callback; it listens for the sprite itself.
+    val patternRelayout = rememberPatternRelayout(state.mapView)
+    LaunchedEffect(state.mapLibreMap, basemap, useOfflineTiles, nightMode, nightModeLoaded, ownTrail) {
         val map = state.mapLibreMap ?: return@LaunchedEffect
         // null until the Night Maps preference has loaded (the cold-launch gate): the effect
         // relaunches when nightModeLoaded turns true, and the first style it requests is then the
         // right one. The map shows MapLibre's own blank until then.
-        // useOfflineTiles is also on for OSM or Topo with no signal (NoSignalTrailMap.kt): the regions' own style either way.
+        // useOfflineTiles is also on for Street or Topo with no signal (NoSignalTrailMap.kt): the regions' own style either way.
         val offlineStyleUrl = if (useOfflineTiles) currentOfflineRenderStyleUrl(context) else OFFLINE_STYLE_URL
         val requested = requestedMapStyle(
             basemap = basemap,
@@ -73,7 +86,7 @@ internal fun MapStyleReload(
             nightMode = nightMode,
             nightModeLoaded = nightModeLoaded,
             offlineStyleUrl = offlineStyleUrl,
-            ownStreet = ownStreet,
+            ownTrail = ownTrail,
         ) ?: return@LaunchedEffect
         if (!needsStyleReload(state.appliedStyle, requested)) return@LaunchedEffect
         // Captured before setStyle below discards the LocationComponent entirely (see
@@ -98,38 +111,58 @@ internal fun MapStyleReload(
         // target taken as already applied (so the region move does not run, while a new search still
         // does), and the tracking mode (so the zoom-in does not run). Only on this MapView's first
         // style; a later style swap keeps its own camera, as before.
-        val cameraRestore = cameraRestoreFor(if (state.appliedStyle == null) state.cameraMemory?.saved else null, previousCameraMode)
+        // RECORD -2192: with the saved padding while navigating, so a view panned away from comes back at the same place (cameraRestoreFor).
+        val cameraRestore = cameraRestoreFor(if (state.appliedStyle == null) state.cameraMemory?.saved else null, previousCameraMode, navigating = state.navigationView != null)
         cameraRestore?.let {
             Log.i(MAPS_COMEBACK_LOG_TAG, "restore before the style: view=${state.mapView.width}x${state.mapView.height} to zoom=${it.zoom} target=${it.target} (camera was zoom=${map.cameraPosition.zoom})")
             state.cameraMoveClassifier.markAppMove()
-            applyCameraRestore(map, it)
+            applyFirstStyleCameraRestore(map, it, state.navigationModeChange)
         }
-        map.setMaxZoomPreference(operatingMaxZoom(basemap, ownStreet).toDouble())
-        val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles, offlineStyleUrl = requested.offlineStyleUrl, ownStreet = ownStreet)
+        map.setMaxZoomPreference(operatingMaxZoom(basemap, ownTrail).toDouble())
+        val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles, offlineStyleUrl = requested.offlineStyleUrl, ownTrail = ownTrail)
         // Whose load a failure is: the failure listener (MapListeners.kt) gets only MapLibre's message (RECORD -1513).
         // Assumption, not verified: a later setStyle cancels this request, so any failure belongs to the latest lastStyleRequest.
         state.lastStyleRequest = MapStyleRequest(source, useOfflineTiles)
         val builder = when (source) {
             is MapStyleSource.Json -> Style.Builder().fromJson(source.json)
             is MapStyleSource.Uri -> Style.Builder().fromUri(source.uri)
-            is MapStyleSource.StreetWithTopoOver -> streetWithTopoOverBuilder(source)
+            is MapStyleSource.TrailWithTopoOver -> trailWithTopoOverBuilder(source)
         }
+        // Before setStyle, while the current style can still be written (a pending restore runs here). The MapView's first
+        // style is told apart so it is not relaid out: it keeps no tiles from an earlier style (PatternRelayout.kt).
+        patternRelayout.onStyleRequested(firstStyleOnThisMapView = state.appliedStyle == null)
         map.setStyle(builder) { style ->
             // The symbol fade off for the whole style, before anything is drawn on it (PlacementTransitions.kt).
             disableSymbolFade(style)
+            // Which style loaded, MapLibre's layer count and its clone record (StyleLoadLog.kt; dispatch 2026-11-04-05 B1).
+            Log.i(SIGHTINGS_MAP_TAG, styleLoadLogLine(trailUriOf(source), style.layers.size, style.json))
             // Offline night (colour build C1 (d)): the offline style has no raster layer for
             // NIGHT_RASTER_PAINT to act on, so its own layers are recoloured here, after it loads
             // from its one URL and before the overlays are added, so the overlays' own line and
             // fill layers are never touched. Day, or night off, restyles nothing: the style came
             // fresh from its URI.
-            // Since dispatch 2026-10-18-05 Part 2 the same recolour serves the own Street online (loaded by URI too),
-            // and walks text, halo and icon colours; with the own Street off, a URI style is only ever the offline one.
-            // The own Street takes its night water exception (RECORD -1343); the offline style keeps pure inversion.
-            if (requested.night && source !is MapStyleSource.Json) applyOfflineNightRecolour(style, streetWater = usesStreetSprite(source))
+            // Since dispatch 2026-10-18-05 Part 2 the same recolour serves Trail Map online (loaded by URI too),
+            // and walks text, halo and icon colours; with Trail Map off, a URI style is only ever the offline one.
+            // Trail Map takes its night water exception (RECORD -1343); the offline style keeps pure inversion.
+            // Trail Map v4 (the fill-in) has its own night tables, chosen by the style's URI (TrailNightTables.kt); every other
+            // Trail Map version keeps v1 to v3's. Trail Map under Topographical takes those of the Trail Map it draws (trailUriOf).
+            // v4's clone layers take their originals' entries, from the style's own forager:layer-clones (LayerClones.kt).
+            if (requested.night && source !is MapStyleSource.Json) {
+                val tables = trailNightTablesForSource(source).withLayerClonesOf(style)
+                applyOfflineNightRecolour(style, trailWater = usesTrailSprite(source), trailTables = tables)
+                // Trail Map v4's hill shading: the recolour walks no hillshade colour, so it takes its own night (coder-11).
+                tables.hillshade?.let { applyTrailHillshadeNight(style, it) }
+            }
             // Trail Map's night icons and patterns: the bundled night copies, added under their own names and switched to
             // (NightImageSwitch.kt; dispatch 2026-10-22-06 Amendment 1). The sprite is not loaded yet at this point.
-            if (requested.night && usesStreetSprite(source)) applyStreetNightImages(style, context)
-            if (source is MapStyleSource.StreetWithTopoOver) hideStreetLabelsUnderTopo(style, source.streetLabelsMaxZoom)
+            if (requested.night && usesTrailSprite(source)) applyTrailNightImages(style, context)
+            if (source is MapStyleSource.TrailWithTopoOver) hideTrailLabelsUnderTopo(style, source.trailLabelsMaxZoom)
+            // OpenTopoMap brings its own relief: Street's hill shading is hidden under it (coder-11).
+            if (source is MapStyleSource.TrailWithTopoOver) hideHillshadeUnderTopo(style)
+            // Step 8b (dispatch 2026-10-26-15): the official-trails band's visibility from the user's choice, after the night
+            // recolour (which walks every layer, hidden or not, so the band is in its night colour whenever it shows) and
+            // before the overlays are added above it. Under Topographical the band is not offered (Trail Map only, -1633).
+            referenceTrailsLoaded.value = applyReferenceTrailsOnStyleLoad(MapLibreStyleLayerSwitches(style), drawnOnThisMap = source !is MapStyleSource.TrailWithTopoOver, chosen = chosenLayers.value)
             initializeOverlayLayers(
                 style,
                 density = resources.displayMetrics.density,
@@ -151,7 +184,7 @@ internal fun MapStyleReload(
             cameraRestore?.let {
                 Log.i(MAPS_COMEBACK_LOG_TAG, "restore on the style load: view=${state.mapView.width}x${state.mapView.height}, camera was zoom=${map.cameraPosition.zoom} target=${map.cameraPosition.target}")
                 state.cameraMoveClassifier.markAppMove()
-                applyCameraRestore(map, it)
+                applyFirstStyleCameraRestore(map, it, state.navigationModeChange)
                 state.lastAppliedCameraTarget = it.appliedTarget
             }
             state.appliedStyle = requested
@@ -165,13 +198,22 @@ internal fun MapStyleReload(
             if (trackLiveLocation) {
                 state.cameraMoveClassifier.markAppMove() // activating (or re-activating, after a style swap) sets the camera mode and may ease the zoom
                 state.navigationModeChange.byTheApp {
-                    activateLiveLocationIfPermitted(map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode, compassEngine = appCompassEngine, locationEngine = appLocationEngine, look = state.positionLook, nudgeSpringBack = state.nudgeSpringBack)
+                    // dot-lift-after-recreate: a navigation view applied while the restore's own transition ran is applied again at its end.
+                    activateLiveLocationIfPermitted(
+                        map, style, context, restoreCameraMode = cameraRestore?.cameraMode ?: previousCameraMode, compassEngine = appCompassEngine,
+                        locationEngine = appLocationEngine, look = state.positionLook, nudgeSpringBack = state.nudgeSpringBack,
+                        onCameraTransitionEnded = { state.navigationModeChange.onLocationTransitionEnded() },
+                    )
                     state.appliedPositionLook[0] = state.positionLook
                     Log.i(POSITION_DOT_LOG_TAG, "activated on a style load with look ${state.positionLook}")
                 }
                 state.navigationModeChange.listenTo(map) { state.navigationView }
                 state.navigationModeChange.gestureProtection = false
             }
+            // Last, once the style holds every layer and image reference it will (the night step's included): on a reload, once
+            // the sprite has also loaded, the pattern layers are cleared after the style's transition (at least 300 ms) plus
+            // 100 ms and restored at least 100 ms later (PatternRelayout.kt).
+            patternRelayout.onStyleLoaded(style)
         }
     }
 }

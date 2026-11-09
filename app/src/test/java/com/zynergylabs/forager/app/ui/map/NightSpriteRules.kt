@@ -7,7 +7,7 @@ import kotlin.math.roundToInt
 // docs/audits/2026-10-22-night-icon-set-verify.md), so they never reached a pixel on a device. They now run here, at
 // build time, where NightSpriteTest applies them to sprite v5's day images and holds the app's bundled night sheets
 // (app/src/main/assets/night-sprite/v5) pixel-equal to the result. Moved out of NightColour.kt and NightPattern.kt
-// unchanged, except that tufts is painted rather than inverted (STREET_NIGHT_PATTERN_PAINTS).
+// unchanged, except that tufts is painted rather than inverted (TRAIL_NIGHT_PATTERN_PAINTS).
 
 /**
  * An icon whose ring takes its own night colour (RECORD -1345, "Place dots + icon rings (Recommended)"): [dayRing] and
@@ -18,9 +18,9 @@ internal data class IconRingNight(val dayRing: Int, val dayFill: Int, val nightR
 
 /**
  * The own Street's icons whose rings read too dark inverted (1.0 to 1.4:1 on the night forest): the place dot, and the
- * toilets and drinking-water icons. The design's copy is `NIGHT_ICON_RINGS` in `map-style/overrides/forager-street.mjs`.
+ * toilets and drinking-water icons. The design's copy is `NIGHT_ICON_RINGS` in `map-style/overrides/forager-trail.mjs`.
  */
-internal val STREET_NIGHT_ICON_RINGS: Map<String, IconRingNight> = mapOf(
+internal val TRAIL_NIGHT_ICON_RINGS: Map<String, IconRingNight> = mapOf(
     "townspot" to IconRingNight(dayRing = 0x868686, dayFill = 0xF3F3F3, nightRing = 0xD6D6D6),
     "toilets" to IconRingNight(dayRing = 0x8780AB, dayFill = 0xDCEBFA, nightRing = 0xC6BFEA),
     "drinking_water" to IconRingNight(dayRing = 0x8780AB, dayFill = 0xDCEBFA, nightRing = 0xC6BFEA),
@@ -71,18 +71,18 @@ internal fun nightPixelsOf(pixels: IntArray): IntArray = IntArray(pixels.size) {
  * its inversion `#9cd898`. The design's copy is `NIGHT_PATTERN_COLOURS` in `map-style/overrides/forager-character.mjs`,
  * recorded in the style as `forager:night-patterns`; `NightExceptionsTest` holds the two equal.
  */
-internal val STREET_NIGHT_PATTERN_COLOURS: Map<String, Int> = mapOf(
+internal val TRAIL_NIGHT_PATTERN_COLOURS: Map<String, Int> = mapOf(
     "tree_dark_irregular" to 0x5D804F,
 )
 
 /**
- * Every pattern painted one colour at night: [STREET_NIGHT_PATTERN_COLOURS], and the wetland tufts at `#2485ad`. The
+ * Every pattern painted one colour at night: [TRAIL_NIGHT_PATTERN_COLOURS], and the wetland tufts at `#2485ad`. The
  * owner, RECORD -1566: "The tree glyph is #5d804f, and tufts #2485ad"; the planner, relaying the owner's "Only for the
  * white icons I mentioned. Nothing else": tufts "takes #2485ad, which is its ruled colour, set as a colour and not by
  * inverting". At @2x every visible tufts pixel is `#3fa0c8`, whose inversion is exactly `#2485ad`, so painting changes
  * nothing there; the 1x sheet's tufts has mixed edge colours, which painting sets to `#2485ad` too.
  */
-internal val STREET_NIGHT_PATTERN_PAINTS: Map<String, Int> = STREET_NIGHT_PATTERN_COLOURS + ("tufts" to 0x2485AD)
+internal val TRAIL_NIGHT_PATTERN_PAINTS: Map<String, Int> = TRAIL_NIGHT_PATTERN_COLOURS + ("tufts" to 0x2485AD)
 
 /**
  * [pixels] (ARGB) painted [rgb], each pixel's alpha kept: a fully transparent pixel stays as it is, and every other
@@ -99,10 +99,10 @@ internal fun nightPatternPixelsOf(pixels: IntArray, rgb: Int): IntArray {
 
 /**
  * One sprite image's night pixels by its [name] (the 61-row table in docs/audits/2026-10-22-night-icon-set-verify.md):
- * a pattern in [STREET_NIGHT_PATTERN_PAINTS] painted its colour; an icon with a -1345 ring inverted with its ring kept
+ * a pattern in [TRAIL_NIGHT_PATTERN_PAINTS] painted its colour; an icon with a -1345 ring inverted with its ring kept
  * light; every other image, point icons and road shields alike, inverted ([nightPixelsOf]).
  */
 internal fun nightSpritePixelsOf(name: String, pixels: IntArray): IntArray {
-    val paint = STREET_NIGHT_PATTERN_PAINTS[name]
-    return if (paint != null) nightPatternPixelsOf(pixels, paint) else nightIconPixelsOf(pixels, STREET_NIGHT_ICON_RINGS[name])
+    val paint = TRAIL_NIGHT_PATTERN_PAINTS[name]
+    return if (paint != null) nightPatternPixelsOf(pixels, paint) else nightIconPixelsOf(pixels, TRAIL_NIGHT_ICON_RINGS[name])
 }

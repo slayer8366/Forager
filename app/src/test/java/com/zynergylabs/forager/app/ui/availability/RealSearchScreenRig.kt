@@ -4,9 +4,13 @@ import android.app.Application
 import android.content.ComponentName
 import android.os.Looper
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.testTag
@@ -27,6 +31,7 @@ import com.zynergylabs.forager.app.domain.ComputeFruitingLagDistributionUseCase
 import com.zynergylabs.forager.app.domain.ComputeTripWindowsUseCase
 import com.zynergylabs.forager.app.domain.DEFAULT_STALE_THRESHOLD_DAYS
 import com.zynergylabs.forager.app.domain.DeletePlannedTripUseCase
+import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.GetAvailabilityUseCase
 import com.zynergylabs.forager.app.domain.GetConditionsUseCase
 import com.zynergylabs.forager.app.domain.GetPlannedTripsUseCase
@@ -43,6 +48,7 @@ import com.zynergylabs.forager.app.domain.LocationResult
 import com.zynergylabs.forager.app.domain.LocationTracker
 import com.zynergylabs.forager.app.domain.MapPreferencesRepository
 import com.zynergylabs.forager.app.domain.MushroomRepository
+import com.zynergylabs.forager.app.domain.NoEntryReferenceCounts
 import com.zynergylabs.forager.app.domain.OfflineMapRepository
 import com.zynergylabs.forager.app.domain.OfflineRegionSummary
 import com.zynergylabs.forager.app.domain.PlannedTripRepository
@@ -54,7 +60,10 @@ import com.zynergylabs.forager.app.domain.TripPlanningWeatherProvider
 import com.zynergylabs.forager.app.domain.UnitSystemPreferenceRepository
 import com.zynergylabs.forager.app.domain.WeatherProvider
 import com.zynergylabs.forager.app.domain.model.AppThemeMode
+import com.zynergylabs.forager.app.domain.mapdata.NoTrailMapDetail
+import com.zynergylabs.forager.app.domain.mapdata.TrailMapDetail
 import com.zynergylabs.forager.app.domain.model.ConditionsSummary
+import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.DailyWeather
 import com.zynergylabs.forager.app.domain.model.PlannedTrip
 import com.zynergylabs.forager.app.domain.model.Region
@@ -84,7 +93,25 @@ internal class RealSearchScreenRig(
     private val composeRule: AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>,
     /** The offline maps the ViewModel is handed: none, unless a test drives a download (DownloadPausedShownTest). */
     private val offlineMapRepository: OfflineMapRepository = RigNoOfflineMaps,
+    /** Dispatch 2026-10-28-13: the live fixes, the barometer and the sea-level converter (AvailabilityScreenSeaLevelHeightTest); none by default. */
+    private val locationTracker: LocationTracker = object : LocationTracker {
+        override val fixes: Flow<LocationFix> = emptyFlow()
+    },
+    private val pressureProvider: com.zynergylabs.forager.app.domain.PressureProvider = com.zynergylabs.forager.app.domain.NoBarometer,
+    private val seaLevelConverter: com.zynergylabs.forager.app.domain.SeaLevelConverter = com.zynergylabs.forager.app.domain.NoSeaLevelConverter,
+    /**
+     * Known bug 14 (dispatch 2026-11-02-02, call C2): the map server's detail check, the maps' "no signal" and the log, as the
+     * ViewModel is handed them; the defaults are the ViewModel's own, so every other test is as it was. [pickerPans]: a drag on
+     * a map settles its camera at [panTo], as `PanRecordingMapSlot` does, so a test pans the Offline Maps picker more than once.
+     */
+    private val trailMapDetail: TrailMapDetail = NoTrailMapDetail,
+    private val noSignal: () -> Boolean = { true },
+    private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
+    private val pickerPans: Boolean = false,
 ) {
+
+    /** Where the next drag on a map settles its camera, when [pickerPans] is set. */
+    var panTo: LatLng = LatLng(0.0, 0.0)
 
     /** Every sightings fetch the ViewModel made: region, month and filter. */
     val sightingsFetches = mutableListOf<Triple<Region, Int, TaxonFilter>>()
@@ -177,9 +204,7 @@ internal class RealSearchScreenRig(
                     return location
                 }
             },
-            locationTracker = object : LocationTracker {
-                override val fixes: Flow<LocationFix> = emptyFlow()
-            },
+            locationTracker = locationTracker,
             getAvailability = GetAvailabilityUseCase(PredictAvailabilityUseCase(repository), searchCache),
             getRecentSearches = GetRecentSearchesUseCase(searchCache),
             getSightings = GetSightingsUseCase(repository),
@@ -195,9 +220,20 @@ internal class RealSearchScreenRig(
             unitSystemPreferenceRepository = RigMetricUnits,
             appThemePreferenceRepository = RigLightTheme,
             getTodaysForecast = GetTodaysForecastUseCase(RigNoWeather),
+            entryReferenceCounts = NoEntryReferenceCounts,
+            pressureProvider = pressureProvider,
+            seaLevelConverter = seaLevelConverter,
+            errorLog = errorLog,
+            noSignal = noSignal,
+            trailMapDetail = trailMapDetail,
         )
         val vm = viewModel
-        val mapSlot: MapSlot = { region, content, renderMode, focusOverride, _, _, onSightingTap, _, modifier ->
+        val mapSlot: MapSlot = { region, content, renderMode, focusOverride, _, _, onSightingTap, onCameraIdle, modifier ->
+            val currentGesture by rememberUpdatedState(renderMode.onUserCameraGesture)
+            val currentIdle by rememberUpdatedState(onCameraIdle)
+            val pans = if (!pickerPans) Modifier else Modifier.pointerInput(Unit) {
+                detectDragGestures(onDragStart = { currentGesture() }, onDragEnd = { currentIdle(panTo) }) { change, _ -> change.consume() }
+            }
             mapFocusOverride = focusOverride
             mapOnSightingTap = onSightingTap
             mapSightings = content.sightings
@@ -208,7 +244,7 @@ internal class RealSearchScreenRig(
             if (renderMode.leavingTab) mapLeavingSeen = true
             val memory = renderMode.cameraMemory
             Box(
-                modifier.testTag(LAYOUT_FIXES_MAP_TAG).layout { measurable, constraints ->
+                modifier.testTag(LAYOUT_FIXES_MAP_TAG).then(pans).layout { measurable, constraints ->
                     val placeable = measurable.measure(constraints)
                     // RECORD -752: every size the map is measured at, with the camera it holds then (what a new MapView restores).
                     mapMeasures += MapMeasure(androidx.compose.ui.unit.IntSize(placeable.width, placeable.height), memory?.saved, composeRule.mainClock.currentTime)
@@ -246,11 +282,15 @@ internal class RealSearchScreenRig(
                     onOfflineMapsOpened = vm::onOfflineMapsOpened,
                     onDownloadOfflineMaps = vm::onDownloadOfflineMaps,
                     onDeleteOfflineRegion = vm::onDeleteOfflineRegion,
+                    // As MainActivity wires them (call C2): the picker's settled area reaches the detail check.
+                    routeActions = OfflineRouteActions(onTryAgain = vm::onTryAgainRoutes, onSignalReturned = vm::onOfflineMapsSignalReturned, onAreaSettled = vm::onOfflineAreaSettled),
                 ),
                 settings = AvailabilityScreenSettings(
                     onNightModeMapsChanged = vm::onNightModeMapsChanged,
                     onThemeModeChanged = vm::onThemeModeChanged,
                 ),
+                // Dispatch 2026-10-28-13, Amendment 3: as MainActivity wires it, so the barometer follows the Maps tab here too.
+                mapControls = AvailabilityScreenMapControls(onMapsTabShownChanged = vm::onMapsTabShownChanged),
                 mapSlot = mapSlot,
             )
         }
@@ -266,6 +306,12 @@ internal class RealSearchScreenRig(
         composeRule.mainClock.advanceTimeBy(2_000)
         Shadows.shadowOf(Looper.getMainLooper()).idleFor(Duration.ofMillis(1_000))
         composeRule.waitForIdle()
+    }
+
+    /** The hosting Activity's ON_START, as MainActivity reports it: the live fix and the barometer start (dispatch 2026-10-28-13). */
+    fun enterForeground() {
+        viewModel.onEnteredForeground()
+        settle()
     }
 
     fun dropdownShown() = composeRule.onAllNodes(hasTestTag(SEARCH_DROPDOWN_TAG)).fetchSemanticsNodes().isNotEmpty()

@@ -36,7 +36,7 @@ package com.zynergylabs.forager.app.ui.map
  * ## How a basemap actually gets chosen
  *
  * Not from this enum directly. [MapMode] names three since dispatch 2026-10-22-01 (RECORD -1554, -1556): Trail
- * ([FORAGER_TRAIL], the app's own vector map), Topo and OSM, picked from the Layers sheet's "Map type" row (`MapLayersSheet`) or the
+ * ([FORAGER_TRAIL], the app's own vector map), Topo and Street, picked from the map type panel the Layers button opens (`MapTypePanel`; the Layers sheet's "Map type" row until 2026-10-28) or the
  * map's own quick-fire `MapModePicker` (removed 2026-10-19, RECORD -1392). See [MapMode]'s own doc comment for the full picture,
  * including what this superseded (a two-tier service/mode split, and PR #13's original USGS Topo
  * default), and for how the choice persists across restarts.
@@ -93,7 +93,9 @@ package com.zynergylabs.forager.app.ui.map
  * so the always-drawn guarantee this app relied on for USGS/ODbL credit doesn't quietly become
  * tap-to-reveal-only as a side effect of the renderer swap.
  */
-enum class Basemap(
+class Basemap internal constructor(
+    /** A stable name for logs and test tags, as an enum's `name` was before dispatch 2026-11-03-05 D7. */
+    val name: String,
     val label: String,
     val description: String,
     /** The highest zoom this app will let the user reach on this basemap. See the class doc. */
@@ -123,59 +125,61 @@ enum class Basemap(
      */
     val isRaster: Boolean = true,
 ) {
-    /**
-     * Forager Trail Map: the app's own vector map, the style the owner's mapping Worker serves at
-     * `STREET_STYLE_URL` (dispatch 2026-10-22-01, RECORD -1554, -1556). The default map type, and the only one
-     * offline downloads are made in.
-     *
-     * **Why it is a [Basemap] entry at all** (Amendment 2 left the model to the coder). Every map in the app is
-     * handed a [Basemap], and [MapMode] and [Basemap] are one to one ([MapMode.forBasemap], used by the Journal's map;
-     * [DEFAULT], used by every map that is given none). Trail Map and OpenStreetMap are now both always offered, so
-     * they cannot share [OSM_STANDARD] as the two Streets did behind the release switch; an entry of its own keeps
-     * that one-to-one and needs no new parameter through the 26 places a [Basemap] is passed. Rejected: passing
-     * [MapMode] down instead, which would change every one of those signatures, `MapRenderMode` included, for the
-     * same information. The cost of this choice is that this entry is not a raster ([isRaster] `false`): the raster
-     * style builders never draw it directly, and its [tileUrlTemplate] is the Worker's vector tile URL, recorded as
-     * the fact it is, never put in a raster source.
-     *
-     * [maxZoom] is the owner's 18 (-1289); [attribution] is the Protomaps credit the offline style carries.
-     */
-    FORAGER_TRAIL(
-        label = "Forager Trail Map",
-        description = "Forager's own trail map, and the one offline areas are downloaded in.",
-        maxZoom = com.zynergylabs.forager.app.map.STREET_STYLE_MAX_ZOOM,
-        attribution = com.zynergylabs.forager.app.map.STREET_STYLE_ATTRIBUTION,
-        tileUrlTemplate = "https://forager-pmtiles.brandonlee1-894.workers.dev/us/{z}/{x}/{y}.mvt",
-        isRaster = false,
-    ),
-
-    OPEN_TOPO_MAP(
-        label = "OpenTopoMap",
-        description = "Topographic contours and hillshading, worldwide.",
-        maxZoom = 17,
-        // The caption's line is shortened from the full credit below -- the full form wrapped to two
-        // lines over the always-visible caption (see SightingsMap.kt), covering more of the map than
-        // a credit line should. It still names all three required credits (OpenStreetMap, SRTM,
-        // OpenTopoMap's CC-BY-SA), without the "contributors" qualifier and the " | " separator.
-        attribution = "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
-        tileUrlTemplate = "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
-        // OpenTopoMap's page asks for "Kartendaten: © OpenStreetMap-Mitwirkende, SRTM | Kartendarstellung:
-        // © OpenTopoMap (CC-BY-SA)" (docs/audits/2026-10-18-map-services-policy-and-cost-research.md, Q2). This
-        // English form goes in the tap-to-reveal attribution and the caption keeps the short line: the owner's
-        // "option c" (dispatch 2026-10-18-04, item 3), chosen over a two-line caption or a smaller one.
-        fullAttribution = "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)",
-    ),
-
-    OSM_STANDARD(
-        label = "OpenStreetMap",
-        description = "OpenStreetMap's own standard map: roads, paths and buildings. Online only: never downloaded (RECORD -1554).",
-        maxZoom = 19,
-        attribution = "© OpenStreetMap contributors",
-        tileUrlTemplate = "https://tile.openstreetmap.org/{z}/{x}/{y}.png",
-    ),
-    ;
+    override fun toString(): String = name
 
     companion object {
+        /**
+         * Forager Trail Map: the app's own vector map, the style the owner's mapping Worker serves at
+         * `TRAIL_STYLE_URL` (dispatch 2026-10-22-01, RECORD -1554, -1556). The default map type, and the only one
+         * offline downloads are made in.
+         *
+         * **Why it is a [Basemap] entry at all** (Amendment 2 left the model to the coder). Every map in the app is
+         * handed a [Basemap], and [MapMode] and [Basemap] are one to one ([MapMode.forBasemap], used by the Journal's map;
+         * [DEFAULT], used by every map that is given none). Trail Map and OpenStreetMap are now both always offered, so
+         * they cannot share one entry as the two "Street" maps did behind the release switch; an entry of its own keeps
+         * that one-to-one and needs no new parameter through the 26 places a [Basemap] is passed. Rejected: passing
+         * [MapMode] down instead, which would change every one of those signatures, `MapRenderMode` included, for the
+         * same information. The cost of this choice is that this entry is not a raster ([isRaster] `false`): the raster
+         * style builders never draw it directly, and its [tileUrlTemplate] is the Worker's vector tile URL, recorded as
+         * the fact it is, never put in a raster source.
+         *
+         * [maxZoom] is the owner's 18 (-1289); [attribution] is the Protomaps credit the offline style carries.
+         */
+        val FORAGER_TRAIL = Basemap(
+            name = "FORAGER_TRAIL",
+            label = "Forager Trail Map",
+            description = "Forager's own trail map, and the one offline areas are downloaded in.",
+            maxZoom = com.zynergylabs.forager.app.map.TRAIL_STYLE_MAX_ZOOM,
+            attribution = com.zynergylabs.forager.app.map.TRAIL_STYLE_ATTRIBUTION,
+            tileUrlTemplate = "https://forager-pmtiles.brandonlee1-894.workers.dev/us/{z}/{x}/{y}.mvt",
+            isRaster = false,
+        )
+
+        val OPEN_TOPO_MAP = Basemap(
+            name = "OPEN_TOPO_MAP",
+            label = "OpenTopoMap",
+            description = "Topographic contours and hillshading, worldwide.",
+            maxZoom = 17,
+            // The caption's line is shortened from the full credit below -- the full form wrapped to two
+            // lines over the always-visible caption (see SightingsMap.kt), covering more of the map than
+            // a credit line should. It still names all three required credits (OpenStreetMap, SRTM,
+            // OpenTopoMap's CC-BY-SA), without the "contributors" qualifier and the " | " separator.
+            attribution = "© OpenStreetMap, SRTM, OpenTopoMap (CC-BY-SA)",
+            tileUrlTemplate = "https://a.tile.opentopomap.org/{z}/{x}/{y}.png",
+            // OpenTopoMap's page asks for "Kartendaten: © OpenStreetMap-Mitwirkende, SRTM | Kartendarstellung:
+            // © OpenTopoMap (CC-BY-SA)" (docs/audits/2026-10-18-map-services-policy-and-cost-research.md, Q2). This
+            // English form goes in the tap-to-reveal attribution and the caption keeps the short line: the owner's
+            // "option c" (dispatch 2026-10-18-04, item 3), chosen over a two-line caption or a smaller one.
+            fullAttribution = "© OpenStreetMap contributors, SRTM | © OpenTopoMap (CC-BY-SA)",
+        )
+
+        /**
+         * Every basemap: the app's own two, then each [AddedMapType]'s (dispatch 2026-11-03-05 D7, RECORD -2001: the Street
+         * map lives in `ui/map/street/` and is registered in [ADDED_MAP_TYPES]). A list rather than an enum's entries so a
+         * map type can be added, and deleted, in a place of its own.
+         */
+        val entries: List<Basemap> by lazy { listOf(FORAGER_TRAIL, OPEN_TOPO_MAP) + ADDED_MAP_TYPES.map { it.mapMode.basemap } }
+
         /**
          * What the map opens on. Derives from [MapMode.DEFAULT] rather than naming a [Basemap]
          * directly, so there is exactly one place that decides the app's opening basemap — see

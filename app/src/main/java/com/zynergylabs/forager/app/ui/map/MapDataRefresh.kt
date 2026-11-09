@@ -53,25 +53,30 @@ internal fun MapDataRefresh(
     // because MapLibre's own API separates "style ready" from "camera/property changed".
     // Dispatch -497: the way back, pushed whenever it or the style changes (a new style starts empty).
     LaunchedEffect(state.loadedStyle, route) {
-        state.loadedStyle?.let { updateRouteHomeLayers(it, route) }
+        // Dispatch 2026-10-25-02 (RECORD -1634): read only while fully loaded; a style change skips it, logged, and the
+        // new style's load runs it again (loadedStyle is a key).
+        routeHomeOnCurrentStyle(state.loadedStyle, route)
     }
     LaunchedEffect(
         state.loadedStyle, region, sightings, plannedTrips, focusOverride, breadcrumbPoints, waypoints, focusedObservationId,
         keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, cameraRequest, journalHighlights,
         searchFrameRequestId,
     ) {
-        val style = state.loadedStyle ?: return@LaunchedEffect
+        if (state.loadedStyle == null) return@LaunchedEffect
         val map = state.mapLibreMap ?: return@LaunchedEffect
-        refreshOverlayData(
-            style, region, sightings, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId,
+        // Dispatch 2026-10-25-02 (RECORD -1634): in a style change the push is skipped, logged, and this run stops before
+        // its camera work; the new style's load runs it again (loadedStyle is a key).
+        overlayDataOnCurrentStyle(
+            state.loadedStyle, region, sightings, plannedTrips, breadcrumbPoints, waypoints, focusedObservationId,
             keptTrackPolylines, findMarkers, photoMarkers, offlineRegionCircles, showSearchCentre, journalHighlights,
-        )
+        ) ?: return@LaunchedEffect
 
         // Once the live-location "puck" is actively tracking (the default once permission is
         // granted — see activateLiveLocationIfPermitted), it owns the camera continuously, on its
         // own internal update loop, independent of recomposition. Jumping the camera to the search
         // region here too — on every sightings/breadcrumb update this effect already keys on,
-        // which includes roughly every 15s while a track is recording — would fight it, snapping the
+        // which while a track is recording includes each kept point (the line reaches the walker's
+        // dot, RECORD -1651) as well as the 15 s re-read of the stored track — would fight it, snapping the
         // view back to the search center out from under a walker watching their live position. Once
         // a pan/zoom/the CameraMode.NONE break in activateLiveLocationIfPermitted's own doc comment
         // drops tracking, this resumes controlling the camera exactly as it did before that existed.
@@ -83,7 +88,8 @@ internal fun MapDataRefresh(
         val appliedSearchFrameId = state.cameraMemory?.appliedSearchFrameId ?: state.localAppliedSearchFrameId[0]
         val searchFrame = searchFrameMove(isGpsTrackingBefore, searchFrameRequestId, appliedSearchFrameId)
         if (searchFrame != SearchFrameMove.NONE) {
-            state.cameraMoveClassifier.markAppMove()
+            // The user's search: their ask, so a crowded stack's way back ends here (dispatch 2026-10-27-07 Amendment 1, S1).
+            state.cameraMoveClassifier.markUserAskedMove()
             if (searchFrame == SearchFrameMove.STOP_FOLLOWING_AND_FRAME) map.locationComponent.cameraMode = CameraMode.NONE
             map.cameraPosition = CameraPosition.Builder()
                 .target(MapLibreLatLng(region.lat, region.lng))
@@ -98,15 +104,24 @@ internal fun MapDataRefresh(
             Log.i(SEARCH_FRAME_LOG_TAG, "search frame $searchFrameRequestId applied ($searchFrame) at ${region.lat}, ${region.lng}")
             return@LaunchedEffect
         }
-        val isGpsTracking = isGpsTrackingBefore
+        // Dispatch 2026-10-30-08, Amendment 5, S-1: the last request applied is kept above the tab when there is a camera memory,
+        // as the search frame's is, so a returning map does not apply the same request again (MapCameraMemory.appliedCameraRequestId).
+        val appliedRequestId = state.cameraMemory?.appliedCameraRequestId ?: state.lastAppliedCameraRequestId
+        // Dispatch 2026-10-30-08: a request the user asked for (a saved route opened) ends following first, as a search's frame does.
+        val stopFollowing = cameraRequestStopsFollowing(isGpsTrackingBefore, cameraRequest, appliedRequestId)
+        if (stopFollowing) map.locationComponent.cameraMode = CameraMode.NONE
+        val isGpsTracking = isGpsTrackingBefore && !stopFollowing
         // A one-shot frame (the entry map's opening frame) stands in for this target's move: the
         // target is recorded as applied too, so the region move below does not follow it and undo it.
         // A later target change (a locate-me pan) still moves the camera, as before.
-        val frameWanted = cameraRequest != null && shouldApplyCameraRequest(isGpsTracking, cameraRequest, state.lastAppliedCameraRequestId)
-        if (frameWanted) state.cameraMoveClassifier.markAppMove()
+        val frameWanted = cameraRequest != null && shouldApplyCameraRequest(isGpsTracking, cameraRequest, appliedRequestId)
+        if (frameWanted) {
+            if (cameraRequest.stopsFollowing) state.cameraMoveClassifier.markUserAskedMove() else state.cameraMoveClassifier.markAppMove()
+        }
         val frameApplied = frameWanted && applyCameraFrame(map, cameraRequest.frame, resources.displayMetrics.density)
         if (frameApplied) {
             state.lastAppliedCameraRequestId = cameraRequest.id
+            state.cameraMemory?.appliedCameraRequestId = cameraRequest.id
             state.lastAppliedCameraTarget = target
         } else if (shouldMoveCameraToTarget(isGpsTracking, target, state.lastAppliedCameraTarget)) {
             val center = MapLibreLatLng(region.lat, region.lng)
@@ -114,11 +129,18 @@ internal fun MapDataRefresh(
             // zoom-from-radius heuristic below, both of which stay anchored to region — see
             // MapSlot's doc comment on this parameter for why the two are kept independent.
             val cameraTarget = focusOverride?.let { MapLibreLatLng(it.lat, it.lng) } ?: center
-            state.cameraMoveClassifier.markAppMove()
-            map.cameraPosition = CameraPosition.Builder()
-                .target(cameraTarget)
-                .zoom(zoomForRadiusKm(region.radiusKm))
-                .build()
+            // A new search region or a locate-me result: the user's ask (dispatch 2026-10-27-07 Amendment 1, S1).
+            state.cameraMoveClassifier.markUserAskedMove()
+            // Dispatch 2026-11-07-01 Amendment 1: a locate-me pan alone glides there at the user's zoom (LocateGlide.kt).
+            val locatePan = focusOverride?.takeIf { isLocatePanOnly(target, state.lastAppliedCameraTarget) }
+            if (locatePan != null) {
+                glideToLocate(map, locatePan)
+            } else {
+                map.cameraPosition = CameraPosition.Builder()
+                    .target(cameraTarget)
+                    .zoom(zoomForRadiusKm(region.radiusKm))
+                    .build()
+            }
             state.lastAppliedCameraTarget = target
         } else {
             // Dispatch 2026-10-19-36: while following, the target is taken as applied (cameraTargetTakenAsApplied), so a

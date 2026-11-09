@@ -80,7 +80,7 @@ instead. Concretely:
   two doc-comment mentions of the old, broken approach, kept deliberately as history).
 
 **Hardware-confirmed on the owner's device**: fresh APK from this fix, real "Offline Maps" screen, a
-6 km radius around a real Portland-area coordinate (45.3368, -122.6016) — completed cleanly at
+6 km radius around a real Portland-area coordinate ([a point near the owner's home; removed 2026-11-06]) — completed cleanly at
 **88 tiles, 1.9 MB**, no hang, no native crash. The tile count moved past `0/1` immediately rather
 than sitting there, confirming the `/style/offline.json` route resolves correctly through
 `OfflineTilePyramidRegionDefinition` where `asset://` didn't, and that the glyph-stripped 57-layer

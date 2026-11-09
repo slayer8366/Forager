@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.zynergylabs.forager.app.domain.AbandonedTrackSweepOnce
 import com.zynergylabs.forager.app.domain.AlertAudibility
 import com.zynergylabs.forager.app.domain.ComputeReturnToStartUseCase
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
 import com.zynergylabs.forager.app.domain.alertAudibilityWarning
 import com.zynergylabs.forager.app.domain.BACKGROUND_RUN_PROMPT
 import com.zynergylabs.forager.app.domain.CreateWaypointUseCase
@@ -20,6 +21,7 @@ import com.zynergylabs.forager.app.domain.GetTrackOriginWaypointUseCase
 import com.zynergylabs.forager.app.domain.GetTracksUseCase
 import com.zynergylabs.forager.app.domain.GetWaypointsUseCase
 import com.zynergylabs.forager.app.domain.HopBand
+import com.zynergylabs.forager.app.domain.KeptTail
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.RouteHome
 import com.zynergylabs.forager.app.domain.routeHome
@@ -38,6 +40,7 @@ import com.zynergylabs.forager.app.domain.RecordingHalt
 import com.zynergylabs.forager.app.domain.RecordingHaltReason
 import com.zynergylabs.forager.app.domain.ReturnWatch
 import com.zynergylabs.forager.app.domain.ReturnWatchState
+import com.zynergylabs.forager.app.domain.wayhome.WayHomeWatch
 import com.zynergylabs.forager.app.ui.log.PendingDeleteCommitScope
 import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
@@ -125,14 +128,10 @@ class TrackRecordingViewModel(
     /** The clock the auto-created waypoints' names read. The off-track cooldown's clock is [ReturnWatch]'s own. */
     private val currentTime: CurrentTimeProvider = SystemCurrentTimeProvider,
     /**
-     * How many Cartography entries currently keep a reference to a waypoint — Journal Stage 2b's
-     * 4b deletion warning. A plain suspend function rather than threading the whole
-     * `CartographyEntryRepository`/`GetEntryReferenceCountUseCase` in: this ViewModel needs exactly
-     * one query from that surface, and a function type keeps this constructor (and every existing
-     * test's fixture) from having to stand up a Cartography repository just to construct it. Defaults
-     * to always reporting zero, matching every other optional dependency here.
+     * How many journal entries keep each waypoint and each track, live (dispatch 2026-10-28-08): the waypoint's
+     * "Used in" and both Undo snackbars' warnings. No default, so a factory that leaves it out does not compile (Sorrel's N1).
      */
-    private val getWaypointReferenceCount: suspend (String) -> Int = { 0 },
+    private val entryReferenceCounts: EntryReferenceCountSource,
     /** The zone the auto-created origin/end waypoints' default names are written in — injected so a test can pin the wall-clock text. */
     private val zone: ZoneId = ZoneId.systemDefault(),
     /**
@@ -160,11 +159,6 @@ class TrackRecordingViewModel(
      * redesign J4): `viewModelScope` is cancelled by then. See [PendingDeleteCommitScope].
      */
     private val pendingDeleteCommitScope: CoroutineScope = PendingDeleteCommitScope,
-    /**
-     * How many journal entries keep a track, for the Undo snackbar's warning, read the way
-     * [getWaypointReferenceCount] is. Part 2 follow-ups F1 item 5.
-     */
-    private val getTrackReferenceCount: suspend (String) -> Int = { 0 },
     /** The real delete of a track, run only when its Undo window closes. Part 2 follow-ups F1 item 5. */
     private val deleteTrack: DeleteTrackUseCase,
     /**
@@ -212,6 +206,10 @@ class TrackRecordingViewModel(
      * (dispatch 2026-10-21-04: see [onTrackEnded]). Defaults to a service that never reports.
      */
     private val trackEnds: StateFlow<String?> = MutableStateFlow(null),
+    /** The app's way home along trails (dispatch 2026-10-24-10, RECORD -1613): found at Return, stopped with it. `null`: none. */
+    private val wayHomeWatch: WayHomeWatch? = null,
+    /** The service's newest kept points, for the line to reach the dot (dispatch 2026-10-26-05). `null`: the stored track only. */
+    private val recordingKeptTail: StateFlow<KeptTail>? = null,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(TrackRecordingUiState())
@@ -231,6 +229,7 @@ class TrackRecordingViewModel(
         settleTakenUpOrigin = { active, track -> takeUp.settleTakenUpOrigin(active, track) },
         handStartPointToWatch = { handStartPointToWatch() },
         nextNoticeId = { ++recordingNoticeIds },
+        keptTail = recordingKeptTail,
     )
 
     /**
@@ -245,6 +244,7 @@ class TrackRecordingViewModel(
         lastPolledTrack = { poller.lastPolledTrack },
         lastGatedGpsFix = { locationFixes.lastGatedGpsFix },
         findRouteHome = findRouteHome,
+        wayHomeProgress = { trackId -> wayHomeWatch?.progressFor(trackId) },
     )
 
     /**
@@ -259,8 +259,7 @@ class TrackRecordingViewModel(
         getTracks = getTracks,
         createWaypoint = createWaypoint,
         deleteWaypoint = deleteWaypoint,
-        getWaypointReferenceCount = getWaypointReferenceCount,
-        getTrackReferenceCount = getTrackReferenceCount,
+        entryReferenceCounts = entryReferenceCounts,
         abandonedTrackSweepOnce = abandonedTrackSweepOnce,
         errorLog = errorLog,
     )
@@ -313,6 +312,7 @@ class TrackRecordingViewModel(
         errorLog = errorLog,
         currentTime = currentTime,
         zone = zone,
+        wayHomeShown = wayHomeWatch?.shown,
     )
 
     /** The origin and end waypoints and the start point (nav step 2, PR 2): see [TrackRecordingAutoWaypoints]. */
@@ -347,6 +347,7 @@ class TrackRecordingViewModel(
     private val rowReads = TrackRecordingRowReads(uiState = { _uiState.value }, trackRepository = trackRepository, errorLog = errorLog)
 
     init {
+        lists.watchReferenceCounts()
         loadWaypoints()
         loadTracks()
         viewModelScope.launch { takeUpRunningRecording() }
@@ -359,6 +360,8 @@ class TrackRecordingViewModel(
         viewModelScope.launch { sundownShown.collect { copySundownLine() } }
         // Back by, the same way: the service's ticks and the alert's buttons change it too.
         viewModelScope.launch { backBy.shown.collect { copyBackBy() } }
+        // The way home, the same way; a new one swaps in at once, not at the next route tick (dispatch 2026-10-24-10).
+        wayHomeWatch?.let { watch -> viewModelScope.launch { watch.shown.collect { watchCopies.copyWayHome(); routeTicks.updateRouteHome() } } }
         viewModelScope.launch { recordingHalts.collect { halt -> if (halt != null) onRecordingHalted(halt) } }
         // A track's end is stored by the service after this screen's Stop has returned, so the list is
         // reloaded on the service's report of that write, not on Stop (dispatch 2026-10-21-02, TrackEnds);
@@ -431,6 +434,7 @@ class TrackRecordingViewModel(
         }
         copySundownLine()
         copyBackBy()
+        watchCopies.copyWayHome()
         // The route tick runs exactly while this screen shows a return, whichever way the return
         // reached it: this screen's own Return, or a recording taken up mid-return.
         if (uiState.value.isReturning) {
@@ -553,13 +557,14 @@ class TrackRecordingViewModel(
         // it stops; this covers the moment before it has, and a recording the service never began.
         uiState.value.activeTrack?.let {
             returnWatch.stopReturn(it.trackId)
+            wayHomeWatch?.stop(it.trackId)
             takeUp.rememberStopped(it.trackId)
         }
         locationFixes.lastGatedGpsFix = null
         originCreationInFlight = false
         takeUp.clear()
         _uiState.update {
-            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null, sundownLine = null, backBy = null, breadcrumbPoints = emptyList())
+            it.copy(activeTrack = null, isReturning = false, isOffTrack = false, returnToStart = null, originWaypoint = null, routeHome = null, routeLine = null, wayHome = null, sundownLine = null, backBy = null, breadcrumbPoints = emptyList())
         }
     }
 
@@ -735,6 +740,8 @@ class TrackRecordingViewModel(
             return
         }
         handStartPointToWatch()
+        // Dispatch 2026-10-24-10: the way home along trails is worked out now; the track shows until it swaps in.
+        wayHomeWatch?.find(active.trackId, uiState.value.originWaypoint)
         // Restarted so the track the route tick routes along is read now, not up to 15 s from now.
         // Restarting also re-reads the breadcrumbs, which is harmless, and the network-fixes notice
         // is guarded by its own once-per-recording flag. Launched before copyFromWatch starts the
@@ -771,6 +778,7 @@ class TrackRecordingViewModel(
     fun stopReturn() {
         endArrivalHold()
         uiState.value.activeTrack?.let { returnWatch.stopReturn(it.trackId) }
+        uiState.value.activeTrack?.let { wayHomeWatch?.stop(it.trackId) }
         _uiState.update { it.copy(isReturning = false, isOffTrack = false) }
         routeTicks.end()
     }

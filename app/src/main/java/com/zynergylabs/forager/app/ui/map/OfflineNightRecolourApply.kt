@@ -25,8 +25,11 @@ import org.maplibre.android.style.layers.SymbolLayer
  * silently (CLAUDE.md); a summary line says how many were recoloured and how many left. Which form
  * MapLibre hands the colours back in (an `rgba()` string, `["rgba", ...]` arrays inside expressions)
  * is unverified until a device run; a form this does not read shows up in these log lines.
+ *
+ * [trailTables] are the Trail night's tables for the Trail Map version loaded ([trailNightTablesFor]); they apply
+ * only with [trailWater], Trail Map.
  */
-internal fun applyOfflineNightRecolour(style: Style, streetWater: Boolean = false) {
+internal fun applyOfflineNightRecolour(style: Style, trailWater: Boolean = false, trailTables: TrailNightTables = TRAIL_NIGHT_TABLES) {
     var recoloured = 0
     var left = 0
     for (layer in style.layers) {
@@ -42,8 +45,8 @@ internal fun applyOfflineNightRecolour(style: Style, streetWater: Boolean = fals
                     LayerColourProperty(layer.id, property, StyleColourValue.Literal(value.toString())),
                     "value of type ${value.value?.javaClass?.name} is neither a colour string nor an expression",
                 )
-            } else if (streetWater) {
-                streetNightRecolourOf(LayerColourProperty(layer.id, property, colourValue), sourceLayerOf(layer))
+            } else if (trailWater) {
+                trailNightRecolourOf(LayerColourProperty(layer.id, property, colourValue), sourceLayerOf(layer), trailTables)
             } else {
                 offlineNightRecolourOf(LayerColourProperty(layer.id, property, colourValue))
             }
@@ -105,4 +108,28 @@ private fun nightPropertyValue(property: String, night: StyleColourValue): Prope
             else -> error("offline night does not walk $property")
         }
     }
+}
+
+/**
+ * These Trail night tables with the loaded [style]'s clone layers given their originals' night ([withClones], dispatch
+ * 2026-11-04-03), read from the style's own `forager:layer-clones`. One log line per style load says which way it went: a
+ * style that records no clones, or records them unreadably, keeps the tables as they were, so each clone takes its own id's
+ * night (the plain inversion, for every clone today), as before this.
+ */
+internal fun TrailNightTables.withLayerClonesOf(style: Style): TrailNightTables {
+    val clones = layerClonesOf(style.json)
+    val tables = withClones(clones)
+    when (clones) {
+        is LayerClones.Recorded -> Log.i(
+            SIGHTINGS_MAP_TAG,
+            "Trail night: ${clones.originals.size} clone layers recorded; " +
+                "${tables.layerColours.size - layerColours.size + tables.lineColours.size - lineColours.size} take their originals' night colours.",
+        )
+        is LayerClones.NotRecorded -> Log.i(SIGHTINGS_MAP_TAG, "Trail night: ${clones.what}; no clone layers to map.")
+        is LayerClones.Unreadable -> Log.w(
+            SIGHTINGS_MAP_TAG,
+            "Trail night: $LAYER_CLONES_KEY could not be read (${clones.reason}); clone layers keep their own ids' night, as before.",
+        )
+    }
+    return tables
 }

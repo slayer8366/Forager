@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Navigation
 import androidx.compose.material3.Icon
@@ -354,24 +355,66 @@ internal fun CompassElevationStripContent(
                                 } else {
                                     widthOf(coordinatesText, readoutStyle)
                                 }
-                                val separatorPx = widthOf("·", readoutLabelStyle) + with(density) { 2 * Spacing.sm.roundToPx() }
+                                // H7, the planner's reading of the squeeze: "Labels and readouts drop by RECORD -713's order only where even
+                                // the squeezed form doesn't fit", so the dots' gaps are counted at their squeezed least, Spacing.xs. Was
+                                // Spacing.sm, the gaps as drawn with room to spare.
+                                val separatorPx = widthOf("·", readoutLabelStyle) + with(density) { 2 * Spacing.xs.roundToPx() }
+                                val headingPx = if (headingIcon) with(density) { stripHeadingIconSize().roundToPx() } else widthOf(headingText, readoutStyle)
+                                val elevationPx = widthOf(elevationText, readoutStyle)
+                                // Amendment 1, H7 refined again (the planner's call, RECORD -2181): "whether the heading stays on the strip is
+                                // decided on its widest reading, so it never appears and drops out as the phone turns. At 320 dp it stays off,
+                                // as before this dispatch." So a reading (a value or the dash) is counted at the widest value
+                                // ([stripHeadingValuesPx]); the compass words and the crossed-out compass, which do not change as the phone
+                                // turns, as drawn. Was the value as drawn, so at 320 dp "89° E" was kept and "281° W" was not.
+                                val headingFitPx = if (headingIcon || heading.isCompassStatus()) headingPx else maxOf(headingPx, stripHeadingValuesPx(::widthOf, readoutStyle))
                                 // RECORD -713 (the owner: "Drop labels, then values (Recommended)"): labels go first, then facing,
-                                // then altitude; whatever is shown is whole. See readoutsFitBeside.
+                                // then altitude; whatever is shown is whole. See readoutsFitBeside. Decided on the values as drawn, never
+                                // the windows, so the line keeps at least what it kept before Amendment 1, H7.
                                 val fit = readoutsFitBeside(
                                     availablePx = availablePx,
                                     coordinatesPx = coordinatesPx,
                                     labelsPx = listOf(labelPx(headingLabel), labelPx(elevationLabel)),
-                                    valuesPx = listOf(
-                                        if (headingIcon) with(density) { stripHeadingIconSize().roundToPx() } else widthOf(headingText, readoutStyle),
-                                        widthOf(elevationText, readoutStyle),
-                                    ),
+                                    valuesPx = listOf(headingFitPx, elevationPx),
                                     separatorPx = separatorPx,
                                 )
+                                // Amendment 1, H11 (the owner: "(b) Keep "Alt" when room", the option reading ""Alt" shows when the heading
+                                // leaves room, so it comes and goes as you turn, as it did before this update"): the heading is kept on its
+                                // widest reading (above), but the labels show wherever the heading as drawn leaves room for them, with every
+                                // readout kept. Was the labels decided on the widest reading too, so at 360 dp "Alt" went in every state.
+                                val labelsShown = fit.labels || (fit.shown.all { it } && readoutsFitBeside(availablePx, coordinatesPx, listOf(labelPx(headingLabel), labelPx(elevationLabel)), listOf(headingPx, elevationPx), separatorPx).labels)
+                                // Amendment 1, H7 (the owner: "Info that changes and shares a line with other text should get its own
+                                // window so it doesn't shift all text on the same line"; then "If it's too small, then have them squeeze
+                                // together to make room"): each value shown sits centred in a window sized for the widest it can hold
+                                // (CompassStripWindows.kt), the grid reference's the wider of its two forms here; where the line is
+                                // too short for them, they squeeze ([squeezeStripWindows]).
+                                val labelShownPx = if (labelsShown) labelPx(elevationLabel) else 0
+                                val iconPx = with(density) { stripHeadingIconSize().roundToPx() }
+                                val coordinatesWindowPx = coordinatesBothFormsWidthPx(lastLocation, ::widthOf, readoutStyle)
+                                val shownWindows = buildList {
+                                    if (fit.shown[0]) add(StripWindow(stripHeadingWindowPx(::widthOf, readoutStyle, iconPx.takeIf { shortHeadingStatus }), stripHeadingValuesPx(::widthOf, readoutStyle), headingPx))
+                                    if (fit.shown[1]) {
+                                        val altitude = stripAltitudeWindow(unitSystem, ::widthOf, readoutStyle, if (labelsShown) labelPx(ALTITUDE_LABEL) else 0)
+                                        add(StripWindow(altitude.widestPx, altitude.valuesPx, labelShownPx + elevationPx))
+                                    }
+                                    add(StripWindow(coordinatesWindowPx, coordinatesWindowPx, widthOf(coordinatesText, readoutStyle)))
+                                }
+                                val squeezed = squeezeStripWindows(
+                                    availablePx = availablePx,
+                                    windows = shownWindows,
+                                    dotPx = widthOf("·", readoutLabelStyle),
+                                    gapPx = with(density) { Spacing.sm.roundToPx() },
+                                    minGapPx = with(density) { Spacing.xs.roundToPx() },
+                                )
+                                val windowDps = with(density) { squeezed.windowsPx.map { it.toDp() } }
+                                val gapDp = with(density) { squeezed.gapPx.toDp() }
+                                // Which window each shown value takes: the heading's first, then the altitude's, the grid reference's last.
+                                val elevationWindow = if (fit.shown[0]) 1 else 0
                             Row(
                                 // Landscape B2 (S4): no weight when content-width.
                                 modifier = if (contentWidth) Modifier else Modifier.fillMaxWidth(),
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+                                // H7: the gaps either side of each dot, Spacing.sm, tighten where the windows squeeze.
+                                horizontalArrangement = Arrangement.spacedBy(gapDp, Alignment.CenterHorizontally),
                             ) {
                                 // With a fix, the heading has two real states and one transient: a value,
                                 // no sensor, or NeedsFix for the frame or two between the fix landing and
@@ -382,11 +425,12 @@ internal fun CompassElevationStripContent(
                                 // degrees change at once (WordSwap). The elevation's likewise.
                                 // Dispatch 2026-09-28-677 (the owner, RECORD -656: "heading and altitude labelled"): each
                                 // reading after its short label, as on the navigation display (LabelledReadout); a status
-                                // ("Compass unavailable", "Elevation unavailable") names itself and has none.
+                                // ("Compass unavailable", "Alt unavailable") names itself and has none.
                                 if (fit.shown[0]) {
-                                    Box {
+                                    // H7: the heading centred in its window.
+                                    Box(modifier = Modifier.width(windowDps[0]).testTag(COMPASS_STRIP_HEADING_WINDOW_TAG), contentAlignment = Alignment.Center) {
                                         if (headingIcon) StripHeadingStatusIcon(heading) else
-                                        LabelledReadout(label = headingLabel.takeIf { fit.labels }, labelStyle = readoutLabelStyle) {
+                                        LabelledReadout(label = headingLabel.takeIf { labelsShown }, labelStyle = readoutLabelStyle) {
                                             WordSwap(text = headingText) { shownText ->
                                                 Text(
                                                     text = shownText,
@@ -405,8 +449,9 @@ internal fun CompassElevationStripContent(
                                 }
                                 // Follows the Units setting (dispatch 2026-09-28-549); the value stays metres.
                                 if (fit.shown[1]) {
-                                    Box {
-                                        LabelledReadout(label = elevationLabel.takeIf { fit.labels }, labelStyle = readoutLabelStyle) {
+                                    // H7: the altitude, its label with it, centred in its window.
+                                    Box(modifier = Modifier.width(windowDps[elevationWindow]).testTag(COMPASS_STRIP_ELEVATION_WINDOW_TAG), contentAlignment = Alignment.Center) {
+                                        LabelledReadout(label = elevationLabel.takeIf { labelsShown }, labelStyle = readoutLabelStyle) {
                                             WordSwap(text = elevationText) { shownText ->
                                                 Text(
                                                     text = shownText,
@@ -422,17 +467,20 @@ internal fun CompassElevationStripContent(
                                     Text("·", style = readoutLabelStyle)
                                 }
                                 // Whole whenever it fits the strip at all: measured before the readouts (no weight). The
-                                // ellipsis is the last resort for a strip too narrow even for the coordinates alone.
-                                Text(
-                                    text = coordinatesText,
-                                    style = readoutStyle,
-                                    maxLines = 1,
-                                    softWrap = false,
-                                    overflow = TextOverflow.Ellipsis,
-                                    modifier = Modifier
-                                        .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
-                                        .testTag(COMPASS_STRIP_COORDINATES_TAG),
-                                )
+                                // ellipsis is the last resort for a strip too narrow even for the coordinates alone. H7: centred in
+                                // its window, the wider of its two forms; its touch target is the text, as before.
+                                Box(modifier = Modifier.width(windowDps.last()).testTag(COMPASS_STRIP_COORDINATES_WINDOW_TAG), contentAlignment = Alignment.Center) {
+                                    Text(
+                                        text = coordinatesText,
+                                        style = readoutStyle,
+                                        maxLines = 1,
+                                        softWrap = false,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier
+                                            .clickableWithShapedPress(onClick = onToggleCoordinateFormat)
+                                            .testTag(COMPASS_STRIP_COORDINATES_TAG),
+                                    )
+                                }
                             }
                             }
                         }

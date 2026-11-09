@@ -35,7 +35,7 @@ internal fun createAvailabilityViewModel(
         container.unitSystemPreferenceRepository,
         container.appThemePreferenceRepository,
         container.getTodaysForecastUseCase,
-        getOfflineRegionReferenceCount = { id -> offlineRegionEntryReferenceCountOrZero(id, container.getEntryReferenceCountUseCase::forOfflineRegion, androidErrorLog) },
+        entryReferenceCounts = container.entryReferenceCountSource,
         getAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::getAutoSaveLocationToPhotos,
         setAutoSaveLocationToPhotos = container.photoLocationPreferenceRepository::setAutoSaveLocationToPhotos,
         getSundownAlertsEnabled = container.sundownPreferencesRepository::getAlertsEnabled,
@@ -58,7 +58,21 @@ internal fun createAvailabilityViewModel(
         lastKnownLocation = container.lastKnownLocation,
         basemapPreferenceRepository = container.basemapPreferenceRepository,
         mapIconClusterPlacementRepository = container.mapIconClusterPlacementRepository,
+        crowdedIconsRepository = container.crowdedIconsRepository,
+        waypointNamesRepository = container.waypointNamesRepository,
         noSignal = noSignal,
         // Dispatch 2026-10-24-07: the service's stored-end report, so a finished track is on the map right after Stop.
         trackEnds = container.trackEnds.latest,
+        // Step 6 PR 1 (RECORD -1655, -1657): the waypoint line's own lookup by id and its clock.
+        readWaypoint = container.waypointRepository::getById,
+        currentTime = container.currentTimeProvider,
+        // Step 6 PR 3 (dispatch 2026-10-26-11): the way to a waypoint along trails, on the shared trail engine (PR 2).
+        findWayToWaypoint = { from, waypoint, accuracyMeters -> container.findWayToWaypoint(from, waypoint, accuracyMeters) },
+        // Dispatch 2026-11-06-01, H4 (2b-1): the way's junctions for the next turn, read from the data it was found on.
+        readRouteTurns = container.routeTurnsReader,
+        // Dispatch 2026-10-28-13: the live height above sea level, steadied by the barometer, read while the map is open.
+        pressureProvider = container.pressureProvider,
+        seaLevelConverter = container.seaLevelConverter,
+        // Known bug 14 (dispatch 2026-11-02-02): the Offline Maps picker's detail check, asked of the map server.
+        trailMapDetail = container.trailMapDetail,
     )

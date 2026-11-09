@@ -126,8 +126,9 @@ internal fun SearchEntryBar(
     landscapeHeight: Dp? = null,
     /**
      * Dispatch 2026-10-12-06 (RECORD -932, -934): over the map the bar is the rounded pill the navigation card and the compass
-     * strip tuck under (see RoundedMapCard.kt): these corners, a 2 dp shadow, and no divider (the divider was the seam against
-     * the square strip; the pill's own edge is the seam now, and a 1 dp spacer keeps the bar's height). `null`, the other tabs,
+     * strip tuck under (see RoundedMapCard.kt): these corners, a 2 dp shadow (off the map only since dispatch 2026-11-05-06), and no
+     * divider (the divider was the seam against the square strip; the pill's own edge is the seam now, and a 1 dp spacer keeps the
+     * bar's height). `null`, the other tabs,
      * keeps the square bar with its divider, unchanged (RECORD -934: "the pill is over the map only").
      * Superseded for List, Seasonal and Journal by dispatch 2026-10-17-09 (RECORD -1224, -1225): they pass the pill too, solid
      * ([overMap] false), so `null` is now no caller's choice; the square bar is kept as a path, not removed.
@@ -205,7 +206,11 @@ internal fun SearchEntryBar(
         color = barFill,
         contentColor = contentColor,
         tonalElevation = 0.dp,
-        shadowElevation = if (pillCorners != null) MAP_CARD_SHADOW_ELEVATION else 0.dp,
+        // Dispatch 2026-11-05-06 (RECORD -2154, the owner: "Follow the choice (Recommended)", whose option read "The pill's edge goes
+        // the same way as every other window, so its band goes. The tuck shadow you chose stays as it is"): no shadow over the map,
+        // where its 2 dp showed as a band inside the 0.8 pill's edges; the tuck's cast shadow is drawn on the card, not here
+        // (RoundedMapCard.kt), and is unchanged. Off the map the pill is solid, which hides the band, and keeps its shadow (A3).
+        shadowElevation = if (pillCorners != null && !overMap) MAP_CARD_SHADOW_ELEVATION else 0.dp,
         shape = barShape,
         modifier = Modifier.fillMaxWidth().testTag(SEARCH_ENTRY_BAR_TAG).mapChromeContainerColor(barFill).mapChromeShape(barShape).then(
             if (pillCorners != null && pillOutlineSides != null) {

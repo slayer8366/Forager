@@ -9,6 +9,7 @@ import com.zynergylabs.forager.app.ui.map.layers.MapLayersState
 import com.zynergylabs.forager.app.ui.map.layers.OpacityProperty
 import com.zynergylabs.forager.app.ui.map.layers.OpacityValue
 import com.zynergylabs.forager.app.ui.map.layers.COLOUR_FIELDS
+import com.zynergylabs.forager.app.ui.map.layers.LayerRenderer
 import com.zynergylabs.forager.app.ui.map.layers.layerPaintFor
 import org.maplibre.android.maps.Style
 import org.maplibre.android.style.layers.CircleLayer
@@ -38,6 +39,12 @@ import org.maplibre.android.style.sources.GeoJsonSource
  * stale before L0a: it predated the breadcrumb, the kept tracks and the offline circles, which were
  * all inserted between those. One visible change came with the registry and was accepted by the
  * owner: the search centre and the sighting dots now draw above the track lines.
+ *
+ * Since dispatch 2026-11-06-01 Amendment 1 (category I) "on top" means on top of the basemap's layers below its names:
+ * on Trail Map the registry's colour fields, areas, decorations and lines go just under its first name or icon layer,
+ * and the routes added above the kept tracks follow them, so the map's names and icons draw over every app line. The
+ * markers, the waypoint names and the fan-out stay over everything. Other maps keep the old placement
+ * (`AppLinesUnderNames.kt`).
  *
  * Each layer is built with today's paint and layout ([nativeLayerFor]), then given its visibility
  * and opacities from [layersState] ([layerPaintFor]) before it is added, so a layer's opacity is
@@ -71,8 +78,13 @@ internal fun initializeOverlayLayers(
     // Every bitmap marker's image, in this palette's colours. Registered here and nowhere else.
     MarkerIcon.entries.forEach { style.addImage(it.imageId, markerIconImage(it, palette, density).bitmap) }
 
+    // Category I (AppLinesUnderNames.kt): on Trail Map the registry's layers below the markers go just under its names.
+    val namesAnchor = readNamesAnchor(style)
     val addedSources = mutableSetOf<String>()
     for (spec in drawOrder) {
+        // Step 8b: a layer the style itself carries (the official-trails band) is never built here and needs no source;
+        // its visibility is set in the style-load callback before this runs (ReferenceTrailsVisibility.kt).
+        if (spec.renderer == LayerRenderer.STYLE_LAYER) continue
         val layer = nativeLayerFor(spec, palette)
         if (layer == null) {
             // A registry entry this function cannot build is a programming error, never a silent
@@ -82,13 +94,17 @@ internal fun initializeOverlayLayers(
         }
         if (addedSources.add(spec.sourceId)) style.addSource(GeoJsonSource(spec.sourceId, emptyFeatureCollection()))
         layer.setProperties(*paintProperties(layerPaintFor(spec, layersState)))
-        style.addLayer(layer)
+        addOverlayLayer(style, layer, overlayPlacement(spec, namesAnchor))
     }
     // Dispatch -497: the way back while returning (RouteHomeLayers.kt), outside the registry as the
     // fan-out is: its lines above every track line (the kept tracks are the registry's last line, above
     // the live breadcrumb), below every marker; the arrival ring above the waypoints.
     if (style.getLayer(MapLayerIds.KEPT_TRACKS) != null && style.getLayer(MapLayerIds.WAYPOINTS) != null) {
         addRouteHomeLayers(style, palette, density, aboveLineLayerId = MapLayerIds.KEPT_TRACKS, aboveMarkerLayerId = MapLayerIds.WAYPOINTS)
+        // Dispatch 2026-10-30-08: a plotted route, above the kept tracks and below the way home's lowest line.
+        addPlottedRouteLayers(style, palette, belowLayerId = RouteHomeIds.PASSED_LAYER)
+        // Dispatch 2026-11-02-04: waypoint names directly above the pins, the route's stops' names above them (WaypointNameLayers.kt).
+        addWaypointNameLayers(style, aboveLayerId = MapLayerIds.WAYPOINTS)
     } else {
         Log.w(SIGHTINGS_MAP_TAG, "The kept-tracks or waypoints layer is missing; the way back is not drawn.")
     }

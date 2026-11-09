@@ -3,9 +3,12 @@ package com.zynergylabs.forager.app.ui.log
 import android.util.Log
 import com.zynergylabs.forager.app.domain.AddPhotoToGalleryUseCase
 import com.zynergylabs.forager.app.domain.DeleteGalleryPhotoUseCase
+import com.zynergylabs.forager.app.domain.EntryReferenceCountSource
+import com.zynergylabs.forager.app.domain.ErrorLog
 import com.zynergylabs.forager.app.domain.GetGalleryPhotosUseCase
 import com.zynergylabs.forager.app.domain.model.GalleryPhoto
 import com.zynergylabs.forager.app.domain.model.PhotoSource
+import com.zynergylabs.forager.app.domain.watchEntryReferenceCounts
 import com.zynergylabs.forager.app.photo.CameraCapturePhotoSource
 import com.zynergylabs.forager.app.ui.log.MushroomLogViewModel.Companion.TAG
 import kotlinx.coroutines.CoroutineScope
@@ -30,7 +33,7 @@ internal class MushroomLogGallery(
     private val updateState: ((MushroomLogUiState) -> MushroomLogUiState) -> Unit,
     private val scope: () -> CoroutineScope,
     private val getGalleryPhotos: GetGalleryPhotosUseCase,
-    private val getPhotoEntryReferenceCount: suspend (String) -> Int,
+    private val entryReferenceCounts: EntryReferenceCountSource,
     private val addPhotoToGallery: AddPhotoToGalleryUseCase,
     private val deleteGalleryPhoto: DeleteGalleryPhotoUseCase,
     private val onPhotoDeleted: (String) -> Unit,
@@ -41,16 +44,26 @@ internal class MushroomLogGallery(
 ) {
 
     /** Loads [MushroomLogUiState.galleryPhotos] for the photo album — Workstream G2, independent of [MushroomLogViewModel.loadEntries] (see [MushroomLogUiState]'s own doc comment on why the two get separate loading/error fields). */
+    /**
+     * Keeps [MushroomLogUiState.cartographyEntryPhotoReferenceCounts] live for the ViewModel's life, so a journal
+     * entry saved or deleted changes a photo's delete message, its album badge and its map bubble line at once
+     * (dispatch 2026-10-28-08, RECORD -1781). Until then [loadGalleryPhotos] read the counts once per load. Logged
+     * through `Log.w`, as this class's other failures are. Called once, from the ViewModel's `init`.
+     */
+    fun watchReferenceCounts() {
+        val log = ErrorLog { tag, message, error -> Log.w(tag, message, error) }
+        watchEntryReferenceCounts(scope(), entryReferenceCounts.photoCounts(), log, "photo") { counts ->
+            updateState { it.copy(cartographyEntryPhotoReferenceCounts = counts) }
+        }
+    }
+
     fun loadGalleryPhotos(): Job {
         return scope().launch {
             updateState { it.copy(isLoadingGalleryPhotos = true, galleryLoadErrorMessage = null) }
             getGalleryPhotos().fold(
                 onSuccess = { photos ->
+                    // The counts are not read here: [watchReferenceCounts] keeps them live (dispatch 2026-10-28-08).
                     updateState { it.copy(galleryPhotos = photos, isLoadingGalleryPhotos = false) }
-                    // One query per photo — see TrackRecordingViewModel.loadWaypoints' identical
-                    // choice for why this scale doesn't need a batched read.
-                    val counts = photos.associate { it.photo.id to getPhotoEntryReferenceCount(it.photo.id) }
-                    updateState { it.copy(cartographyEntryPhotoReferenceCounts = counts) }
                 },
                 onFailure = { error ->
                     Log.w(TAG, "Couldn't load the photo gallery.", error)

@@ -84,14 +84,14 @@ class ImportGpxUseCaseTest {
         tracks.appendPoints(
             "walk",
             listOf(
-                TrackPoint(45.5, -122.6, 100.0, 4f, ms("2026-09-20T15:00:00Z")),
-                TrackPoint(45.5007, -122.6003, null, 30f, ms("2026-09-20T15:00:05.321Z")),
-                TrackPoint(45.501, -122.601, 101.5, 5f, ms("2026-09-20T15:00:10Z")),
-                TrackPoint(45.502, -122.602, 103.25, 5f, ms("2026-09-20T15:59:59Z")),
+                TrackPoint(45.5, -121.7, 100.0, 4f, ms("2026-09-20T15:00:00Z")),
+                TrackPoint(45.5007, -121.7003, null, 30f, ms("2026-09-20T15:00:05.321Z")),
+                TrackPoint(45.501, -121.701, 101.5, 5f, ms("2026-09-20T15:00:10Z")),
+                TrackPoint(45.502, -121.702, 103.25, 5f, ms("2026-09-20T15:59:59Z")),
             ),
         ).getOrThrow()
-        val originWaypoint = Waypoint("w-origin", 45.5, -122.6, 100.0, "Start", "", ms("2026-09-20T15:00:00Z"), trackId = "walk", designation = WaypointDesignation.ORIGIN)
-        val dropped = Waypoint("w-drop", 45.501, -122.601, null, "Chanterelles & co <3", "Under the \"big\" fir", ms("2026-09-20T15:20:00Z"), trackId = "walk")
+        val originWaypoint = Waypoint("w-origin", 45.5, -121.7, 100.0, "Start", "", ms("2026-09-20T15:00:00Z"), trackId = "walk", designation = WaypointDesignation.ORIGIN)
+        val dropped = Waypoint("w-drop", 45.501, -121.701, null, "Chanterelles & co <3", "Under the \"big\" fir", ms("2026-09-20T15:20:00Z"), trackId = "walk")
         waypoints.save(originWaypoint).getOrThrow()
         waypoints.save(dropped).getOrThrow()
         val shown = tracks.getById("walk").getOrThrow()!!

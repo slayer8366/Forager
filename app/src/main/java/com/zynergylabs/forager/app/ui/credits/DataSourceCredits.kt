@@ -15,12 +15,19 @@ internal data class SourceCredit(
     /** Stable, for test tags. */
     val key: String,
     val text: String,
-    /** What the row's link opens, in a word or two: "licence", "site". */
-    val linkLabel: String,
-    val url: String,
+    /**
+     * What the row's link opens, in a word or two: "licence", "site". `null`, with [url], for a source with nothing to
+     * link to: public-domain data names no licence (dispatch 2026-10-26-21, the BLM's trails).
+     */
+    val linkLabel: String?,
+    val url: String?,
     /** A plain line shown under the row, when the source needs one. */
     val detail: String? = null,
-)
+) {
+    init {
+        require((linkLabel == null) == (url == null)) { "$key: a link needs both its label and its URL" }
+    }
+}
 
 internal data class SourceSection(val title: String, val credits: List<SourceCredit>)
 
@@ -42,9 +49,58 @@ internal val DATA_SOURCE_SECTIONS: List<SourceSection> = listOf(
                 "licence",
                 "https://opentopomap.org/about",
             ),
-            // Forager Trail Map's vector tiles and the offline map packs' (StreetStyle.kt); its OpenStreetMap data is
+            // Forager Trail Map's vector tiles and the offline map packs' (TrailStyle.kt); its OpenStreetMap data is
             // credited in the row above.
             SourceCredit("protomaps", PROTOMAPS_CREDIT_TEXT, "licence", "https://github.com/protomaps/basemaps"),
+            // The official-trails band on Trail Map (street-v3, from dispatch 2026-10-26-21; RECORD -1682: "Once the band can
+            // appear"). The wording is the step 8 report's draft, approved as drafted (RECORD -1703). CC BY 4.0 asks for the
+            // licence's name, a link to it, and a note that the data was changed: the lines are tiled and simplified.
+            SourceCredit(
+                "usfs-trails",
+                "Trails: National Forest System Trails, USDA Forest Service, CC BY 4.0",
+                "CC BY 4.0",
+                "https://creativecommons.org/licenses/by/4.0/",
+                detail = "Trail lines in Forager are simplified from this data.",
+            ),
+            // Public domain: nothing is required; credited anyway, as the owner's practice is, with no link.
+            SourceCredit("blm-trails", "Trails: Bureau of Land Management, public domain", linkLabel = null, url = null),
+        ),
+    ),
+    // The heights in the route files (dispatch 2026-10-30-19; the owner: "New \"Heights\" section (Recommended)",
+    // "Approve as written (Recommended)"). The wording is Juniper's proposal, word for word
+    // (docs/research/2026-10-30-nrcan-attribution.md, branch juniper-nrcan-credit): the Open Government Licence – Canada's
+    // own attribution sentence and a link to it; the Copernicus WorldDEM-30 licence's notice for adapted data (its Article
+    // 6(b)) and its liability sentence (6(c)), which NRCan's MRDEM carries on; and the USGS's "courtesy of" form for 3DEP.
+    // The same 3" heights draw the Trail Map's hill shading and give the waypoint bubble's elevation, so the detail lines
+    // under NRCan and USGS name all three (dispatch 2026-11-03-07 D6, RECORD -2030; the owner: "Yes, broaden the credits to
+    // cover them"); they read "Route heights in Forager are averaged from this data." before.
+    SourceSection(
+        "Heights",
+        listOf(
+            SourceCredit(
+                "nrcan-heights",
+                "Heights in Canada: Natural Resources Canada. Contains information licensed under the Open Government Licence – Canada.",
+                "licence",
+                "https://open.canada.ca/en/open-government-licence-canada",
+                detail = "Route heights, the map's hill shading and waypoint elevations in Forager come from this data.",
+            ),
+            SourceCredit(
+                "copernicus-heights",
+                "Heights in Canada: produced using Copernicus WorldDEM-30 © DLR e.V. 2010-2014 and © Airbus Defence and Space " +
+                    "GmbH 2014-2018 provided under COPERNICUS by the European Union and ESA; all rights reserved.",
+                linkLabel = null,
+                url = null,
+                detail = "The organisations in charge of the Copernicus programme by law or by delegation do not incur any " +
+                    "liability for any use of the Copernicus WorldDEM-30.",
+            ),
+            // Public domain: the USGS asks for, and does not require, this credit; no link, as the BLM's row.
+            SourceCredit(
+                "usgs-3dep-heights",
+                "Heights in the United States: 3DEP elevation data courtesy of the U.S. Geological Survey, public domain",
+                linkLabel = null,
+                url = null,
+                detail = "Route heights, the map's hill shading and waypoint elevations in Forager come from this data.",
+            ),
         ),
     ),
     // The forager-forecast map layers and the data behind them (GBIF occurrences among it) go here, as

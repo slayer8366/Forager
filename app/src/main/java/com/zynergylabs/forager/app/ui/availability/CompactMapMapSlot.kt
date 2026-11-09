@@ -2,6 +2,9 @@ package com.zynergylabs.forager.app.ui.availability
 
 // Moved unchanged from AvailabilityCompactMapUi.kt (dispatch 2026-10-19-14, UI split Phase 1, PR 9a).
 
+import com.zynergylabs.forager.app.ui.map.NavigationSideInsets
+import com.zynergylabs.forager.app.ui.map.PlottedRouteOnMap
+import com.zynergylabs.forager.app.ui.map.fanout.CrowdedStackHost
 import androidx.compose.runtime.State
 import com.zynergylabs.forager.app.ui.map.TrueHeadingReading
 import com.zynergylabs.forager.app.ui.map.NavigationFacing
@@ -58,13 +61,22 @@ internal fun CompactMapMapSlot(
     isFullscreen: Boolean,
     onToggleFullscreen: () -> Unit,
     onCameraIdle: (LatLng) -> Unit,
+    /** Dispatch 2026-10-27-07: the tab's crowded-stack host, handed to the map ([MapRenderMode.crowdedStacks]). */
+    crowdedStacks: CrowdedStackHost? = null,
+    /** Dispatch 2026-10-30-08: a plotted route's line ([MapOverlayContent.plottedRoute]); `null` for none. */
+    plottedRoute: PlottedRouteOnMap? = null,
+    /** D29 (RECORD -1979, -1980): the navigation view's side padding beside an expanded route card ([navigationSideInsetsBesideCard]). */
+    navigationSideInsets: NavigationSideInsets = NavigationSideInsets.NONE,
 ) {
     val breadcrumbPoints = recording.breadcrumbPoints
     val waypoints = recording.waypoints
     val isNavigating = navigation.isNavigating
     val navigationTarget = navigation.navigationTarget
-    val routeLine = navigation.routeLine
-    val waypointStraightLine = navigation.waypointStraightLine
+    // Step 6 PR 3 (dispatch 2026-10-26-11): navigating to a waypoint, its way along trails, when there is one, is drawn
+    // in place of the straight dashed line, in the same frame, so the swap leaves no blank frame (WaypointRouteShown).
+    val waypointTrailLine = if (navigation.isNavigatingToWaypoint) uiState.waypointRoute?.line else null
+    val routeLine = waypointTrailLine ?: navigation.routeLine
+    val waypointStraightLine = navigation.waypointStraightLine.takeIf { waypointTrailLine == null }
     val navigationFollowing = navigation.navigationFollowing
     val navigationViewRequestId = navigation.navigationViewRequestId
     val navigationZoomPending = navigation.navigationZoomPending
@@ -73,7 +85,10 @@ internal fun CompactMapMapSlot(
         displayRegion,
         MapOverlayContent(
             sightings = filteredSightings,
-            plannedTrips = uiState.plannedTrips,
+            // Dispatch 2026-11-05-05 (A8; the planner, RECORD -2147): arrived at a trip, its flag is left out under the ring, as a
+            // waypoint's pin is below. Matched by id, as the pin is: trip and waypoint ids are random UUIDs, so a waypoint target
+            // (or the start) never names a trip.
+            plannedTrips = if (arrivedAt != null) uiState.plannedTrips.filterNot { it.id == navigationTarget?.id } else uiState.plannedTrips,
             breadcrumbPoints = breadcrumbPoints,
             // Dispatch -497: once arrived, the start's pin is left out and the arrival
             // ring drawn in its place (RouteHomeLayers.kt), so the start changes form.
@@ -82,6 +97,9 @@ internal fun CompactMapMapSlot(
             // draw meanwhile: the return the waypoint overrules is paused, and pausing it clears its line
             // (TrackRecordingViewModel.stopReturn), so nothing here has to hide it.
             route = if (isNavigating) RouteOnMap(routeLine, arrivedAt, waypointStraightLine?.points, waypointStraightLine?.isCurrent ?: true, waypointStraightLine?.isOffline ?: false) else null,
+            plottedRoute = plottedRoute,
+            // Dispatch 2026-11-02-04: Settings > Map > "Waypoint names", on by default.
+            waypointNames = uiState.waypointNamesShown,
             resumeTrackingRequestId = resumeTrackingRequestId,
             // RECORD -750, item 5: each location search frames its region, following or not.
             searchFrameRequestId = uiState.searchFrameSerial,
@@ -109,7 +127,7 @@ internal fun CompactMapMapSlot(
             returnMemory = returnMemory,
             // Dispatch 2026-09-28-430: the navigation view while navigating, and the one
             // true heading for the puck and a facing-up map (ruling A).
-            navigationView = if (isNavigating) NavigationViewRequest(navigationFacing, navigationFollowing, navigationViewRequestId, onLeftView, navigationZoomPending, onStartZoomApplied) else null,
+            navigationView = if (isNavigating) NavigationViewRequest(navigationFacing, navigationFollowing, navigationViewRequestId, onLeftView, navigationZoomPending, onStartZoomApplied, navigationSideInsets) else null,
             trueHeading = trueHeading,
             // Item 1 (dispatch 2026-09-29-57, amendment -262, "Move the 'i'"): the landscape L's measured bounds, in the map's own
             // pixels, for MapLibre's attribution button to keep clear of. The L keeps its bottom limit at the nav inset; the
@@ -119,8 +137,7 @@ internal fun CompactMapMapSlot(
             } else {
                 null
             },
-            // RECORD -954: in a short landscape window the "i" sits beside the map credit strip (SightingsMap).
-            attributionBesideCredit = landscapeCluster,
+            crowdedStacks = crowdedStacks,
         ),
         focusOverride,
         {},

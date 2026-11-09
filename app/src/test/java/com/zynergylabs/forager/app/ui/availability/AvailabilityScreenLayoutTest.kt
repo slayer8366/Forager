@@ -155,7 +155,7 @@ private const val MAP_SLOT_TAG = "map-slot"
  */
 private const val MIN_MAP_SHARE_OF_SCREEN = 0.33f
 
-private val REGION = Region(lat = 45.326, lng = -122.634, radiusKm = 15)
+private val REGION = Region(lat = 45.3736, lng = -121.6959, radiusKm = 15)
 
 private fun sighting(index: Int) = Sighting(
     observationId = index.toLong(),
@@ -917,7 +917,7 @@ abstract class AvailabilityScreenLayoutTest {
         composeRule.onNodeWithContentDescription("Directions to ${trip.name}")
             .performScrollTo()
             .assertIsDisplayed()
-        composeRule.onNodeWithContentDescription("Remove planned trip for ${displayDate(trip.date)}")
+        composeRule.onNodeWithContentDescription("Remove planned trip for ${displayDate(trip.date!!)}")
             .performScrollTo()
             .assertIsDisplayed()
     }
