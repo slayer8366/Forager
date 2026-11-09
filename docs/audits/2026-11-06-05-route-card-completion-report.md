@@ -1766,8 +1766,8 @@ removed from the map's waypoint list (what the Journal swipe does to `visibleWay
 on the navigation card's X. Asserts the stop's name stays, no Navigate and no reason while navigating, then Navigate not enabled and
 the reason's exact text once navigation ends.
 
-- Forward: RUN_FWD.
-- Revert (the link taken without checking its waypoint is still on the phone, `RouteStopNavigateTarget.kt:26`): RUN_REV.
+- Forward: first run 42588686503 failed in this test at the stop-name lookup ("could not find any node ... 'route-card-stop-name-0'"): my own premise was wrong, the card collapsed lists no stops. The S22 card was expanded (its dumps list the stops), so the test now expands it by a real touch on the handle first (`d62e04f52`). Green run 42591776170 (`d62e04f52`): every job passed. By name against 42568457346: 7,007 results here, 7,006 there; no name only in the base, no status changed; the one name only here is the new test (pass); 6,983 pass and 24 skipped here, 6,982 and 24 there.
+- Revert (the link taken without checking its waypoint is still on the phone, `RouteStopNavigateTarget.kt:26`): run 42591779438 on `0015c7ff1`, filtered to this class and `RouteStopNavigateTargetTest`. Compile log checked first: the debug APK built, no `e:` or `error:` lines. The new test fails at "Failed to assert the following: (is not enabled)" on `route-card-navigate`, the deleted stop's Navigate left live, which is the failure this revert makes; `RouteStopNavigateTargetTest`'s gone-link case fails with "expected Waypoint(id=wp-creek) but was Waypoint(id=wp-gone)", the same edit's. The full-suite job without the Street map also fails both `RouteCardNavigateReasonLineTest` cases, which need a reason that this revert takes away (it runs every test regardless of the filter). Restored from a copy saved before the edit; the forward branch was confirmed byte-equal to it and clean. (An earlier revert, 42588689545, ran before the expand fix and is not cited for the new test.)
 
 No fix: nothing is wrong.
 
@@ -1811,6 +1811,7 @@ strip; (c) as now.
 
 ## Premises that were wrong
 
+- My own, in the reproduction's first run: that the stops are listed with the card collapsed (they are not; fixed by expanding).
 - "The deleted-stop reason never showed" as a defect: the reason is hidden by Amendment 5 while navigating, and a navigation was
   running at every reopening.
 
