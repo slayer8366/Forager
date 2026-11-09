@@ -643,7 +643,7 @@ fun SightingsMap(
     )
 
     // A plotted route (dispatch 2026-10-30-08): pushed whenever it or the style changes (a new style starts empty).
-    LaunchedEffect(sightingsMapState.loadedStyle, plottedRoute) { plottedRouteOnCurrentStyle(sightingsMapState.loadedStyle, plottedRoute) }
+    val routeStopAccent = mapPlottedRoute(sightingsMapState.loadedStyle, plottedRoute) // and its selected stop's highlight, fading and pulsing (Amendment 7): MapRouteStopAccent.kt.
 
     // Waypoint names and the route's stops' names (dispatch 2026-11-02-04): pushed whenever they, the setting, the
     // Waypoints switch, the night look or the style change (a new style starts with no images and empty sources).
@@ -674,7 +674,7 @@ fun SightingsMap(
         returnMemory = returnMemory,
         chromeColour = chromeColour,
         resources = resources,
-        accent = plottedRoute?.selected?.fanKey, // Dispatch 2026-11-06-05, Amendment 6 B: the selected stop's accent goes into the fan.
+        accentFrame = routeStopAccent, // Dispatch 2026-11-06-05, Amendment 6 B: the selected stop's accent goes into the fan (and Amendment 7: fades and pulses there).
     )
 
     // Colour-field cells (map layers L0b, B5): MapForecastCells.kt.

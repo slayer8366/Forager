@@ -59,7 +59,8 @@ abstract class AttributionWhileTuckedTests {
         val slot = rig.bounds("map-slot")
         val width = px(slot.right - slot.left)
         val height = px(slot.bottom - slot.top)
-        val defaults = intArrayOf(px(4.dp), px(4.dp), px(52.dp), px(4.dp))
+        // MapLibre's own margins: 4 dp on every side, as the S22 shows them (RECORD -2187; was a 52 dp right margin, AttributionClearOfLTest).
+        val defaults = intArrayOf(px(4.dp), px(4.dp), px(4.dp), px(4.dp))
         val bottom = px(mode.attributionBottomInset ?: mode.bottomInset)
         val button = px(ATTRIBUTION_BUTTON_DP.dp)
         val end = attributionEndInsetClearOf(mode.attributionKeepClear, width, height, defaults, bottom, px(mode.attributionEndInset), false, button, px(ATTRIBUTION_CLEAR_GAP_DP.dp))
@@ -129,7 +130,7 @@ abstract class AttributionWhileTuckedTests {
         tuck()
         assertEquals("$where, tucked: the \"i\"'s corner does not move", before, iAndDecision().first)
         assertEquals(
-            "$where, tucked: ${if (hiddenWhileTucked) "the navigation card still covers the \"i\"" else "the spot where the card rested is clear, so the \"i\" comes back"}",
+            "$where, tucked: ${if (hiddenWhileTucked) "something drawn (the strip, or the navigation card) still covers the \"i\", so it stays hidden" else "the spot where the card rested is clear, so the \"i\" comes back"}",
             hiddenWhileTucked,
             assertDecision("$where, tucked", navigationCard),
         )
@@ -144,15 +145,20 @@ abstract class AttributionWhileTuckedTests {
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
 class AttributionWhileTuckedLandscapeTest : AttributionWhileTuckedTests() {
 
+    /**
+     * With MapLibre's real 4 dp right margin (RECORD -2187), the "i" sits at the screen edge, under the tucked strip, so it stays hidden
+     * while tucked. The owner, to the "i" under the tucked strip in landscape: "(c) Stay hidden here". Was "tucked the i comes back",
+     * which held only with the 52 dp margin these tests had assumed.
+     */
     @Test
-    fun `not navigating, the card over the corner of the i, tucked the i comes back and out again it hides, peek and expanded`() {
+    fun `not navigating, the card over the corner of the i, tucked the strip covers the i and it stays hidden, out again it hides, peek and expanded`() {
         rig.setScreen()
         rig.dragBarAcross(rightward = false)
         listOf(1, 3).forEach { n ->
             listOf(false, true).forEach { expanded ->
                 rig.plotTo(n)
                 rig.setExpanded(expanded)
-                assertOutTuckedOut("landscape, the L left, $n stops, ${if (expanded) "expanded" else "peek"}", navigationCard = false)
+                assertOutTuckedOut("landscape, the L left, $n stops, ${if (expanded) "expanded" else "peek"}", navigationCard = false, hiddenWhileTucked = true)
             }
         }
     }
@@ -184,8 +190,13 @@ class AttributionWhileTuckedPortraitTest : AttributionWhileTuckedTests() {
      * attributionButtonBottomInset), as Amendment 9 saw it on the S22. Robolectric reports no insets, so a 48 dp navigation bar (the
      * three-button bar) is delivered here as the platform would.
      */
+    /**
+     * With MapLibre's real 4 dp right margin (RECORD -2187) the tucked strip covers the "i" here too, so it stays hidden while tucked, by
+     * D28 ("hides while any card covers that corner"). The owner's "(c) Stay hidden here" was given for landscape; this portrait case is
+     * reported to the planner for the owner's word. Was "tucked the i comes back", which held only with the 52 dp margin assumed.
+     */
     @Test
-    fun `fullscreen with the bar on the left, the card over the i, tucked the i comes back and out again it hides`() {
+    fun `fullscreen with the bar on the left, the card over the i, tucked the strip covers the i and it stays hidden, out again it hides`() {
         rig.setScreen()
         rig.dragBarAcross(rightward = false)
         rig.applyInsets(left = 0.dp, right = 0.dp, bottom = 48.dp)
@@ -194,7 +205,7 @@ class AttributionWhileTuckedPortraitTest : AttributionWhileTuckedTests() {
             listOf(false, true).forEach { expanded ->
                 rig.plotTo(n)
                 rig.setExpanded(expanded)
-                assertOutTuckedOut("portrait fullscreen, the bar left, $n stops, ${if (expanded) "expanded" else "peek"}", navigationCard = false)
+                assertOutTuckedOut("portrait fullscreen, the bar left, $n stops, ${if (expanded) "expanded" else "peek"}", navigationCard = false, hiddenWhileTucked = true)
             }
         }
     }

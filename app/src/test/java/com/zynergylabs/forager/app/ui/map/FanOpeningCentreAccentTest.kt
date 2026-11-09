@@ -54,7 +54,7 @@ class FanOpeningCentreAccentTest {
     private class Opening(val pinsLeaveAtFrame: Int, val hiddenByThen: List<FanMember>, val hiddenAtFrame: Int?)
 
     /** Runs the opening with [accent] selected and says what was hidden by the first rendered frame whose copies are off their spots. */
-    private fun open(accent: FanKey?): Opening {
+    private fun open(accent: FanKey?, motion: Map<FanKey, RouteStopAccentShown> = emptyMap()): Opening {
         val gate = FanOutHideGate()
         val first: FanOutHideStep = gate.onMembers(members, spread = false)
         assertTrue("the fan opens folded, so its hide waits for the copies", first.awaiting)
@@ -64,7 +64,7 @@ class FanOpeningCentreAccentTest {
         val frames = FAN_DURATION_MS * FPS / 1000
         for (frame in 0..frames + RENDER_LAG_FRAMES) {
             val progress = FastOutSlowInEasing.transform((frame.toFloat() / frames).coerceAtMost(1f))
-            val icons = fanFrameCollections(members, { at(it, progress) }, null, progress, accent = accent).icons.features().orEmpty()
+            val icons = fanFrameCollections(members, { at(it, progress) }, null, progress, accent = accent, accentMotion = motion).icons.features().orEmpty()
             pushed += progress to icons
             val rendered = frame - RENDER_LAG_FRAMES
             if (rendered < 0) continue
@@ -106,6 +106,28 @@ class FanOpeningCentreAccentTest {
 
         assertNotNull("the copies were reported drawn before the pins leave", opening.hiddenAtFrame)
         assertTrue(opening.hiddenByThen.map { it.key }.toSet() == members.map { it.key }.toSet())
+    }
+
+    @Test
+    fun `with the highlight mid-fade the highlighted original is still hidden by the frame the pins start leaving`() {
+        // Amendment 7: the fan opens while the selected stop's highlight is a third of the way in and starting to swell, so its copy is
+        // drawn plain with the highlight over it. The hide must still find the copy the accent is drawn on.
+        val marker = SelectedStopMarker(LatLng(MadeUpPlace.LAT, MadeUpPlace.LNG), trip = false, featureId = creek.featureId)
+        val opening = open(accent = creek, motion = mapOf(creek to RouteStopAccentShown(marker, opacity = 0.3f, scale = 1.05f)))
+
+        assertNotNull("the copies were reported drawn by frame ${opening.pinsLeaveAtFrame}, mid-fade", opening.hiddenAtFrame)
+        assertTrue("no accent left at the stack's centre once the pins leave", fanAccentKeyValue(creek) in fanHiddenAccentKeys(opening.hiddenByThen))
+        assertTrue("every fanned original hidden once the pins leave", opening.hiddenByThen.map { it.key }.toSet() == members.map { it.key }.toSet())
+    }
+
+    @Test
+    fun `with the old highlight fading out in the stack, the originals are hidden by the frame the pins start leaving`() {
+        val old = SelectedStopMarker(LatLng(MadeUpPlace.LAT, MadeUpPlace.LNG), trip = false, featureId = ridge.featureId)
+        val new = SelectedStopMarker(LatLng(MadeUpPlace.LAT, MadeUpPlace.LNG), trip = false, featureId = creek.featureId)
+        val opening = open(accent = creek, motion = mapOf(ridge to RouteStopAccentShown(old, 0.6f, 1f), creek to RouteStopAccentShown(new, 0.4f, 1f)))
+
+        assertNotNull("the copies were reported drawn before the pins leave", opening.hiddenAtFrame)
+        assertTrue(fanAccentKeyValue(ridge) in fanHiddenAccentKeys(opening.hiddenByThen) && fanAccentKeyValue(creek) in fanHiddenAccentKeys(opening.hiddenByThen))
     }
 
     private companion object {
