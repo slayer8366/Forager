@@ -2,9 +2,18 @@ name: Release to Play production
 
 # Dispatch 2026-10-23-04 (owner's rulings in the planner's window, 2026-10-23: sign on GitHub, "Straight to Play
 # internal testing", "You approve in GitHub"). Builds the release bundle from main, signs it with the upload key,
-# checks the signature on the artifact itself, and uploads it to Play's production track as a draft release (the
-# owner, 2026-11-09: "Have GitHub upload directly to the production instead of testing"; it was the internal track
-# until then). Nothing reaches the public until the owner rolls the draft out in Play Console, and Google reviews it.
+# checks the signature on the artifact itself, and publishes it to Play's production track (the owner, 2026-11-09:
+# "Have GitHub upload directly to the production instead of testing"; it was an internal draft until then). Status
+# completed: no rollout click in Play Console (the owner: "Create a new workflow to release to production that doesn't
+# require my permission or manual work", then "Always require my approval" and "When I start it"). The owner's
+# approval of the run is the one manual step; Google still reviews each production release.
+#
+# With the version_code input set, nothing is built: the bundle already in Play's library with that versionCode is
+# published to production instead (release 2 is 5026, uploaded before releases moved to production; the owner:
+# "5026 goes live"). Play refuses a second upload of a versionCode, so this is the only way to release one again.
+#
+# A new file on 2026-11-09 so the count restarted ("Redo 1 and have 2 be the new upload"): run #1 a refused placeholder,
+# #2 release 2 (5026), #3 release 3.
 #
 # Release N is this file's run #N (the owner's absolute rule, 2026-11-09). Never dispatch this workflow for anything
 # but a release: a test or dry run here takes the next release's number.
@@ -22,6 +31,11 @@ name: Release to Play production
 
 on:
   workflow_dispatch:
+    inputs:
+      version_code:
+        description: "Leave empty to build main. Set to publish a bundle already in Play instead (e.g. 5026)."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -49,7 +63,7 @@ env:
 
 jobs:
   release:
-    name: Build, sign, verify, upload to production (draft)
+    name: Build, sign, verify, publish to production
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     # Branch rule (main only) and required reviewer live on this environment, and so do the signing secrets.
@@ -66,6 +80,7 @@ jobs:
           fi
 
       - name: Check out the full history
+        if: inputs.version_code == ''
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # versionCode is the commit count (resolveBuildIdentity in app/build.gradle.kts); a shallow clone would
@@ -75,6 +90,7 @@ jobs:
           persist-credentials: false
 
       - name: Check the pinned fingerprints agree
+        if: inputs.version_code == ''
         # The workflow's expected SHA-256 and the build's own pin must be one value, so a key rotation cannot update
         # one and leave the other checking against the old key.
         run: |
@@ -87,12 +103,14 @@ jobs:
           echo "The workflow and app/build.gradle.kts pin the same upload certificate SHA-256."
 
       - name: Set up JDK 21
+        if: inputs.version_code == ''
         uses: actions/setup-java@b6effb05e454b25005698d916606bdc6ffcbf961 # v5.7.0
         with:
           distribution: temurin
           java-version: "21"
 
       - name: Set up Gradle
+        if: inputs.version_code == ''
         uses: gradle/actions/setup-gradle@67621b124fd2e251c5e8a0e6e3b91318f2287669 # v6.3.0
         with:
           # Read the shared cache, never write it: this job runs on main with signing values in its environment, and
@@ -100,6 +118,7 @@ jobs:
           cache-read-only: true
 
       - name: Install the Android SDK with the repo's own setup script
+        if: inputs.version_code == ''
         run: ./scripts/setup-android-sdk.sh
 
       - name: Check the Play service account is configured
@@ -115,6 +134,7 @@ jobs:
           fi
 
       - name: Decode the upload keystore
+        if: inputs.version_code == ''
         # Into $RUNNER_TEMP (outside the checkout), readable by this user only. The path is not secret; the file is,
         # and the last step deletes it whether or not the run succeeds.
         env:
@@ -133,6 +153,7 @@ jobs:
           echo "Keystore decoded to $keystore ($(stat -c %s "$keystore") bytes, mode $(stat -c %a "$keystore"))."
 
       - name: Build the signed release bundle
+        if: inputs.version_code == ''
         # bundleRelease depends on verifyReleaseNeverSignsWithDebugKeystore (refuses no identity, the debug key, or
         # any certificate but RELEASE_KEYSTORE_CERTIFICATE_SHA256) and verifyReleaseHasRoutingAppKey (refuses a
         # keyless build). Both must appear in the log as having run; a green exit alone is not taken as evidence.
@@ -166,6 +187,7 @@ jobs:
           [ "$failed" -eq 0 ] || exit 1
 
       - name: Verify the bundle's signature and version
+        if: inputs.version_code == ''
         # Read from the artifact, not from the build's word. Prints only the certificate fingerprints and the version.
         run: |
           set -euo pipefail
@@ -221,9 +243,10 @@ jobs:
             echo "| commit | \`$GITHUB_SHA\` |"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Upload to Play production as a draft
-        # status: draft creates the release on the production track without rolling it out; someone reviews and rolls
-        # it out in Play Console. Play rejects a versionCode it has already seen, so re-running the same commit fails
+      - name: Publish to Play production
+        if: inputs.version_code == ''
+        # status: completed rolls the release out to everyone once Google's review passes; no click in Play Console.
+        # Play rejects a versionCode it has already seen, so re-running the same commit fails
         # here rather than replacing anything.
         uses: r0adkll/upload-google-play@e738b9dd8f2476ea806d921b64aacd24f34515a5 # v1.1.5
         with:
@@ -231,7 +254,52 @@ jobs:
           packageName: ${{ env.PACKAGE_NAME }}
           releaseFiles: app/build/outputs/bundle/release/app-release.aab
           tracks: production
-          status: draft
+          status: completed
+
+      - name: Publish an uploaded bundle to Play production
+        if: inputs.version_code != ''
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          VERSION_CODE: ${{ inputs.version_code }}
+        run: |
+          set -euo pipefail
+          umask 077
+          python3 -m pip install --quiet google-api-python-client==2.100.0 google-auth==2.23.0
+          key="$RUNNER_TEMP/play-key.json"
+          trap 'rm -f "$key"' EXIT
+          printf '%s' "$PLAY_SERVICE_ACCOUNT_JSON" > "$key"
+          KEY_FILE="$key" python3 - <<'PYEOF'
+          import os, sys
+          from google.oauth2 import service_account
+          from googleapiclient.discovery import build
+
+          pkg = os.environ["PACKAGE_NAME"]
+          code = os.environ["VERSION_CODE"].strip()
+          creds = service_account.Credentials.from_service_account_file(
+              os.environ["KEY_FILE"], scopes=["https://www.googleapis.com/auth/androidpublisher"])
+          edits = build("androidpublisher", "v3", credentials=creds, cache_discovery=False).edits()
+          edit_id = edits.insert(packageName=pkg, body={}).execute()["id"]
+          bundles = edits.bundles().list(packageName=pkg, editId=edit_id).execute().get("bundles", [])
+          if not any(str(b.get("versionCode")) == code for b in bundles):
+              edits.delete(packageName=pkg, editId=edit_id).execute()
+              print(f"::error::No uploaded bundle has versionCode {code}; nothing changed.")
+              sys.exit(1)
+          before = edits.tracks().get(packageName=pkg, editId=edit_id, track="production").execute().get("releases", [])
+          for r in before:
+              print(f"before: status={r.get('status')} versionCodes={r.get('versionCodes')} name={r.get('name')}")
+          edits.tracks().update(packageName=pkg, editId=edit_id, track="production",
+                                body={"track": "production", "releases": [{"versionCodes": [code], "status": "completed"}]}).execute()
+          edits.commit(packageName=pkg, editId=edit_id).execute()
+          check_id = edits.insert(packageName=pkg, body={}).execute()["id"]
+          after = edits.tracks().get(packageName=pkg, editId=check_id, track="production").execute().get("releases", [])
+          edits.delete(packageName=pkg, editId=check_id).execute()
+          for r in after:
+              print(f"after: status={r.get('status')} versionCodes={r.get('versionCodes')} name={r.get('name')}")
+          if not any(code in r.get("versionCodes", []) for r in after):
+              print(f"::error::Production does not hold versionCode {code} after the commit.")
+              sys.exit(1)
+          print(f"Published the uploaded bundle {code} to production (status completed); Google reviews it next.")
+          PYEOF
 
       - name: Delete the keystore and the service-account key file
         # The upload action writes the service-account JSON to ./serviceAccountJson.json in the workspace and deletes
