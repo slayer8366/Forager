@@ -23,7 +23,7 @@ role on those paths.
 - [ ] All durations/easings come from `MotionTokens.kt`; no magic numbers at call sites
 - [ ] Performance budget holds under a dense-map fixture; clustering engages before the
       animated-object cap
-- [ ] Degradation order implemented and tested
+- [ ] Degradation order: no code tiers exist (removed from `docs/motion-spec.md` §3 on 2026-10-07, nothing called them). Tick if this change adds no decorative continuous loop; a change that adds one must restore the tiers first
 - [ ] Reduce Motion mappings implemented and tested; state stays communicated (never a bare
       kill switch)
 - [ ] Color is never the sole carrier of state
