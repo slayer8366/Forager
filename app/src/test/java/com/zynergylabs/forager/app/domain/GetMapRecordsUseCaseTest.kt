@@ -104,7 +104,7 @@ class GetMapRecordsUseCaseTest {
      */
     @Test
     fun `the track being recorded is left out of Tracks until it has ended`() = runTest {
-        val recording = track("recording", listOf(point(45.28, -122.3), point(45.31, -122.31)), endedAt = null)
+        val recording = track("recording", listOf(point(44.28, -122.3), point(44.31, -122.31)), endedAt = null)
 
         val whileRecording = useCase(tracks = Result.success(listOf(recording)))()
         assertEquals(emptyList<RecordPolyline>(), whileRecording.trackPolylines)
