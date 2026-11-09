@@ -356,6 +356,15 @@ class NavigationModeChange {
     var active = false
         private set
 
+    /**
+     * RECORD -2192, Sorrel's review of PR #511: a recreated or returned map whose first style restored the navigation view's
+     * camera (its padding, tilt and bearing) while panned away holds that view without [applyView] having run on it, so it is
+     * marked as holding it here and navigation's end takes it off ([leaveNavigation]), as on a map that applied it itself.
+     */
+    fun holdRestoredView() {
+        active = true
+    }
+
     private val startZoomGate = StartZoomGate()
     private var onStartZoomAppliedHeld: () -> Unit = {}
 

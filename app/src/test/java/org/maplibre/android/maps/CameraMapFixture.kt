@@ -30,6 +30,9 @@ object CameraMapFixture {
     class Recording(val fit: CameraPosition) {
         var camera: CameraPosition? = null
         var jumps = 0
+
+        /** The camera the last `easeTo` was given (an eased move: `Transform.easeCamera`); it also lands on [camera], as every animated move does. */
+        var eased: CameraPosition? = null
         var trackingChanges = 0
         lateinit var cameraController: Any
 
@@ -82,8 +85,12 @@ object CameraMapFixture {
         else -> null
     }
 
-    /** A map whose camera starts at [start], with following on when [cameraMode] is a tracking mode; [fit] is where a fit lands. */
-    fun map(start: CameraPosition, fit: CameraPosition, cameraMode: Int = CameraMode.NONE): Pair<MapLibreMap, Recording> {
+    /**
+     * A map whose camera starts at [start], with following on when [cameraMode] is a tracking mode; [fit] is where a fit lands.
+     * [easing] is kept for its callers and changes nothing: every map's transform now holds the view an eased move needs.
+     */
+    @Suppress("UNUSED_PARAMETER")
+    fun map(start: CameraPosition, fit: CameraPosition, cameraMode: Int = CameraMode.NONE, easing: Boolean = false): Pair<MapLibreMap, Recording> {
         val recording = Recording(fit).also { it.camera = start }
         val native = Proxy.newProxyInstance(NativeMap::class.java.classLoader, arrayOf(NativeMap::class.java)) { _, method, args ->
             when (method.name) {
@@ -100,6 +107,8 @@ object CameraMapFixture {
                     null
                 }
                 "easeTo", "flyTo" -> {
+                    // NativeMap.easeTo(target, zoom, bearing, tilt, padding, duration, easing), as Transform.easeCamera calls it;
+                    // flyTo takes the same first six.
                     val end = CameraPosition.Builder()
                         .target(args[0] as LatLng)
                         .zoom(args[1] as Double)
@@ -108,6 +117,7 @@ object CameraMapFixture {
                         .apply { (args[4] as DoubleArray?)?.let { padding(it) } }
                         .build()
                     recording.eases += Ease(end, args[5] as Long, method.name)
+                    if (method.name == "easeTo") recording.eased = end
                     recording.camera = end
                     null
                 }

@@ -213,18 +213,7 @@ internal fun MapListeners(
                 // back after a tab change. Not before this MapView's first style has loaded: until then
                 // the camera is the SDK's default, and the restore has yet to read what was saved.
                 if (state.loadedStyle != null) {
-                    val camera = map.cameraPosition
-                    camera.target?.let { target ->
-                        state.cameraMemory?.saved = MapCameraSnapshot(
-                            target = LatLng(target.latitude, target.longitude),
-                            zoom = camera.zoom,
-                            bearing = camera.bearing,
-                            tilt = camera.tilt,
-                            following = map.locationComponent.isLocationComponentActivated &&
-                                map.locationComponent.cameraMode != CameraMode.NONE,
-                            appliedTarget = state.lastAppliedCameraTarget,
-                        )
-                    }
+                    cameraSnapshotOf(map, state.lastAppliedCameraTarget)?.let { state.cameraMemory?.saved = it }
                 }
                 // Item 8 (dispatch 2026-09-29-57, amendment -262, "Remember and reopen"): the fan a user left when they opened a
                 // find on the Journal reopens here, at the first idle after this map's style has loaded (the camera memory's
