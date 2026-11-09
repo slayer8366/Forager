@@ -59,3 +59,73 @@ Dispatched by Rowan. RECORD -2192 (records-after-173), newest bullet "Diagnosed"
 
 ## Clean-up
 - Throwaway refs `hazel-follow-red`, `hazel-follow-revert` and `hazel-follow-probe` were deleted from origin after the runs. The runs stay readable by number.
+
+---
+
+# Extension: the search frame and the camera kept across a recreation (Hazel, 2026-11-09)
+
+Dispatched by Rowan on #511 (head 1c50dd6c2). RECORD -2192's newest bullet: the gap under -2190 (after a search, the search frame's applied id was lost on a recreation, and its re-apply ended following), and the owner: **"Exactly as I left it (Recommended)"**, "The map remembers its position and zoom across the restart, so nothing moves. Also applies with no route open." Go: "Build it" (on #511). Code commit 7b2b6c1b6.
+
+## Where the camera lives, read from source [read]
+- `MapCameraMemory.saved` (MapCameraMemory.kt:36) is the camera a map last settled on (target, zoom, bearing, tilt, following, the applied region target). The camera idle listener writes it (MapListeners.kt:218), and so does a search frame (MapDataRefresh.kt:103).
+- A new MapView's first style load restores it through `cameraRestoreFor` (MapStyleReload.kt:114, MapCameraMoves.kt:143): the camera, the region target taken as applied (so the region move does not run), and the camera mode, TRACKING if it was following and NONE if not. This is the path a map coming back from a tab change already takes. With no saved camera, a fresh map does the region move at `zoomForRadiusKm` and then follows once the location activates.
+- So "exactly as I left it" needs no new restore path. The recreated map only has to find `saved` in the memory. Following wins when it was on, because the snapshot carries `following` and the restore puts TRACKING back.
+- Only the Maps tab hands a camera memory to its map (ScaffoldMapTabCall.kt:129). Every other map (the journal's among them) gets none, so nothing changes for them.
+
+## The change
+- `MapCameraMemoryRecreation.kt` (98 lines): the saver now keeps three fields, all under the same per-process token: `appliedCameraRequestId` (as before), `appliedSearchFrameId` (item 1) and `saved` (item 2). They are kept as a `Serializable` value (`SavedMapCameraMemory`, `SavedCamera`), so the saved-state Bundle can hold them. A memory with none of the three set saves nothing. A value from another process restores nothing, so after a process restore you get a fresh map, as after a restart. The restore is at :73-79: item 1 is `appliedSearchFrameId = value.appliedSearchFrameId` (:76), item 2 is `saved = value.camera?.toSnapshot()` (:77).
+- `AvailabilityScreen.kt:271-273`: the comment only. The call is unchanged.
+- The cover picture, the heading and the crowded stacks are still session-only.
+
+## Tests
+- The map stand-in moved to its own file, `RecreationMapStandIn.kt`, and now does more than before. It applies search frames (`searchFrameMove` against `appliedSearchFrameId`). It restores the memory's saved camera when a map is made (`cameraRestoreFor`). After each move it writes the saved camera, as the idle listener does. `KeepFollowOnRecreateTest` uses it in place of its old private `FollowingMapSlot`.
+- New in `KeepFollowOnRecreateTests` (both font classes): "after a search then a recreation the map carries on following and the search is not framed again". A real search goes through the ViewModel (`searchManualCoordinates`), then a route is opened, then Re-center, then the recreation.
+- New `MapCameraOnRecreateTest` / `MapCameraOnRecreateFontTwoTest` (not navigating; font 1.0 to 1.0, and 1.0 to 2.0):
+  - "with a route open the map reopens where the user left it"
+  - "with no route open ..."
+  - "a new route opened after the recreation still frames"
+  
+  Every recreation first asserts that the saveable probe came back, the activity is RESUMED at the asked font, and a new map was composed.
+- `MapCameraMemoryRecreationTest`: the search frame and camera round trip, a camera with no applied target, Java serialization of the saved value, nothing saved when empty, and the other-process guard. The case "no applied request saves nothing" was renamed to "nothing applied and no camera saves nothing", because the empty condition now covers all three fields.
+
+### Runs [observed]
+- **Red, tests on #511's code** (run 42568553531, ref `hazel-follow2-red` e10f22639). The compile log has 0 ` e: ` lines and the debug APK built (BUILD SUCCESSFUL). 16 ran and 6 failed, every one a case this change targets:
+  - `the search's frame was not applied again after the recreation expected:<[1]> but was:<[1, 1]>` (font 1.0) and `... but was:<[1, 1, 1]>` (font 2.0)
+  - `the camera is where the user left it expected:<StandInCamera(target=LatLng(lat=45.4123, lng=-121.7531), zoom=15.25, bearing=30.0, tilt=20.0)> but was:<StandInCamera(target=LatLng(lat=39.8283, lng=-98.5795), zoom=12.0, bearing=0.0, tilt=0.0)>` (route open and no route, both fonts)
+- **Revert 1, the search frame id not restored** (run 42570620634, ref `hazel-follow2-rev1` 633e89b21; one line: `appliedSearchFrameId = 0` at :76). 0 ` e: ` lines, debug APK BUILD SUCCESSFUL. 19 ran and 3 failed: the two search tests (`expected:<[1]> but was:<[1, 1]>` / `<[1, 1, 1]>`) and the saver's `a recreation in the same process brings back the applied search frame and the camera expected:<4> but was:<0>`. All three failures are ones this revert causes. The camera tests passed.
+- **Revert 2, the camera not restored** (run 42570622962, ref `hazel-follow2-rev2` b90311d5a; one line: `saved = null` at :77, on top of the forward code). 0 ` e: ` lines, debug APK BUILD SUCCESSFUL. 19 ran and 6 failed:
+  - the four "reopens where the user left it" cases (the same message as red)
+  - the saver's camera round trip, `but was:<null>`
+  - "a camera with no applied target comes back with none", `but was:<null>`
+  
+  The search tests passed. All six failures are ones this revert causes.
+- Both reverts were made from a copy saved before editing (`forward.kt`) and pushed only to their own refs. Afterwards the working file matched the saved copy (`cmp`), and lines :76-77 hold the forward code.
+- **Green**: PR run 42570608128 on 7b2b6c1b6, success, 0 ` e: ` lines.
+- **By name, against 42565550493** (#511's previous green): base 6854 (6830 pass, 24 skip), PR 6865 (6841 pass, 24 skip). 0 cases changed outcome. 1 case is missing, the rename above. The 12 new cases all pass.
+
+## S22 step
+1. Install the build from this PR. **Not navigating**, with a saved route open, pan, zoom, turn and tilt the map away from your position. Change the system font size (or night mode) and come back. Expected: the map is exactly where you left it, with the same zoom, turn and tilt, and is not following.
+2. Close the route and repeat with no route open. Expected: the same.
+3. Run a search (manual coordinates). Start navigating, open a saved route, and tap Re-center. Change the font size and come back. Expected: still following, with no frame of the search and no frame of the route. Log check: no `ForagerSearchFrame` "search frame ... applied" line after the recreation, and the `ForagerNavView` `tracking changed` line does not report a move away.
+4. After a recreation, open a different saved route. Expected: it is framed.
+
+## Confirmed and inferred
+- [observed] The runs, their compile logs, the failure messages and the by-name comparison above.
+- [read] Where the camera lives and how a new map restores it (file:line above), at 7b2b6c1b6.
+- [inferred] That the real map restores the recreated memory's camera exactly as it does after a tab change. It is the same `cameraRestoreFor` path with the same snapshot, but the restore itself runs only in a real MapView.
+
+## Could not determine
+- What the user sees on the phone, including whether MapLibre's first frames flash anything before the restore. The tab-change path draws its cover picture over those frames. A recreation has no picture (the bitmap is not saved), so the cover decision is `NO_PICTURE`, and the map draws itself as before. That needs the S22.
+- A recreation while the camera is still moving (a fling, or an eased move). The saved camera is the last idle one, so the map reopens where it last settled, not mid-move. This is the same as a tab change. I read this from the code, but it was not run.
+- A process restore on a device. Only the saver's guard is tested.
+
+## Premises that were wrong
+- None in the dispatch. The line numbers it gave (MapDataRefresh.kt:88-105) matched.
+
+## Decided beyond scope (open to the owner)
+- **Following comes back as it was left, including off.** If the user had panned away while navigating (following off), the recreated map now stays where they left it, where before it reopened following. That is what "Exactly as I left it" says, and it matches a tab change, but it is a change for the navigating case.
+- **One rename.** The saver test case "no applied request saves nothing" became "nothing applied and no camera saves nothing". It is the same assertion, widened to the three kept fields.
+
+## Clean-up
+- Throwaway refs `hazel-follow2-red`, `hazel-follow2-rev1` and `hazel-follow2-rev2` were deleted from origin after the runs. The runs stay readable by number.
+- The two revert commits were also made on the worktree's local `keep-follow-on-recreate` branch, by mistake. They were never pushed to the PR branch. The worktree now sits on `keep-follow-2`, which tracks `origin/keep-follow-on-recreate`. Its local branch still carries those two commits, and it was not reset (per the no-reset rule).
