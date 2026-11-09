@@ -85,10 +85,13 @@ class NavigationViewAfterRestoreTransitionTest {
         assertEquals("the view's tilt ($facing)", NAVIGATION_VIEW_TILT_DEGREES.toFloat(), tilt!!, 0.001f)
     }
 
-    /** The first style load's restore of following, as activateLiveLocationIfPermitted sets it (LiveLocationPuck.kt). */
-    @Suppress("UNUSED_PARAMETER")
+    /**
+     * The first style load's restore of following, as activateLiveLocationIfPermitted sets it (LiveLocationPuck.kt), with the
+     * transition's end wired as MapStyleReload.kt wires it. (The red run on pre-main set `component.cameraMode` here, as the
+     * activation did then.)
+     */
     private fun restoreFollowing(component: LocationComponent, modeChange: NavigationModeChange) {
-        component.cameraMode = CameraMode.TRACKING
+        setLiveLocationCameraMode(component, CameraMode.TRACKING) { modeChange.onLocationTransitionEnded() }
     }
 
     /** The parts of an activated, started component a tracking transition and the padding read, set as activation leaves them. */
