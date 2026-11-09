@@ -1918,3 +1918,94 @@ drawn part is the whole card at peek or expanded, its 24 dp strip once tucked, s
     bubble shows whole, over the card, where it was with the card tucked; tap on its text: it stays and the card does not react; tap the
     open map beside the card: the bubble closes and the card is whole and still expanded. With the bubble over the card, open the Layers
     panel: the panel is over the bubble.
+
+## Merged with pre-main, and J8's route-card input (Hazel, 2026-11-09)
+
+The scope: PR #507 takes in pre-main (#500 next-turn carrying #498, #508 locate-jump, #510, then #511 keep-follow-on-recreate), and
+J8's route-card input (dispatch 2026-11-06-01, Amendment 1, J8 and its answers, RECORD -2183; the owner: "(b) Above top card
+(Recommended)": the walker's dot is kept just above whichever card is on top, the route card's top when it rests on the navigation
+card, otherwise the navigation card's; while the route card is expanded or elsewhere, D29's sideways move as today).
+
+### Commits [observed]
+- `c4bfe167a`: merge of pre-main `23b1bf25c`. One conflict, `CompactMapLandscapeNavigationCard.kt`, resolved as saved for the S22
+  combined build (`combine-500-507/resolution.md`): #500's lift block, J5's `drawnLiftPx` and J4's `bottomRoundedAndOutlined`
+  verbatim; the outline is #507's `landscapeNavigationCardOutlineSides(...).copy(bottom = bottomRoundedAndOutlined)`. E21's band and
+  J8's resting bounds auto-merged unchanged. The resolved file is byte-identical to `tools/s22-combined` `c29c0956d`'s. Same commit:
+  the two tests re-claimed to the other PR's ruling (`test-claims.patch`, as `528de307b` on the combined build):
+  `NavigationCardOutlineEveryEdgeTest`'s precondition (meets within 0.5 dp, A1, RECORD -2187) and `RouteCardTuckedStaysAsideTest`
+  at font 1.5 (#500 J3 step 3 / J6, RECORD -2183, -955).
+- `34d5e002b`: one band rule. #500's `railCornerBand` (`NavigationCardEndBesideRailCorner.kt`) and #507's `routeCardRailCornerRows`
+  (`RouteCardRailEdge.kt`) had identical bodies; the navigation card now calls `routeCardRailCornerRows` and `railCornerBand` is gone.
+- `f8435bf87`: the test, first. `8b3764356`: J8's input.
+- `8282927f2`: merge of pre-main `91f2cc237` (#511). No conflict; #511's files (map camera, `AvailabilityScreen.kt` away from
+  route-card's lines, `CameraMapFixture.kt`) and #507's do not overlap.
+
+### What changed for J8 [read]
+- New `ui/availability/RouteCardRestingTop.kt` (67 lines): `routeCardRestingOnCardTopPx`, the route card's top where it is going:
+  the navigation card's resting top (`navigationCardRestingBoundsInRoot`, #500's J8, not its drawn top mid-glide) less the controls'
+  bottom padding (as the card is laid out), less the card's laid-out height (which the open/close slide does not move), capped by
+  its cap at rest; and `ReportRouteCardRestingTop`, which writes it to `cluster.navigationRestingOnCardTopInRootPx` and clears it on
+  dispose.
+- `CompactMapRoutePlotting.kt:303`: written while the card rests on the navigation card at peek (`onNavigationCardNow && isNavigating
+  && !tucked && state?.expanded != true`); null while expanded (D29), tucked, leaving, elsewhere or not navigating. `:216`, `:219`,
+  `:366`: the laid-out height, forgotten when the card leaves.
+- KDocs brought up to date: `MapIconClusterState.navigationRestingOnCardTopInRootPx` ("nothing writes it here yet"), and
+  `landscapeNavigationCardOutlineSides`' bottom (J4 adds the card's own once it moves up; the drift `resolution.md` named).
+
+### Evidence [observed; each run's failed-job log read for Kotlin compile errors (` e: `) first: none in any]
+New `NavigationDotAboveRouteCardTest.kt`, on the real Maps tab (`RouteCardBarRig`, recording and navigating, rotation 90), reading
+the padding the navigation view is asked for and where it puts the dot, as `NavigationDotAboveCardTest` does; the cards' bounds from
+the screen. At 823 x 384 and 780 x 360: resting (positive control: the route card covers the dot as the view stood), and expanded,
+tucked and closed in one test.
+- **Red**, run 42627450376 at `f8435bf87` (filtered, and the full suite in its no-Street-map job: 7451 tests, 2 failed): both resting
+  cases, e.g. 823: "J8 (b): the route card DpRect(left=400.33334.dp, top=177.66667.dp, right=743.0.dp, bottom=302.0.dp) covers none
+  of the walker's dot at y 240.0.dp, x 411.5.dp" (no bottom asked for: the navigation card alone, top 302, clears the dot). The
+  expanded/tucked/closed test passed there, as it should: before this input nothing was kept above the route card in any state.
+- **Forward**, run 42627552198 at `8b3764356`, filtered to J8's classes, `*RouteCardMeetsNavigationCard*` and `*RouteCardTuck*`:
+  green. Measured: 823, bottom 446 px, the dot at 165.67 under the route card's top 177.67; 780, bottom 500 px, the dot at 141.67
+  under 153.67. Expanded, D29's sides (336, 1292) and no bottom; tucked and closed, nothing asked for.
+- **Revert 1** (`RouteCardRestingTop.kt`, the write made `top.let { null }`), run 42627758433 on `hazel-rcfinal-revert-1`
+  (`6ac8628aa`): 40 tests, 2 failed, the two resting cases, with the red run's messages; nothing else.
+- **Revert 2** (`CompactMapRoutePlotting.kt:303`, written while tucked and expanded too), run 42627762922 on
+  `hazel-rcfinal-revert-2` (`f8f974fee`): 40 tests, 2 failed, both "expanded, tucked and closed": "J8 route card, tucked: nothing is
+  kept above, the navigation card clears the dot, so no bottom is asked for (side NavigationSideInsets(leftPx=0.0, rightPx=0.0,
+  bottomPx=446.0)) expected:<0.0> but was:<446.0>" (780: 500.0). The expanded step passed even reverted: D29 moves the dot sideways
+  out of the cards' columns, so whichever top is written, nothing covers it; that step cannot fail on this input, and is kept as a
+  guard on D29's side only.
+- Each revert was a throwaway commit pushed without moving `route-card`; the tree was then put back on `8b3764356` and both files
+  compared byte for byte with copies saved before the edits (`cmp`: identical).
+- **Full CI** at `8b3764356`, run 42627563386: green. By name against the combined build's 42610749686: 7499 tests in both, outcome
+  differs 0; only in the combined build, 113 (its tools-only commits, #511's tests and #510's renamed MushroomLog tests); only here,
+  6 (J8's 4 and #510's 2 renamed MushroomLog tests).
+
+## Confirmed vs inferred
+
+- Confirmed by the runs: resting at peek on the navigation card, the dot is asked for 12 dp above the route card's top at 823 x 384
+  and 780 x 360; tucked and closed it is as the navigation card alone puts it; each revert fails only its own claim.
+- Confirmed from source: the merged `CompactMapLandscapeNavigationCard.kt` equals the combined build's; the band functions were
+  identical before being made one.
+- Inferred, not run: the cap-at-rest term (the card's height mid-glide of the navigation card) and the controls' bottom padding
+  term; in these windows the controls' bottom padding is 0 and the navigation card did not glide, so neither was exercised.
+
+## Could not determine
+
+- Whether MapLibre moves the camera to the padding asked for: device-only, as for #500's J8.
+- Mid-glide in the lowering direction, a card clamped by its cap could report a height smaller than it will have at rest for the
+  frames of the glide; not tested, and no frame test was written for the route card (#500's `NavigationDotRestingTopTest` covers the
+  navigation card's own).
+
+## Premises that were wrong
+
+- None in the dispatch. `resolution.md`'s "nothing writes it" note (the dot under the route card in the combined build) is what this
+  closes.
+
+## Decided beyond scope
+
+- Two KDoc corrections (above). The band rule made one function, as the dispatch allowed for a small, safe change.
+
+## S22 steps
+
+26. **The dot above the route card.** Landscape, navigating, following: open a saved route's card at peek so it rests on the
+    navigation card: the walker's dot moves up to sit just above the route card's top. Expand it: the dot moves sideways beside the
+    card, as before. Collapse, then swipe the card to its edge: the dot comes back down to where it is with the navigation card
+    alone. Bring it back: the dot rises again. Close it: back down.
