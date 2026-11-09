@@ -16,6 +16,7 @@ package com.zynergylabs.forager.app.ui.availability
 // here. Seam F (the wide layout) was released by the owner for this split, as recorded in the
 // Understory amendment merged in #130.
 
+import com.zynergylabs.forager.app.ui.map.bubbleFloorOf
 import com.zynergylabs.forager.app.ui.map.NavigationSideInsets
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import androidx.compose.runtime.State
@@ -570,6 +571,8 @@ internal fun CompactMapTab(
                     cluster = cluster,
                     noticeInsetDp = noticeInsetDp,
                     minY = layout.bubbleMinY(topInset, compassStripBottomClearance),
+                    // "Kept above the card" (RECORD -2187): the route card's drawn part (its strip once tucked) as a lower limit.
+                    floor = bubbleFloorOf(routeCardCoverInRoot, cluster.mapContentBoxLeftInRootPx, cluster.mapContentBoxTopInRootPx),
                     // Fullscreen and the search dropdown are left out as the drawer and the menu states are (dispatch 2026-09-28-312,
                     // item 11): a bubble closes after anything opened after it, and their Back handlers were registered before the
                     // bubble layer's, so without these terms a bubble took the first Back and they the second. The dropdown's state

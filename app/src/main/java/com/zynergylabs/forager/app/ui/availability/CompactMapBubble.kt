@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.ui.map.BubbleFloor
 import com.zynergylabs.forager.app.ui.map.MapBubbleLayer
 import com.zynergylabs.forager.app.ui.map.MapReturnMemory
 import com.zynergylabs.forager.app.ui.map.MapRecordSources
@@ -37,6 +38,7 @@ internal fun BoxScope.CompactMapBubble(
     noticeInsetDp: Dp,
     minY: Dp,
     backEnabled: Boolean,
+    floor: BubbleFloor?,
     navigation: CompactMapNavigation,
 ) {
     val context = LocalContext.current
@@ -94,6 +96,9 @@ internal fun BoxScope.CompactMapBubble(
             onCloseBubble()
         },
         minY = minY,
+        // "Kept above the card" (RECORD -2187): the route card's top limits the bubble from below as the strip's clearance does
+        // from above (BubbleFloor.kt); worked out where this is called, from the card's drawn bounds.
+        floor = floor,
         backEnabled = backEnabled,
         insetLeft = bubbleInsetLeft,
         insetRight = bubbleInsetRight,
