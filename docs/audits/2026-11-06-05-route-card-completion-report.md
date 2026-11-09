@@ -1829,3 +1829,61 @@ strip; (c) as now.
     waypoint of a saved route in Journal › Records › Waypoints, then open that route's card: the stop is still listed, Navigate greyed
     beside Directions, and "This stop's waypoint was moved or deleted" on its own line under them. Start a navigation to another
     waypoint: the buttons and the reason hide; end it: they come back.
+
+## The bubble above the card, built: stopped at a behaviour choice (landscape, card expanded)
+
+The owner (RECORD -2187, 2026-11-09T09:40:12Z): **"Kept above the card"**; the dispatch: **"Make the change this release actually"**.
+
+**Built (branch hazel-route-card-bubble, not merged into route-card).** The route card's drawn part ends the box the bubble is
+clamped into, as the strip's clearance (`minY`) starts it: `BubbleFloor.kt` (new), `bubblePlacement` (`MapBubbles.kt`, the
+flip and the clamp take `bottom` in place of `maxHeight` where the bubble meets the card sideways), passed through
+`AnchoredAtScreenPoint`, `MapBubbleLayer`, `CompactMapBubble`, from `routeCardCoverInRoot` (`AvailabilityCompactMapUi.kt`, the
+`CompactMapBubble` call). The drawn part is the whole card at peek or expanded, its 24 dp strip once tucked
+(`RouteCardAttributionCover.kt`), so a tucked card limits only a bubble that meets its strip. An anchor under the card: the clamp
+puts the bubble's bottom on the card's top and its tail runs on to the anchor under the card, which is what the clamp does at the
+strip when "Flip below" does not fit.
+
+**Runs.** Red (test only, on route-card cf8b3a07f): 42595962890, portrait "tucked, over the strip: the bubble 23.3..303.3 x
+486.7..590.7 ends at or above 583.0", landscape "at peek: the bubble 319.0..599.0 x 159.7..263.7 ends at or above 256.0". With the
+change: 42596008047, portrait passes (tucked and peek: bubble bottom 571 against 583; expanded: 463 against 475), BubbleFloorTest
+3/3, MapBubblesTest 25/25, AvailabilityScreenMapBubblesTest 15/15, CartographyEntryMapBubblesTest 3/3; landscape passes tucked
+and peek (bubble bottom 244 against 256) and fails expanded: "the bubble 319.0..599.0 x 64.0..168.0 ends at or above 148.0".
+
+**Why it stops.** In the S22's landscape window (823 x 384 dp) the expanded card's top is at 148 dp and the bubble may start no
+higher than about 52 dp (below the strip); a waypoint bubble is 104 dp drawn, 128 dp with its tail margin, so it fits between the
+strip and the expanded card nowhere the two meet sideways. The clamp then keeps the strip's limit (as it always has when a bubble
+fits neither above nor below) and the bubble's lower 20 dp stays under the card. Keeping it above the card there needs a choice the
+ruling does not make, for example: (a) as built, the strip wins and the bubble's foot stays under the expanded card; (b) the bubble
+moves sideways clear of the card (a new placement rule); (c) the bubble drawn over the card in that case.
+
+## Confirmed vs inferred
+
+- Confirmed by the runs above: red for the reason predicted (no limit from the card) in both rotations; with the change, portrait
+  and landscape peek and tucked hold; landscape expanded does not fit.
+- Confirmed from source: the strip's limit is `minY` and the clamp coerces to it last (`bubblePlacement`); the card reports its drawn
+  part to `routeCardCoverInRoot`.
+- Inferred, not run: the card resting on the navigation card limits the bubble the same way (same cover rect).
+
+## Could not determine
+
+- No revert check and no full CI run: stopped at the choice first. Not seen on a phone.
+
+## Premises that were wrong
+
+- That the bubble can always be kept above the card the way it is kept below the strip: not in landscape with the card expanded.
+
+## Decided beyond scope
+
+- The card's limit applies only where the bubble meets the card sideways (the strip is full width, the card is not); a bubble
+  beside the card is not pushed up.
+- The crowded stack's list bubble and the landscape navigation card are not given the limit.
+
+## Questions
+
+- Landscape, card expanded: (a), (b) or (c) above?
+
+## S22 steps
+
+25. **The bubble above the card.** Portrait: open a saved route's card, tuck it, tap a waypoint where the card rested, bring the card
+    back: the bubble's bottom is on or above the card's top, its tail running under the card to the waypoint; expand: the same against
+    the expanded top. Landscape: the same at peek; tucked, a bubble away from the strip is not moved.
