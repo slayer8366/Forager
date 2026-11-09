@@ -338,6 +338,9 @@ internal fun BoxScope.CompactMapRouteCard(
                         tuck = tuck,
                         // Sorrel's review of PR #507, item 1.1 (RECORD -2187, "(c) All three"; -967): no line of its own against the side bar.
                         bareSideOnLeft = routeCardBareSide(landscapeRoom, cardOnLeft, isFullscreen, controlsPadding, layoutDirection)?.let { it == ScreenEdge.Left },
+                        // S22 defect (2) (RECORD -2187; E20's rule): the side bar's rounded bottom corner, below the card by the controls'
+                        // bottom padding and the card's own lift; the card's edge carries the line where that corner curves away.
+                        railCorner = com.zynergylabs.forager.app.ui.route.RouteCardRailCorner(below = controlsPadding.calculateBottomPadding() + bottomPadding, radius = MAP_CARD_CORNER_RADIUS),
                         modifier = Modifier
                             // Not there at all while tucked: a disabled draggable still counts as a touch target, so the card's
                             // whole bounds kept long-presses from the map (run 42493712752's grid; RouteCardTuckCloseTest).

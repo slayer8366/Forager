@@ -127,7 +127,9 @@ internal fun routeCardFillPath(outlined: Path, size: Size, cornerFillPx: Float):
 /**
  * Draws the card's [fill] under its content and its [stroke] over it (Amendment 5: the map chrome's outline all the way round, as the
  * bubbles draw it), in [base], and [cornerFill] past its bottom into the corners of the card it rests on (A1; 0 dp everywhere else),
- * slid as far as [tuck] says (A2), with no line of its own on the left side if [bareSideOnLeft], the right if false, where it meets the side bar (`RouteCardRailSide.kt`).
+ * slid as far as [tuck] says (A2), with no line of its own on the left side if [bareSideOnLeft], the right if false, where it meets the side bar (`RouteCardRailSide.kt`),
+ * its corner there run out to the side bar's line and, beside [railCorner] (the side bar's rounded bottom corner), its edge carrying the
+ * line where the side bar's curves away (`RouteCardRailEdge.kt`).
  * The line is the stroke at twice its width along [routeCardOutlinedPath], clipped to the fill, as `Modifier.border` draws a shape's:
  * so it lies inside the card's edge, and where the fill is cut by the card below, no line is drawn. Draw only: it measures nothing and
  * takes no touch.
@@ -139,23 +141,37 @@ internal fun Modifier.routeCardFace(
     cornerFill: Dp = 0.dp,
     tuck: RouteCardTuckDraw = RouteCardTuckDraw.RESTING,
     bareSideOnLeft: Boolean? = null,
+    railCorner: RouteCardRailCorner? = null,
 ): Modifier = drawWithCache {
     val cornerFillPx = cornerFill.toPx()
-    val outlined = routeCardOutlinedPath(base, size, layoutDirection, cornerFillPx, tuck.slidePx(size.width, ROUTE_CARD_STRIP.toPx()))
+    val slidePx = tuck.slidePx(size.width, ROUTE_CARD_STRIP.toPx())
+    val outlined = routeCardOutlinedPath(base, size, layoutDirection, cornerFillPx, slidePx)
     val filled = routeCardFillPath(outlined, size, cornerFillPx)
     val strokePx = stroke.width.toPx()
-    val bare = bareSideOnLeft?.let { routeCardBareBand(it, size, strokePx, cornerFillPx) }
+    // S22 defect (1) (RouteCardRailEdge.kt): at rest, the side bar's side is stroked run out to the side bar's line's centre, as -990
+    // runs the navigation card's out, and that run-out shape leaves its straight side past the bounds, so no band is needed there.
+    // Sliding or tucked, the band takes the line off the strip's cut edge, as before.
+    val runOut = if (bareSideOnLeft != null && slidePx == 0f) routeCardRunOutOutline(base, size, layoutDirection, cornerFillPx, strokePx, bareSideOnLeft) else null
+    val stroked = runOut ?: outlined
+    val lineClip = runOut?.let { routeCardRunOutLineClip(filled, it, size, strokePx) } ?: filled
+    val bare = if (runOut == null) bareSideOnLeft?.let { routeCardBareBand(it, size, strokePx, cornerFillPx) } else null
+    // S22 defect (2): beside the side bar's rounded bottom corner, the card's edge carries the line, in the side bar's line's columns.
+    val cornerRows = if (bareSideOnLeft != null && railCorner != null) routeCardRailCornerRows(size.height, railCorner.below.toPx(), railCorner.radius.toPx()) else null
     onDrawWithContent {
         drawPath(filled, fill)
         drawContent()
-        clipPath(filled) {
+        clipPath(lineClip) {
             if (bare == null) {
-                drawPath(outlined, brush = stroke.brush, style = Stroke(width = strokePx * 2f))
+                drawPath(stroked, brush = stroke.brush, style = Stroke(width = strokePx * 2f))
             } else {
                 clipRect(bare.left, bare.top, bare.right, bare.bottom, clipOp = ClipOp.Difference) {
-                    drawPath(outlined, brush = stroke.brush, style = Stroke(width = strokePx * 2f))
+                    drawPath(stroked, brush = stroke.brush, style = Stroke(width = strokePx * 2f))
                 }
             }
+        }
+        if (cornerRows != null && bareSideOnLeft != null) {
+            val x = routeCardRailCornerLineX(bareSideOnLeft, size.width, strokePx)
+            drawLine(stroke.brush, Offset(x, cornerRows.start), Offset(x, cornerRows.endInclusive), strokeWidth = strokePx)
         }
     }
 }

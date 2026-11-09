@@ -196,6 +196,8 @@ fun RouteCard(
      * for the left, false for the right, null for none (`RouteCardRailSide.kt`).
      */
     bareSideOnLeft: Boolean? = null,
+    /** S22 defect (2) (RECORD -2187): the side bar's rounded bottom corner beside that side, where the card's edge carries the line. */
+    railCorner: RouteCardRailCorner? = null,
 ) {
     val fill = mapChromeFill(navigationBarContainerColor(), overMap = true)
     val contentColour = contentColorFor(navigationBarContainerColor())
@@ -205,7 +207,7 @@ fun RouteCard(
             .testTag(ROUTE_CARD_TAG)
             .mapChromeContainerColor(fill)
             // Amendment 5's outline and A1's corners (RouteCardFace.kt): the fill and the line are drawn here, the Surface only clips.
-            .routeCardFace(shape, fill, mapChromeOutline(), cornerFill, tuck, bareSideOnLeft),
+            .routeCardFace(shape, fill, mapChromeOutline(), cornerFill, tuck, bareSideOnLeft, railCorner),
         shape = if (tuck.slide == 0f) shape else RouteCardSlidShape(shape, tuck),
         color = Color.Transparent,
         contentColor = contentColour,
