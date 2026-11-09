@@ -3,7 +3,9 @@ package com.zynergylabs.forager.app.ui.map
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.ui.test.junit4.createComposeRule
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import com.zynergylabs.forager.app.ui.availability.layoutFixesHostActivityRule
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.ui.motion.LocalReduceMotion
 import org.junit.Assert.assertEquals
@@ -11,6 +13,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
@@ -25,8 +28,10 @@ import org.robolectric.annotation.Config
 @Config(sdk = [36])
 class RouteStopAccentPulseTest {
 
+    private val composeRule = createAndroidComposeRule<ComponentActivity>()
+
     @get:Rule
-    val composeRule = createComposeRule()
+    val rules: RuleChain = RuleChain.outerRule(layoutFixesHostActivityRule()).around(composeRule)
 
     private val creek = SelectedStopMarker(LatLng(45.20, -122.50), trip = false, featureId = "wp-creek")
     private val ridge = SelectedStopMarker(LatLng(45.23, -122.53), trip = false, featureId = "wp-ridge")

@@ -65,6 +65,14 @@ class FanAccentPulseTest {
     }
 
     @Test
+    fun `a highlight starting to fade out, still full, is the plain copy with the highlight over it`() {
+        val ridgeMarker = SelectedStopMarker(LatLng(MadeUpPlace.LAT, MadeUpPlace.LNG), trip = false, featureId = "wp-ridge")
+        val ridgeIcons = icons(mapOf(ridge to RouteStopAccentShown(ridgeMarker, 1f, 1f))).filter { it.getStringProperty(FEATURE_ID_PROPERTY) == "wp-ridge" }
+
+        assertEquals(listOf(MarkerIcon.WAYPOINT.imageId, MarkerIcon.WAYPOINT_ROUTE_SELECTED.imageId), ridgeIcons.map { it.image() })
+    }
+
+    @Test
     fun `the other copies are untouched while one highlight moves`() {
         val ridgeIcons = icons(mapOf(creek to RouteStopAccentShown(creekMarker, 0.5f, 1f))).filter { it.getStringProperty(FEATURE_ID_PROPERTY) == "wp-ridge" }
 

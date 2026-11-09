@@ -249,12 +249,10 @@ internal fun fanFrameCollections(
     for (member in members) {
         val now = at(member)
         val layerId = member.key.layerId
-        val moving = accentMotion[member.key]?.takeIf { it.opacity < 1f || it.scale != 1f }
-        val icon = when {
-            moving != null -> markerIconForLayer(layerId)
-            accentMotion[member.key] != null -> fanCopyIcon(layerId, member.key, member.key)
-            else -> fanCopyIcon(layerId, member.key, accent)
-        }
+        // Only the selected stop's highlight at rest is drawn as the accent copy alone. A highlight fading out, even at its first frame
+        // (still full), is its plain copy with the highlight over it: the hide expects a stop no longer selected by its plain image.
+        val moving = accentMotion[member.key]?.takeIf { it.opacity < 1f || it.scale != 1f || member.key != accent }
+        val icon = if (moving != null) markerIconForLayer(layerId) else fanCopyIcon(layerId, member.key, accent)
         val image = icon?.imageId
         when {
             layerId == MapLayerIds.SIGHTINGS -> dots += Feature.fromGeometry(Point.fromLngLat(now.lng, now.lat)).apply {
