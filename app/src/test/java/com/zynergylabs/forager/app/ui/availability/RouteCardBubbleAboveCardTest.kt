@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.Waypoint
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_CLOSE_TAG
+import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_DETAILS_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_DIRECTIONS_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_NAVIGATE_TAG
 import com.zynergylabs.forager.app.ui.map.MAP_BUBBLE_PLOT_ROUTE_TAG
