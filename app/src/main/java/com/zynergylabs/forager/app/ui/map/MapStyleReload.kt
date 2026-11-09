@@ -116,7 +116,7 @@ internal fun MapStyleReload(
         cameraRestore?.let {
             Log.i(MAPS_COMEBACK_LOG_TAG, "restore before the style: view=${state.mapView.width}x${state.mapView.height} to zoom=${it.zoom} target=${it.target} (camera was zoom=${map.cameraPosition.zoom})")
             state.cameraMoveClassifier.markAppMove()
-            applyCameraRestore(map, it)
+            applyFirstStyleCameraRestore(map, it, state.navigationModeChange)
         }
         map.setMaxZoomPreference(operatingMaxZoom(basemap, ownTrail).toDouble())
         val source = mapStyleSourceFor(basemap, night = requested.night, useOfflineTiles = useOfflineTiles, offlineStyleUrl = requested.offlineStyleUrl, ownTrail = ownTrail)
@@ -184,7 +184,7 @@ internal fun MapStyleReload(
             cameraRestore?.let {
                 Log.i(MAPS_COMEBACK_LOG_TAG, "restore on the style load: view=${state.mapView.width}x${state.mapView.height}, camera was zoom=${map.cameraPosition.zoom} target=${map.cameraPosition.target}")
                 state.cameraMoveClassifier.markAppMove()
-                applyCameraRestore(map, it)
+                applyFirstStyleCameraRestore(map, it, state.navigationModeChange)
                 state.lastAppliedCameraTarget = it.appliedTarget
             }
             state.appliedStyle = requested
