@@ -19,7 +19,7 @@ import java.util.UUID
  * - [MapCameraMemory.saved] (the owner: "Exactly as I left it (Recommended)", "The map remembers its position and zoom across the
  *   restart, so nothing moves. Also applies with no route open"): the recreated map restores it on its first style load, as a map
  *   returning from a tab change does (MapStyleReload.kt:114), target, zoom, bearing, tilt and whether it was following, so
- *   following carries on when it was on.
+ *   following carries on when it was on, and its padding (the navigation view's, kept while panned away; cameraRestoreFor).
  * The cover picture, the heading and the crowded stacks stay session-only, lost on a recreation as before. A memory with none of
  * the three set saves nothing, and a fresh memory is made, as before.
  *
@@ -55,6 +55,7 @@ internal data class SavedCamera(
     val following: Boolean,
     val appliedRegion: Triple<Double, Double, Int>?,
     val appliedFocus: Pair<Double, Double>?,
+    val padding: List<Double>?,
 ) : Serializable
 
 /** The saver for a process whose token is [token]; separate so a test can stand in a value saved by another process. */
@@ -84,6 +85,7 @@ private fun MapCameraSnapshot.toSaved(): SavedCamera = SavedCamera(
     target.lat, target.lng, zoom, bearing, tilt, following,
     appliedRegion = appliedTarget?.first?.let { Triple(it.lat, it.lng, it.radiusKm) },
     appliedFocus = appliedTarget?.second?.let { it.lat to it.lng },
+    padding = padding?.let { ArrayList(it) },
 )
 
 private fun SavedCamera.toSnapshot(): MapCameraSnapshot = MapCameraSnapshot(
@@ -95,4 +97,5 @@ private fun SavedCamera.toSnapshot(): MapCameraSnapshot = MapCameraSnapshot(
     appliedTarget = appliedRegion?.let { (regionLat, regionLng, radiusKm) ->
         Region(regionLat, regionLng, radiusKm) to appliedFocus?.let { (focusLat, focusLng) -> LatLng(focusLat, focusLng) }
     },
+    padding = padding,
 )

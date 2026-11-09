@@ -21,6 +21,12 @@ data class MapCameraSnapshot(
     /** Whether live-location tracking owned the camera (the user had not panned away from it). */
     val following: Boolean,
     val appliedTarget: Pair<Region, LatLng?>?,
+    /**
+     * The camera's padding in px (left, top, right, bottom) when it settled, null when not read. The target is the centre of the
+     * padded view, so a map restoring [target] at another padding shows it at another place on screen; the navigation view's
+     * padding stays on when the user pans away while navigating (RECORD -2192, the S22 on build 5054).
+     */
+    val padding: List<Double>? = null,
 )
 
 /**

@@ -111,7 +111,8 @@ internal fun MapStyleReload(
         // target taken as already applied (so the region move does not run, while a new search still
         // does), and the tracking mode (so the zoom-in does not run). Only on this MapView's first
         // style; a later style swap keeps its own camera, as before.
-        val cameraRestore = cameraRestoreFor(if (state.appliedStyle == null) state.cameraMemory?.saved else null, previousCameraMode)
+        // RECORD -2192: with the saved padding while navigating, so a view panned away from comes back at the same place (cameraRestoreFor).
+        val cameraRestore = cameraRestoreFor(if (state.appliedStyle == null) state.cameraMemory?.saved else null, previousCameraMode, navigating = state.navigationView != null)
         cameraRestore?.let {
             Log.i(MAPS_COMEBACK_LOG_TAG, "restore before the style: view=${state.mapView.width}x${state.mapView.height} to zoom=${it.zoom} target=${it.target} (camera was zoom=${map.cameraPosition.zoom})")
             state.cameraMoveClassifier.markAppMove()
