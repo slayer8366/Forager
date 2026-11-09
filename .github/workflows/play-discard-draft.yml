@@ -21,8 +21,10 @@ on:
 permissions:
   contents: read
 
+# Its own group, not the release's: a pending run in a shared group would cancel a release run waiting for approval
+# and burn its number (release N = play-production.yml run #N).
 concurrency:
-  group: release
+  group: play-discard
   cancel-in-progress: false
 
 env:
