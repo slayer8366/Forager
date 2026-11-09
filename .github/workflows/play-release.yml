@@ -10,7 +10,7 @@ name: Release to Play internal testing
 # to the environment's secrets. A dispatch from any other branch is refused by the environment before any step runs.
 #
 # How to run (on main only): Actions -> "Release to Play internal testing" -> Run workflow, branch main; then approve
-# the pending deployment. `gh workflow run release.yml --ref main` does the same. GitHub only offers the button once
+# the pending deployment. `gh workflow run play-release.yml --ref main` does the same. GitHub only offers the button once
 # this file is on the default branch (main), and the run uses this file as it is on main.
 #
 # Never, by design (the repository is public): no pull_request or push trigger; no build artifact upload (the signed
