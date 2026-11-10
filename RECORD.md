@@ -36899,3 +36899,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The owner, verbatim:** **"That was an unauthorized change."** Asked which change, the owner chose **"\"Weather forecast\" edit"**. It reached PR #24 only through the option the planner wrote ("Site wording and README"), which bundled the planner's own untraced wording idea with the README fix the owner had in view; picking that option was not the owner's yes to the word change. The planner's suggestions go to the owner as their own question, never folded into an option for something else.
 - **Done (prompts/preserved/2026-11-10-02-amendment-report.md, filed unedited):** e039955 reverts 3298ecf; aaf1ab6 re-applies only its README part. Checked by the planner on the remote: PR #24 (head aaf1ab6, open, unmerged) changes README.md only (+33 -16); Forager/index.html is identical to main's and keeps "soil moisture and forecast there"; Cloudflare Pages on aaf1ab6: success; privacy scan of the PR diff 0. The README change covers the binding line the owner had in view and eight more places false for the same reasons (the dispatch's "fix any other README line"), listed in -2200's report; put to the owner with the publish question.
 **Notes:** Written by the planner by hand. Sent to Hazel. Next free ID -2202.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-2202
+**Timestamp:** 2026-11-10T20:00:57Z
+**Continues:** 2026-09-28-2199
+**Title:** Dispatch 2026-11-10-02 redone from main on the owner's word: PR #24 and its branch deleted, the README corrections written again alone
+**Change:**
+- **The owner, verbatim:** **"Delete the page changes and write them again without the unauthorized change. Full redo."**
+- **So:** PR #24 is closed and its branch claude/forager-page-wording deleted (the three commits 3298ecf, e039955, aaf1ab6 go with it; GitHub keeps a closed PR's commits readable under the PR). A new branch from main 4d397ac carries one commit: the README corrections only, the same text as aaf1ab6's README. Forager/index.html is not touched. A new PR, open and unmerged, with its preview; live only on the owner's word to publish.
+- **For this case the owner's word replaces the standing practice of undoing by revert:** a deletion and a clean rewrite, as asked. The standing rule is unchanged.
+**Notes:** Written by the planner by hand. Sent to Hazel. Next free ID -2203.
