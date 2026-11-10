@@ -28,7 +28,6 @@ From release 2 (1.0.5026, live on Play production 2026-11-09). The owner, after 
 - **Track:** release 2 first went to internal testing, because the old workflow targeted it. Fixed: play-production.yml targets production.
 - **Reruns:** a rerun builds the commit it was first started from, and a commit cannot change (its name is a fingerprint of its contents). Rerun a failed release run only if main has not moved since; it keeps its number. A refusal from Play changes nothing, so rerunning after one is safe.
 - **Re-releasing a bundle:** Play refuses an upload with a versionCode it has seen. To release a bundle already in Play, run play-production.yml with the `version_code` input. To discard an internal draft, use `play-discard-draft.yml`. It has its own concurrency group so it can never cancel a release run waiting for approval.
-- **Undo requests:** pin the target as one commit and time (for example "pre-main as at 10:00 PT, c20598cc3") and confirm it once, before any forced push. Back up to tags first. The #514 undo went through five states before landing where it started. Backup tags `backup/*-2026-11-09` hold every state it passed through.
 
 ## Open before release 3
 
