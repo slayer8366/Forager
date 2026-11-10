@@ -2098,7 +2098,6 @@ The owner, 2026-11-09, after release 2: "Shaky release but good practice run. Ad
 - Release 2 first went to internal testing because the old workflow targeted it. Now fixed.
 - A rerun builds its original commit, and a commit can't change. A failed release run is rerun only if main hasn't moved (it is still #N). A Play 403 or other refusal changes nothing, so rerunning is safe.
 - Play refuses a versionCode it has seen. To release a bundle already in Play, run play-production.yml with `version_code`. Discarding an internal draft is play-discard-draft.yml, in its own concurrency group so it can't cancel a waiting release.
-- Undo requests: pin the target as one commit and time ("pre-main as at 10:00 PT, c20598cc3") and confirm once, before any forced push. The #514 undo went through five states before landing back where it started. Back up to tags first (`backup/*-2026-11-09` exist).
 
 **Final gate (added 2026-11-09, the owner: "Add an option to sign and release on pre main before the promotion as the final gate"):** before promotion, run `gh workflow run play-premain-signed.yml --ref pre-main`; the owner approves it, it uploads pre-main's signed bundle as an internal draft offered to no one, and the owner tests the signed APK from App bundle explorer. It needs pre-main added to the `release` environment's deployment branches; the permission system blocked the planner from doing that, so it is the owner's click. The repo copy of this runbook is docs/process/release-runbook.md on pre-main.
 
