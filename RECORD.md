@@ -36823,3 +36823,18 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The planner's answers to Hazel's calls, decided beyond the dispatch:** (1) update index.html's comment at :14-22, which becomes false, and link with Hazel's default, a short "About Forager" line after the description; the owner sees it on the preview; (2) fix the four other README lines that become false (:9-10, :25-26, :41, :193-195); (3) Hazel's defaults stand: priceCurrency and applicationCategory from the Play listing, otherwise left out; no organisation logo; (4) Forager/forecast/pilot.js:88's comment, which stops being true, stays out of scope, a follow-up.
 - **Side observations, not acted on:** /api/beta-export answers 503, consistent with the beta database's binding removed on the owner's "Deleted and deployed" (-2193); the shared Forager checkout's local main holds two commits from 2026-11-04 on no remote branch (f5a13a8df, a CLAUDE.md bullet "a planner's unstated choice is never the owner's", and 7c145b587), reported to the owner, not touched.
 **Notes:** Written by the planner by hand. Go sent to Hazel to build. Next free ID -2197.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-2197
+**Timestamp:** 2026-11-10T07:11:52Z
+**Continues:** 2026-09-28-2194
+**Title:** Dispatch 2026-11-10-01, build back: zynergy-site PR #23 open and unmerged; the Cloudflare preview blocked by a dashboard binding; three Play listing claims left off the page
+**Change:**
+- **Built (prompts/preserved/2026-11-10-01-build-report.md, filed unedited):** zynergy-site PR #23, branch claude/forager-page, head e39e451 (70f1fbb groundwork, 3b98bf0 an empty commit to redeploy the same tree, e39e451 the page and llms.txt); 8 files, +414 -20; open, unmerged.
+- **Stop (dashboard):** every Cloudflare Pages preview of the branch fails (70f1fbb, 3b98bf0, e39e451); the check carries only a dashboard log link. The planner read the check history: previews of other branches succeeded to 2026-11-09T04:09:24Z (06e4420), failed from 04:17:14Z (4110fa0), and production succeeded at 04:23Z after the owner removed the deleted beta database's binding (-2193). Inferred, not seen in a log: the Preview environment still binds the deleted database. The fix is the owner's in the dashboard; asked of the owner.
+- **Evidence in place of the preview:** a local Pages simulator (wrangler pages dev) for the "after" column: the page 200, /forager 301, unknown paths 404 with the not-found page, robots.txt, sitemap.xml and llms.txt as their own files, every working path unchanged and the unchanged pages byte-identical to live. HTML parses in strict mode; JSON-LD parses; the FAQ matches its markup word for word (a positive control turned it to MISMATCH); privacy scan 0 after a planted control. The planner re-ran the scan on the pushed diff (0), found no other product named, and confirmed the listing lines quoted and four of the trace's code citations at f637fba17.
+- **Owner-level findings, left off the page:** the Play listing claims Trail Map "contours" (contours are Topo's, Basemap.kt:161), "altitude above sea level" (Android 14 and later only, AndroidSeaLevelConverter.kt:20-24) and trip maps "in one tap" (not one tap).
+- **Follow-ups, not acted on:** Forager/forecast/pilot.js:88's comment becomes false at merge; four out-of-date comments in the app (NextTurnSpace.kt:42, PlotRouteUseCase.kt:22, AndroidSeaLevelConverter.kt:53, Theme.kt:131).
+**Notes:** Written by the planner by hand. The preview, then the owner's read and word to publish, are still owed. Next free ID -2198.
