@@ -36799,3 +36799,13 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Abort conditions:** Cloudflare's dashboard, functions or routing needing a change; the 404 page breaking a working path; a privacy scan hit; an owner-level choice; a wrong premise; two failed attempts.
 **Dispatch-file:** prompts/preserved/2026-11-10-01-forager-page.md
 **Notes:** Written by the planner by hand. The owner's answers: the search files **"Add all three, no forecast (Recommended)"**; extras **"Lowercase address"**, **"Link from home page"**, **"Real not-found page"**; AI training crawlers **"Allow training too"** (a Cloudflare dashboard setting, the owner's click, not in the dispatch); starting **"Yes, start now"**, then **"Dispatch first."**, so no helper starts until the owner's go after reading it. Read live at writing: AI training crawlers get 403 at Cloudflare's edge and its own robots.txt disallows them, with the home page's HTML appended; search and answer fetchers and ordinary search crawlers get 200 (by user agent only). Next free ID -2195.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-2195
+**Timestamp:** 2026-11-10T06:41:32Z
+**Continues:** 2026-09-28-2194
+**Title:** Dispatch 2026-11-10-01 started: the owner's go after reading it
+**Change:** the owner, verbatim, after the dispatch was written: **"Go ahead and send it to a coder"**. A fresh Hazel on Opus is started as the planner's helper. It reads the dispatch file itself, writes its mechanism prediction and file list first and stops, and builds only after the planner records that prediction here by continuation.
+**Notes:** Written by the planner by hand. Next free ID -2196.
