@@ -36884,3 +36884,16 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **Wrong premise, the planner's:** the dispatch gave the owner's "Yes, deleted" as about the database; in -2193 it answered whether the sign-up list was deleted, and the database answer is **"Database is deleted"** (2026-11-09T04:17:08Z). The README quotes each against its own question. Confirmed by the planner from RECORD.md.
 - **Noted by Hazel:** Pages publishes the repository root, so the README is public on the site as /README.md; what it says was already public.
 **Notes:** Written by the planner by hand. Waiting for the owner to read the preview and say publish. Also read at writing, outside this dispatch: after the owner's "Set the training to allow", GPTBot, ClaudeBot, CCBot, Bytespider and Amazonbot still get 403 on /Forager/ and robots.txt still opens with Cloudflare's block (ai-train=no). Next free ID -2201.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-2201
+**Timestamp:** 2026-11-10T19:58:01Z
+**Continues:** 2026-09-28-2199
+**Title:** Dispatch 2026-11-10-02 amended: the page's "forecast" stays; only the README corrections go ahead
+**Change:**
+- **The owner, verbatim:** **"Weather forecast is not accurate. Do not change that"**, then **"It should stay as forecast"**.
+- **So:** Forager/index.html:193 keeps "the recent rain, soil moisture and forecast there". The page change in PR #24 (3298ecf) is taken out by reverting that commit, per the owner's rule that an undo is a revert of the original commits, and the README part of 3298ecf is re-applied alone in a new commit, so the PR's diff against main is README.md only. The README corrections stand on the owner's "Site wording and README".
+- **The planner's error:** the suggestion to say "weather forecast" (-2197, item 5 of -2198) rested on the planner's reading of the word, not on what the app's forecast is; it was never traced to the code. Item (5) of -2198 is closed by this ruling: the page stays as published.
+**Notes:** Written by the planner by hand. Sent to Hazel. Next free ID -2202.
