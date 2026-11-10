@@ -36809,3 +36809,17 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Title:** Dispatch 2026-11-10-01 started: the owner's go after reading it
 **Change:** the owner, verbatim, after the dispatch was written: **"Go ahead and send it to a coder"**. A fresh Hazel on Opus is started as the planner's helper. It reads the dispatch file itself, writes its mechanism prediction and file list first and stops, and builds only after the planner records that prediction here by continuation.
 **Notes:** Written by the planner by hand. Next free ID -2196.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-2196
+**Timestamp:** 2026-11-10T06:53:53Z
+**Continues:** 2026-09-28-2194
+**Title:** Dispatch 2026-11-10-01, step one back: Hazel's mechanism prediction and checks; the planner's answers to four calls; go to build
+**Change:**
+- **Hazel's step one (prompts/preserved/2026-11-10-01-step1-report.md, filed unedited):** nothing built or pushed. Verify first 1 to 3 hold, with one correction to the premise: of seven AI training crawlers tried by user agent, six got 403 and meta-externalagent got 200. Forager main is now 137b1427c, workflow files only past f637fba17, so the trace stays at f637fba17. A root 404.html switches the whole site's not-found mode (Cloudflare's Pages docs); every working path is matched before it; the forecast demo needs no missing tile (570 of 570 per layer); nothing in the app fetches the GPX namespace address.
+- **Mechanism prediction (coder):** as the report's "Mechanism prediction" and "File list": new Forager/index.html, 404.html, robots.txt, sitemap.xml, llms.txt; edits to _redirects, index.html, README.md; functions/, _routes.json and _headers unchanged. Expected from Google: neither the software-app result (it needs a rating) nor the FAQ result (no longer shown), read by Hazel through a fetch summary; the markup still serves other search engines and AI tools.
+- **The planner's answers to Hazel's calls, decided beyond the dispatch:** (1) update index.html's comment at :14-22, which becomes false, and link with Hazel's default, a short "About Forager" line after the description; the owner sees it on the preview; (2) fix the four other README lines that become false (:9-10, :25-26, :41, :193-195); (3) Hazel's defaults stand: priceCurrency and applicationCategory from the Play listing, otherwise left out; no organisation logo; (4) Forager/forecast/pilot.js:88's comment, which stops being true, stays out of scope, a follow-up.
+- **Side observations, not acted on:** /api/beta-export answers 503, consistent with the beta database's binding removed on the owner's "Deleted and deployed" (-2193); the shared Forager checkout's local main holds two commits from 2026-11-04 on no remote branch (f5a13a8df, a CLAUDE.md bullet "a planner's unstated choice is never the owner's", and 7c145b587), reported to the owner, not touched.
+**Notes:** Written by the planner by hand. Go sent to Hazel to build. Next free ID -2197.
