@@ -36783,3 +36783,19 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 - **The owner (2026-11-09T04:17:08Z):** **"Database is deleted"**, with a screenshot of the Cloudflare D1 dashboard showing 0 databases (kept off GitHub). The site's beta functions still reference a D1 binding; the publishing helper is to confirm the deploy goes live and stop if it doesn't.
 - **Published (2026-11-09T04:23:22Z):** site PR #22 merged into zynergy-site main (fd77ab5); the first deploy failed because the Pages project still bound the deleted D1 database; the owner: **"Deleted and deployed"** (the binding removed in the dashboard and the deploy retried). Checked live: https://zynergy-labs.com/privacy/ and /delete-data/ read "Last updated: 9 November 2026", no "beta" anywhere on either page, no workers.dev address. The site's leftover beta functions remain in the repo (no binding, unused); removing them is a later cleanup.
 **Notes:** Written by the planner by hand. Next free ID -2194.
+
+---
+
+**Kind:** intent
+**ID:** 2026-09-28-2194
+**Timestamp:** 2026-11-10T06:29:52Z
+**Title:** Dispatch 2026-11-10-01: a Forager page at zynergy-labs.com/Forager/, with the site's search files; written, not started
+**Change:** a page at /Forager/ (what Forager is, the problem it solves, its features, an FAQ, the Play link) with search and AI markup; /forager and /forager/ 301 to it; the home page links it; unknown addresses get a 404 page; robots.txt, sitemap.xml (Home, Forager, Privacy, Delete data) and llms.txt. The owner, verbatim: **"Let's get the website updated, add a page with on zynergy-labs.com/Forager/ and share about what its features are, what problem it solves, and an FAQ."**, then **"Optimize the SEO so it can be found by AI and other search engines"**.
+**Scope boundary:** zynergy-site, branch claude/forager-page from main fd77ab5, the files the dispatch names. Not the forecast demo, privacy, delete-data, welcome, functions, db, _headers, _routes.json, the site's main, Cloudflare's dashboard, the Forager repo, RECORD.md.
+**Baseline:** zynergy-site main fd77ab5; Forager main f637fba17 (1.0.5026, live on Play).
+**Prediction (outcome — planner):** on the branch preview, /Forager/ returns 200 with its sections, JSON-LD that parses and an FAQPage matching the visible FAQ word for word; /forager 301; a made-up path 404; robots.txt, sitemap.xml and llms.txt served as their own files; the forecast demo, privacy and delete-data unchanged.
+**Prediction (mechanism — coder):** in the helper's first message.
+**Finish line:** a PR into zynergy-site main, open and unmerged, with a Cloudflare preview; live only on the owner's word to publish.
+**Abort conditions:** Cloudflare's dashboard, functions or routing needing a change; the 404 page breaking a working path; a privacy scan hit; an owner-level choice; a wrong premise; two failed attempts.
+**Dispatch-file:** prompts/preserved/2026-11-10-01-forager-page.md
+**Notes:** Written by the planner by hand. The owner's answers: the search files **"Add all three, no forecast (Recommended)"**; extras **"Lowercase address"**, **"Link from home page"**, **"Real not-found page"**; AI training crawlers **"Allow training too"** (a Cloudflare dashboard setting, the owner's click, not in the dispatch); starting **"Yes, start now"**, then **"Dispatch first."**, so no helper starts until the owner's go after reading it. Read live at writing: AI training crawlers get 403 at Cloudflare's edge and its own robots.txt disallows them, with the home page's HTML appended; search and answer fetchers and ordinary search crawlers get 200 (by user agent only). Next free ID -2195.
