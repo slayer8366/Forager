@@ -36870,3 +36870,17 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Abort conditions:** a README statement that can't be settled; anything outside the two files; a failed preview deploy; a wrong premise.
 **Dispatch-file:** prompts/preserved/2026-11-10-02-forager-page-wording.md
 **Notes:** Written by the planner by hand. The dispatch file was pushed alone in a8b5ebd75, whose message also names this entry: the planner's script refused to append (it did not allow for the file's final newline) and the commit went ahead without it; this entry follows in its own commit. Read at writing: AI training crawlers still get 403 and Cloudflare's managed block still heads robots.txt (the owner's dashboard change not yet made). Next free ID -2200.
+
+---
+
+**Kind:** continuation
+**ID:** 2026-09-28-2200
+**Timestamp:** 2026-11-10T19:57:14Z
+**Continues:** 2026-09-28-2199
+**Title:** Dispatch 2026-11-10-02 back: zynergy-site PR #24 open and unmerged, its preview deployed; a wrong premise in the dispatch corrected
+**Change:**
+- **Built (prompts/preserved/2026-11-10-02-report.md, filed unedited):** PR #24, branch claude/forager-page-wording, head 3298ecf, from main 4d397ac; 2 files, +34 -17. Forager/index.html:193 now reads "soil moisture and weather forecast there", the only copy on the site. The README's database lines corrected (:86-89, :112-116) and seven more lines false for the same reasons (:5-6, :23, :24, :105, :123, "Getting the list back out", :284-286), each listed in the report; the rest read and left as still true.
+- **Evidence:** the checker: strict parse 0 errors, one h1, the JSON-LD's four types, "FAQ VERDICT: MATCH, word for word" (unchanged by design: the diff carries the wording change). Cloudflare Pages on 3298ecf: "Deployed successfully" at 19:55:46Z, the second working preview since the fix; its addresses (https://claude-forager-page-wording.zynergy-site.pages.dev/Forager/, https://4fadc965.zynergy-site.pages.dev/Forager/) send visitors to the Access sign-in. Privacy scan 0 after a planted control.
+- **Wrong premise, the planner's:** the dispatch gave the owner's "Yes, deleted" as about the database; in -2193 it answered whether the sign-up list was deleted, and the database answer is **"Database is deleted"** (2026-11-09T04:17:08Z). The README quotes each against its own question. Confirmed by the planner from RECORD.md.
+- **Noted by Hazel:** Pages publishes the repository root, so the README is public on the site as /README.md; what it says was already public.
+**Notes:** Written by the planner by hand. Waiting for the owner to read the preview and say publish. Also read at writing, outside this dispatch: after the owner's "Set the training to allow", GPTBot, ClaudeBot, CCBot, Bytespider and Amazonbot still get 403 on /Forager/ and robots.txt still opens with Cloudflare's block (ai-train=no). Next free ID -2201.
