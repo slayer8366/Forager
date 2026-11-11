@@ -29,8 +29,10 @@ fun AvailabilityViewModel.retryFailedSearch() {
     if (searchRuns.listFailedQuery == searchRuns.activeSearch) {
         refresh(region, month, filter)
         _uiState.update { it.copy(isRetryingSearch = true) }
-    } else {
+    } else if (searchRuns.loadedSightingsQuery != searchRuns.activeSearch) {
         _uiState.update { it.copy(isRetryingSearch = true) }
         onMapTabSelected()
     }
+    // I1 (Sorrel's second review): otherwise the showing search's sightings are already loaded (an older search's fetch failed
+    // late, audit M13), so no fetch starts and "Trying again…" is not set: it would never be cleared. Try again then does nothing.
 }

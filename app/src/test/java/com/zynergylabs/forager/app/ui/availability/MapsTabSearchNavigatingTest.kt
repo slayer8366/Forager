@@ -4,6 +4,8 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.longClick
@@ -12,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTouchInput
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.MapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.MapChromeContentColor
 import java.io.IOException
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -119,6 +122,67 @@ abstract class MapsTabSearchNavigatingTests(private val portrait: Boolean) {
             composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { longClick(at) }
             rig.settle()
             assertEquals("while navigating, a long-press at $at, by the notice ${notice.d()}, did not reach the map", before + 1, rig.mapLongPresses)
+        }
+    }
+
+
+    /**
+     * J1 (the owner: "Under the navigation card too") and the planner's J2: the search-error banner from before this dispatch,
+     * while navigating. Both halves fail, so the banner carries a line and the notice shows: neither covers the other, the card,
+     * the strip or the cluster; the banner is above the notice, as under the search bar; both at 80% with opaque text; and a
+     * long-press on the map below them reaches the map. In portrait both sit just below the card.
+     */
+    @Test
+    fun `while navigating, the banner and the notice both show in order, overlapping nothing`() {
+        rig.setScreen()
+        rig.availabilityFailure = IOException("server error (test)")
+        rig.sightingsFailure = IOException("no signal (test)")
+        rig.searchCoordinates("45.3736", "-121.6959")
+        // A mistyped coordinate, so the banner has a line of its own beside the one notice (the list's failure line is folded, C3).
+        rig.tapBar()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_LATITUDE_TAG).performTextReplacement("999")
+        rig.touch(composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG))
+        if (rig.dropdownShown()) composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        rig.settle()
+        assertTrue("positive control: the banner is composed", shown(SEARCH_NOTICE_TAG))
+        assertTrue("positive control: the notice is composed", shown(SEARCH_FAILED_NOTICE_TAG))
+
+        val banner = bounds(SEARCH_NOTICE_TAG)
+        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
+        assertTrue("while navigating, the banner ${banner.d()} and the notice ${notice.d()} overlap", !banner.overlaps(notice))
+        assertTrue("while navigating, the banner ${banner.d()} is not above the notice ${notice.d()}", banner.bottom <= notice.top + 1f)
+        for ((name, r) in chrome()) {
+            assertTrue("while navigating, the banner ${banner.d()} overlaps $name ${r.d()}", !banner.overlaps(r))
+            assertTrue("while navigating, the notice ${notice.d()} overlaps $name ${r.d()}", !notice.overlaps(r))
+        }
+        if (portrait) {
+            val card = bounds(STRIP_TAG)
+            assertTrue("J1: the banner ${banner.d()} is not just below the navigation card ${card.d()}", banner.top >= card.bottom - 1f && banner.top <= card.bottom + 1f)
+        }
+        val fill = composeRule.onNodeWithTag(SEARCH_NOTICE_TAG, useUnmergedTree = true).fetchSemanticsNode().config[MapChromeContainerColor]
+        assertEquals("while navigating, the banner's fill is not at the map chrome's alpha", MAP_CHROME_OVER_MAP_ALPHA, fill.alpha, 0.01f)
+        val message = rig.viewModel.uiState.value.errorMessage ?: error("no banner line")
+        val text = composeRule.onNode(hasText(message), useUnmergedTree = true).fetchSemanticsNode().config[MapChromeContentColor]
+        assertEquals("while navigating, the banner's text is not opaque", 1f, text.alpha, 0.01f)
+
+        val at = Offset(notice.left + notice.width * 0.3f, notice.bottom + 40f)
+        val before = rig.mapLongPresses
+        composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { longClick(at) }
+        rig.settle()
+        assertEquals("while navigating, a long-press at $at, below the banner and the notice, did not reach the map", before + 1, rig.mapLongPresses)
+    }
+
+    /** J1: only the list fails while navigating: the banner alone, not covered (the H2 probe, run 43089700275, now on the branch). */
+    @Test
+    fun `while navigating, the search-error banner alone is not covered by the navigation card`() {
+        rig.setScreen()
+        rig.availabilityFailure = IOException("no signal (test)")
+        rig.searchCoordinates("45.3736", "-121.6959")
+        assertEquals("positive control: the list failed", LIST_SEARCH_FAILED_MESSAGE, rig.viewModel.uiState.value.errorMessage)
+        assertTrue("positive control: the banner is composed", shown(SEARCH_NOTICE_TAG))
+        val banner = bounds(SEARCH_NOTICE_TAG)
+        for ((name, r) in chrome()) {
+            assertTrue("while navigating, the banner ${banner.d()} is covered by $name ${r.d()}", !banner.overlaps(r))
         }
     }
 

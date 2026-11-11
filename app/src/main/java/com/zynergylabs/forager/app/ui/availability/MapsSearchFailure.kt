@@ -160,24 +160,39 @@ private fun NoticeLine(text: String, shown: Boolean) {
 }
 
 /**
- * The notice placed at [top] rather than in the search bar's column: while fullscreen hides the search bar (C6, the owner: "Top
- * of the map (Recommended)"; its option read "the same one-line notice shows at the top of the map, where the bar would be"),
- * below the compass strip where the strip is there; and while navigating in portrait, below the navigation card (G1, the owner:
- * "Under the navigation card"). [onHeightMeasured] reports its height with [top], so the icon cluster can be kept below it, as
- * it is below the notice under the bar. Composed only while it shows, so it takes no touch otherwise.
+ * The notices placed at [top] rather than in the search bar's column.
+ * - While fullscreen hides the search bar (C6, the owner: "Top of the map (Recommended)"; its option read "the same one-line
+ *   notice shows at the top of the map, where the bar would be"): the search-failed notice, below the compass strip where the
+ *   strip is there.
+ * - While navigating in portrait, below the navigation card: the search-failed notice (G1, the owner: "Under the navigation
+ *   card"), and the search-error banner from before this dispatch, [bannerState] (J1, the owner: "Under the navigation card
+ *   too"), in the order they have under the search bar: the banner, then the notice.
+ * [onHeightMeasured] reports the height with [top], so the icon cluster can be kept below it, as it is below the notices under the
+ * bar. Composed only while something in it shows, so it takes no touch otherwise.
  */
 @Composable
-internal fun PlacedSearchFailedNotice(
+internal fun PlacedSearchNotices(
     top: Dp,
+    bannerState: AvailabilityUiState?,
+    showFailed: Boolean,
     retrying: Boolean,
     onTryAgain: () -> Unit,
     onHeightMeasured: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.onSizeChanged { onHeightMeasured(it.height) }.padding(top = top)) {
-        SearchFailedNotice(retrying = retrying, onTryAgain = onTryAgain)
+        bannerState?.let { SearchNotice(it, overMap = true) }
+        if (showFailed) SearchFailedNotice(retrying = retrying, onTryAgain = onTryAgain)
     }
 }
+
+/** J1: the search-error banner is placed below the navigation card (navigating in portrait, the bar showing) when it has a line. */
+internal fun placedBannerShows(uiState: AvailabilityUiState, underCard: Boolean, fullscreen: Boolean): Boolean =
+    underCard && !fullscreen && searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null
+
+/** C6 and G1: the search-failed notice is placed, in fullscreen or below the navigation card, when it shows. */
+internal fun placedFailedShows(uiState: AvailabilityUiState, underCard: Boolean, fullscreen: Boolean): Boolean =
+    (underCard || fullscreen) && mapsSearchNoticeShows(uiState)
 
 /**
  * The thin moving line along the search bar's bottom edge while the map's sightings load (C2, the owner: "Thin line on the

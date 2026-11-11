@@ -89,13 +89,12 @@ class MapsTabSearchRetryTest {
             assertTrue("$where: the notice went away during the retry", shown(SEARCH_FAILED_NOTICE_TAG))
             assertTrue("$where: the notice does not read \"$SEARCH_RETRYING_NOTICE_TEXT\" during the retry", textShown(SEARCH_RETRYING_NOTICE_TEXT))
             assertTrue("$where: the notice still reads \"$SEARCH_FAILED_NOTICE_TEXT\" during the retry", !textShown(SEARCH_FAILED_NOTICE_TEXT))
-            // G2 (the owner: "Shown, greyed out"): Try again stays, in the disabled look, and a real touch on it does nothing.
+            // G2 (the owner: "Shown, greyed out"): Try again stays, disabled, in the disabled look. I4 (Sorrel's second review): a
+            // touch-and-count check was here and could not fail (the error is already cleared during a retry, so the retry
+            // returns at its first line either way); removed. That it does nothing rests on its being disabled, asserted here.
             assertTrue("$where: Try again is not shown during the retry", shown(SEARCH_FAILED_TRY_AGAIN_TAG))
             composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true).assertIsNotEnabled()
             assertSameRect("$where: Try again moved or changed size when the retry started", button, bounds(SEARCH_FAILED_TRY_AGAIN_TAG))
-            val fetches = rig.sightingsFetches.size
-            rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
-            assertEquals("$where: a touch on the greyed Try again ran the search", fetches, rig.sightingsFetches.size)
             assertSameRect("$where: the notice moved or changed size when the retry started", notice, bounds(SEARCH_FAILED_NOTICE_TAG))
             assertSameRect("$where: the icon cluster moved when the retry started", cluster, bounds(MAP_ICON_CLUSTER_TAG))
         } finally {

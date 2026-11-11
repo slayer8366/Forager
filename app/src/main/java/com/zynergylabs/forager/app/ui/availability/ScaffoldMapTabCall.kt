@@ -238,7 +238,11 @@ internal fun ScaffoldMapTabCall(
                                 // Item 2: only while a notice shows, and not in fullscreen, where the whole search column slides away.
                                 // Dispatch 2026-11-11-01: the search-failed notice counts as a notice, and while fullscreen it is at the map's top (C6).
                                 // G1: and while navigating in portrait it is below the navigation card, placed, as in fullscreen.
-                                searchNoticeBottom = if (mapsSearchNoticeShows(uiState) && (isMapFullscreen() || searchNoticeUnderCard(navigation, showRail))) {
+                                // J1: and the banner too, below the card, while navigating in portrait.
+                                searchNoticeBottom = if (
+                                    placedFailedShows(uiState, searchNoticeUnderCard(navigation, showRail), isMapFullscreen()) ||
+                                    placedBannerShows(uiState, searchNoticeUnderCard(navigation, showRail), isMapFullscreen())
+                                ) {
                                     with(LocalDensity.current) { placedNoticeHeightPx.toDp() }
                                 } else if (mapsTabNoticeShows(uiState) && !isMapFullscreen()) {
                                     with(LocalDensity.current) { measurements.searchChromeHeightPx.toDp() }
@@ -378,7 +382,9 @@ internal fun ScaffoldMapTabCall(
                                             }
                                             // Dispatch 2026-11-11-01: the banner, less the ranked list's failure while the map's has failed too (C3, one line), then
                                             // the search-failed notice with "Try again" (C1).
-                                            SearchNotice(mapsTabSearchNoticeState(uiState), overMap = true)
+                                            // J1 (the owner: "Under the navigation card too"): navigating in portrait, the banner is placed below
+                                            // the card with the notice (PlacedSearchNotices), not here.
+                                            if (!searchNoticeUnderCard(navigation, showRail)) SearchNotice(mapsTabSearchNoticeState(uiState), overMap = true)
                                             if (mapsSearchNoticeShows(uiState) && !searchNoticeUnderCard(navigation, showRail)) {
                                                 SearchFailedNotice(retrying = uiState.isRetryingSearch, onTryAgain = LocalRetryFailedSearch.current)
                                             }
@@ -388,8 +394,12 @@ internal fun ScaffoldMapTabCall(
                                         // below the compass strip where the strip is there (portrait), placed as the bar is. G1 ("Under the navigation card"):
                                         // while navigating in portrait, below the navigation card, which hangs from the bar's bottom (the animated top inset).
                                         val underCard = searchNoticeUnderCard(navigation, showRail)
-                                        if ((isMapFullscreen() || underCard) && mapsSearchNoticeShows(uiState)) {
-                                            PlacedSearchFailedNotice(
+                                        val placedBanner = placedBannerShows(uiState, underCard, isMapFullscreen())
+                                        val placedFailed = placedFailedShows(uiState, underCard, isMapFullscreen())
+                                        if (placedBanner || placedFailed) {
+                                            PlacedSearchNotices(
+                                                bannerState = if (placedBanner) mapsTabSearchNoticeState(uiState) else null,
+                                                showFailed = placedFailed,
                                                 retrying = uiState.isRetryingSearch,
                                                 top = safeAnimatedTopInset + when {
                                                     underCard -> LocalNavigationCardHeight.current
