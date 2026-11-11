@@ -41,6 +41,6 @@ internal fun signalReturns(validated: Flow<Boolean>, minIntervalMs: Long = SIGNA
     }
     for (signalBack in returns) {
         send(signalBack)
-        delay(minIntervalMs)
+        // delay(minIntervalMs)
     }
 }
