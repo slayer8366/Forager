@@ -57,3 +57,19 @@ No Gradle on the laptop; CI only. **The laptop's system disk is full (about 300 
 
 ### B. The owner's go
 - **B1 (2026-11-11T13:09:04Z).** The owner read the dispatch in full and said: **"Go"**. Hazel starts at Step 1. The stop after Step 1's report stands.
+
+### C. The owner's rulings after Step 1 (2026-11-11T14:19:58Z)
+Step 1 reproduced the failure: 9 of 9 tests failed as predicted on CI (run 43027173891, commit e38cd5243), in portrait, short landscape and landscape tablet. The planner then asked the owner seven questions. Each answer is the owner's chosen option, verbatim; the line after it is what that option read.
+- **C1. Where the notice sits: "Under the search bar (Recommended)".** Search fails > a one-line red-tinted banner appears just under the search bar (below the compass strip in portrait) > "Try again" at its right end. Same spot and look as the existing search-error banner. 80% fill over the map.
+- **C2. The loading mark: "Thin line on the search bar (Recommended)".** Search runs > a thin moving line runs along the bottom edge of the search bar > it goes when sightings arrive. Nothing in the bar moves.
+- **C3. The list search and the map search both fail: "One line (Recommended)".** Both fail > the Maps tab shows one notice with "Try again" > tapping it runs both again.
+- **C4. Automatic retry: "At once (Recommended)".** Signal returns > the search runs again straight away. Needs the raw signal source, so the change reaches outside the search screen's own folder.
+- **C5. The words: "\"Search failed. Check your connection.\" (Recommended)".** This replaces Step 2's "until then use today's text" for the Maps tab notice.
+- **C6. The search bar is hidden (fullscreen; navigation if confirmed): "Top of the map (Recommended)".** Search fails while the bar is hidden > the same one-line notice shows at the top of the map, where the bar would be > "Try again" works the same. The failure is never silent.
+- **C7. A failure with good signal: "Notice stays, no auto retry (Recommended)".** Search fails with signal > the notice stays with "Try again" > it runs again only when the user taps it or searches again.
+
+### D. Scope changes that follow (the planner's, from C)
+- **D1.** Because of C4, the stop "a change needed outside ui/availability and its tests" is lifted for one thing only: giving the search screen the raw `NetworkSignal.validated` flow (a provider wired where the existing one is built, or the smallest equivalent). Say which you chose and why. Once per return of signal still holds; a signal that flaps must not produce a burst of calls, and a test shows that.
+- **D2.** The `sightingsFailure` switch in RealSearchScreenRig and the two landscape test classes, added in Step 1 beyond the dispatch, stand.
+- **D3.** Not ruled, so not changed: what the Maps tab shows when only the list search fails and the map's sightings load (today's banner, as today); the text of the existing list-search banner on other tabs. If C3 cannot be built without changing either, stop and report.
+- **D4.** Confirm from code and a test whether the search bar is hidden while navigating; C6 applies wherever it is hidden. Premise 6 was wrong as written (MapChromeOverMapTest refers to isLoadingSightings only); update its stale comment if the fix makes it false, and change no assertion.
