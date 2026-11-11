@@ -65,6 +65,12 @@ data class AvailabilityUiState(
     val searchFrameSerial: Int = 0,
     val isLoadingSightings: Boolean = false,
     val sightingsErrorMessage: String? = null,
+    /**
+     * Dispatch 2026-11-11-01, E4 (the owner: "Notice stays, shows it's trying (Recommended)"): a failed search is running again,
+     * from "Try again" or by itself ([retryFailedSearch]), so the Maps tab's notice stays and reads "Trying again…". Cleared when
+     * the map's sightings fetch ends, on a new search and on Clear.
+     */
+    val isRetryingSearch: Boolean = false,
     val taxonFilter: TaxonFilter = TaxonFilter.FUNGI,
     val taxonSearchQuery: String = "",
     val taxonSearchResults: List<TaxonSearchResult> = emptyList(),

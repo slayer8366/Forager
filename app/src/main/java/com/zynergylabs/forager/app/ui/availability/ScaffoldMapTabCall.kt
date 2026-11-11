@@ -239,7 +239,7 @@ internal fun ScaffoldMapTabCall(
                                 // Dispatch 2026-11-11-01: the search-failed notice counts as a notice, and while fullscreen it is at the map's top (C6).
                                 searchNoticeBottom = if (mapsTabNoticeShows(uiState) && !isMapFullscreen()) {
                                     with(LocalDensity.current) { measurements.searchChromeHeightPx.toDp() }
-                                } else if (mapsSearchFailed(uiState) && isMapFullscreen()) {
+                                } else if (mapsSearchNoticeShows(uiState) && isMapFullscreen()) {
                                     with(LocalDensity.current) { fullscreenNoticeHeightPx.toDp() }
                                 } else {
                                     0.dp
@@ -378,13 +378,14 @@ internal fun ScaffoldMapTabCall(
                                             // Dispatch 2026-11-11-01: the banner, less the ranked list's failure while the map's has failed too (C3, one line), then
                                             // the search-failed notice with "Try again" (C1).
                                             SearchNotice(mapsTabSearchNoticeState(uiState), overMap = true)
-                                            if (mapsSearchFailed(uiState)) SearchFailedNotice(onTryAgain = LocalRetryFailedSearch.current)
+                                            if (mapsSearchNoticeShows(uiState)) SearchFailedNotice(retrying = uiState.isRetryingSearch, onTryAgain = LocalRetryFailedSearch.current)
                                         }
                                         }
                                         // Dispatch 2026-11-11-01, C6 ("Top of the map (Recommended)"): while fullscreen hides the bar, the same notice at the map's top,
                                         // below the compass strip where the strip is there (portrait), placed as the bar is.
-                                        if (isMapFullscreen() && mapsSearchFailed(uiState)) {
+                                        if (isMapFullscreen() && mapsSearchNoticeShows(uiState)) {
                                             FullscreenSearchFailedNotice(
+                                                retrying = uiState.isRetryingSearch,
                                                 top = if (showRail) 0.dp else compassStripHeight,
                                                 onTryAgain = LocalRetryFailedSearch.current,
                                                 onHeightMeasured = { fullscreenNoticeHeightPx = it },

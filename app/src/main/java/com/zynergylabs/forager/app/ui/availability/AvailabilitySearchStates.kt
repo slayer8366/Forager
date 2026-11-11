@@ -28,6 +28,7 @@ internal fun AvailabilityUiState.withSearchCleared(): AvailabilityUiState =
         sightings = emptyList(),
         isLoadingSightings = false,
         sightingsErrorMessage = null,
+        isRetryingSearch = false,
         conditions = null,
         isLoadingConditions = false,
         conditionsErrorMessage = null,

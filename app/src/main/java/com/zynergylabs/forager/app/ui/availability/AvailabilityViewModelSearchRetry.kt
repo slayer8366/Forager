@@ -1,5 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import kotlinx.coroutines.flow.update
+
 /*
  * Dispatch 2026-11-11-01 (known bug 30): running a failed search again, from the Maps tab's "Try again" and when signal returns.
  * An extension function on [AvailabilityViewModel], as the offline maps' functions are (AvailabilityViewModelOfflineMaps.kt), so
@@ -22,9 +24,12 @@ fun AvailabilityViewModel.retryFailedSearch() {
     val state = _uiState.value
     if (!mapsSearchFailed(state)) return
     val (region, month, filter) = searchRuns.activeSearch ?: return
+    // E4: the notice reads "Trying again…" until the map's sightings fetch ends. Set after refresh, whose new search clears it.
     if (state.errorMessage == LIST_SEARCH_FAILED_MESSAGE) {
         refresh(region, month, filter)
+        _uiState.update { it.copy(isRetryingSearch = true) }
     } else {
+        _uiState.update { it.copy(isRetryingSearch = true) }
         onMapTabSelected()
     }
 }

@@ -19,15 +19,18 @@ import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
@@ -36,7 +39,11 @@ import com.zynergylabs.forager.app.ui.map.mapChromeFill
 import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
 import com.zynergylabs.forager.app.ui.theme.Spacing
 import com.zynergylabs.forager.app.ui.theme.mapChromeContentColor
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onEach
 
 /*
  * Dispatch 2026-11-11-01 (known bug 30, audit finding H1): a failed or loading sightings search no longer replaces the Maps tab.
@@ -48,6 +55,9 @@ import kotlinx.coroutines.flow.Flow
 
 /** The notice's words (C5, the owner: "\"Search failed. Check your connection.\" (Recommended)"). */
 internal const val SEARCH_FAILED_NOTICE_TEXT = "Search failed. Check your connection."
+
+/** The notice's words while a failed search runs again (E4; "The words are the owner's to change"). */
+internal const val SEARCH_RETRYING_NOTICE_TEXT = "Trying again…"
 
 /** The notice's control (C1: "\"Try again\" at its right end"). */
 internal const val SEARCH_FAILED_TRY_AGAIN_TEXT = "Try again"
@@ -76,9 +86,16 @@ internal fun mapsSearchFailed(uiState: AvailabilityUiState): Boolean = uiState.s
 internal fun mapsTabSearchNoticeState(uiState: AvailabilityUiState): AvailabilityUiState =
     if (mapsSearchFailed(uiState) && uiState.errorMessage == LIST_SEARCH_FAILED_MESSAGE) uiState.copy(errorMessage = null) else uiState
 
+/**
+ * Whether the search-failed notice shows: the map's half has failed, or a failed search is running again (E4, the owner: "Notice
+ * stays, shows it's trying (Recommended)"; its option read "Retry starts > the notice stays where it is and reads 'Trying
+ * again…' > it goes only when the search works, or returns to 'Search failed' if it doesn't. Nothing jumps").
+ */
+internal fun mapsSearchNoticeShows(uiState: AvailabilityUiState): Boolean = mapsSearchFailed(uiState) || uiState.isRetryingSearch
+
 /** Whether a line shows under the Maps tab's search bar: [SearchNotice]'s, the search-failed notice, or both. */
 internal fun mapsTabNoticeShows(uiState: AvailabilityUiState): Boolean =
-    searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null || mapsSearchFailed(uiState)
+    searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null || mapsSearchNoticeShows(uiState)
 
 /**
  * What "Try again" calls: [AvailabilityScreenSearchInputs.onRetryFailedSearch], provided by [AvailabilityScreen] so the notice, deep
@@ -92,7 +109,7 @@ internal val LocalRetryFailedSearch = staticCompositionLocalOf<() -> Unit> { {} 
  * so it takes every touch inside its own bounds and none outside them.
  */
 @Composable
-internal fun SearchFailedNotice(onTryAgain: () -> Unit, modifier: Modifier = Modifier) {
+internal fun SearchFailedNotice(retrying: Boolean, onTryAgain: () -> Unit, modifier: Modifier = Modifier) {
     val noticeColor = mapChromeFill(MaterialTheme.colorScheme.errorContainer, true)
     val noticeContentColor = contentColorFor(MaterialTheme.colorScheme.errorContainer)
     Surface(
@@ -104,24 +121,34 @@ internal fun SearchFailedNotice(onTryAgain: () -> Unit, modifier: Modifier = Mod
             .mapChromeContainerColor(noticeColor),
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
-            Text(
-                text = SEARCH_FAILED_NOTICE_TEXT,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onErrorContainer,
-                modifier = Modifier
-                    .mapChromeContentColor(LocalContentColor.current)
-                    .weight(1f)
-                    .padding(start = Spacing.lg, top = Spacing.sm, bottom = Spacing.sm),
-            )
+            // E4: both lines are always laid out in one space, the one not showing drawn at no alpha and left out of semantics, so
+            // the space is the wider of the two and nothing moves when the words change (CLAUDE.md, "Changing info gets its own
+            // window"; no text is shrunk). "Try again" keeps its space while the retry runs, drawn at no alpha and not clickable.
+            Box(modifier = Modifier.weight(1f).padding(start = Spacing.lg, top = Spacing.sm, bottom = Spacing.sm)) {
+                NoticeLine(SEARCH_FAILED_NOTICE_TEXT, shown = !retrying)
+                NoticeLine(SEARCH_RETRYING_NOTICE_TEXT, shown = retrying)
+            }
             TextButton(
                 onClick = onTryAgain,
+                enabled = !retrying,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
-                modifier = Modifier.testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
+                modifier = if (retrying) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier.testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
             ) {
                 Text(SEARCH_FAILED_TRY_AGAIN_TEXT)
             }
         }
     }
+}
+
+/** One of the notice's two lines, laid out whether it shows or not (see [SearchFailedNotice]). */
+@Composable
+private fun NoticeLine(text: String, shown: Boolean) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onErrorContainer,
+        modifier = if (shown) Modifier.mapChromeContentColor(LocalContentColor.current) else Modifier.alpha(0f).clearAndSetSemantics {},
+    )
 }
 
 /**
@@ -131,9 +158,15 @@ internal fun SearchFailedNotice(onTryAgain: () -> Unit, modifier: Modifier = Mod
  * below the notice under the bar. Composed only while it shows, so it takes no touch otherwise.
  */
 @Composable
-internal fun FullscreenSearchFailedNotice(top: Dp, onTryAgain: () -> Unit, onHeightMeasured: (Int) -> Unit, modifier: Modifier = Modifier) {
+internal fun FullscreenSearchFailedNotice(
+    top: Dp,
+    retrying: Boolean,
+    onTryAgain: () -> Unit,
+    onHeightMeasured: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     Column(modifier = modifier.onSizeChanged { onHeightMeasured(it.height) }.padding(top = top)) {
-        SearchFailedNotice(onTryAgain = onTryAgain)
+        SearchFailedNotice(retrying = retrying, onTryAgain = onTryAgain)
     }
 }
 
@@ -164,18 +197,39 @@ internal fun SearchBarLoadingLine(shape: Shape, modifier: Modifier = Modifier) {
 }
 
 /**
- * The retry when signal returns (C4, the owner: "At once (Recommended)"): each return of [networkValidated] ([signalReturns]) runs
- * [onRetry] while the map's sightings have failed ([searchFailed]). A failure with good signal never sees a return, so it waits for
- * "Try again" or a new search (C7, the owner: "Notice stays, no auto retry (Recommended)"); a retry that fails again waits for the
- * next return. Collected for as long as the screen is composed.
+ * The retry by itself (C4, the owner: "At once (Recommended)"; E2 "Only with Forager on screen (Recommended)"; E3 "3 tries, then
+ * wait for me (Recommended)"; C7 "Notice stays, no auto retry (Recommended)"): each return of [networkValidated]
+ * ([signalReturns]), each change in the search's state and Forager coming on screen are handed to [autoRetry], which says when
+ * to run [onRetry]. [failed]: the map's half of the search has failed; [running]: a fetch for it runs, or a retry is starting.
+ * On screen means resumed ([Lifecycle.State.RESUMED]), read from this composition's lifecycle owner. Collected for as long as the
+ * screen is composed.
  */
 @Composable
-internal fun RetryFailedSearchOnSignalReturn(networkValidated: Flow<Boolean>, searchFailed: Boolean, onRetry: () -> Unit) {
-    val failed by rememberUpdatedState(searchFailed)
+internal fun RetryFailedSearchOnSignalReturn(
+    networkValidated: Flow<Boolean>,
+    failed: Boolean,
+    running: Boolean,
+    autoRetry: SearchAutoRetry,
+    onRetry: () -> Unit,
+) {
+    val lifecycleState by LocalLifecycleOwner.current.lifecycle.currentStateAsState()
+    val onScreen = lifecycleState.isAtLeast(Lifecycle.State.RESUMED)
+    val latest = remember { LatestSignal() }
+    val currentFailed by rememberUpdatedState(failed)
+    val currentRunning by rememberUpdatedState(running)
+    val currentOnScreen by rememberUpdatedState(onScreen)
     val retry by rememberUpdatedState(onRetry)
-    LaunchedEffect(networkValidated) {
-        signalReturns(networkValidated).collect {
-            if (failed) retry()
+    LaunchedEffect(networkValidated, autoRetry) {
+        signalReturns(networkValidated.onEach { latest.validated = it }).collect {
+            if (autoRetry.onSignalReturn(currentFailed, currentRunning, currentOnScreen)) retry()
         }
     }
+    LaunchedEffect(failed, running, onScreen, autoRetry) {
+        if (autoRetry.onStateChanged(failed, running, onScreen, latest.validated)) retry()
+    }
+}
+
+/** The signal's last value, as [RetryFailedSearchOnSignalReturn] last saw it; no signal until the first value comes. */
+private class LatestSignal {
+    var validated: Boolean = false
 }

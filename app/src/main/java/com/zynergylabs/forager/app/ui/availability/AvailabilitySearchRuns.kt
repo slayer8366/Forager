@@ -77,7 +77,8 @@ internal class AvailabilitySearchRuns(
         updateState {
             // searchSerial: so the screen fetches the sightings again even when this search is the one
             // already showing (RECORD -723; see AvailabilityUiState.searchSerial).
-            it.copy(sightings = emptyList(), sightingsErrorMessage = null, searchSerial = it.searchSerial + 1)
+            // isRetryingSearch: a new search is not a retry (dispatch 2026-11-11-01, E4); retryFailedSearch sets it after this.
+            it.copy(sightings = emptyList(), sightingsErrorMessage = null, isRetryingSearch = false, searchSerial = it.searchSerial + 1)
         }
 
         // Same invalidation for the Seasonal tab's own lazily-fetched, separately-keyed data.
@@ -204,7 +205,7 @@ internal class AvailabilitySearchRuns(
                 onSuccess = { page ->
                     loadedSightingsQuery = query
                     updateState {
-                        it.copy(isLoadingSightings = false, sightings = page.sightings)
+                        it.copy(isLoadingSightings = false, isRetryingSearch = false, sightings = page.sightings)
                     }
                 },
                 onFailure = { error ->
@@ -212,6 +213,7 @@ internal class AvailabilitySearchRuns(
                     updateState {
                         it.copy(
                             isLoadingSightings = false,
+                            isRetryingSearch = false,
                             sightingsErrorMessage = "Couldn't load sightings for the map.",
                         )
                     }

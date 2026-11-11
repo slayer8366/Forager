@@ -717,7 +717,10 @@ fun AvailabilityScreen(
     // composed here, unconditionally, at the line this tree was; InAppCameraHost stays below it. Dispatch 2026-11-05-08: a trip's
     // Download Maps reaches the Trip Planner's rows through LocalDownloadMapsForTrip (TripDownloadMapsUi.kt), so the host is unchanged.
     // Dispatch 2026-11-11-01: the Maps tab's "Try again" reaches its notice through LocalRetryFailedSearch (MapsSearchFailure.kt) the same way.
-    CompositionLocalProvider(LocalDownloadMapsForTrip provides openTripOfflineMaps, LocalRetryFailedSearch provides searchInputs.onRetryFailedSearch) {
+    // E3: the automatic tries' count, which "Try again" starts again (SearchAutoRetry.kt).
+    val searchAutoRetry = remember { SearchAutoRetry() }
+    val onTryAgain = remember(searchInputs.onRetryFailedSearch) { { searchAutoRetry.onUserRetry(); searchInputs.onRetryFailedSearch() } }
+    CompositionLocalProvider(LocalDownloadMapsForTrip provides openTripOfflineMaps, LocalRetryFailedSearch provides onTryAgain) {
     AvailabilityScreenDrawerHost(
         state = screenState,
         drawerState = drawerState,
@@ -756,5 +759,11 @@ fun AvailabilityScreen(
         journalEntries = journalEntries,
     )
     // Dispatch 2026-11-11-01, C4: a failed search runs again when signal returns (MapsSearchFailure.kt). Last, so no slot above moves.
-    RetryFailedSearchOnSignalReturn(searchInputs.networkValidated, mapsSearchFailed(uiState), searchInputs.onRetryFailedSearch)
+    RetryFailedSearchOnSignalReturn(
+        networkValidated = searchInputs.networkValidated,
+        failed = mapsSearchFailed(uiState),
+        running = uiState.isLoadingSightings || uiState.isRetryingSearch,
+        autoRetry = searchAutoRetry,
+        onRetry = searchInputs.onRetryFailedSearch,
+    )
 }
