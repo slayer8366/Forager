@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.longClick
 import androidx.compose.ui.test.onAllNodesWithText
@@ -14,6 +15,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.MapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.MapChromeContentColor
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
@@ -136,6 +138,16 @@ abstract class MapsTabSearchFailureTests(private val landscape: Boolean) {
             "the old full-tab text still shows",
             composeRule.onAllNodesWithText("Couldn't load sightings for the map.").fetchSemanticsNodes().isEmpty(),
         )
+    }
+
+    @Test
+    fun `the notice's text is opaque and the notice clears the compass strip`() {
+        searchThatFails()
+        val text = composeRule.onNode(hasText(SEARCH_FAILED_NOTICE_TEXT), useUnmergedTree = true).fetchSemanticsNode().config[MapChromeContentColor]
+        assertEquals("the notice's text is not opaque", 1f, text.alpha, 0.01f)
+        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
+        val strip = bounds("compass-elevation-strip")
+        assertTrue("the notice ${notice.d()} overlaps the compass strip ${strip.d()}", !notice.overlaps(strip))
     }
 
     @Test
