@@ -138,7 +138,7 @@ internal fun SearchFailedNotice(retrying: Boolean, onTryAgain: () -> Unit, modif
             }
             TextButton(
                 onClick = onTryAgain,
-                enabled = !retrying,
+                enabled = true,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
                 modifier = Modifier.testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
             ) {
