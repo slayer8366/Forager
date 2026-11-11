@@ -8,6 +8,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.CompletableDeferred
@@ -292,5 +293,28 @@ class MapsTabSearchRetryTest {
         rig.sightingsFailure = null
         rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
         assertEquals("the cluster did not return to its limit when the notice went", limit, bounds(MAP_ICON_CLUSTER_TAG).top, 1f)
+    }
+
+    @Test
+    fun `when both failed and a mistyped coordinate replaces the list's failure line, Try again still runs both`() {
+        rig.setScreen()
+        rig.availabilityFailure = IOException("no signal (test)")
+        rig.sightingsFailure = IOException("no signal (test)")
+        search()
+        // A mistyped coordinate, by real touches: its line replaces the list's failure line in the banner.
+        rig.tapBar()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_LATITUDE_TAG).performTextReplacement("999")
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_LONGITUDE_TAG).performTextReplacement("-121.6959")
+        rig.touch(composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG))
+        val message = rig.viewModel.uiState.value.errorMessage
+        assertTrue("positive control: the list's failure line was replaced (now <$message>)", message != null && message != LIST_SEARCH_FAILED_MESSAGE)
+        if (rig.dropdownShown()) composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        rig.settle()
+
+        rig.availabilityFailure = null
+        rig.sightingsFailure = null
+        val lists = rig.availabilityFetches.size
+        rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
+        assertEquals("after another line replaced the list's failure line, Try again did not run the ranked list again", lists + 1, rig.availabilityFetches.size)
     }
 }

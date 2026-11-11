@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.update
  * returns (C4). Does nothing unless the map's sightings fetch failed for the search now showing, so a second tap while the first
  * retry runs (the fetch clears the failure as it starts) starts nothing more.
  *
- * - **Both failed** (the ranked list's [LIST_SEARCH_FAILED_MESSAGE] too): the whole search runs again, as searching again from the bar
+ * - **Both failed** (the ranked list too, as [AvailabilitySearchRuns.listFailedQuery] records it): the whole search runs again, as searching again from the bar
  *   does ([AvailabilityViewModel.refresh]); the owner, C3: "tapping it runs both again". `refresh` renews the search's serial, and the
  *   screen fetches the map's sightings for it when the Maps tab shows, as for any search.
  * - **Only the map's sightings failed**: they are fetched again ([AvailabilityViewModel.onMapTabSelected], which fetches because a
@@ -25,7 +25,8 @@ fun AvailabilityViewModel.retryFailedSearch() {
     if (!mapsSearchFailed(state)) return
     val (region, month, filter) = searchRuns.activeSearch ?: return
     // E4: the notice reads "Trying again…" until the map's sightings fetch ends. Set after refresh, whose new search clears it.
-    if (state.errorMessage == LIST_SEARCH_FAILED_MESSAGE) {
+    // F7: the list's failure as recorded for this search, not its line, which another message can replace.
+    if (searchRuns.listFailedQuery == searchRuns.activeSearch) {
         refresh(region, month, filter)
         _uiState.update { it.copy(isRetryingSearch = true) }
     } else {

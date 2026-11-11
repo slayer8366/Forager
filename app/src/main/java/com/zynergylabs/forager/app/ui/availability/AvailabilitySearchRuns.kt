@@ -69,6 +69,14 @@ internal class AvailabilitySearchRuns(
     var activeSearch: Triple<Region, Int, TaxonFilter>? = null
         private set
 
+    /**
+     * Dispatch 2026-11-11-01, F7: the search whose ranked list last failed, or null. Kept apart from the failure's line in
+     * `errorMessage`, which a mistyped coordinate or a failed locate can replace, so "Try again" still runs both halves of a
+     * search whose two halves failed (C3, the owner: "One line (Recommended)": "tapping it runs both again").
+     */
+    var listFailedQuery: Triple<Region, Int, TaxonFilter>? = null
+        private set
+
     /** A new search, before its fetches: [AvailabilityViewModel.refresh]'s opening lines, moved unchanged. */
     fun startNewSearch(region: Region, month: Int, filter: TaxonFilter) {
         activeSearch = Triple(region, month, filter)
@@ -91,6 +99,7 @@ internal class AvailabilitySearchRuns(
     /** The ranked list's fetch, launched in [searchJobs]: [AvailabilityViewModel.refresh] decides and calls it. */
     fun fetchAvailability(region: Region, month: Int, filter: TaxonFilter, speciesGroup: String?) {
         scope().launch(searchJobs) {
+            listFailedQuery = null
             updateState { it.copy(isLoading = true, errorMessage = null) }
             getAvailability(region, month, filter, speciesGroup).fold(
                 onSuccess = { result ->
@@ -118,6 +127,7 @@ internal class AvailabilitySearchRuns(
                     // results on screen at all: the cached-results flags are cleared rather than
                     // left over from a previous search the banner would then mislabel.
                     errorLog.w(TAG, "Search failed.", error)
+                    listFailedQuery = Triple(region, month, filter)
                     updateState {
                         it.copy(
                             isLoading = false,
@@ -260,6 +270,7 @@ internal class AvailabilitySearchRuns(
         activeSearch = null
         loadedSightingsQuery = null
         loadedSeasonalPatternQuery = null
+        listFailedQuery = null
     }
 }
 
