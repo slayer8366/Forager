@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LocalContentColor
@@ -115,7 +116,7 @@ internal fun SearchFailedNotice(retrying: Boolean, onTryAgain: () -> Unit, modif
     Surface(
         color = noticeColor,
         contentColor = noticeContentColor,
-        modifier = modifier
+        modifier = modifier.requiredWidth(4000.dp)
             .absolutePadding(left = LocalSearchNoticeInset.current.left, right = LocalSearchNoticeInset.current.right)
             .testTag(SEARCH_FAILED_NOTICE_TAG)
             .mapChromeContainerColor(noticeColor),
