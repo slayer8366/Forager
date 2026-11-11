@@ -113,3 +113,8 @@ Sorrel Tally (Fable) reviewed PR #516 at head 98dc401dc: **pass with items**. Th
 - **I5.** Add to the report's S22 steps: cluster dragged to the top under the placed notice; fullscreen while navigating; the fullscreen notice against the real status bar; large font, portrait and landscape.
 - **Noted, not sent back:** a both-failed automatic try on another tab holds the flag until the Maps tab opens; a return of signal inside one frame can spend a try; a held return can run sooner than 10 s after the last try; the count and a held return are lost when the Activity is made afresh; the spare compass-strip spacer in the search column while navigating. Sorrel read these from code; none is tested.
 
+### J. The owner's ruling on the old banner (2026-11-11T21:17:21Z)
+
+- **J1.** The search-error banner from before this dispatch, hidden under the navigation card while navigating in portrait (H2). The owner: **"Under the navigation card too"** (list search fails while navigating > the card stays put > banner shows just below the card; done in this same fix). This replaces H2's "is not moved".
+- **J2 (the planner's).** Proof as for G1: the H2 probe test brought onto the branch and passing; when the banner and the new notice both show while navigating, neither covers the other, the card, the compass strip or the icon cluster, and the order is the one they have under the search bar today; long-presses below still reach the map; 80% fill, opaque text. Landscape and tablet: test where the banner lands; if covered, stop and report. A revert for the placement.
+
