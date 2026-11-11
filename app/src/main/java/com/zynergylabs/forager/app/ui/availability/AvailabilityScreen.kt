@@ -719,7 +719,7 @@ fun AvailabilityScreen(
     // Dispatch 2026-11-11-01: the Maps tab's "Try again" reaches its notice through LocalRetryFailedSearch (MapsSearchFailure.kt) the same way.
     // E3: the automatic tries' count, which "Try again" starts again (SearchAutoRetry.kt).
     val searchAutoRetry = remember { SearchAutoRetry() }
-    val onTryAgain = remember(searchInputs.onRetryFailedSearch) { { searchAutoRetry.onUserRetry(); searchInputs.onRetryFailedSearch() } }
+    val onTryAgain = remember(searchInputs.onRetryFailedSearch) { { searchInputs.onRetryFailedSearch() } }
     CompositionLocalProvider(LocalDownloadMapsForTrip provides openTripOfflineMaps, LocalRetryFailedSearch provides onTryAgain) {
     AvailabilityScreenDrawerHost(
         state = screenState,
