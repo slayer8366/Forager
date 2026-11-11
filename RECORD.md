@@ -36834,3 +36834,75 @@ Night Maps was the only setting the owner had agreed to. All of them are restore
 **Dispatch-file:** prompts/preserved/2026-11-11-01-maps-tab-search-failure.md
 **Notes:** Written by the planner by hand. Not started: the owner asked to see the dispatch before Hazel starts. The system disk has about 300 MB free, so no helper can check out or build until space is freed. Next free ID -2205.
 - **The owner (2026-11-11T13:09:04Z):** to the list of what could be cleared, **"Delete cache and scratch, move the  evidence folder"**; 13 working copies whose commits were on GitHub and 9 scratch folders under ~/.cache were deleted (/ went from 266 MB to 4.1 GB free); asked where the 10.9 GB of S22 evidence should go since it did not fit on /mnt/work, **"Leave them in home"**, so nothing was moved. Then **"Paste the dispatch here"**, and after reading it, **"Go"**. Dispatch amendments A1 (the disk figure) and B1 (the go) are in the dispatch file. Hazel started at Step 1; the stop after Step 1's report stands.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2205
+**Timestamp:** 2026-11-11T13:17:27Z
+**Title:** The site's Forager page becomes zynergy-labs.com/forager/about, built from the Play listing in PR #24, with search markup and a robots.txt open to search and AI; AI training allowed in Cloudflare
+**Decision:**
+- **Where things stood (read 2026-11-10T22:17Z):** zynergy-site main d31c19a, whose files are identical to fd77ab5 (2026-11-09); d31c19a (2026-11-10T20:08:53Z) reverts PR #23's merge 4d397ac. PR #24 (claude/forager-page-wording) open at eedd70e, holding PR #23's page and the README fix. PR #26 (c6ad0ec) open, kept for another update.
+- **The owner (2026-11-10T22:17:25Z):** **"Hi Rowan, let's update the website with info on Forager. The PR should be open and ready as 24"**. Asked whether that was the go for the from-scratch redo: **"PR 24 as it is"** (22:20:54Z). Only PR #24's out-of-date description was rewritten.
+- **"Show me what is published"** (22:21:27Z): the live /Forager/ page was found still served (-2206, Notes).
+- **"Delete: Closed on the owner's word: "Delete the page changes and write them again without the unauthorized change. Full redo." (Forager RECORD -2202)"** (22:25:59Z): that comment on PR #24, the only one with that text on PRs #23 to #26, was deleted.
+- **"Do: zynergy-labs.com/forager/about.html With the relevant info from the Play Store. No other changes, everything should be as it was yesterday"** (22:29:02Z). To the planner's questions (22:31:35Z): which PR, **"In PR 24"** (PR #24 emptied, then holding only the new page); the address, which Cloudflare Pages serves without .html, **"/forager/about is fine"**; the leftover cached copies, **"Clear them"**; the content, **"Description and What's new"**.
+- **"Good. Add relevant SEO"** (23:32:00Z): search markup in the page's head only. "No other changes" kept: no home link and no sitemap.
+- **"Enable AI training"** (23:36:47Z): no tool on the laptop can edit Cloudflare's bot settings, so the owner set Training to Allow under Security > Settings > AI Crawler and Agent access policies (**"Done"**, 2026-11-11T04:22:06Z).
+- **"Purge everything. Rewrite robots.txt to ensure AI can search the website for info. Then publish 24 when all else is green."** (04:24:25Z). Then **"Skip the purge and just publish"** (04:27:43Z), then **"Rewrite robots.txt and then publish"** (04:28:27Z). Shown the robots.txt already in PR #24 and asked if it was what they wanted: **"Yes, publish it"** (04:29:05Z).
+**Notes:** Written by the planner by hand. The page, its markup and robots.txt were written by the planner itself, not a coder, and without a dispatch file, on the owner's "Do:" and the words above; this entry and -2206 stand in for the dispatch. Next free ID -2206.
+
+---
+
+**Kind:** terminal
+**ID:** 2026-09-28-2206
+**Timestamp:** 2026-11-11T13:17:27Z
+**Closes:** 2026-09-28-2194
+**Title:** zynergy-site PR #24 merged: /forager/about and robots.txt live; dispatch 2026-11-10-01's /Forager/ page superseded
+**Outcome:** completed, in the form -2205 gives it.
+- **What became of -2194's page:** /Forager/ was published by PR #23 (merged as 4d397ac, 2026-11-10T19:35:09Z), then reverted on main by d31c19a. The owner replaced it with /forager/about (-2205). Nothing more is built from dispatch 2026-11-10-01.
+- **PR #24 merged** as 46596b4 at 2026-11-11T04:29:26Z, head ab55398, on the owner's "Yes, publish it".
+  - Before merging, site main d31c19a was backed up to ~/Zynergy/forager-repo-backups/zynergy-site-main-d31c19a-20261111T0429Z.bundle, verified.
+  - The diff against main is two new files, forager/about.html and robots.txt, and nothing else.
+  - The PR's own commits: ee3ba5f (every file back to main), 4b72073 (the page), 72ca07c (search markup), ab55398 (robots.txt).
+- **The page:**
+  - It carries the listing's full description and What's new notes, in the listing's words and order, with a Google Play link. The only other lines: "Zynergy Labs" (twice), "Forager", "Get it on Google Play" and "What’s new".
+  - A script wrote the page from the live listing; a second script checked it, finding 28 of 28 lines, in order. A one-word change made the check fail.
+  - html5lib strict: 0 errors, one h1.
+- **Search markup** (the head only; everything from </head> on is unchanged):
+  - The title is "Forager: a private foraging companion for Android · Zynergy Labs". The description is the listing's summary line plus its opening line. Canonical https://zynergy-labs.com/forager/about.
+  - Open Graph and card tags carry assets/forager-banner.jpg.
+  - JSON-LD: Organization, MobileApplication and WebPage. The app's name, summary, rating, price and currency equal Play's own markup. Its system and category are written as Play's page shows them ("Android", "Maps & Navigation"). No ratings or reviews.
+- **robots.txt:** `User-agent: *`, `Content-Signal: search=yes, ai-input=yes, ai-train=yes`, `Allow: /`. It has no sitemap line, because the site has no sitemap. Python's robotparser allows GPTBot, ClaudeBot, OAI-SearchBot, PerplexityBot, CCBot, Google-Extended, Googlebot and Bingbot.
+- **Before merging:**
+  - Cloudflare Pages previews were green on 4b72073, 72ca07c and ab55398.
+  - Under local `wrangler pages dev`: /forager/about 200; /forager/about.html and /forager/about/ 308 to it; robots.txt byte for byte as text/plain; other paths as on main.
+  - Each diff's privacy scan read 0 in every category, after a planted in-box coordinate was caught.
+- **Live (2026-11-11T04:30:02Z, after 46596b4's production deploy succeeded at 04:29:43Z):**
+  - /forager/about 200, byte for byte the merged file; /forager/about.html 308 to /forager/about.
+  - /robots.txt exactly the merged file, with nothing prepended by Cloudflare.
+  - GPTBot, ClaudeBot, OAI-SearchBot and Googlebot 200 on the page.
+  - /, /privacy/, /delete-data/ and /Forager/forecast/ 200 with their titles; /forager/forecast 301.
+- **AI training (04:22:12Z, after the owner's change):** GPTBot, ClaudeBot, CCBot, Bytespider and Amazonbot 200 (403 at 2026-11-10T23:37Z). Cloudflare's `ai-train=no` block is gone from robots.txt.
+- **Left as they are:**
+  - /Forager/, /sitemap.xml and /llms.txt still serve PR #23's files from a cache: age about 32,000 s at 04:30Z, while a query string gets the current deploy's answer. The purge was skipped on the owner's word. Cloudflare's docs give its cache up to a week.
+  - PR #26 is open and untouched.
+  - The new page has no home link or sitemap entry ("No other changes").
+- **Not verified:** how search engines and AI tools index the page; anything on a phone or in a share preview.
+**Notes:** Written by the planner by hand. Corrections, as found:
+  - The planner twice told the owner the Forager page was not live: before the session's /clear, and in its first message after. It had read site main, not the live site. The owner's "Show me what is published" found it still served from cached copies.
+  - The planner's list of leftover copies left out /robots.txt. This was corrected to the owner at 2026-11-11T04:22Z, and the merge has since replaced it.
+
+Another planner session is writing to this record at the same time (-2203, -2204). Next free ID -2207.
+
+---
+
+**Kind:** decision
+**ID:** 2026-09-28-2207
+**Timestamp:** 2026-11-11T13:17:27Z
+**Title:** The owner's standing word: always write the records
+**Decision:**
+- **The owner (2026-11-11T13:14:52Z), verbatim:** **"Always write the records"**.
+- **What prompted it:** after the owner's "Undo anything that happened without my go" and "Record entries" (2026-11-10, the revert 477386828 of -2195 to -2202), the planner treated recording as needing a go. It did the evening's site work (-2205, -2206) with no entry, then ended by offering "say if you want them".
+- **The rule:** every intent, ruling, merge and outcome gets its entry as the work happens, without asking. An owner's undo of particular entries removes those entries only; it never suspends recording.
+**Notes:** Written by the planner by hand. Saved to the planner's memory as always-write-records. Next free ID -2208.
