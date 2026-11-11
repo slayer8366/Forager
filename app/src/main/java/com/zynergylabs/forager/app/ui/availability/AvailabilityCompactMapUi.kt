@@ -371,6 +371,7 @@ internal fun CompactMapTab(
     // drawn with the search bar (MapsSearchFailure.kt, placed by ScaffoldMapTabCall). A `when` with its `else` only, kept so the
     // map's block keeps its indentation and this change is these lines alone.
     when {
+        uiState.isLoadingSightings -> androidx.compose.material3.CircularProgressIndicator(modifier)
         else -> {
             // The map's own viewport, never null (see compactMapDisplayRegion).
             val displayRegion = compactMapDisplayRegion(uiState)
