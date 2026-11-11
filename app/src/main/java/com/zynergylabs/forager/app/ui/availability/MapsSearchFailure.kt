@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.absolutePadding
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -144,15 +145,21 @@ internal fun FullscreenSearchFailedNotice(top: Dp, onTryAgain: () -> Unit, onHei
 @Composable
 internal fun SearchBarLoadingLine(shape: Shape, modifier: Modifier = Modifier) {
     Box(modifier = modifier.clip(shape)) {
-        LinearProgressIndicator(
-            color = mapChromeContentColor(LocalForagerDarkTheme.current),
-            trackColor = Color.Transparent,
+        // Tagged on a Box of its own: the indicator's own semantics bounds are padded taller than it draws (Material3's
+        // accessibility padding), so a test reading the indicator would measure 12 dp, not the line.
+        Box(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
                 .fillMaxWidth()
                 .height(SEARCH_BAR_LOADING_LINE_HEIGHT)
                 .testTag(SEARCH_BAR_LOADING_LINE_TAG),
-        )
+        ) {
+            LinearProgressIndicator(
+                color = mapChromeContentColor(LocalForagerDarkTheme.current),
+                trackColor = Color.Transparent,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
     }
 }
 

@@ -216,9 +216,14 @@ class SearchClearAndFrameTest {
         rig.sightingsGate = gate
         rig.searchCoordinates("-41.2865", "174.7762")
         rig.settle()
+        // Dispatch 2026-11-11-01 (the owner: "Map stays, auto retry (Recommended)"): there is no spinner in place of the map any
+        // more, so this positive control is turned to what the owner ruled: the map stays while the new search's sightings load.
+        // It read "the spinner has replaced the map" (isEmpty) until then. The claim below, that the earlier locate is not the
+        // new search's pan target, is unchanged.
         assertTrue(
-            "positive control: the spinner has replaced the map",
-            composeRule.onAllNodes(hasTestTag(LAYOUT_FIXES_MAP_TAG), useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
+            "positive control: the map stays while the new search's sightings load",
+            rig.viewModel.uiState.value.isLoadingSightings &&
+                composeRule.onAllNodes(hasTestTag(LAYOUT_FIXES_MAP_TAG), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
         )
         rig.sightingsGate = null
         gate.complete(Unit)
