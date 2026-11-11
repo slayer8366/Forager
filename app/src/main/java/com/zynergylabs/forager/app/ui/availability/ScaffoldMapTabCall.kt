@@ -367,7 +367,7 @@ internal fun ScaffoldMapTabCall(
                                                 // only its bottom, its join and a side with room beside it, never its top.
                                                 pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
                                             )
-                                            if (uiState.isLoadingSightings) SearchBarLoadingLine(shape = barPillCorners.shape(), modifier = Modifier.matchParentSize())
+                                            if (false && uiState.isLoadingSightings) SearchBarLoadingLine(shape = barPillCorners.shape(), modifier = Modifier.matchParentSize())
                                             }
                                             // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the
                                             // bar's bottom over this column, so the notice starts where the strip's own measured height ends.
