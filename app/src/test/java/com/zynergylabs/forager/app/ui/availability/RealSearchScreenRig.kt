@@ -111,6 +111,9 @@ internal class RealSearchScreenRig(
     private val pickerPans: Boolean = false,
     /** Dispatch 2026-11-11-01: a long-press on the map is counted in [mapLongPresses], as the real map takes one. Off by default. */
     private val countsLongPresses: Boolean = false,
+    /** Dispatch 2026-11-11-01, F1: the recording and the navigation the screen is handed; none by default, as MainActivity with neither. */
+    private val recording: AvailabilityScreenRecording = AvailabilityScreenRecording(),
+    private val navigation: AvailabilityScreenNavigation = AvailabilityScreenNavigation(),
 ) {
 
     /** Where the next drag on a map settles its camera, when [pickerPans] is set. */
@@ -317,6 +320,8 @@ internal class RealSearchScreenRig(
                 ),
                 // Dispatch 2026-10-28-13, Amendment 3: as MainActivity wires it, so the barometer follows the Maps tab here too.
                 mapControls = AvailabilityScreenMapControls(onMapsTabShownChanged = vm::onMapsTabShownChanged),
+                recording = recording,
+                navigation = navigation,
                 mapSlot = mapSlot,
             )
         }
