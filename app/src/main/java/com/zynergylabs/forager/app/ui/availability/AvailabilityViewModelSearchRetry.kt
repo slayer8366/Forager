@@ -26,7 +26,7 @@ fun AvailabilityViewModel.retryFailedSearch() {
     val (region, month, filter) = searchRuns.activeSearch ?: return
     // E4: the notice reads "Trying again…" until the map's sightings fetch ends. Set after refresh, whose new search clears it.
     // F7: the list's failure as recorded for this search, not its line, which another message can replace.
-    if (searchRuns.listFailedQuery == searchRuns.activeSearch) {
+    if (state.errorMessage == LIST_SEARCH_FAILED_MESSAGE) {
         refresh(region, month, filter)
         _uiState.update { it.copy(isRetryingSearch = true) }
     } else {
