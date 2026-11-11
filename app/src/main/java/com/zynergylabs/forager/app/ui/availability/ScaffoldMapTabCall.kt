@@ -243,7 +243,7 @@ internal fun ScaffoldMapTabCall(
                                     placedFailedShows(uiState, searchNoticeUnderCard(navigation, showRail), isMapFullscreen()) ||
                                     placedBannerShows(uiState, searchNoticeUnderCard(navigation, showRail), isMapFullscreen())
                                 ) {
-                                    with(LocalDensity.current) { placedNoticeHeightPx.toDp() }
+                                    0.dp
                                 } else if (mapsTabNoticeShows(uiState) && !isMapFullscreen()) {
                                     with(LocalDensity.current) { measurements.searchChromeHeightPx.toDp() }
                                 } else {
