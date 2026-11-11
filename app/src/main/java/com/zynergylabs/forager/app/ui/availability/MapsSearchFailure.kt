@@ -91,7 +91,7 @@ internal fun mapsTabSearchNoticeState(uiState: AvailabilityUiState): Availabilit
  * stays, shows it's trying (Recommended)"; its option read "Retry starts > the notice stays where it is and reads 'Trying
  * again…' > it goes only when the search works, or returns to 'Search failed' if it doesn't. Nothing jumps").
  */
-internal fun mapsSearchNoticeShows(uiState: AvailabilityUiState): Boolean = mapsSearchFailed(uiState) || uiState.isRetryingSearch
+internal fun mapsSearchNoticeShows(uiState: AvailabilityUiState): Boolean = mapsSearchFailed(uiState)
 
 /** Whether a line shows under the Maps tab's search bar: [SearchNotice]'s, the search-failed notice, or both. */
 internal fun mapsTabNoticeShows(uiState: AvailabilityUiState): Boolean =
