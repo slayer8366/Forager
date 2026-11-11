@@ -384,7 +384,7 @@ internal fun ScaffoldMapTabCall(
                                             // the search-failed notice with "Try again" (C1).
                                             // J1 (the owner: "Under the navigation card too"): navigating in portrait, the banner is placed below
                                             // the card with the notice (PlacedSearchNotices), not here.
-                                            if (!searchNoticeUnderCard(navigation, showRail)) SearchNotice(mapsTabSearchNoticeState(uiState), overMap = true)
+                                            SearchNotice(mapsTabSearchNoticeState(uiState), overMap = true)
                                             if (mapsSearchNoticeShows(uiState) && !searchNoticeUnderCard(navigation, showRail)) {
                                                 SearchFailedNotice(retrying = uiState.isRetryingSearch, onTryAgain = LocalRetryFailedSearch.current)
                                             }
@@ -394,7 +394,7 @@ internal fun ScaffoldMapTabCall(
                                         // below the compass strip where the strip is there (portrait), placed as the bar is. G1 ("Under the navigation card"):
                                         // while navigating in portrait, below the navigation card, which hangs from the bar's bottom (the animated top inset).
                                         val underCard = searchNoticeUnderCard(navigation, showRail)
-                                        val placedBanner = placedBannerShows(uiState, underCard, isMapFullscreen())
+                                        val placedBanner = false
                                         val placedFailed = placedFailedShows(uiState, underCard, isMapFullscreen())
                                         if (placedBanner || placedFailed) {
                                             PlacedSearchNotices(
