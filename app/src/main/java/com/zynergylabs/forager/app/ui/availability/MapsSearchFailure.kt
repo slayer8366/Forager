@@ -175,7 +175,7 @@ internal fun RetryFailedSearchOnSignalReturn(networkValidated: Flow<Boolean>, se
     val retry by rememberUpdatedState(onRetry)
     LaunchedEffect(networkValidated) {
         signalReturns(networkValidated).collect {
-            if (failed) retry()
+            if (failed) Unit
         }
     }
 }
