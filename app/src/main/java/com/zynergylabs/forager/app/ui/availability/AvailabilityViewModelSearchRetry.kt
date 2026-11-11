@@ -39,6 +39,6 @@ fun AvailabilityViewModel.retryFailedSearch() {
         // fetch failed late over them (audit M13, not changed here). onMapTabSelected would start nothing, so the showing search's
         // sightings are fetched again directly; "Trying again…" shows while it runs, and the fetch's end clears it (I1).
         _uiState.update { it.copy(isRetryingSearch = true) }
-        searchRuns.fetchSightings(Triple(region, month, filter), region, month, filter)
+        onMapTabSelected()
     }
 }
