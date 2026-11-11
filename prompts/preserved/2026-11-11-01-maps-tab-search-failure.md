@@ -49,3 +49,11 @@ New branch `maps-tab-search-failure` from origin/main. A PR into main, ready and
 No Gradle on the laptop; CI only. **The laptop's system disk is full (about 300 MB free on /):** work and scratch under /mnt/work/scratch, never /tmp and never under the home directory, and stop if a checkout fails for space. Never reset, rebase or amend; merge, never rebase. Commit and push each step. Commits end exactly `Co-Authored-By: Claude <noreply@anthropic.com>`, no model name. Scan every push with the private scanner; 0 required. One coder per file: check open PRs for the files you will touch before you start, and stop if another branch holds one.
 
 **Stops:** a wrong premise; the failure not reproducing; any choice a user would see beyond what is written here (placement, wording, timing of the notice); a file shared with another open branch; a change needed outside ui/availability and its tests; two failed attempts at the same symptom.
+
+## Amendments
+
+### A. Facts that changed after writing
+- **A1 (2026-11-11T13:09:04Z).** The Rules line "The laptop's system disk is full (about 300 MB free on /)" is out of date: after the owner's "Delete cache and scratch", / has 4.1 GB free and /mnt/work 5.7 GB. The rest of that line stands: work and scratch under /mnt/work/scratch, never /tmp, never under the home directory; stop if a checkout fails for space.
+
+### B. The owner's go
+- **B1 (2026-11-11T13:09:04Z).** The owner read the dispatch in full and said: **"Go"**. Hazel starts at Step 1. The stop after Step 1's report stands.
