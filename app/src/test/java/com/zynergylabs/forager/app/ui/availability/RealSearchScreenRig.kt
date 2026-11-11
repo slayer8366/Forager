@@ -171,6 +171,12 @@ internal class RealSearchScreenRig(
     /** RECORD -1525: when set, every map sightings fetch waits for it, so the Maps tab holds its spinner until it completes. */
     var sightingsGate: CompletableDeferred<Unit>? = null
 
+    /**
+     * Dispatch 2026-11-11-01: when set, every map sightings fetch fails with it (after [sightingsGate], if one is set), as a
+     * fetch with no signal does on the phone. Counted in [sightingsFetches] all the same.
+     */
+    var sightingsFailure: Throwable? = null
+
     /** RECORD -1525: the locate-me pan target (`focusOverride`) the map was handed on its latest composition. */
     var mapFocusOverride: com.zynergylabs.forager.app.domain.model.LatLng? = null
         private set
@@ -187,6 +193,7 @@ internal class RealSearchScreenRig(
         override suspend fun getSightings(region: Region, month: Int, filter: TaxonFilter): Result<SightingsPage> {
             sightingsFetches += Triple(region, month, filter)
             sightingsGate?.await()
+            sightingsFailure?.let { return Result.failure(it) }
             return Result.success(SightingsPage(sightings = listOf(sightingAt(region)), totalResults = 1))
         }
 
