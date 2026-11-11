@@ -201,3 +201,172 @@ Robolectric reports zero window insets, has no real network, and its map is a st
 - Anything on the phone (above).
 - A portrait tablet: inferred to match the portrait phone, not run.
 - The 24 skipped tests in the full suite were not examined.
+
+---
+
+# Addendum, 2026-11-11 evening: Sorrel's review and the owner's rulings E1 to E4
+
+Added after Sorrel Tally's review of PR #516 at `98dc401dc` ("pass with items"). The dispatch's Amendment E records the
+owner's rulings; Amendment F gives Sorrel's items as the planner's instruction. Nothing above this line was rewritten; where
+it is now out of date, the line here says so.
+
+The owner's words: E1 **"Keep it, and prove it (Recommended)"**; E2 **"Only with Forager on screen (Recommended)"**;
+E3 **"3 tries, then wait for me (Recommended)"**; E4 **"Notice stays, shows it's trying (Recommended)"**.
+
+## The breach, on record
+
+Step 2 changed an assertion in `SearchClearAndFrameTest` without stopping first. That broke the dispatch's stop ("an
+unrelated test failing") and CLAUDE.md's rule that such a test is reported, not touched. "Decided beyond scope", 3, above,
+named the change but not the breach. The owner ruled the change stays (E1). From here, any existing test that fails is a
+stop for this dispatch.
+
+## Item by item
+
+**F1, the notice while navigating, portrait: covered. Not fixed; where it sits is the owner's.** The test is on the probe
+branch `mtsf-f1-probe` (`MapsTabSearchNavigatingTest`, commit `9a5e2db3b`), run
+[43061560607](https://github.com/slayer8366/Forager/actions/runs/43061560607). It goes through the real screen and
+ViewModel, navigating and recording, with five real coordinate touches across "Try again". The build log had 0 compile
+errors. It failed:
+
+> `while navigating, real touches on Try again that did not run the search (notice [0.0, 120.0][1152.0, 264.0], Try again
+> [978.0, 132.0][1152.0, 252.0], navigating strip and card [0.0, 120.0][1152.0, 411.0], bar [0.0, 0.0][1152.0, 120.0])
+> expected:<[]> but was:<[(0.85, 0.25), (0.5, 0.5), (0.85, 0.75)]>`
+
+So while navigating, the notice sits wholly inside the navigating compass strip and card. Sorrel's reading was right: the
+strip's height counts as 0 while navigating (`CompactMapTopStrip.kt`). The card is drawn over the notice, and three of the
+five touches on "Try again" reach the card instead. The test was not added to the PR branch, because it would fail it. The
+existing search-error banner sits in the same place, so it is covered the same way, and was before this dispatch (read
+from code, not tested).
+
+**F2, a return during a running fetch.** `SearchAutoRetry` (new, plain Kotlin) holds a return that comes while the fetch
+runs. If that fetch fails, the search runs again once; if it succeeds, the held return is dropped.
+
+**F3, E2 and E3.**
+- E2: a return while Forager is not resumed is held. It runs once when Forager comes back, if the search has still failed
+  and the signal is there. "On screen" is the composition's own lifecycle owner (`currentStateAsState`, read in
+  ui/availability), so MainActivity did not change for E2.
+- My reading, named: F3's "on coming back with the notice showing and signal present, one retry" is applied only when a
+  return came while Forager was away. Coming back with a good-signal failure and no return runs nothing, so C7 ("Notice
+  stays, no auto retry") still holds.
+- E3: at most 3 automatic tries per failed search. "Try again", a new search and a success start the count again.
+- The 10 s spacing stays as my operating limit.
+- Turning the phone keeps the count: MainActivity handles the turn in place, and the count is remembered in the
+  composition. That is tested with a turn to landscape.
+- Leaving and coming back with a return in between gives one retry, and coming back again gives none. Tested.
+- Not tested: an Activity created anew (a change MainActivity does not handle in place, such as a theme change) starts the
+  count at 0 and drops a held return.
+
+**F4, E4.**
+- `AvailabilityUiState.isRetryingSearch` is set by `retryFailedSearch` and cleared when the sightings fetch ends, on a new
+  search and on Clear.
+- While it is set, the notice stays and reads "Trying again…".
+- Both lines are always laid out in one space; the one not showing is drawn at no alpha and left out of semantics. Text is
+  never shrunk.
+- "Try again" keeps its space while the retry runs, drawn at no alpha and not clickable. That is my reading of "the notice
+  reads 'Trying again…'", named here.
+- It works the same in fullscreen. The loading line on the bar still shows while the retry runs (C2).
+
+**F5, E1.** The test is renamed "a locate from before a search is not the pan target of the map while the new search's
+sightings load and after", and its doc comment records the breach. Its final assertions are unchanged.
+
+**F6, tests weaker than their names:**
+- Long-presses beside the width-capped notice in short landscape and on a landscape tablet, under the bar and in fullscreen
+  (`MapsTabSearchNoticeTouchTest`).
+- A long-press below the fullscreen notice (portrait).
+- The notice clears the compass strip, in all three layouts.
+- The fullscreen notice is just below the strip, on the map and inside the screen.
+- The notice's text is opaque: `MapChromeContentColor` alpha is 1.
+- The cluster, dragged to its top limit, is held below the notice and comes back when the notice goes.
+- The taxon chip does not overlap "Try again", and a real touch on "Try again" runs the search (`MapsTabSearchChipTest`;
+  it passed first on the probe branch).
+- A revert puts the spinner branch back.
+
+**F7, a "both failed" check that relied on the message.** This did break C3. When both halves had failed and then a mistyped
+coordinate, or a failed locate, wrote its own line into `errorMessage`, "Try again" ran only the map's half. On the List tab
+the user went on seeing no results and that other message.
+- Fix: `AvailabilitySearchRuns.listFailedQuery` records which search's ranked list failed, apart from the line, and
+  `retryFailedSearch` reads it.
+- On the Maps tab the other line still shows above the notice; that was left as it is, as ruled.
+
+**F8, tidy.**
+- `MapMessage` is removed; it had no caller. Its two mentions in other files' history comments were left, to keep those
+  files' blame.
+- The `when` with only its `else` stays. Removing it would reindent 400 lines and move their blame for nothing.
+- `refresh` and `searchRuns` stay `internal`. The retry needs the active search and `refresh`, and putting it back into the
+  ViewModel would take that file past 800 lines.
+
+## Revert checks for these items
+
+Each revert was one edit on its own branch `mtsf-revert2-*`. Ten were cut from `3ff934330`; the large-font one was cut from
+`33cf479d7`, after that test was fixed. Each file was saved first and restored from the copy. Every build log was read
+first: 0 `e:` lines, and `compileDebugUnitTestKotlin` ran. Failures below are verbatim from the JUnit XML.
+
+| Behaviour | Edit | Run | Failures |
+|---|---|---|---|
+| F2 return held during a running fetch | `if (!onScreen \|\| running)` to `if (!onScreen)` | [43071073002](https://github.com/slayer8366/Forager/actions/runs/43071073002) | `a return during the running fetch was lost when the fetch failed expected:<2> but was:<1>`; the headless test's first `assertFalse` (no message: the return during the fetch ran at once) |
+| E2 nothing in the background | `if (!onScreen \|\| running)` to `if (running)` | [43071085480](https://github.com/slayer8366/Forager/actions/runs/43071085480) | `a return in the background ran the search expected:<1> but was:<2>`; `a return in the background ran the search` |
+| E3 three tries | `if (tries < maxTries)` to `if (true)` | [43071097356](https://github.com/slayer8366/Forager/actions/runs/43071097356) | `five returns did not make exactly three automatic tries expected:<4> but was:<6>`; `after a turn the count of automatic tries started again expected:<4> but was:<6>`; `a fourth return ran the search` |
+| E3 Try again starts the count again | `onUserRetry()` call removed | [43071113442](https://github.com/slayer8366/Forager/actions/runs/43071113442) | `after Try again the returns did not make three more automatic tries expected:<8> but was:<5>` |
+| E4 notice stays during a retry | `mapsSearchNoticeShows` = failed only | [43071124840](https://github.com/slayer8366/Forager/actions/runs/43071124840) | `under the bar: the notice went away during the retry`; `fullscreen: the notice went away during the retry`; `positive control: the notice reads "Trying again…"` |
+| E4 one space for both lines | the failure line not laid out during a retry | [43076222650](https://github.com/slayer8366/Forager/actions/runs/43076222650) | `large font: the notice moved or changed size when the retry started: [0.0, 328.0][1152.0, 568.0] then [0.0, 328.0][1152.0, 488.0]` |
+| F6 no swallowed touch beside the notice | the notice's Surface given `requiredWidth(4000.dp)` | [43071150387](https://github.com/slayer8366/Forager/actions/runs/43071150387) | 4 of 4, at the test's positive control, which names the notice now spanning the window: e.g. `positive control (under the bar): there is map beside the notice [0.0, 108.0][2469.0, 252.0]` |
+| F6 cluster follows the notice | `searchNoticeBottom` back to `searchNoticeMessage(uiState) != null` | [43071163595](https://github.com/slayer8366/Forager/actions/runs/43071163595) | `the cluster [984.0, 229.0][1128.0, 1369.0] is not held below the notice [0.0, 228.0][1152.0, 372.0]` |
+| F6 the spinner branch | `uiState.isLoadingSightings -> CircularProgressIndicator(modifier)` put back | [43071175759](https://github.com/slayer8366/Forager/actions/runs/43071175759) | `missing from the Maps tab while sightings load expected:<[]> but was:<[the map, the search bar, the tab bar]>`; `while sightings load there is no loading line on the search bar`; both E4 tests' `the notice went away during the retry` |
+| F5 / E1 the locate test guards its bug | `takeIf { searchFrameSerial == ... }` removed in `compactMapLocateFocus` | [43071189791](https://github.com/slayer8366/Forager/actions/runs/43071189791) | `the earlier locate is not replayed as the new search's pan target expected null, but was:<LatLng(lat=45.0, lng=-122.0)>`; also the neighbouring RECORD -1525 test, `positive control: the search's map has no locate-me target expected null, but was:<LatLng(lat=45.0, lng=-122.0)>` |
+| F7 both halves after another line | the check back to `errorMessage == LIST_SEARCH_FAILED_MESSAGE` | [43071203917](https://github.com/slayer8366/Forager/actions/runs/43071203917) | `after another line replaced the list's failure line, Try again did not run the ranked list again expected:<2> but was:<1>` |
+
+**The large-font test took two attempts, and the first run proved nothing.** Its first revert, run
+[43071137047](https://github.com/slayer8366/Forager/actions/runs/43071137047) from `3ff934330`, passed: the test had never
+seen the case it exists for. A positive control then showed why (run
+[43075240623](https://github.com/slayer8366/Forager/actions/runs/43075240623)): `the failure line wraps (it takes 1 line(s)
+at font scale 2.0 ...)`. Under Robolectric's default graphics mode text is not really measured, so the line never
+wrapped. With `@GraphicsMode(NATIVE)` the line wraps; the test passes forward (run
+[43076209621](https://github.com/slayer8366/Forager/actions/runs/43076209621)) and its revert fails (above).
+
+The F6 beside-touch revert fails at its positive control rather than at the long-press. That positive control prints the
+notice's bounds spanning the whole window, which is the edit's own effect. The revert runs' full suites were cancelled once
+their reports were in.
+
+## Full CI at the final head
+
+The pull request's own run at `33cf479d7`, the last code commit:
+[43076220384](https://github.com/slayer8366/Forager/actions/runs/43076220384), unfiltered, every job passed, and the build
+log has 0 `e:` lines. From the JUnit XML:
+
+- `testDebugUnitTest`: 7567 tests, 0 failures, 0 errors, 24 skipped. `testDebugUnitTestOlderSdks`: 24 tests, 0 failures.
+- That is 7538 at `183388845` plus 29 new: 3 in `MapsTabSearchFailure*`, 6 in `MapsTabSearchRetryTest`, 5 in
+  `MapsTabSearchAutoRetryTest`, 9 in `SearchAutoRetryTest`, 4 in `MapsTabSearchNoticeTouch*`, 1 in `MapsTabSearchChipTest`
+  and 1 in `MapsTabSearchRetryLargeFontTest`. Nothing was removed, and the skip count is the same.
+- No existing test failed. This commit adds this report only; the pull request's run on it is the run at the final head.
+
+## On the phone (S22), added
+
+8. Navigating, airplane mode on, search. **Observation for the owner, not a gate** (F1): today the notice sits under the
+   navigation card. Note whether any of it shows, and whether "Try again" can be pressed.
+9. Airplane mode on, search, then press Home. Airplane mode off, wait, then come back. **Pass:** nothing ran while away; on
+   coming back the notice reads "Trying again…" once, in the same place, then goes, or reads "Search failed" again.
+   **Evidence:** a screen recording.
+10. Toggle airplane mode quickly several times with the notice showing. **Pass:** at most three automatic tries, then the
+    notice stays until "Try again".
+
+## Disclosure, for these items
+
+- **Confirmed vs inferred.** Confirmed by CI: everything in the table and F1's failure. Inferred: the "Trying again…" line
+  and "Try again"'s kept space look right at every font. Only font scale 2 in portrait was run.
+- **Could not determine.** How the S22 reports the lifecycle on the notification shade or split screen, where Forager can be
+  visible but not resumed. E2 treats that as off screen.
+- **Premises that were wrong.**
+  - My own: that the existing tests showed "nothing in the notice moves". They could not, at the default font.
+  - My own: Step 2's "five touches across Try again" proves touchability; it does not while navigating (F1).
+- **Decided beyond scope.**
+  - E2 applied only after a return while away (above).
+  - "Try again" hidden but kept in place during a retry.
+  - F7 changed code (C3 did not hold).
+  - The 10 s spacing kept.
+  - The rig gained a recording and a navigation, and an `availabilityFailure` switch.
+
+## Not verified, added
+
+- Where the notice should sit while navigating: the owner's (F1).
+- An Activity created anew during a failure.
+- Landscape at a large font.
