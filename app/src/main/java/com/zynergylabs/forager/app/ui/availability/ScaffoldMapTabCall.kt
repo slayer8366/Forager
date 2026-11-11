@@ -237,7 +237,7 @@ internal fun ScaffoldMapTabCall(
                                 searchBarBottom = mapSearchBarHeight,
                                 // Item 2: only while a notice shows, and not in fullscreen, where the whole search column slides away.
                                 // Dispatch 2026-11-11-01: the search-failed notice counts as a notice, and while fullscreen it is at the map's top (C6).
-                                searchNoticeBottom = if (mapsTabNoticeShows(uiState) && !isMapFullscreen()) {
+                                searchNoticeBottom = if (searchNoticeMessage(uiState) != null && !isMapFullscreen()) {
                                     with(LocalDensity.current) { measurements.searchChromeHeightPx.toDp() }
                                 } else if (mapsSearchNoticeShows(uiState) && isMapFullscreen()) {
                                     with(LocalDensity.current) { fullscreenNoticeHeightPx.toDp() }
