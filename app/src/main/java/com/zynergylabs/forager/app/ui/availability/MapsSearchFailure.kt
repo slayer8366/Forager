@@ -114,7 +114,7 @@ internal fun SearchFailedNotice(onTryAgain: () -> Unit, modifier: Modifier = Mod
                     .padding(start = Spacing.lg, top = Spacing.sm, bottom = Spacing.sm),
             )
             TextButton(
-                onClick = onTryAgain,
+                onClick = {},
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
                 modifier = Modifier.testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
             ) {
