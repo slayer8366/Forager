@@ -36,7 +36,7 @@ internal class SearchAutoRetry(private val maxTries: Int = SEARCH_AUTO_RETRY_MAX
      */
     fun onSignalReturn(failed: Boolean, running: Boolean, onScreen: Boolean): Boolean {
         if (!failed && !running) return false
-        if (!onScreen || running) {
+        if (running) {
             returnHeld = true
             return false
         }
