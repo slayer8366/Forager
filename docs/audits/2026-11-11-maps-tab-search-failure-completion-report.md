@@ -478,3 +478,142 @@ right, is far from the notice, so that check could not fail with the edits made.
   - G1 implemented as "portrait only", per the owner's option text and H1's "landscape: test, do not place".
   - In fullscreen while navigating, the notice also sits below the card, the card being at the top then. Read from
     code, not tested.
+
+---
+
+# Addendum 3, 2026-11-11 night: Sorrel's second review (I1 to I5) and the owner's J1
+
+The dispatch's Amendment I holds the planner's items from Sorrel's second review; Amendment J holds the owner's ruling on the
+old banner. Nothing above this line was rewritten. Where it is now out of date, the line here says so.
+
+## I1: "Trying again…" could stick
+
+**Seen failing first.** The test is `MapsTabSearchStaleFailureTest`, through the real screen and ViewModel. It holds search
+A's fetch, lets search B's fetch succeed, then fails A's fetch late. That late failure is audit M13, which is left as it is:
+the notice shows over B's good map. Then it taps "Try again".
+
+On the branch as it stood (commit `1816bd8e1`, test only), run
+[43101071086](https://github.com/slayer8366/Forager/actions/runs/43101071086) had a clean build log and failed:
+
+> `after Try again with nothing to fetch (fetches 0), the notice reads "Trying again…" and stays`
+
+**The fix**, in commit `eb0a9cec2`, changes `retryFailedSearch` only. `isRetryingSearch` is set only when a sightings fetch
+will start, that is when the showing search's sightings are not already loaded. Fetches are not cancelled, and what shows
+over a good map is unchanged.
+
+**What "Try again" does in that state after the fix: nothing.** The notice keeps reading "Search failed. Check your
+connection.", the button stays enabled, and a tap changes nothing. Only a new search, or Clear, removes it.
+
+The dispatch asks me to stop and report when the only answers are "nothing" or a change to M13's behaviour, so this is
+reported, not chosen. The options I can see:
+- (a) leave it at nothing (as now);
+- (b) "Try again" fetches the showing search's sightings again even though they are loaded: a real retry that cancels
+  nothing, after which the notice goes;
+- (c) "Try again" clears the stale failure without fetching. That changes what M13 shows, so it is M13's to decide.
+
+The test pins none of these. It asserts only that the notice does not stick at "Trying again…".
+
+## I2: the cluster under the placed notice
+
+`MapsTabSearchClusterTest` covers navigating in portrait and fullscreen. The cluster is dragged to its top before the notice
+shows, which gives the cluster's own limit; then the notice shows and the cluster must be held below it.
+- My first version dragged while the notice already showed. The cluster then remembered the held place, so the positive
+  control failed (run [43102398320](https://github.com/slayer8366/Forager/actions/runs/43102398320), the only failures in
+  7585). Fixed in `e594ce119`.
+- It passes forward: run [43106751710](https://github.com/slayer8366/Forager/actions/runs/43106751710).
+- Revert (the placed notice's bottom reported as 0), run
+  [43106796718](https://github.com/slayer8366/Forager/actions/runs/43106796718):
+  - `navigating: the cluster [984.0, 169.0][1128.0, 1309.0] is not held below the notice [0.0, 411.0][1152.0, 555.0]`
+  - `fullscreen: the cluster [984.0, 109.0][1128.0, 1249.0] is not held below the notice [0.0, 108.0][1152.0, 252.0]`
+- This replaces addendum 2's "not shown to bite" line for the cluster.
+
+## I3: a revert that fails on the swallowed long-press itself
+
+The revert lays a full-width, long-press-taking layer under the placed notice. The notice's own bounds stay as they are, so
+the test's points beside it are still chosen. Run [43102470407](https://github.com/slayer8366/Forager/actions/runs/43102470407):
+- `fullscreen: a long-press at Offset(72.0, 26.0), beside the notice [112.0, 0.0][1218.0, 52.0], did not reach the map
+  expected:<1> but was:<0>` (landscape tablet);
+- `fullscreen: a long-press at Offset(296.0, 72.0), beside the notice [336.0, 0.0][2229.0, 144.0], did not reach the map
+  expected:<1> but was:<0>` (short landscape).
+
+The under-the-bar case has no such revert. That notice is in the bar's column, so a layer wider than the column would also
+lie under the bar and the chips' row. A one-edit revert there swallows by changing the column, which moves the points too.
+The fullscreen case is the one where a layer can be widened alone.
+
+## I4
+
+The "a touch on the greyed Try again ran the search" check could not fail: during a retry the error is already cleared, so
+`retryFailedSearch` returns at its first line whether or not the button is enabled. It is removed. That the button does
+nothing now rests on its being disabled, which the G2 revert showed bites. Addendum 2's "a tap on it does nothing (asserted)"
+is withdrawn as evidence.
+
+## J1: the old banner below the navigation card
+
+The owner: **"Under the navigation card too"**. The option read: "list search fails while navigating > the card stays put >
+banner shows just below the card; done in this same fix". This replaces H2's "is not moved".
+
+Navigating in portrait, the search-error banner from before this dispatch is now placed below the card together with the
+search-failed notice (`PlacedSearchNotices`), banner first, as under the search bar. In fullscreen, and in landscape, the
+banner is where it was.
+
+**J2 tests**, in `MapsTabSearchNavigatingTest`, in portrait, short landscape and landscape tablet:
+- With both showing (both halves failed, then a mistyped coordinate gives the banner a line of its own), neither covers the
+  other, the card, the strip or the cluster.
+- The banner is above the notice.
+- In portrait the banner sits just below the card.
+- 80% fill and opaque text.
+- A long-press below them reaches the map.
+- The H2 probe, now on the branch: the banner alone is not covered.
+
+**Landscape and tablet: the banner is not covered** (passed in the full suite of run 43102398320). Nothing was placed there.
+
+**Revert** (the banner back in the column under the bar, not placed), run
+[43102480162](https://github.com/slayer8366/Forager/actions/runs/43102480162):
+- `while navigating, the banner [0.0, 120.0][1152.0, 216.0] overlaps the compass strip [0.0, 120.0][1152.0, 411.0]`
+- `while navigating, the banner [0.0, 120.0][1152.0, 216.0] is covered by the compass strip [0.0, 120.0][1152.0, 411.0]`
+
+## The I1 revert
+
+The fix undone (`else if` back to `else`), run [43102452290](https://github.com/slayer8366/Forager/actions/runs/43102452290):
+`after Try again with nothing to fetch (fetches 0), the notice reads "Trying again…" and stays`.
+
+Every revert this round was one edit, or one edit with its imports, on its own branch `mtsf-revert4-*`. Each file was saved
+first and restored from the copy. Each build log had 0 `e:` lines and ran `compileDebugUnitTestKotlin`. The forward lines were
+confirmed present on the branch afterwards.
+
+## CI
+
+- Run 43095145409, on the earlier head `604e8117e`, never started. The API still shows it queued since 20:17, with no jobs.
+  A cancel this round was refused with "Cannot cancel a workflow run that is completed". Its head was the report commit only,
+  and the code was green at `18fd4b11c`.
+- Full CI at `e594ce119`: the pull request's run [43106760392](https://github.com/slayer8366/Forager/actions/runs/43106760392). Every job passed and the
+  build log has 0 `e:` lines. The JUnit XML reads 7585 tests, 0 failures, 0 errors, 24 skipped. That is 7576 plus 9 new: 1
+  stale-failure test, 2 cluster tests, and 2 banner tests in each of the 3 navigating layouts. Nothing was removed and the skip
+  count is unchanged. No existing test failed; the only failures on the way were my own new cluster test's (above).
+
+## On the phone (S22), added (I5)
+
+12. Drag the icon cluster to the top, then fail a search (airplane mode on), once while navigating in portrait and once in
+    fullscreen. **Pass:** the cluster sits below the notice, never over it, and goes back up when the notice goes.
+13. Fullscreen while navigating, portrait. **Pass:** the notice sits just below the navigation card at the top. This was
+    read from code and has no test.
+14. Fullscreen in portrait. **Pass:** the notice is clear of the real status bar (insets are zero under Robolectric).
+15. A large font (Settings, display size and font at their largest), portrait and landscape. **Pass:** the notice's words
+    are whole and "Trying again…" takes the same space. Landscape at a large font is untested.
+16. While navigating in portrait, fail only the list search (or mistype a coordinate). **Pass:** the banner shows just below
+    the navigation card, above the search-failed notice when both show.
+
+## Disclosure, for I and J
+
+- **Confirmed vs inferred.**
+  - Confirmed by CI: I1's failure and fix, I2, I3 in fullscreen, J1 in portrait, and the banner's place in landscape.
+  - Inferred: fullscreen while navigating (both notices; from code).
+- **Could not determine.** Why run 43095145409 never left the queue.
+- **Premises that were wrong.** My I2 test's first version (above). The I1 premise (Sorrel's) was right: the test reached the
+  state and saw it stick.
+- **Decided beyond scope.**
+  - The banner placed only when not fullscreen. In fullscreen it slides away with the bar as before, since J1 speaks of the
+    card staying put with the bar.
+  - I1's answer left at "nothing", for the planner.
+- **Not checked.** The items Sorrel read from code and the planner did not send back, listed in Amendment I. A landscape I3
+  revert under the bar (above).
