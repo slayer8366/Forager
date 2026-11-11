@@ -64,4 +64,17 @@ No time estimate is given. Roughly 12 to 15 dispatches across the six batches; b
 
 ## The owner's rulings
 
-None yet. Answers to the step 1 questions are added here, verbatim, as they are given.
+Given 2026-11-11T05:54:33Z, each to a question with options; the owner's choice is quoted, and what it chose is the option's own text. RECORD -2203.
+
+| Question | The owner | What that option said |
+|---|---|---|
+| The audit's held parts | "Keep out until fixed (Recommended)" | They stay out of the public repo, saved to a private file on the owner's computer, and are filed after each one is fixed |
+| H1, the screen | "Map stays, auto retry (Recommended)" | Search fails > map, tabs and search bar stay > a line over the map says the search failed, with Try again > it also retries by itself when signal returns. Loading > map stays, small progress mark |
+| H1, how fast | "Urgent, from main (Recommended)" | Hazel first reproduces it in a test. If it is real, the fix starts from main, passes the usual gate at the front of the queue, and ships as its own release |
+| M11, backup over an existing file | "Old backup survives (Recommended)" | The old file is only replaced once the new backup has finished. On failure or cancel it is left exactly as it was |
+| M15, a style fails to load | "Switch to Trail Map, say so (Recommended)" | Style fails > the map switches to Trail Map by itself > a short line says the chosen map couldn't load. The user's chosen map comes back on the next successful load |
+| M20, position sent with a search | "Round to about 1 km (Recommended)" | Two decimal places. The exact spot is no longer sent |
+| M21 to M23, the release rules | "Both stay, written as exceptions" | The rule is reworded: workflow-only commits may go straight to main, and a bundle already in Play may be published by number. Nothing else changes |
+| No LICENSE file | "All rights reserved notice (Recommended)" | A short file stating the code is not licensed for reuse |
+
+**What these change in the plan.** Batch 1 (H1) starts from main, not pre-main. M23 and M24 are not settled by the release-rules answer: M23 (the release environment allows pre-main) is now part of the written exception's wording to check, and M24 (unverified downloads) is still open work. The wording of the reworded rule, of the two notices (H1, M15) and of the licence file comes back to the owner before it is used. None of this is dispatched: the owner's word so far covers recording and the questions only.
