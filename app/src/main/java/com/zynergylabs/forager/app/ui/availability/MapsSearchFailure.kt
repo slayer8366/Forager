@@ -1,5 +1,6 @@
 package com.zynergylabs.forager.app.ui.availability
 
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -29,6 +30,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -180,7 +182,7 @@ internal fun PlacedSearchNotices(
     onHeightMeasured: (Int) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier = modifier.onSizeChanged { onHeightMeasured(it.height) }.padding(top = top)) {
+    Column(modifier = Modifier.fillMaxWidth().pointerInput(Unit) { detectTapGestures(onLongPress = {}) }.then(modifier).onSizeChanged { onHeightMeasured(it.height) }.padding(top = top)) {
         bannerState?.let { SearchNotice(it, overMap = true) }
         if (showFailed) SearchFailedNotice(retrying = retrying, onTryAgain = onTryAgain)
     }
