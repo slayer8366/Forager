@@ -29,7 +29,7 @@ fun AvailabilityViewModel.retryFailedSearch() {
     if (searchRuns.listFailedQuery == searchRuns.activeSearch) {
         refresh(region, month, filter)
         _uiState.update { it.copy(isRetryingSearch = true) }
-    } else if (searchRuns.loadedSightingsQuery != searchRuns.activeSearch) {
+    } else {
         _uiState.update { it.copy(isRetryingSearch = true) }
         onMapTabSelected()
     }
