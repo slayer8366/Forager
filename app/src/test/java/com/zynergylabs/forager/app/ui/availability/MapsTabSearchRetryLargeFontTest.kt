@@ -18,6 +18,7 @@ import org.junit.rules.RuleChain
 import org.junit.runner.RunWith
 import org.robolectric.RobolectricTestRunner
 import org.robolectric.annotation.Config
+import org.robolectric.annotation.GraphicsMode
 
 /**
  * Dispatch 2026-11-11-01, F4 (E4, the owner: "Notice stays, shows it's trying (Recommended)"; "Nothing jumps"): at a large font
@@ -27,6 +28,8 @@ import org.robolectric.annotation.Config
  */
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi", fontScale = 2.0f)
+// Real text measurement: without it the failure line measured as one line at font scale 2 (run 43075240623), so no wrap.
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
 class MapsTabSearchRetryLargeFontTest {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
