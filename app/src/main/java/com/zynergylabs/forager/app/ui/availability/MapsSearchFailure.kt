@@ -125,7 +125,7 @@ internal fun SearchFailedNotice(retrying: Boolean, onTryAgain: () -> Unit, modif
             // the space is the wider of the two and nothing moves when the words change (CLAUDE.md, "Changing info gets its own
             // window"; no text is shrunk). "Try again" keeps its space while the retry runs, drawn at no alpha and not clickable.
             Box(modifier = Modifier.weight(1f).padding(start = Spacing.lg, top = Spacing.sm, bottom = Spacing.sm)) {
-                NoticeLine(SEARCH_FAILED_NOTICE_TEXT, shown = !retrying)
+                if (!retrying) NoticeLine(SEARCH_FAILED_NOTICE_TEXT, shown = true)
                 NoticeLine(SEARCH_RETRYING_NOTICE_TEXT, shown = retrying)
             }
             TextButton(
