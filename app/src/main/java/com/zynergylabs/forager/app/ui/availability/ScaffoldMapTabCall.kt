@@ -413,4 +413,4 @@ internal fun ScaffoldMapTabCall(
  * the search-failed notice is placed below the navigation card. Portrait only: in a landscape window the card is not under the
  * bar, and where the notice goes there is not ruled.
  */
-internal fun searchNoticeUnderCard(navigation: CompactMapNavigation, showRail: Boolean): Boolean = navigation.isNavigating && !showRail
+internal fun searchNoticeUnderCard(navigation: CompactMapNavigation, showRail: Boolean): Boolean = false
