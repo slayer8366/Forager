@@ -5,6 +5,7 @@ import android.content.ComponentName
 import android.os.Looper
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -108,6 +109,8 @@ internal class RealSearchScreenRig(
     private val noSignal: () -> Boolean = { true },
     private val errorLog: ErrorLog = ErrorLog { _, _, _ -> },
     private val pickerPans: Boolean = false,
+    /** Dispatch 2026-11-11-01: a long-press on the map is counted in [mapLongPresses], as the real map takes one. Off by default. */
+    private val countsLongPresses: Boolean = false,
 ) {
 
     /** Where the next drag on a map settles its camera, when [pickerPans] is set. */
@@ -177,6 +180,16 @@ internal class RealSearchScreenRig(
      */
     var sightingsFailure: Throwable? = null
 
+    /** Dispatch 2026-11-11-01: when set, every ranked-list fetch fails with it (after [availabilityGate]), as with no signal. */
+    var availabilityFailure: Throwable? = null
+
+    /** Dispatch 2026-11-11-01: the raw signal the screen is handed (`networkValidated`); a working connection to start with. */
+    val networkValidated = kotlinx.coroutines.flow.MutableStateFlow(true)
+
+    /** Dispatch 2026-11-11-01: long-presses that reached the map, when [countsLongPresses] is set. */
+    var mapLongPresses = 0
+        private set
+
     /** RECORD -1525: the locate-me pan target (`focusOverride`) the map was handed on its latest composition. */
     var mapFocusOverride: com.zynergylabs.forager.app.domain.model.LatLng? = null
         private set
@@ -185,6 +198,7 @@ internal class RealSearchScreenRig(
         override suspend fun getSpeciesCounts(region: Region, month: Int, filter: TaxonFilter): Result<List<SpeciesObservationCount>> {
             availabilityFetches += Triple(region, month, filter)
             availabilityGate?.await()
+            availabilityFailure?.let { return Result.failure(it) }
             return Result.success(
                 listOf(SpeciesObservationCount(48473L, "Ganoderma applanatum", "artist's bracket", "species", 14, null, null)),
             )
@@ -241,6 +255,9 @@ internal class RealSearchScreenRig(
             val pans = if (!pickerPans) Modifier else Modifier.pointerInput(Unit) {
                 detectDragGestures(onDragStart = { currentGesture() }, onDragEnd = { currentIdle(panTo) }) { change, _ -> change.consume() }
             }
+            val longPresses = if (!countsLongPresses) Modifier else Modifier.pointerInput(Unit) {
+                detectTapGestures(onLongPress = { mapLongPresses++ })
+            }
             mapFocusOverride = focusOverride
             mapOnSightingTap = onSightingTap
             mapSightings = content.sightings
@@ -251,7 +268,7 @@ internal class RealSearchScreenRig(
             if (renderMode.leavingTab) mapLeavingSeen = true
             val memory = renderMode.cameraMemory
             Box(
-                modifier.testTag(LAYOUT_FIXES_MAP_TAG).then(pans).layout { measurable, constraints ->
+                modifier.testTag(LAYOUT_FIXES_MAP_TAG).then(pans).then(longPresses).layout { measurable, constraints ->
                     val placeable = measurable.measure(constraints)
                     // RECORD -752: every size the map is measured at, with the camera it holds then (what a new MapView restores).
                     mapMeasures += MapMeasure(androidx.compose.ui.unit.IntSize(placeable.width, placeable.height), memory?.saved, composeRule.mainClock.currentTime)
@@ -280,6 +297,8 @@ internal class RealSearchScreenRig(
                     onDeletePlannedTrip = vm::onDeletePlannedTrip,
                     onRecentSearchSelected = vm::onRecentSearchSelected,
                     onClearSearch = vm::clearSearch,
+                    onRetryFailedSearch = vm::retryFailedSearch,
+                    networkValidated = networkValidated,
                 ),
                 offlineMaps = AvailabilityScreenOfflineMaps(
                     onOfflineMapLatChanged = vm::onOfflineMapLatChanged,

@@ -4,6 +4,8 @@ import com.zynergylabs.forager.app.domain.CachedSearchSummary
 import com.zynergylabs.forager.app.domain.model.LatLng
 import com.zynergylabs.forager.app.domain.model.TaxonSearchResult
 import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 
 /*
  * Phase 2.1 of the UI split (dispatch 2026-10-19-28, RECORD -1436): [AvailabilityScreen]'s search and trip callbacks,
@@ -41,4 +43,16 @@ data class AvailabilityScreenSearchInputs(
      * never show Clear need not pass it.
      */
     val onClearSearch: () -> Unit = {},
+    /**
+     * Dispatch 2026-11-11-01: the Maps tab's "Try again" on a failed search, and the retry when signal returns. MainActivity wires
+     * it to [AvailabilityViewModel.retryFailedSearch]. Defaulted to a no-op only so the many screen tests that never fail a search
+     * need not pass it, as [onClearSearch] is.
+     */
+    val onRetryFailedSearch: () -> Unit = {},
+    /**
+     * Dispatch 2026-11-11-01, C4 and D1: the phone's raw signal, [com.zynergylabs.forager.app.domain.NetworkSignal.validated], so a
+     * failed search runs again when it returns ([RetryFailedSearchOnSignalReturn]). MainActivity hands it the real one; the default
+     * never emits, so a screen test that does not drive the signal sees no return.
+     */
+    val networkValidated: Flow<Boolean> = emptyFlow(),
 )

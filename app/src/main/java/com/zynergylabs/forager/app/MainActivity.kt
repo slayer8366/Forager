@@ -25,6 +25,7 @@ import com.zynergylabs.forager.app.ui.availability.onStopWaypointNavigation
 import com.zynergylabs.forager.app.ui.availability.onSundownAlertsEnabledChanged
 import com.zynergylabs.forager.app.ui.availability.onOfflineAreaSettled
 import com.zynergylabs.forager.app.ui.availability.onOfflineMapsSignalReturned
+import com.zynergylabs.forager.app.ui.availability.retryFailedSearch
 import com.zynergylabs.forager.app.ui.availability.onThemeModeChanged
 import com.zynergylabs.forager.app.ui.availability.onTryAgainRoutes
 import com.zynergylabs.forager.app.ui.availability.onDownloadMapsForTrip
@@ -102,6 +103,7 @@ import com.zynergylabs.forager.app.ui.log.trackDeleteNotice
 import com.zynergylabs.forager.app.ui.log.waypointDeleteNotice
 import com.zynergylabs.forager.app.ui.availability.OfflineRouteActions
 import com.zynergylabs.forager.app.ui.map.ForagerThemeWithNoSignal
+import com.zynergylabs.forager.app.net.AndroidNetworkSignal
 import com.zynergylabs.forager.app.ui.map.noSignalState
 import com.zynergylabs.forager.app.ui.track.TrackRecordingViewModel
 
@@ -111,6 +113,12 @@ class MainActivity : ComponentActivity() {
 
     /** No signal for the maps (dispatch 2026-10-22-01, NoSignalTrailMap.kt), for this Activity's life. */
     private val noSignal by lazy { noSignalState(applicationContext, lifecycleScope) }
+
+    /**
+     * The raw signal for the search screen (dispatch 2026-11-11-01, C4 and D1): a failed search runs again the moment the phone
+     * has a working connection back, so this is [AndroidNetworkSignal] itself, not [noSignal] with the map's delays.
+     */
+    private val networkSignal by lazy { AndroidNetworkSignal(applicationContext) }
 
     /**
      * The real [ErrorLog] production wires in — see that interface's own doc comment for why
@@ -508,6 +516,9 @@ class MainActivity : ComponentActivity() {
                         onDeletePlannedTrip = viewModel::onDeletePlannedTrip,
                         onRecentSearchSelected = viewModel::onRecentSearchSelected,
                         onClearSearch = viewModel::clearSearch,
+                        // Dispatch 2026-11-11-01 (D1): the Maps tab's "Try again", and the retry when the raw signal returns.
+                        onRetryFailedSearch = viewModel::retryFailedSearch,
+                        networkValidated = networkSignal.validated,
                     ),
                     currentTime = container.currentTimeProvider,
                     backupAndImport = AvailabilityScreenBackupAndImport(

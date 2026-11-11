@@ -24,6 +24,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
@@ -38,6 +39,10 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onSizeChanged
@@ -122,6 +127,8 @@ internal fun ScaffoldMapTabCall(
     onClearSearch: () -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
 ) {
+                            // Dispatch 2026-11-11-01, C6: the fullscreen search-failed notice's measured height, its top included.
+                            var fullscreenNoticeHeightPx by remember { mutableIntStateOf(0) }
                             CompactMapTab(
                                 uiState = uiState,
                                 mapSlot = mapSlot,
@@ -229,8 +236,11 @@ internal fun ScaffoldMapTabCall(
                                 // The L's top limit: the bar's bottom whether or not fullscreen is hiding it (Part B, A1 item 1).
                                 searchBarBottom = mapSearchBarHeight,
                                 // Item 2: only while a notice shows, and not in fullscreen, where the whole search column slides away.
-                                searchNoticeBottom = if (searchNoticeMessage(uiState) != null && !isMapFullscreen()) {
+                                // Dispatch 2026-11-11-01: the search-failed notice counts as a notice, and while fullscreen it is at the map's top (C6).
+                                searchNoticeBottom = if (mapsTabNoticeShows(uiState) && !isMapFullscreen()) {
                                     with(LocalDensity.current) { measurements.searchChromeHeightPx.toDp() }
+                                } else if (mapsSearchFailed(uiState) && isMapFullscreen()) {
+                                    with(LocalDensity.current) { fullscreenNoticeHeightPx.toDp() }
                                 } else {
                                     0.dp
                                 },
@@ -289,35 +299,44 @@ internal fun ScaffoldMapTabCall(
                                         // construction: Robolectric reports this inset as 0, so this is
                                         // a no-op in every test here and deliberately has none.
                                         val statusBarTopPx = WindowInsets.statusBars.getTop(LocalDensity.current)
+                                        // Landscape B1: clear of the overlaid rail and the
+                                        // cut-out band (mapControlsPadding); zero in portrait.
+                                        // Landscape B2 (S2): capped and on the punch-hole side.
+                                        // Dispatch 2026-11-11-01: also where the search-failed notice sits while fullscreen hides the bar (C6).
+                                        val searchColumnModifier = if (landscapeSearchWidth != null && barMeetsStrip && measurements.landscapeStripWidth > 0.dp) {
+                                            // RECORD -732: the rest of the room, by the strip's measured width as padding on the
+                                            // rail's side, so the bar ends on the strip's own first pixel whatever the rounding
+                                            // (the rounding fix of -729, carried over).
+                                            Modifier
+                                                .padding(mapControlsPadding)
+                                                .absolutePadding(
+                                                    left = if (portEdge == ScreenEdge.Left) measurements.landscapeStripWidth else 0.dp,
+                                                    right = if (portEdge == ScreenEdge.Right) measurements.landscapeStripWidth else 0.dp,
+                                                )
+                                                .fillMaxWidth()
+                                        } else if (landscapeSearchWidth != null) {
+                                            Modifier
+                                                .padding(mapControlsPadding)
+                                                .fillMaxWidth()
+                                                .wrapContentWidth(landscapeSearchAlignment)
+                                                .width(landscapeSearchWidth)
+                                        } else {
+                                            Modifier.padding(mapControlsPadding)
+                                        }
                                         androidx.compose.animation.AnimatedVisibility(
                                             visible = !isMapFullscreen(),
                                             enter = slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
                                             exit = slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
-                                            // Landscape B1: clear of the overlaid rail and the
-                                            // cut-out band (mapControlsPadding); zero in portrait.
-                                            // Landscape B2 (S2): capped and on the punch-hole side.
-                                            modifier = if (landscapeSearchWidth != null && barMeetsStrip && measurements.landscapeStripWidth > 0.dp) {
-                                                // RECORD -732: the rest of the room, by the strip's measured width as padding on the
-                                                // rail's side, so the bar ends on the strip's own first pixel whatever the rounding
-                                                // (the rounding fix of -729, carried over).
-                                                Modifier
-                                                    .padding(mapControlsPadding)
-                                                    .absolutePadding(
-                                                        left = if (portEdge == ScreenEdge.Left) measurements.landscapeStripWidth else 0.dp,
-                                                        right = if (portEdge == ScreenEdge.Right) measurements.landscapeStripWidth else 0.dp,
-                                                    )
-                                                    .fillMaxWidth()
-                                            } else if (landscapeSearchWidth != null) {
-                                                Modifier
-                                                    .padding(mapControlsPadding)
-                                                    .fillMaxWidth()
-                                                    .wrapContentWidth(landscapeSearchAlignment)
-                                                    .width(landscapeSearchWidth)
-                                            } else {
-                                                Modifier.padding(mapControlsPadding)
-                                            },
+                                            modifier = searchColumnModifier,
                                         ) {
                                         Column(modifier = Modifier.mapKeepOut(MapKeepOutIds.SEARCH_BAR).onSizeChanged { measurements.searchChromeHeightPx = it.height }) {
+                                            // Dispatch 2026-11-11-01, C2: the bar in a Box, so the loading line can be drawn along its bottom edge (MapsSearchFailure.kt).
+                                            val barPillCorners = if (landscapeSearchWidth != null && barMeetsStrip && measurements.landscapeStripWidth > 0.dp) {
+                                                MapCardCorners.outerSide(if (portEdge == ScreenEdge.Left) ScreenEdge.Right else ScreenEdge.Left)
+                                            } else {
+                                                MapCardCorners.ALL
+                                            }
+                                            Box {
                                             SearchEntryBar(
                                                 uiState = uiState,
                                                 distanceUnit = distanceUnit,
@@ -339,11 +358,7 @@ internal fun ScaffoldMapTabCall(
                                                 // Dispatch 2026-10-12-06: the rounded pill. Beside the landscape strip it rounds its outer side
                                                 // only and meets the strip square, edge to edge (RECORD -934; its "no join line" is replaced by
                                                 // -967's one line, the pill's outline, below).
-                                                pillCorners = if (landscapeSearchWidth != null && barMeetsStrip && measurements.landscapeStripWidth > 0.dp) {
-                                                    MapCardCorners.outerSide(if (portEdge == ScreenEdge.Left) ScreenEdge.Right else ScreenEdge.Left)
-                                                } else {
-                                                    MapCardCorners.ALL
-                                                },
+                                                pillCorners = barPillCorners,
                                                 // Dispatch 2026-10-13-02: the pill's outline, all the way round in both orientations. Portrait:
                                                 // RECORD -976 (the owner: "In portrait mode: Have the outlines follow the entire pill at top").
                                                 // Landscape: RECORD -988 (the owner: "The pill in landscape isn't fully outlined"), replacing
@@ -352,14 +367,29 @@ internal fun ScaffoldMapTabCall(
                                                 // only its bottom, its join and a side with room beside it, never its top.
                                                 pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
                                             )
+                                            if (uiState.isLoadingSightings) SearchBarLoadingLine(shape = barPillCorners.shape(), modifier = Modifier.matchParentSize())
+                                            }
                                             // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the
                                             // bar's bottom over this column, so the notice starts where the strip's own measured height ends.
                                             // In a short landscape window the strip is in the other corner and the notice stays under the bar.
-                                            if (searchNoticeMessage(uiState) != null && !showRail) {
+                                            if (mapsTabNoticeShows(uiState) && !showRail) {
                                                 Spacer(Modifier.height(compassStripHeight))
                                             }
-                                            SearchNotice(uiState, overMap = true)
+                                            // Dispatch 2026-11-11-01: the banner, less the ranked list's failure while the map's has failed too (C3, one line), then
+                                            // the search-failed notice with "Try again" (C1).
+                                            SearchNotice(mapsTabSearchNoticeState(uiState), overMap = true)
+                                            if (mapsSearchFailed(uiState)) SearchFailedNotice(onTryAgain = LocalRetryFailedSearch.current)
                                         }
+                                        }
+                                        // Dispatch 2026-11-11-01, C6 ("Top of the map (Recommended)"): while fullscreen hides the bar, the same notice at the map's top,
+                                        // below the compass strip where the strip is there (portrait), placed as the bar is.
+                                        if (isMapFullscreen() && mapsSearchFailed(uiState)) {
+                                            FullscreenSearchFailedNotice(
+                                                top = if (showRail) 0.dp else compassStripHeight,
+                                                onTryAgain = LocalRetryFailedSearch.current,
+                                                onHeightMeasured = { fullscreenNoticeHeightPx = it },
+                                                modifier = searchColumnModifier,
+                                            )
                                         }
                                     }
                                 },

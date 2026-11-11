@@ -488,7 +488,9 @@ abstract class MapChromeCompactTests(glyphX: Dp, glyphY: Dp, glyphStep: Dp) {
     /**
      * -77, Q4: on the Maps tab with no map drawn yet (sightings loading), a surface follows the tab. A
      * snackbar, because the Maps tab's own bottom bar or rail, and so Tools, is composed inside the map's
-     * Box and is not there while sightings load (first run of this test, through the drawer, at b019080).
+     * Box and was not there while sightings loaded (first run of this test, through the drawer, at b019080).
+     * Since dispatch 2026-11-11-01 the map, its bar and its rail stay while sightings load, so "no map drawn
+     * yet" no longer holds; the assertion is unchanged (D4: the comment updated, no assertion changed).
      */
     @Test
     fun `a snackbar over the Maps tab while sightings load follows the tab, at the map chrome's alpha`() {

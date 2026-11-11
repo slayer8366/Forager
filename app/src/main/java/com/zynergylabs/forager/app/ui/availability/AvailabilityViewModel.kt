@@ -351,7 +351,7 @@ class AvailabilityViewModel(
      * stay in this class's functions: [refresh], [onMapTabSelected], [onSeasonalTabSelected] and [clearSearch].
      * It writes this screen's state through the setter here and launches in this ViewModel's own scope.
      */
-    private val searchRuns = AvailabilitySearchRuns(
+    internal val searchRuns = AvailabilitySearchRuns(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         getAvailability = getAvailability,
@@ -673,7 +673,7 @@ class AvailabilityViewModel(
         searchRuns.fetchSeasonalPattern(query, region, month, filter)
     }
 
-    private fun refresh(region: Region, month: Int, filter: TaxonFilter) {
+    internal fun refresh(region: Region, month: Int, filter: TaxonFilter) {
         searchRuns.startNewSearch(region, month, filter)
 
         // Read now, while the selection is the one this search was started for.

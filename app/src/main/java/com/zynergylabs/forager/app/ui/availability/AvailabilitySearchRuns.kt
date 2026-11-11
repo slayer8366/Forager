@@ -122,7 +122,7 @@ internal class AvailabilitySearchRuns(
                             isLoading = false,
                             isShowingCachedResults = false,
                             cachedResultsAsOfEpochMillis = null,
-                            errorMessage = "Request failed. Check your connection and try again.",
+                            errorMessage = LIST_SEARCH_FAILED_MESSAGE,
                         )
                     }
                 },
@@ -260,3 +260,10 @@ internal class AvailabilitySearchRuns(
         loadedSeasonalPatternQuery = null
     }
 }
+
+/**
+ * The ranked list's failure line (the text it always had). Named so the Maps tab can tell this failure from the other things
+ * `errorMessage` carries, a coordinate the user mistyped, say: when the map's sightings fail too, the Maps tab shows one line for
+ * both (dispatch 2026-11-11-01, C3, the owner: "One line (Recommended)"); see [mapsTabSearchNoticeState].
+ */
+internal const val LIST_SEARCH_FAILED_MESSAGE = "Request failed. Check your connection and try again."

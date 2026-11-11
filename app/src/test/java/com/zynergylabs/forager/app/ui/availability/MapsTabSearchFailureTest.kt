@@ -1,9 +1,19 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.isRoot
+import androidx.compose.ui.test.longClick
+import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.zynergylabs.forager.app.domain.model.Region
+import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
+import com.zynergylabs.forager.app.ui.map.MapChromeContainerColor
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
@@ -35,7 +45,7 @@ abstract class MapsTabSearchFailureTests(private val landscape: Boolean) {
     @get:Rule
     val rules: RuleChain = RuleChain.outerRule(RealSearchScreenRig.touchModeHost()).around(composeRule)
 
-    private val rig = RealSearchScreenRig(composeRule)
+    private val rig = RealSearchScreenRig(composeRule, countsLongPresses = true)
 
     private val region = Region(45.3736, -121.6959, 8)
 
@@ -43,6 +53,11 @@ abstract class MapsTabSearchFailureTests(private val landscape: Boolean) {
     private val tabBarName get() = if (landscape) "the rail" else "the tab bar"
 
     private fun shown(tag: String) = composeRule.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+
+    /** [tag]'s bounds in the root, in px. */
+    private fun bounds(tag: String): Rect = composeRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+
+    private fun Rect.d() = "[%.1f, %.1f][%.1f, %.1f]".format(left, top, right, bottom)
 
     /** What of the Maps tab's own chrome is not on screen. */
     private fun missingChrome(): List<String> = buildList {
@@ -99,6 +114,85 @@ abstract class MapsTabSearchFailureTests(private val landscape: Boolean) {
             gate.complete(Unit)
             rig.settle()
         }
+    }
+
+    // ── Step 2 (dispatch 2026-11-11-01, the owner's rulings C1 to C7) ──
+
+    @Test
+    fun `after a failed sightings fetch the notice says so under the search bar at the map chrome's fill`() {
+        searchThatFails()
+
+        assertTrue("after a failed sightings fetch there is no search-failed notice", shown(SEARCH_FAILED_NOTICE_TAG))
+        assertTrue(
+            "the notice does not say \"$SEARCH_FAILED_NOTICE_TEXT\"",
+            composeRule.onAllNodesWithText(SEARCH_FAILED_NOTICE_TEXT).fetchSemanticsNodes().isNotEmpty(),
+        )
+        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        assertTrue("the notice ${notice.d()} is under the search bar ${bar.d()}", notice.top >= bar.bottom - 1f)
+        val fill = composeRule.onNodeWithTag(SEARCH_FAILED_NOTICE_TAG, useUnmergedTree = true).fetchSemanticsNode().config[MapChromeContainerColor]
+        assertEquals("the notice's fill is at the map chrome's alpha", MAP_CHROME_OVER_MAP_ALPHA, fill.alpha, 0.01f)
+        assertTrue(
+            "the old full-tab text still shows",
+            composeRule.onAllNodesWithText("Couldn't load sightings for the map.").fetchSemanticsNodes().isEmpty(),
+        )
+    }
+
+    @Test
+    fun `real touches across Try again each run the search again`() {
+        searchThatFails()
+        // The fetch keeps failing, so the notice comes back after each touch and the next point can be touched.
+        val points = listOf(0.15f to 0.25f, 0.85f to 0.25f, 0.5f to 0.5f, 0.15f to 0.75f, 0.85f to 0.75f)
+        for ((fx, fy) in points) {
+            assertTrue("before the touch at ($fx, $fy) there is no Try again", shown(SEARCH_FAILED_TRY_AGAIN_TAG))
+            val before = rig.sightingsFetches.size
+            rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true), fx, fy)
+            assertEquals("a real touch at ($fx, $fy) of Try again did not run the search again", before + 1, rig.sightingsFetches.size)
+        }
+        rig.sightingsFailure = null
+        rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
+        assertEquals("Try again's search hands the map its observations", listOf(RealSearchScreenRig.sightingAt(region)), rig.mapSightings)
+        assertTrue("the notice stays after the search succeeds", !shown(SEARCH_FAILED_NOTICE_TAG))
+    }
+
+    @Test
+    fun `a long-press on the map just below the notice reaches the map`() {
+        searchThatFails()
+        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
+        val below = 40f
+        for (fx in listOf(0.3f, 0.5f)) {
+            val at = Offset(notice.left + notice.width * fx, notice.bottom + below)
+            val before = rig.mapLongPresses
+            composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { longClick(at) }
+            rig.settle()
+            assertEquals("a long-press at $at, just below the notice ${notice.d()}, did not reach the map", before + 1, rig.mapLongPresses)
+        }
+    }
+
+    @Test
+    fun `while sightings load a thin line runs along the search bar's bottom edge and nothing in the bar moves`() {
+        rig.setScreen()
+        val gate = CompletableDeferred<Unit>()
+        rig.sightingsGate = gate
+        val summaryWhileLoading: Rect
+        try {
+            rig.searchCoordinates("45.3736", "-121.6959")
+            assertTrue("positive control: the map's sightings are loading", rig.viewModel.uiState.value.isLoadingSightings)
+
+            assertTrue("while sightings load there is no loading line on the search bar", shown(SEARCH_BAR_LOADING_LINE_TAG))
+            val line = bounds(SEARCH_BAR_LOADING_LINE_TAG)
+            val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+            assertEquals("the line ${line.d()} ends on the bar's bottom edge ${bar.d()}", bar.bottom, line.bottom, 1f)
+            assertTrue("the line ${line.d()} is within the bar's width ${bar.d()}", line.left >= bar.left - 1f && line.right <= bar.right + 1f)
+            val thinPx = with(composeRule.density) { SEARCH_BAR_LOADING_LINE_HEIGHT.toPx() }
+            assertEquals("the line is thin", thinPx, line.height, 1f)
+            summaryWhileLoading = bounds(ACTIVE_SEARCH_SUMMARY_TAG)
+        } finally {
+            gate.complete(Unit)
+            rig.settle()
+        }
+        assertTrue("the loading line stays after the sightings arrive", !shown(SEARCH_BAR_LOADING_LINE_TAG))
+        assertEquals("the bar's text moved when the sightings arrived", summaryWhileLoading, bounds(ACTIVE_SEARCH_SUMMARY_TAG))
     }
 }
 
