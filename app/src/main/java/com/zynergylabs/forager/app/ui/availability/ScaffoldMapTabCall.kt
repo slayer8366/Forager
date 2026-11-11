@@ -127,8 +127,8 @@ internal fun ScaffoldMapTabCall(
     onClearSearch: () -> Unit,
     onDismissTaxonSuggestions: () -> Unit,
 ) {
-                            // Dispatch 2026-11-11-01, C6: the fullscreen search-failed notice's measured height, its top included.
-                            var fullscreenNoticeHeightPx by remember { mutableIntStateOf(0) }
+                            // Dispatch 2026-11-11-01, C6 and G1: the placed search-failed notice's measured height, its top included.
+                            var placedNoticeHeightPx by remember { mutableIntStateOf(0) }
                             CompactMapTab(
                                 uiState = uiState,
                                 mapSlot = mapSlot,
@@ -237,10 +237,11 @@ internal fun ScaffoldMapTabCall(
                                 searchBarBottom = mapSearchBarHeight,
                                 // Item 2: only while a notice shows, and not in fullscreen, where the whole search column slides away.
                                 // Dispatch 2026-11-11-01: the search-failed notice counts as a notice, and while fullscreen it is at the map's top (C6).
-                                searchNoticeBottom = if (mapsTabNoticeShows(uiState) && !isMapFullscreen()) {
+                                // G1: and while navigating in portrait it is below the navigation card, placed, as in fullscreen.
+                                searchNoticeBottom = if (mapsSearchNoticeShows(uiState) && (isMapFullscreen() || searchNoticeUnderCard(navigation, showRail))) {
+                                    with(LocalDensity.current) { placedNoticeHeightPx.toDp() }
+                                } else if (mapsTabNoticeShows(uiState) && !isMapFullscreen()) {
                                     with(LocalDensity.current) { measurements.searchChromeHeightPx.toDp() }
-                                } else if (mapsSearchNoticeShows(uiState) && isMapFullscreen()) {
-                                    with(LocalDensity.current) { fullscreenNoticeHeightPx.toDp() }
                                 } else {
                                     0.dp
                                 },
@@ -378,17 +379,25 @@ internal fun ScaffoldMapTabCall(
                                             // Dispatch 2026-11-11-01: the banner, less the ranked list's failure while the map's has failed too (C3, one line), then
                                             // the search-failed notice with "Try again" (C1).
                                             SearchNotice(mapsTabSearchNoticeState(uiState), overMap = true)
-                                            if (mapsSearchNoticeShows(uiState)) SearchFailedNotice(retrying = uiState.isRetryingSearch, onTryAgain = LocalRetryFailedSearch.current)
+                                            if (mapsSearchNoticeShows(uiState) && !searchNoticeUnderCard(navigation, showRail)) {
+                                                SearchFailedNotice(retrying = uiState.isRetryingSearch, onTryAgain = LocalRetryFailedSearch.current)
+                                            }
                                         }
                                         }
                                         // Dispatch 2026-11-11-01, C6 ("Top of the map (Recommended)"): while fullscreen hides the bar, the same notice at the map's top,
-                                        // below the compass strip where the strip is there (portrait), placed as the bar is.
-                                        if (isMapFullscreen() && mapsSearchNoticeShows(uiState)) {
-                                            FullscreenSearchFailedNotice(
+                                        // below the compass strip where the strip is there (portrait), placed as the bar is. G1 ("Under the navigation card"):
+                                        // while navigating in portrait, below the navigation card, which hangs from the bar's bottom (the animated top inset).
+                                        val underCard = searchNoticeUnderCard(navigation, showRail)
+                                        if ((isMapFullscreen() || underCard) && mapsSearchNoticeShows(uiState)) {
+                                            PlacedSearchFailedNotice(
                                                 retrying = uiState.isRetryingSearch,
-                                                top = if (showRail) 0.dp else compassStripHeight,
+                                                top = safeAnimatedTopInset + when {
+                                                    underCard -> LocalNavigationCardHeight.current
+                                                    showRail -> 0.dp
+                                                    else -> compassStripHeight
+                                                },
                                                 onTryAgain = LocalRetryFailedSearch.current,
-                                                onHeightMeasured = { fullscreenNoticeHeightPx = it },
+                                                onHeightMeasured = { placedNoticeHeightPx = it },
                                                 modifier = searchColumnModifier,
                                             )
                                         }
@@ -397,3 +406,11 @@ internal fun ScaffoldMapTabCall(
                                 modifier = Modifier.fillMaxSize(),
                             )
 }
+
+/**
+ * Dispatch 2026-11-11-01, G1 (the owner: "Under the navigation card"; its option read "search fails while navigating > the
+ * navigation card stays where it is > notice shows just below the card; not navigating: under the search bar, as now"): whether
+ * the search-failed notice is placed below the navigation card. Portrait only: in a landscape window the card is not under the
+ * bar, and where the notice goes there is not ruled.
+ */
+internal fun searchNoticeUnderCard(navigation: CompactMapNavigation, showRail: Boolean): Boolean = navigation.isNavigating && !showRail

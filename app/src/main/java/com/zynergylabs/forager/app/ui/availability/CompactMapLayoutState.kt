@@ -1,6 +1,7 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.runtime.MutableIntState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import com.zynergylabs.forager.app.ui.log.ScreenEdge
@@ -27,7 +28,18 @@ internal class CompactMapLayoutState(
     private val compassStripHeightState: MutableIntState,
     private val landscapeStripHeightState: MutableIntState,
     private val landscapeStripWidthState: MutableIntState,
+    /** Dispatch 2026-11-11-01, G1: see [navigationCardHeightPx]. A default, so the holder's other users are unchanged. */
+    private val navigationCardHeightState: MutableIntState = mutableIntStateOf(0),
 ) {
+    /**
+     * Dispatch 2026-11-11-01, G1 (the owner: "Under the navigation card"): the portrait strip's measured height while navigating,
+     * when it carries the navigation card; 0 when not navigating and before its first layout. The search-failed notice is placed
+     * below it. [compassStripHeightPx] stays 0 while navigating, as before, so nothing else that reads it moves.
+     */
+    var navigationCardHeightPx: Int
+        get() = navigationCardHeightState.intValue
+        set(value) { navigationCardHeightState.intValue = value }
+
     /**
      * The portrait strip's measured height, written by [CompactMapTopStrip] while not navigating (0 while navigating and before
      * its first layout; 0 in a landscape window). Not the one-line clearance, which is one text line's height.

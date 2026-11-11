@@ -5,6 +5,8 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.longClick
@@ -78,6 +80,7 @@ class MapsTabSearchRetryTest {
     private fun assertRetryKeepsTheNotice(where: String) {
         val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
         val cluster = bounds(MAP_ICON_CLUSTER_TAG)
+        val button = bounds(SEARCH_FAILED_TRY_AGAIN_TAG)
         val gate = CompletableDeferred<Unit>()
         rig.sightingsGate = gate
         try {
@@ -86,7 +89,13 @@ class MapsTabSearchRetryTest {
             assertTrue("$where: the notice went away during the retry", shown(SEARCH_FAILED_NOTICE_TAG))
             assertTrue("$where: the notice does not read \"$SEARCH_RETRYING_NOTICE_TEXT\" during the retry", textShown(SEARCH_RETRYING_NOTICE_TEXT))
             assertTrue("$where: the notice still reads \"$SEARCH_FAILED_NOTICE_TEXT\" during the retry", !textShown(SEARCH_FAILED_NOTICE_TEXT))
-            assertTrue("$where: Try again shows during the retry", !shown(SEARCH_FAILED_TRY_AGAIN_TAG))
+            // G2 (the owner: "Shown, greyed out"): Try again stays, in the disabled look, and a real touch on it does nothing.
+            assertTrue("$where: Try again is not shown during the retry", shown(SEARCH_FAILED_TRY_AGAIN_TAG))
+            composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true).assertIsNotEnabled()
+            assertSameRect("$where: Try again moved or changed size when the retry started", button, bounds(SEARCH_FAILED_TRY_AGAIN_TAG))
+            val fetches = rig.sightingsFetches.size
+            rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
+            assertEquals("$where: a touch on the greyed Try again ran the search", fetches, rig.sightingsFetches.size)
             assertSameRect("$where: the notice moved or changed size when the retry started", notice, bounds(SEARCH_FAILED_NOTICE_TAG))
             assertSameRect("$where: the icon cluster moved when the retry started", cluster, bounds(MAP_ICON_CLUSTER_TAG))
         } finally {
@@ -97,6 +106,8 @@ class MapsTabSearchRetryTest {
         assertTrue("$where: after the retry failed the notice does not read \"$SEARCH_FAILED_NOTICE_TEXT\"", textShown(SEARCH_FAILED_NOTICE_TEXT))
         assertSameRect("$where: the notice moved or changed size when the retry failed", notice, bounds(SEARCH_FAILED_NOTICE_TAG))
         assertSameRect("$where: the icon cluster moved when the retry failed", cluster, bounds(MAP_ICON_CLUSTER_TAG))
+        composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true).assertIsEnabled()
+        assertSameRect("$where: Try again moved or changed size when the retry failed", button, bounds(SEARCH_FAILED_TRY_AGAIN_TAG))
         rig.sightingsFailure = null
         rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
         assertTrue("$where: the notice stays after the retry works", !shown(SEARCH_FAILED_NOTICE_TAG))

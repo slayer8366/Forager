@@ -21,6 +21,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.compositionLocalOf
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -104,6 +105,12 @@ internal fun mapsTabNoticeShows(uiState: AvailabilityUiState): Boolean =
 internal val LocalRetryFailedSearch = staticCompositionLocalOf<() -> Unit> { {} }
 
 /**
+ * Dispatch 2026-11-11-01, G1 (the owner: "Under the navigation card"): the height of the navigation card hanging below the search
+ * bar while navigating in portrait, else 0. Provided by [CompactMapTab] around the search-bar slot, as [LocalSearchNoticeInset] is.
+ */
+internal val LocalNavigationCardHeight = compositionLocalOf { 0.dp }
+
+/**
  * The one-line notice for a failed search (C1): the existing search-error banner's spot and look ([SearchNotice]: the error
  * container at the map chrome's 80% fill, its text opaque), with "Try again" at its right end. Over the map only. A [Surface],
  * so it takes every touch inside its own bounds and none outside them.
@@ -123,7 +130,8 @@ internal fun SearchFailedNotice(retrying: Boolean, onTryAgain: () -> Unit, modif
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
             // E4: both lines are always laid out in one space, the one not showing drawn at no alpha and left out of semantics, so
             // the space is the wider of the two and nothing moves when the words change (CLAUDE.md, "Changing info gets its own
-            // window"; no text is shrunk). "Try again" keeps its space while the retry runs, drawn at no alpha and not clickable.
+            // window"; no text is shrunk). G2 (the owner: "Shown, greyed out"): "Try again" stays shown while the retry runs, in
+            // the button's own disabled look (Material's, which the app uses for every disabled button), and does nothing.
             Box(modifier = Modifier.weight(1f).padding(start = Spacing.lg, top = Spacing.sm, bottom = Spacing.sm)) {
                 NoticeLine(SEARCH_FAILED_NOTICE_TEXT, shown = !retrying)
                 NoticeLine(SEARCH_RETRYING_NOTICE_TEXT, shown = retrying)
@@ -132,7 +140,7 @@ internal fun SearchFailedNotice(retrying: Boolean, onTryAgain: () -> Unit, modif
                 onClick = onTryAgain,
                 enabled = !retrying,
                 colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
-                modifier = if (retrying) Modifier.alpha(0f).clearAndSetSemantics {} else Modifier.testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
+                modifier = Modifier.testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
             ) {
                 Text(SEARCH_FAILED_TRY_AGAIN_TEXT)
             }
@@ -152,13 +160,14 @@ private fun NoticeLine(text: String, shown: Boolean) {
 }
 
 /**
- * The notice while fullscreen hides the search bar (C6, the owner: "Top of the map (Recommended)"; its option read "the same
- * one-line notice shows at the top of the map, where the bar would be"): at the map's top, below the compass strip where the
- * strip is there ([top]). [onHeightMeasured] reports its height with [top], so the icon cluster can be kept below it, as it is
- * below the notice under the bar. Composed only while it shows, so it takes no touch otherwise.
+ * The notice placed at [top] rather than in the search bar's column: while fullscreen hides the search bar (C6, the owner: "Top
+ * of the map (Recommended)"; its option read "the same one-line notice shows at the top of the map, where the bar would be"),
+ * below the compass strip where the strip is there; and while navigating in portrait, below the navigation card (G1, the owner:
+ * "Under the navigation card"). [onHeightMeasured] reports its height with [top], so the icon cluster can be kept below it, as
+ * it is below the notice under the bar. Composed only while it shows, so it takes no touch otherwise.
  */
 @Composable
-internal fun FullscreenSearchFailedNotice(
+internal fun PlacedSearchFailedNotice(
     top: Dp,
     retrying: Boolean,
     onTryAgain: () -> Unit,

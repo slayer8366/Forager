@@ -550,7 +550,9 @@ internal fun CompactMapTab(
                 // CompactMapLayoutState.searchNoticeInset). Worked out here, in the body, as before.
                 val noticeInsetDp = layout.noticeInsetDp(cluster.clusterWidthPx, compassStripDensity)
                 val searchNoticeInset = layout.searchNoticeInset(landscapeCluster, cluster, punchHoleEdge, noticeInsetDp)
-                CompositionLocalProvider(LocalSearchNoticeInset provides searchNoticeInset) {
+                // Dispatch 2026-11-11-01, G1: the navigating card's height, for the search-failed notice placed below it (portrait only).
+                val navigationCardHeight = with(compassStripDensity) { (if (railPortEdge == null) layout.navigationCardHeightPx else 0).toDp() }
+                CompositionLocalProvider(LocalSearchNoticeInset provides searchNoticeInset, LocalNavigationCardHeight provides navigationCardHeight) {
                     searchBarSlot(with(compassStripDensity) { layout.compassStripHeightPx.toDp() })
                 }
                 // The tapped thing's bubble (RECORD -741: CompactMapBubble, moved out unchanged; its comments are there).
