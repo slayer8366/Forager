@@ -617,3 +617,71 @@ confirmed present on the branch afterwards.
   - I1's answer left at "nothing", for the planner.
 - **Not checked.** The items Sorrel read from code and the planner did not send back, listed in Amendment I. A landscape I3
   revert under the bar (above).
+
+---
+
+# Addendum 4: the owner's K1, "Try again" over a loaded map
+
+The dispatch's Amendment K. Nothing above this line was rewritten. Addendum 3's "Try again does nothing in that state" is
+replaced by what follows.
+
+The owner: **"Fetch again (Recommended)"**. The option read: "tap 'Try again' > shows 'Trying again…' > the showing search's
+sightings are fetched again > notice goes when that works, or returns to 'Search failed' if it doesn't".
+
+## What changed (commit `fa97a0b6a`)
+
+`retryFailedSearch` has a third case. When an older search's fetch has failed late over the showing search's loaded map
+(audit M13), it now fetches the showing search's sightings again directly. `onMapTabSelected` would not, because those
+sightings are already loaded. "Trying again…" shows while that fetch runs, and the fetch's end clears it.
+- The same path serves "Try again" and an automatic try on a return of signal. The automatic try still obeys E2 (only with
+  Forager on screen) and E3 (at most three tries).
+- Nothing is cancelled, and the late failure itself (M13) is unchanged.
+
+## K2 tests
+
+These are in `MapsTabSearchStaleFailureTest`, through the real screen and ViewModel. Search A's fetch is held, search B loads,
+then A fails late over B's map.
+- A real touch on "Try again" when the fetch works, and again when it fails.
+- A return of signal, after the signal was lost.
+
+For each:
+- Exactly one more sightings fetch, and it is for the showing search B.
+- "Trying again…" while the fetch runs.
+- The map present throughout.
+- The notice gone, and B's observations on the map, when the fetch works.
+- "Search failed. Check your connection." back when it fails.
+
+I1's test is kept unchanged and still passes.
+
+## Revert (the direct fetch replaced by `onMapTabSelected()`)
+
+Run [43118604359](https://github.com/slayer8366/Forager/actions/runs/43118604359), on branch `mtsf-revert5-k1-fetch`. The file
+was saved first and restored from the copy. The build log had 0 `e:` lines and ran `compileDebugUnitTestKotlin`, and the
+forward line was confirmed present on the branch afterwards.
+
+The revert failed 4 of 4:
+- `Try again, works: the showing search's sightings were not fetched again exactly once expected:<3> but was:<2>`
+- `Try again, fails: ... expected:<3> but was:<2>`
+- `signal returns: ... expected:<3> but was:<2>`
+- I1's `after Try again with nothing to fetch (fetches 0), the notice reads "Trying again…" and stays`. The revert brings the
+  stuck flag back too, because the flag is set and no fetch starts.
+
+## Full CI at `fa97a0b6a`
+
+The pull request's run [43118606478](https://github.com/slayer8366/Forager/actions/runs/43118606478). Every job passed and the
+build log has 0 `e:` lines. The JUnit XML reads 7588 tests, 0 failures, 0 errors, 24 skipped: 7585 plus the 3 new tests.
+No existing test failed.
+
+## S22
+
+This case cannot be staged by hand reliably. It needs one search's fetch to stay in flight, then a second search to load,
+then the first to fail. Airplane mode makes a fetch fail fast rather than hang, so the first fetch fails before the second
+search can be made. A slow, failing connection might stage it now and then, but not on demand. It is covered here by the
+Robolectric tests only, and no S22 step is added.
+
+## Disclosure
+
+- **Confirmed by CI:** K1 for a real touch (works and fails) and for a return of signal.
+- **Not tested:** this case at the three-try limit (E3) or while Forager is in the background (E2). They take the same path
+  as every other automatic try, which `SearchAutoRetryTest` and `MapsTabSearchAutoRetryTest` cover.
+- **Decided beyond scope:** none.
