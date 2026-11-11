@@ -91,3 +91,16 @@ Sorrel Tally (Fable) reviewed PR #516 at head 98dc401dc: **pass with items**. Th
 - **F7. "Both failed" depends on the list's message still being its failure text.** If another message overwrote it, only the map half retries. Report what a user sees then; change nothing unless it breaks C3.
 - **F8. Tidy:** remove MapMessage if it has no caller, and the `when` with only an `else`, if that does not push a file's blame for no gain; say what you did. Narrow the two members widened to `internal` if the extension can live without it; if not, say why.
 - **Left as they are, not ruled:** the existing banner's other messages can still show above the new notice; the brief overlap as the bar slides on entering fullscreen.
+
+### G. The owner's rulings after the second hand-back (2026-11-11T19:38:37Z)
+
+- **G1.** Where the notice goes while navigating (the navigation card covers it in portrait; F1). The owner: **"Under the navigation card"** (search fails while navigating > the navigation card stays where it is > notice shows just below the card; not navigating: under the search bar, as now). This is the owner's own change to C1 for the navigating case only.
+- **G2.** The "Try again" button while Forager is trying again by itself. The owner: **"Shown, greyed out"** (retry starts > the button stays visible but grey and does nothing > it turns normal again if the retry fails). This replaces Hazel's reading (hidden, space kept).
+
+### H. The planner's notes on G, for Hazel
+
+- **H1.** G1 is proved with the F1 probe test brought onto the branch: real touches at several points across "Try again" while navigating and recording, portrait, all run the search; a long-press on the map beside and below the notice still reaches the map; the notice is 80% over the map and does not overlap the card, the compass strip or the icon cluster. Landscape and tablet while navigating: test where the notice lands; if it is covered there too, stop and report, do not place it.
+- **H2.** The search-error banner that was there before this dispatch (covered the same way, from code only) is not moved. Report what a test shows; it is the owner's to rule.
+- **H3.** G2: grey means the app's existing disabled look, no new colour. The button's space and the notice's size do not change between the two states; the large-font test keeps holding that.
+- **H4.** Any existing test that fails is a stop, as before.
+
