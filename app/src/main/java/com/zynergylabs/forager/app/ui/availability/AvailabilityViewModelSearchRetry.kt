@@ -19,6 +19,8 @@ import kotlinx.coroutines.flow.update
  *   screen fetches the map's sightings for it when the Maps tab shows, as for any search.
  * - **Only the map's sightings failed**: they are fetched again ([AvailabilityViewModel.onMapTabSelected], which fetches because a
  *   failed fetch never records its query as loaded). The ranked list, which loaded, is left alone.
+ * - **The showing search's sightings are loaded** and an older search's fetch failed late over them (audit M13): they are fetched
+ *   again (K1, the owner: "Fetch again (Recommended)").
  */
 fun AvailabilityViewModel.retryFailedSearch() {
     val state = _uiState.value
@@ -32,7 +34,11 @@ fun AvailabilityViewModel.retryFailedSearch() {
     } else if (searchRuns.loadedSightingsQuery != searchRuns.activeSearch) {
         _uiState.update { it.copy(isRetryingSearch = true) }
         onMapTabSelected()
+    } else {
+        // K1 (the owner: "Fetch again (Recommended)"): the showing search's sightings are already loaded, and an older search's
+        // fetch failed late over them (audit M13, not changed here). onMapTabSelected would start nothing, so the showing search's
+        // sightings are fetched again directly; "Trying again…" shows while it runs, and the fetch's end clears it (I1).
+        _uiState.update { it.copy(isRetryingSearch = true) }
+        searchRuns.fetchSightings(Triple(region, month, filter), region, month, filter)
     }
-    // I1 (Sorrel's second review): otherwise the showing search's sightings are already loaded (an older search's fetch failed
-    // late, audit M13), so no fetch starts and "Trying again…" is not set: it would never be cleared. Try again then does nothing.
 }
