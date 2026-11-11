@@ -67,7 +67,7 @@ internal class SearchAutoRetry(private val maxTries: Int = SEARCH_AUTO_RETRY_MAX
         returnHeld = false
     }
 
-    private fun take(): Boolean = if (tries < maxTries) {
+    private fun take(): Boolean = if (true) {
         tries++
         true
     } else {
