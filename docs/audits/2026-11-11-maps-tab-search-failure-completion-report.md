@@ -370,3 +370,111 @@ log has 0 `e:` lines. From the JUnit XML:
 - Where the notice should sit while navigating: the owner's (F1).
 - An Activity created anew during a failure.
 - Landscape at a large font.
+
+---
+
+# Addendum 2, 2026-11-11 late: the owner's G1 and G2, and the planner's H1 to H4
+
+The dispatch's Amendment G (on `records-after-173`, `eec1436b3`) holds the owner's rulings; Amendment H holds the planner's
+notes. Nothing above this line was rewritten.
+
+The owner's words:
+- G1 **"Under the navigation card"**. The option read: "search fails while navigating > the navigation card stays where it
+  is > notice shows just below the card; not navigating: under the search bar, as now".
+- G2 **"Shown, greyed out"**. The option read: "retry starts > the button stays visible but grey and does nothing > it turns
+  normal again if the retry fails". This replaces my reading (hidden, space kept), which is withdrawn.
+
+## What changed (commit `18fd4b11c`)
+
+**G1.** While navigating in portrait, the strip that carries the navigation card now reports its height as
+`CompactMapLayoutState.navigationCardHeightPx`. This is written in `CompactMapTopStrip.kt` and zeroed when navigation ends or
+the strip leaves.
+- `compassStripHeightPx` stays 0 while navigating, as before, so nothing else that reads it moves.
+- `CompactMapTab` hands the height to the search-bar slot as `LocalNavigationCardHeight`, the way `LocalSearchNoticeInset`
+  is handed.
+- `ScaffoldMapTabCall` places the notice at the bar's bottom plus that height, using the same placed composable as
+  fullscreen (renamed `PlacedSearchFailedNotice`). The icon cluster's limit follows the placed notice.
+- `searchNoticeUnderCard` is the one predicate for "navigating, portrait". In landscape, and when not navigating, the notice
+  is where it was.
+
+**G2.** During a retry, "Try again" stays shown in the button's own disabled look. That is Material's
+`TextButton(enabled = false)` with its default disabled colours, as every disabled button in the app has; no new colour. It
+does nothing when touched, and is enabled again if the retry fails. Its space and the notice's size are unchanged across the
+two states.
+
+## H1: tests and results
+
+`MapsTabSearchNavigatingTest` is F1's probe brought onto the branch. It runs in portrait, short landscape and a landscape
+tablet, navigating and recording, with a failed search, through the real screen and ViewModel. It checks:
+- five real touches across "Try again" all run the search;
+- the notice overlaps neither the compass strip, the navigation card nor the icon cluster;
+- its fill is at 0.8;
+- in portrait it sits just below the card;
+- long-presses on the map below the notice, and beside it where there is room, reach the map.
+
+All 9 pass at `18fd4b11c`, in the pull request's run
+[43089667518](https://github.com/slayer8366/Forager/actions/runs/43089667518): every job passed, 0 `e:` lines, and the
+JUnit XML reads 7576 tests, 0 failures, 0 errors, 24 skipped. That is 7567 plus the 9 new tests.
+
+**Landscape and tablet while navigating: not covered.** In both windows the notice lands under the search bar, as before
+G1. It overlaps neither the card, the strip nor the cluster, every touch on "Try again" runs the search, and the
+long-presses reach the map. So nothing was placed there. That case has no revert, because nothing in it changed in this
+round.
+
+## H2: the search-error banner from before this dispatch, while navigating
+
+It is covered. It was not moved; it is the owner's to rule. The probe branch `mtsf-h2-probe` (commit `35b7e55f5`), test
+`MapsTabSearchBannerNavigatingTest`, run [43089700275](https://github.com/slayer8366/Forager/actions/runs/43089700275)
+navigates in portrait, fails only the list search, and checks the banner. The build log had 0 compile errors. It failed:
+
+> `while navigating, the banner [0.0, 120.0][1152.0, 216.0] is covered by the navigation card [0.0, 120.0][1152.0, 411.0]
+> (bar [0.0, 0.0][1152.0, 120.0])`
+
+So while navigating in portrait, the "Request failed. Check your connection and try again." line, and any other line that
+banner carries, sits entirely under the navigation card. The probe is not on the PR branch.
+
+## H3, H4
+
+- H3: the large-font test still holds the notice's size across the two states. It is unchanged and passes at `18fd4b11c`.
+  The E4 helper now also checks that "Try again"'s bounds are the same before, during and after the retry.
+- H4: no existing test failed this round, and none was edited. The one test edited was this dispatch's own E4 helper in
+  `MapsTabSearchRetryTest`, changed because G2 replaced the reading it asserted ("Try again shows during the retry" became
+  "Try again is shown, not enabled, and a touch does nothing").
+
+## Revert checks for G
+
+Each revert was one edit on its own branch, cut from `18fd4b11c`. Each file was saved first and restored from the copy.
+Each build log had 0 `e:` lines and ran `compileDebugUnitTestKotlin`. The forward lines were confirmed present on the
+branch afterwards.
+
+| Behaviour | Edit | Run | Failures, verbatim |
+|---|---|---|---|
+| G1 below the card | `searchNoticeUnderCard` returns `false` | [43093712007](https://github.com/slayer8366/Forager/actions/runs/43093712007) | 3 of 3 portrait: `while navigating, the notice [0.0, 120.0][1152.0, 264.0] overlaps the compass strip [0.0, 120.0][1152.0, 411.0]`; `while navigating, real touches on Try again that did not run the search (... the navigation card [0.0, 228.0][1152.0, 411.0] ...) expected:<[]> but was:<[(0.85, 0.25), (0.5, 0.5), (0.85, 0.75)]>`; `positive control: there is map below or beside the notice [0.0, 120.0][1152.0, 264.0]` |
+| G2 greyed | `enabled = !retrying` to `enabled = true` | [43093724407](https://github.com/slayer8366/Forager/actions/runs/43093724407) | both E4 tests: `Failed to assert the following: (is not enabled) Semantics of the node: ... Tag: 'search-failed-try-again' ... Actions = [OnClick, RequestFocus]` |
+
+Not shown to bite: the navigating test's "no overlap with the icon cluster". The cluster's own place, mid-screen on the
+right, is far from the notice, so that check could not fail with the edits made.
+
+## On the phone (S22), replacing step 8
+
+8. Navigating in portrait, airplane mode on, search. **Pass:** the notice shows just below the navigation card, the card
+   unmoved; "Try again" works when touched at either end. **Observation for the owner (H2):** if the list search fails too,
+   the old "Request failed…" banner is hidden under the card.
+11. During a retry (airplane mode still on, tap "Try again"). **Pass:** the button stays visible and greyed, a tap on it does
+    nothing, and it turns normal when the retry fails.
+
+## Disclosure, for G and H
+
+- **Confirmed vs inferred.**
+  - Confirmed by CI: the G1 placement in portrait and the landscape placement while navigating; G2; H2's covered banner.
+  - Inferred: the grey is the app's disabled look. Read from code (Material's default `disabledContentColor`), not
+    measured.
+- **Could not determine.**
+  - The real navigation card's height on the S22, at its fonts and with its lines. The notice follows the measured height,
+    so it should track it.
+  - Robolectric reports zero insets.
+- **Premises that were wrong.** None found in G or H.
+- **Decided beyond scope.**
+  - G1 implemented as "portrait only", per the owner's option text and H1's "landscape: test, do not place".
+  - In fullscreen while navigating, the notice also sits below the card, the card being at the top then. Read from
+    code, not tested.
