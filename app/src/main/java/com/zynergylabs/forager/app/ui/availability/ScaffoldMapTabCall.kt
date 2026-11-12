@@ -396,7 +396,7 @@ internal fun ScaffoldMapTabCall(
                                         val underCard = searchNoticeUnderCard(navigation, showRail)
                                         val placedBanner = placedBannerShows(uiState, searchBannerPlaced(navigation, showRail, isMapFullscreen()), isMapFullscreen())
                                         val placedFailed = placedFailedShows(uiState, underCard, isMapFullscreen())
-                                        if (placedBanner || placedFailed) {
+                                        if (placedFailed) {
                                             PlacedSearchNotices(
                                                 bannerState = if (placedBanner) mapsTabSearchNoticeState(uiState) else null,
                                                 showFailed = placedFailed,
