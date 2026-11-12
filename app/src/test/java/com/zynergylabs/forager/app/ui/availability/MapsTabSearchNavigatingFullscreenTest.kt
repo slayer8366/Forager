@@ -34,9 +34,11 @@ import org.robolectric.annotation.Config
  * first; neither covers the other, the card, the strip or the icon cluster; 80% fill, opaque text; real touches across "Try
  * again" all run the search; long-presses below and beside reach the map.
  *
+ * In a landscape window (N1, the owner: "Show it there too") the banner is just above the notice, wherever the notice is placed.
+ *
  * Fullscreen when not navigating is not ruled: the banner is not shown there, as before this dispatch, and is not tested here.
  */
-abstract class MapsTabSearchNavigatingFullscreenTests {
+abstract class MapsTabSearchNavigatingFullscreenTests(private val portrait: Boolean = true) {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -62,7 +64,8 @@ abstract class MapsTabSearchNavigatingFullscreenTests {
     private fun chrome(): List<Pair<String, Rect>> =
         allBounds(STRIP_TAG).map { "the compass strip" to it } +
             allBounds(NAVIGATION_HUD_TAG).map { "the navigation card" to it } +
-            allBounds(MAP_ICON_CLUSTER_TAG).map { "the icon cluster" to it }
+            allBounds(MAP_ICON_CLUSTER_TAG).map { "the icon cluster" to it } +
+            allBounds(COMPACT_NAVIGATION_RAIL_TAG).map { "the rail" to it }
 
     /** The map's half fails, a mistyped coordinate gives the banner a line, then fullscreen. */
     private fun bannerAndNoticeInFullscreen() {
@@ -87,8 +90,13 @@ abstract class MapsTabSearchNavigatingFullscreenTests {
         bannerAndNoticeInFullscreen()
         val banner = bounds(SEARCH_NOTICE_TAG)
         val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
-        val card = bounds(STRIP_TAG)
-        assertTrue("L1: the banner ${banner.d()} is not just below the navigation card ${card.d()}", banner.top >= card.bottom - 1f && banner.top <= card.bottom + 1f)
+        if (portrait) {
+            val card = bounds(STRIP_TAG)
+            assertTrue("L1: the banner ${banner.d()} is not just below the navigation card ${card.d()}", banner.top >= card.bottom - 1f && banner.top <= card.bottom + 1f)
+        } else {
+            // N1 (the owner: "Show it there too"): just above the notice, wherever the notice sits.
+            assertTrue("N1: the banner ${banner.d()} is not just above the notice ${notice.d()}", banner.bottom >= notice.top - 1f && banner.bottom <= notice.top + 1f)
+        }
         assertTrue("the banner ${banner.d()} is not above the notice ${notice.d()}", banner.bottom <= notice.top + 1f)
         assertTrue("the banner ${banner.d()} and the notice ${notice.d()} overlap", !banner.overlaps(notice))
         for ((name, r) in chrome()) {
@@ -144,3 +152,12 @@ abstract class MapsTabSearchNavigatingFullscreenTests {
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
 class MapsTabSearchNavigatingFullscreenPortraitTest : MapsTabSearchNavigatingFullscreenTests()
+
+// N1 (the owner: "Show it there too"): the M1 probe classes (branch mtsf-lm-probe, run 43129275024, where the banner was absent).
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
+class MapsTabSearchNavigatingFullscreenShortLandscapeTest : MapsTabSearchNavigatingFullscreenTests(portrait = false)
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w1318dp-h824dp-land")
+class MapsTabSearchNavigatingFullscreenLandscapeTabletTest : MapsTabSearchNavigatingFullscreenTests(portrait = false)

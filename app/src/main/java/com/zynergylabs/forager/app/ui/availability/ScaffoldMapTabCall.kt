@@ -241,7 +241,7 @@ internal fun ScaffoldMapTabCall(
                                 // J1: and the banner too, below the card, while navigating in portrait.
                                 searchNoticeBottom = if (
                                     placedFailedShows(uiState, searchNoticeUnderCard(navigation, showRail), isMapFullscreen()) ||
-                                    placedBannerShows(uiState, searchNoticeUnderCard(navigation, showRail), isMapFullscreen())
+                                    placedBannerShows(uiState, searchBannerPlaced(navigation, showRail, isMapFullscreen()), isMapFullscreen())
                                 ) {
                                     with(LocalDensity.current) { placedNoticeHeightPx.toDp() }
                                 } else if (mapsTabNoticeShows(uiState) && !isMapFullscreen()) {
@@ -394,7 +394,7 @@ internal fun ScaffoldMapTabCall(
                                         // below the compass strip where the strip is there (portrait), placed as the bar is. G1 ("Under the navigation card"):
                                         // while navigating in portrait, below the navigation card, which hangs from the bar's bottom (the animated top inset).
                                         val underCard = searchNoticeUnderCard(navigation, showRail)
-                                        val placedBanner = placedBannerShows(uiState, underCard, isMapFullscreen())
+                                        val placedBanner = placedBannerShows(uiState, searchBannerPlaced(navigation, showRail, isMapFullscreen()), isMapFullscreen())
                                         val placedFailed = placedFailedShows(uiState, underCard, isMapFullscreen())
                                         if (placedBanner || placedFailed) {
                                             PlacedSearchNotices(
@@ -424,3 +424,13 @@ internal fun ScaffoldMapTabCall(
  * bar, and where the notice goes there is not ruled.
  */
 internal fun searchNoticeUnderCard(navigation: CompactMapNavigation, showRail: Boolean): Boolean = navigation.isNavigating && !showRail
+
+/**
+ * Whether the search-error banner is placed with the search-failed notice rather than in the search bar's column: below the
+ * navigation card while navigating in portrait (J1, L1), and, while navigating in fullscreen in a landscape window, on the map
+ * just above the notice wherever the notice is placed there (N1, the owner: "Show it there too"; its option read "fullscreen +
+ * navigating + landscape or tablet + list search fails > banner shows on the map just above the 'Search failed' notice,
+ * wherever that notice sits in that layout"). Fullscreen and not navigating is not ruled: not placed, not shown, as before.
+ */
+internal fun searchBannerPlaced(navigation: CompactMapNavigation, showRail: Boolean, fullscreen: Boolean): Boolean =
+    searchNoticeUnderCard(navigation, showRail) || (fullscreen && navigation.isNavigating)
