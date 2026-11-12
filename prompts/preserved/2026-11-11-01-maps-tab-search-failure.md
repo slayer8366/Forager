@@ -149,3 +149,12 @@ Sorrel Tally (Fable) reviewed PR #516 at head 98dc401dc: **pass with items**. Th
 - **O2.** Nothing else moves: fullscreen when not navigating stays as it is (banner not shown, not ruled); N2 changes nothing.
 - **O3.** Add an S22 step for N1 (landscape fullscreen while navigating, both showing).
 
+## Amendment P (2026-11-12T02:38Z, planner; from Sorrel's fourth review, pass with items)
+
+No owner ruling in this amendment. Tests and the report only; no app behaviour changes. If a new test fails, stop and report: do not change app code or any other test to reach green.
+
+- **P1.** Add a test through the real screen for the banner alone in fullscreen while navigating (the list search fails, the map's half loads, so no "Search failed" notice): portrait, short landscape and landscape tablet. The banner shows, placed where it is when both show; covers none of the compass strip, navigation card, rail or icon cluster; 80% fill, opaque text; long-presses below and beside reach the map. One-line revert, clean build log, edit-specific message, restore from a saved copy.
+- **P2.** Show that a position assertion in `MapsTabSearchNavigatingFullscreenTest.kt` can fail: one revert that leaves the banner shown but in the wrong place (portrait "just below the card", landscape "just above the notice"), on its own `mtsf-*` branch. If no one-line edit does that, say so and name what you tried.
+- **P3.** Report, by appending only: S22 step 19's "in fullscreen in landscape it is not shown at all" is superseded by N1; add an S22 step for the banner alone in fullscreen while navigating; add to step 22 a look at the slide into fullscreen in landscape (the banner may show twice for the slide's length; describe what is seen, no pass or fail).
+- **P4.** Not in scope: the unused `fullscreen` parameter, the test name, any behaviour.
+
