@@ -144,6 +144,55 @@ abstract class MapsTabSearchNavigatingFullscreenTests(private val portrait: Bool
         }
     }
 
+    /**
+     * P1 (Sorrel's fourth review): the banner alone in fullscreen while navigating. Only the list search fails and the map's half
+     * loads, so there is no "Search failed" notice and the banner carries the list's own failure line (not folded, C3 folds it only
+     * while the map's half has failed too). It is placed where it is when both show: just below the card in portrait; at the top of
+     * the placed column, the map's top, in a landscape window.
+     */
+    @Test
+    fun `fullscreen while navigating, the banner alone is placed where it is with the notice and overlaps nothing`() {
+        rig.setScreen()
+        rig.availabilityFailure = IOException("no signal (test)")
+        rig.searchCoordinates("45.3736", "-121.6959")
+        assertEquals("positive control: the list failed", LIST_SEARCH_FAILED_MESSAGE, rig.viewModel.uiState.value.errorMessage)
+        rig.touch(composeRule.onAllNodesWithContentDescription("Fullscreen").onFirst())
+        rig.settle()
+        assertTrue("positive control: fullscreen hid the search bar", !shown(SEARCH_ENTRY_BAR_TAG))
+        assertTrue("positive control: the map's half loaded, so there is no search-failed notice", !shown(SEARCH_FAILED_NOTICE_TAG))
+        assertTrue("fullscreen while navigating: the banner alone is not shown", shown(SEARCH_NOTICE_TAG))
+
+        val banner = bounds(SEARCH_NOTICE_TAG)
+        if (portrait) {
+            val card = bounds(STRIP_TAG)
+            assertTrue("the banner alone ${banner.d()} is not just below the navigation card ${card.d()}", banner.top >= card.bottom - 1f && banner.top <= card.bottom + 1f)
+        } else {
+            val map = bounds(LAYOUT_FIXES_MAP_TAG)
+            assertTrue("the banner alone ${banner.d()} is not at the map's top ${map.d()}, where the placed pair starts", banner.top >= map.top - 1f && banner.top <= map.top + 1f)
+        }
+        for ((name, r) in chrome()) {
+            assertTrue("the banner alone ${banner.d()} overlaps $name ${r.d()}", !banner.overlaps(r))
+        }
+        val fill = composeRule.onNodeWithTag(SEARCH_NOTICE_TAG, useUnmergedTree = true).fetchSemanticsNode().config[MapChromeContainerColor]
+        assertEquals("the banner alone's fill is not at the map chrome's alpha", MAP_CHROME_OVER_MAP_ALPHA, fill.alpha, 0.01f)
+        val colour = composeRule.onNode(hasText(LIST_SEARCH_FAILED_MESSAGE), useUnmergedTree = true).fetchSemanticsNode().config[MapChromeContentColor]
+        assertEquals("the banner alone's text is not opaque", 1f, colour.alpha, 0.01f)
+
+        val root = composeRule.onAllNodes(isRoot()).onFirst().fetchSemanticsNode().boundsInRoot
+        val others = chrome().map { it.second }
+        val points = (
+            listOf(0.2f, 0.5f, 0.8f).map { Offset(banner.left + banner.width * it, banner.bottom + 40f) } +
+                listOf(Offset(banner.left - 40f, banner.center.y), Offset(banner.right + 40f, banner.center.y))
+            ).filter { p -> root.contains(p) && others.none { it.contains(p) } }
+        assertTrue("positive control: more than one point below or beside the banner ${banner.d()}", points.size > 1)
+        for (at in points) {
+            val before = rig.mapLongPresses
+            composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { longClick(at) }
+            rig.settle()
+            assertEquals("fullscreen while navigating, a long-press at $at by the banner alone ${banner.d()} did not reach the map", before + 1, rig.mapLongPresses)
+        }
+    }
+
     private companion object {
         const val STRIP_TAG = "compass-elevation-strip"
     }
