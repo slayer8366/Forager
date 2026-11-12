@@ -123,3 +123,18 @@ Sorrel Tally (Fable) reviewed PR #516 at head 98dc401dc: **pass with items**. Th
 - **K1.** When an older search fails late over a newer search's loaded map, what a tap on "Try again" does. The owner: **"Fetch again (Recommended)"** (tap "Try again" > shows "Trying again…" > the showing search's sightings are fetched again > notice goes when that works, or returns to "Search failed" if it doesn't).
 - **K2 (the planner's).** MapsTabSearchStaleFailureTest now pins this: after the tap, exactly one more sightings fetch for the showing search, "Trying again…" while it runs, the notice gone on success, "Search failed. Check your connection." back on failure, the map present throughout. The same for an automatic try on a return of signal in that state, within E2 and E3. Nothing is cancelled and the late failure itself (audit M13) is not changed. A revert that fails on the fetch count.
 
+### L. The owner's rulings after Sorrel's third review (2026-11-12T00:39:47Z)
+
+- **L1.** The old banner in fullscreen while navigating, where it is not shown at all today. The owner: **"Under the card in fullscreen too"** (fullscreen + navigating + list search fails > banner shows just below the navigation card, above the "Search failed" notice).
+- **L2.** Order of work. The owner: **"Hazel first, then the S22"** (one more round > Sorrel glances at it > new build > then the phone; the phone check runs once, on the final build).
+
+### M. Back to the coder (the planner's, not owner rulings)
+
+- **M1.** L1 is proved as J1 was: through the real screen, fullscreen while navigating in portrait, banner just below the card and above the notice, neither covering the other, the card or the icon cluster; 80% fill, opaque text; several real touches across "Try again" with both showing; long-presses below and beside reach the map; a revert. Fullscreen when NOT navigating is not ruled: the banner stays not shown there, unchanged; say so in the report. Landscape and tablet in fullscreen while navigating: test where it lands; if covered or absent, stop and report.
+- **M2.** Run Sorrel's one-edit revert for the notice under the bar (the swallowing prefix on the bar's column, ScaffoldMapTabCall.kt:335). If it fails on the long-press itself, cite it and withdraw the report's "none can be made"; if it does not, say what happened.
+- **M3.** K2 gaps: a signal-return-then-fails case; the fetch check compares month and filter with the showing search's, not with themselves; assert the showing search's observations stay on the map during the refetch and after a failed one; correct the I1 test's message ("with nothing to fetch") without changing what it asserts.
+- **M4.** J2 gaps: with banner and notice both showing while navigating, several real touches across "Try again" and more than one long-press point. Correct the report's "every revert was one edit" (the J1 revert is two lines).
+- **M5.** A cluster dragged while the notice already shows: test what it does when the notice goes, and what the cluster does today under the bar's other notices in the same order. Report both; change nothing. If they differ, it is the owner's.
+- **M6.** S22 steps: remove or correct step 8's out-of-date H2 note (by an appended correction, not a rewrite); add "Try again" with banner and notice both under the real card; the banner in fullscreen while navigating; the banner while navigating in landscape; large font with both stacked; the cluster dragged while the notice shows.
+- **Noted, not sent back:** an older failure landing during a K1 refetch clears "Trying again…" early and ends correctly (audit M13 family).
+
