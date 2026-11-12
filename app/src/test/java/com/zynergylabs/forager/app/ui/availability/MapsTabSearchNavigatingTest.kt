@@ -186,6 +186,55 @@ abstract class MapsTabSearchNavigatingTests(private val portrait: Boolean) {
         }
     }
 
+    /**
+     * M4 (the planner's): the banner and the notice both showing while navigating, and the notice's "Try again" used several
+     * times. Only the map's half fails, then a mistyped coordinate gives the banner a line; "Try again" retries the map's half
+     * only, so the banner's line stays and both show through every touch.
+     */
+    @Test
+    fun `while navigating, with the banner and the notice both showing, touches across Try again all run and long-presses reach the map`() {
+        rig.setScreen()
+        rig.sightingsFailure = IOException("no signal (test)")
+        rig.searchCoordinates("45.3736", "-121.6959")
+        rig.tapBar()
+        composeRule.onNodeWithTag(SEARCH_DROPDOWN_LATITUDE_TAG).performTextReplacement("999")
+        rig.touch(composeRule.onNodeWithTag(SEARCH_DROPDOWN_SEARCH_COORDINATES_TAG))
+        if (rig.dropdownShown()) composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+        rig.settle()
+        assertTrue("positive control: the banner is composed", shown(SEARCH_NOTICE_TAG))
+        assertTrue("positive control: the notice is composed", shown(SEARCH_FAILED_NOTICE_TAG))
+
+        val missed = mutableListOf<String>()
+        for ((fx, fy) in listOf(0.15f to 0.25f, 0.85f to 0.25f, 0.5f to 0.5f, 0.15f to 0.75f, 0.85f to 0.75f)) {
+            val before = rig.sightingsFetches.size
+            rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true), fx, fy)
+            if (rig.sightingsFetches.size != before + 1) missed += "($fx, $fy)"
+            assertTrue("positive control: the banner still shows after the touch at ($fx, $fy)", shown(SEARCH_NOTICE_TAG))
+        }
+        assertEquals(
+            "while navigating with both showing, real touches on Try again that did not run the search (banner ${bounds(SEARCH_NOTICE_TAG).d()}, notice ${bounds(SEARCH_FAILED_NOTICE_TAG).d()})",
+            emptyList<String>(),
+            missed,
+        )
+
+        val banner = bounds(SEARCH_NOTICE_TAG)
+        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
+        val root = composeRule.onAllNodes(isRoot()).onFirst().fetchSemanticsNode().boundsInRoot
+        val others = chrome().map { it.second } + allBounds(SEARCH_ENTRY_BAR_TAG) + allBounds(COMPACT_NAVIGATION_RAIL_TAG)
+        val points = (
+            listOf(0.2f, 0.5f, 0.8f).map { Offset(notice.left + notice.width * it, notice.bottom + 40f) } +
+                listOf(Offset(banner.left - 40f, banner.center.y), Offset(banner.right + 40f, banner.center.y)) +
+                listOf(Offset(notice.left - 40f, notice.center.y), Offset(notice.right + 40f, notice.center.y))
+            ).filter { p -> root.contains(p) && others.none { it.contains(p) } }
+        assertTrue("positive control: more than one point below or beside the banner and the notice", points.size > 1)
+        for (at in points) {
+            val before = rig.mapLongPresses
+            composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { longClick(at) }
+            rig.settle()
+            assertEquals("while navigating with both showing, a long-press at $at did not reach the map (banner ${banner.d()}, notice ${notice.d()})", before + 1, rig.mapLongPresses)
+        }
+    }
+
     private companion object {
         const val STRIP_TAG = "compass-elevation-strip"
     }

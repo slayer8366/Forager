@@ -62,7 +62,7 @@ class MapsTabSearchStaleFailureTest {
         rig.settle()
 
         assertTrue(
-            "after Try again with nothing to fetch (fetches ${rig.sightingsFetches.size - fetches}), the notice reads \"$SEARCH_RETRYING_NOTICE_TEXT\" and stays",
+            "after Try again over a loaded map (fetches ${rig.sightingsFetches.size - fetches}), the notice reads \"$SEARCH_RETRYING_NOTICE_TEXT\" and stays",
             !textShown(SEARCH_RETRYING_NOTICE_TEXT),
         )
         // What Try again does here is not pinned (the planner's question, I1); only that it does not stick. If the notice still
@@ -84,11 +84,16 @@ class MapsTabSearchStaleFailureTest {
         rig.sightingsGate = null
         rig.searchCoordinates("44.0521", "-123.0868")
         assertEquals("positive control: search B's observations are on the map", listOf(RealSearchScreenRig.sightingAt(regionB)), rig.mapSightings)
+        // M3: the showing search's own query, as its fetch asked it: what a retry must fetch again.
+        showingQuery = rig.sightingsFetches.last()
+        assertEquals("positive control: the last fetch was search B's", regionB, showingQuery.first)
         rig.sightingsFailure = IOException("no signal (test)")
         gateA.complete(Unit)
         rig.settle()
         assertTrue("positive control (M13, not changed): A's late failure shows its notice", textShown(SEARCH_FAILED_NOTICE_TEXT))
     }
+
+    private lateinit var showingQuery: Triple<Region, Int, com.zynergylabs.forager.app.domain.model.TaxonFilter>
 
     /**
      * A retry of B's sightings, held running: one more fetch, for B; "Trying again…"; the map there. Then [succeed] or not, and
@@ -101,7 +106,8 @@ class MapsTabSearchStaleFailureTest {
         try {
             startRetry()
             assertEquals("$where: the showing search's sightings were not fetched again exactly once", before + 1, rig.sightingsFetches.size)
-            assertEquals("$where: the fetch was not for the showing search", Triple(regionB, rig.sightingsFetches.last().second, rig.sightingsFetches.last().third), rig.sightingsFetches.last())
+            assertEquals("$where: the fetch was not for the showing search", showingQuery, rig.sightingsFetches.last())
+            assertEquals("$where: the showing search's observations left the map while the fetch runs", listOf(RealSearchScreenRig.sightingAt(regionB)), rig.mapSightings)
             assertTrue("$where: the notice does not read \"$SEARCH_RETRYING_NOTICE_TEXT\" while the fetch runs", textShown(SEARCH_RETRYING_NOTICE_TEXT))
             assertTrue("$where: the map is gone while the fetch runs", shown(LAYOUT_FIXES_MAP_TAG))
             if (succeed) rig.sightingsFailure = null
@@ -117,6 +123,7 @@ class MapsTabSearchStaleFailureTest {
             assertEquals("$where: the map is not handed B's observations", listOf(RealSearchScreenRig.sightingAt(regionB)), rig.mapSightings)
         } else {
             assertTrue("$where: after the fetch failed the notice does not read \"$SEARCH_FAILED_NOTICE_TEXT\"", textShown(SEARCH_FAILED_NOTICE_TEXT))
+            assertEquals("$where: the showing search's observations left the map after the fetch failed", listOf(RealSearchScreenRig.sightingAt(regionB)), rig.mapSightings)
         }
     }
 
@@ -141,5 +148,14 @@ class MapsTabSearchStaleFailureTest {
         rig.settle()
         lateFailureOverLoadedMap()
         assertOneFetchForTheShowingSearch("signal returns", { rig.networkValidated.value = true; rig.settle() }, succeed = true)
+    }
+
+    @Test
+    fun `over a loaded map, a return of signal fetches the showing search once, and Search failed comes back when it fails`() {
+        rig.setScreen()
+        rig.networkValidated.value = false
+        rig.settle()
+        lateFailureOverLoadedMap()
+        assertOneFetchForTheShowingSearch("signal returns, fails", { rig.networkValidated.value = true; rig.settle() }, succeed = false)
     }
 }

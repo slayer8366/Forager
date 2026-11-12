@@ -186,9 +186,14 @@ internal fun PlacedSearchNotices(
     }
 }
 
-/** J1: the search-error banner is placed below the navigation card (navigating in portrait, the bar showing) when it has a line. */
+/**
+ * J1 (the owner: "Under the navigation card too") and L1 (the owner: "Under the card in fullscreen too"): the search-error banner
+ * is placed below the navigation card while navigating in portrait, the bar showing or fullscreen, when it has a line. [fullscreen]
+ * no longer narrows it (L1). Fullscreen and not navigating is not ruled: there the banner is not shown, as before.
+ */
+@Suppress("UNUSED_PARAMETER")
 internal fun placedBannerShows(uiState: AvailabilityUiState, underCard: Boolean, fullscreen: Boolean): Boolean =
-    underCard && !fullscreen && searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null
+    underCard && searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null
 
 /** C6 and G1: the search-failed notice is placed, in fullscreen or below the navigation card, when it shows. */
 internal fun placedFailedShows(uiState: AvailabilityUiState, underCard: Boolean, fullscreen: Boolean): Boolean =
