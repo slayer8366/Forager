@@ -144,3 +144,12 @@ abstract class MapsTabSearchNavigatingFullscreenTests {
 @RunWith(RobolectricTestRunner::class)
 @Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
 class MapsTabSearchNavigatingFullscreenPortraitTest : MapsTabSearchNavigatingFullscreenTests()
+
+// M1 probe, not for merge: where the banner lands in fullscreen while navigating in landscape windows.
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
+class MapsTabSearchNavigatingFullscreenShortLandscapeTest : MapsTabSearchNavigatingFullscreenTests()
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w1318dp-h824dp-land")
+class MapsTabSearchNavigatingFullscreenLandscapeTabletTest : MapsTabSearchNavigatingFullscreenTests()
