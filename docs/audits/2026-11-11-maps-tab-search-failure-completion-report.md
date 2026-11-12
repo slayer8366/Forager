@@ -685,3 +685,129 @@ Robolectric tests only, and no S22 step is added.
 - **Not tested:** this case at the three-try limit (E3) or while Forager is in the background (E2). They take the same path
   as every other automatic try, which `SearchAutoRetryTest` and `MapsTabSearchAutoRetryTest` cover.
 - **Decided beyond scope:** none.
+
+---
+
+# Addendum 5: Sorrel's third review, the owner's L1 and L2, and the planner's M1 to M6
+
+The dispatch's Amendments L and M (on `records-after-173`, `44cb3d5a0`). Nothing above this line was rewritten. Corrections to
+earlier addenda are made here, in "Corrections".
+
+The owner's words:
+- L1 **"Under the card in fullscreen too"**. The option read: "fullscreen + navigating + list search fails > banner shows just
+  below the navigation card, above the 'Search failed' notice".
+- L2 **"Hazel first, then the S22"**.
+
+## L1 and M1 (commit `b9a12790b`)
+
+`placedBannerShows` no longer leaves out fullscreen. While navigating in portrait, in fullscreen, the search-error banner is
+now placed below the navigation card, above the search-failed notice.
+
+Fullscreen when *not* navigating is not ruled. There the banner is not shown, as before this dispatch; it slides away with the
+bar. That is unchanged and not tested here.
+
+Tests: `MapsTabSearchNavigatingFullscreenTest`, portrait, through the real screen, navigating and recording, in fullscreen.
+The map's half fails and a mistyped coordinate gives the banner a line; that is done before fullscreen, while the bar shows.
+The tests check:
+- the banner is just below the card and above the notice;
+- neither covers the other, the card, the strip or the cluster;
+- both fills are at 0.8 and both texts are opaque;
+- five real touches across "Try again" all run the search, with the banner still showing after each;
+- long-presses at several points below and beside reach the map.
+
+Both pass. Revert (`!fullscreen &&` put back), run
+[43129330929](https://github.com/slayer8366/Forager/actions/runs/43129330929): 2 of 2, `fullscreen while navigating: the banner
+is not shown`.
+
+**Landscape and tablet, fullscreen while navigating: the banner is absent. Not placed; a stop for the owner.** Probe branch
+`mtsf-lm-probe` (`ee39e4abc`), run [43129275024](https://github.com/slayer8366/Forager/actions/runs/43129275024), build log
+clean. In both the short landscape and the landscape tablet windows, both tests stop at `fullscreen while navigating: the banner
+is not shown`.
+
+In a landscape window the banner stays in the search bar's column (G1 and J1 were portrait only). Fullscreen hides that column,
+so the banner is not shown. The search-failed notice there is placed at the map's top as in C6. Where the banner should go in
+landscape fullscreen while navigating is the owner's to say.
+
+## M2: Sorrel's revert for the notice under the bar
+
+The swallowing prefix (`fillMaxWidth().pointerInput(Unit) { detectTapGestures(onLongPress = {}) }`) went on the bar's
+column's `AnimatedVisibility` modifier (`ScaffoldMapTabCall.kt:335`), with its two imports. Run
+[43129340091](https://github.com/slayer8366/Forager/actions/runs/43129340091), build log clean. It **fails on the long-press
+itself**:
+- `under the bar: a long-press at Offset(72.0, 62.0), beside the notice [112.0, 36.0][1138.0, 88.0], did not reach the map
+  expected:<1> but was:<0>` (landscape tablet);
+- `under the bar: a long-press at Offset(2029.0, 180.0), beside the notice [336.0, 108.0][1989.0, 252.0], did not reach the map
+  expected:<1> but was:<0>` (short landscape).
+
+The fullscreen tests still pass under it, as they should.
+
+## M3: K2 gaps
+
+In `MapsTabSearchStaleFailureTest`:
+- The retry's fetch is now compared with the showing search's own query, as that search's fetch asked for it. Before, it was
+  compared with itself on month and filter.
+- The showing search's observations are asserted on the map while the refetch runs, and after a failed one.
+- A case is added where signal returns and the fetch then fails.
+- The I1 test's message now reads "after Try again over a loaded map". What it asserts is unchanged.
+
+## M4: J2 gaps
+
+A new test in `MapsTabSearchNavigatingTest`, in all three layouts, with the banner and the notice both showing while
+navigating. Only the map's half fails, so "Try again" retries that half only and the banner's line stays through every touch.
+It checks:
+- five real touches across "Try again" each run the search;
+- long-presses at three points below and at the points beside both, wherever they are on the map, reach the map.
+
+## M5: a cluster dragged while the notice already shows
+
+Measured on the probe branch, run 43129275024 (`MapsTabSearchClusterProbeTest`, which records and asserts nothing). Portrait
+values, as `top..bottom` px for the notice and `top` px for the cluster:
+
+| What shows | The notice | Dragged while it shows | After it goes | Dragged again with none |
+|---|---|---|---|---|
+| The search-failed notice under the bar | 228.0..372.0 | 373.0 | 373.0 | 229.0 |
+| The search-failed notice below the navigation card | 411.0..555.0 | 556.0 | 556.0 | 169.0 |
+| The search-error banner from before this dispatch, under the bar | 228.0..324.0 | 325.0 | 325.0 | 229.0 |
+
+All three behave the same. Dragged up while a notice shows, the cluster stops just below the notice and stays there when the
+notice goes; it rises again only on the next drag. The new notices do what the old banner already did, so there is nothing for
+the owner here unless the old behaviour itself is wanted otherwise. Nothing was changed.
+
+## M6 and the S22 steps (appended; earlier steps are not rewritten)
+
+The owner's L2: one phone check, on the final build, after Sorrel's glance.
+
+- **Step 8, corrected:** its "Observation for the owner (H2): the old banner is hidden under the card" is out of date. Since J1,
+  the banner shows just below the card while navigating in portrait. Step 16 is that check.
+- **17.** Navigating in portrait, with the banner and the notice both showing (airplane mode on, then a mistyped coordinate in
+  the search's own boxes), tap "Try again" at its left and right ends. **Pass:** each tap shows "Trying again…" and comes back to
+  "Search failed"; the banner stays; neither is under the card.
+- **18.** The same, then enter fullscreen. **Pass:** the banner and the notice are just below the card, banner first.
+- **19.** Navigating in landscape, list search failing. **Pass:** the banner shows under the search bar, uncovered.
+  Observation for the owner: in fullscreen in landscape it is not shown at all (above).
+- **20.** A large font, with both stacked under the card in portrait. **Pass:** both are whole and neither covers the other.
+- **21.** With the notice showing, drag the icon cluster to the top, then let the search work. **Observation, not a gate:** the
+  cluster stays just below where the notice was, as it does for the old banner today (M5).
+
+## Corrections
+
+- **Addendum 3, "Every revert this round was one edit, or one edit with its imports":** this was not true. The J1 revert
+  (`mtsf-revert4-j1-banner`) was two code lines: the column gate removed, and `placedBanner` set to false.
+- **Addendum 3, I3, "the under-the-bar case has no such revert ... a one-edit revert there swallows by changing the column,
+  which moves the points too":** withdrawn. Sorrel's one-edit revert on the bar column's modifier (M2 above) fails on the
+  swallowed long-press itself.
+
+## Full CI at `b9a12790b`
+
+The pull request's run [43129232625](https://github.com/slayer8366/Forager/actions/runs/43129232625). Every job passed and the
+build log has 0 `e:` lines. The JUnit XML reads 7594 tests, 0 failures, 0 errors, 24 skipped: 7588 plus 6 new tests (1 for M3,
+3 for M4 across the layouts, 2 for M1). No existing test failed.
+
+## Disclosure, for L and M
+
+- **Confirmed by CI:** L1 in portrait fullscreen; M2's revert; M5's values; the banner's absence in landscape fullscreen while
+  navigating.
+- **Inferred:** none new.
+- **Could not determine:** the real card's height on the S22.
+- **Premises that were wrong:** my addendum 3 claims, both corrected above.
+- **Decided beyond scope:** none. The landscape fullscreen case is left for the owner.
