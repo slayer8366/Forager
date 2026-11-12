@@ -885,3 +885,77 @@ No existing test failed.
   - the slide into fullscreen, where the bar's column and the placed pair both show for its length (already left as it is,
     as ruled earlier).
 - **Decided beyond scope:** none.
+
+---
+
+# Addendum 7: the planner's P1 to P4, from Sorrel's fourth review
+
+This is the dispatch's Amendment P. There is no owner ruling in it: it covers tests and the report only. The app code is
+unchanged since `7216a2c9d` (`git diff 7216a2c9d HEAD -- app/src/main` is empty). Nothing above this line was rewritten.
+
+## P1: the banner alone in fullscreen while navigating (commit `85f75e4f3`)
+
+There is a new test in `MapsTabSearchNavigatingFullscreenTest.kt`, run in portrait, short landscape and the landscape tablet,
+through the real screen while navigating and recording. Only the list search fails; the map's half loads. So there is no
+"Search failed" notice, and the banner carries the list's own failure line.
+
+After entering fullscreen it checks:
+- the banner shows, placed where it is when both show: just below the card in portrait, at the map's top in a landscape window
+  (where the placed pair starts);
+- it covers none of the compass strip, the navigation card, the rail or the icon cluster;
+- its fill is at 0.8 and its text is opaque;
+- long-presses at the points below and beside it that are on the map reach the map, with a positive control that there is
+  more than one such point.
+
+Results:
+- Forward: run [43142938032](https://github.com/slayer8366/Forager/actions/runs/43142938032), build log clean, 3 of 3 pass.
+- Revert, on branch `mtsf-revert8-p1-banner-alone`. One line: the placed block's condition `placedBanner || placedFailed`
+  becomes `placedFailed`. Run [43142972927](https://github.com/slayer8366/Forager/actions/runs/43142972927), build log clean.
+  It fails in all three layouts with `fullscreen while navigating: the banner alone is not shown`.
+
+## P2: a position assertion shown able to fail
+
+On branch `mtsf-revert8-p2-banner-place`, one line in `PlacedSearchNotices`: the banner is wrapped in
+`Box(Modifier.padding(vertical = 40.dp))`. The banner still shows, but 40 dp from where it belongs: 40 dp lower in portrait,
+and 40 dp short of the notice in landscape.
+
+Run [43142980825](https://github.com/slayer8366/Forager/actions/runs/43142980825), build log clean. The presence checks pass and
+the position assertions fail:
+- portrait: `L1: the banner [0.0, 411.0][1152.0, 507.0] is not just below the navigation card [0.0, 0.0][1152.0, 291.0]`;
+- short landscape: `N1: the banner [336.0, 120.0][2229.0, 216.0] is not just above the notice [336.0, 336.0][2229.0, 480.0]`;
+- landscape tablet: `N1: the banner [112.0, 40.0][1218.0, 92.0] is not just above the notice [112.0, 132.0][1218.0, 184.0]`.
+
+P1's new test fails the same way in each layout, for example `the banner alone [336.0, 120.0][2229.0, 216.0] is not at the
+map's top [0.0, 0.0][2469.0, 1152.0], where the placed pair starts`.
+
+For both reverts, the file was saved first and restored from that copy. The forward lines were confirmed present on the
+branch afterwards, and each revert commit was scanned with 0 findings.
+
+## Full CI at `85f75e4f3`
+
+The pull request's run [43142944519](https://github.com/slayer8366/Forager/actions/runs/43142944519): every job passed and the
+build log has 0 `e:` lines. The JUnit XML reads 7601 tests, 0 failures, 0 errors and 24 skipped. That is 7598 plus the 3 new
+tests. No existing test was touched or failed.
+
+## P3: S22 steps (appended; earlier steps are not rewritten)
+
+- **Step 19, superseded in part:** its observation "in fullscreen in landscape it is not shown at all" no longer holds. Since
+  N1, the banner shows on the map just above the "Search failed" notice in landscape fullscreen while navigating; step 22
+  checks that.
+- **Step 22, added to:** after entering fullscreen in landscape, watch the slide itself. **Observation only, no pass or
+  fail:** describe what is seen while the search bar slides away. The bar's column and the placed pair can both be drawn for
+  the slide's length, so the banner may show twice for that moment.
+- **23.** Navigating, airplane mode off, a list search failing (or failing it some other way while the map loads), then enter
+  fullscreen, in portrait and in landscape. **Pass:** the banner alone shows where it does when the notice is with it: just
+  below the card in portrait, at the map's top in landscape. It covers none of the card, the strip or the icon cluster.
+
+## P4
+
+Not in scope, and not touched: the unused `fullscreen` parameter, the test name, and any behaviour.
+
+## Disclosure
+
+- **Confirmed by CI:** P1 in three layouts; P2's revert reaching the position assertions.
+- **Not checked:** the banner alone at a large font. Step 23's "a list search failing" may be hard to stage by hand on the
+  phone, since airplane mode fails both halves. Say what was staged.
+- **Decided beyond scope:** none.
