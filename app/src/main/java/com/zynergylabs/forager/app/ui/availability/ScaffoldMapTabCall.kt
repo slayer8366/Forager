@@ -433,4 +433,4 @@ internal fun searchNoticeUnderCard(navigation: CompactMapNavigation, showRail: B
  * wherever that notice sits in that layout"). Fullscreen and not navigating is not ruled: not placed, not shown, as before.
  */
 internal fun searchBannerPlaced(navigation: CompactMapNavigation, showRail: Boolean, fullscreen: Boolean): Boolean =
-    searchNoticeUnderCard(navigation, showRail) || (fullscreen && navigation.isNavigating)
+    searchNoticeUnderCard(navigation, showRail)
