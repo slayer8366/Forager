@@ -138,3 +138,14 @@ Sorrel Tally (Fable) reviewed PR #516 at head 98dc401dc: **pass with items**. Th
 - **M6.** S22 steps: remove or correct step 8's out-of-date H2 note (by an appended correction, not a rewrite); add "Try again" with banner and notice both under the real card; the banner in fullscreen while navigating; the banner while navigating in landscape; large font with both stacked; the cluster dragged while the notice shows.
 - **Noted, not sent back:** an older failure landing during a K1 refetch clears "Trying again…" early and ends correctly (audit M13 family).
 
+### N. The owner's rulings after the sixth hand-back (2026-11-12T01:36:11Z)
+
+- **N1.** The old banner in landscape and on a tablet, in fullscreen while navigating, where it is not shown at all. The owner: **"Show it there too"** (fullscreen + navigating + landscape or tablet + list search fails > banner shows on the map just above the "Search failed" notice, wherever that notice sits in that layout).
+- **N2.** A cluster dragged up while a notice shows stays below it after the notice goes. The owner: **"Keep as it is"** (notice goes > the cluster stays where you left it; same as the old banner today; no change).
+
+### O. Back to the coder (the planner's, not owner rulings)
+
+- **O1.** N1 is proved as L1 was, in short landscape and landscape tablet: through the real screen, fullscreen while navigating, the banner just above the notice; neither covers the other, the navigation card or rail, the compass strip or the icon cluster; 80% fill, opaque text; several real touches across "Try again" with both showing; long-presses beside and below reach the map; a revert that fails in those two layouts. The probe test from mtsf-lm-probe comes onto the branch, passing.
+- **O2.** Nothing else moves: fullscreen when not navigating stays as it is (banner not shown, not ruled); N2 changes nothing.
+- **O3.** Add an S22 step for N1 (landscape fullscreen while navigating, both showing).
+
