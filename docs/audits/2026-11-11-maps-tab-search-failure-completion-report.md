@@ -811,3 +811,77 @@ build log has 0 `e:` lines. The JUnit XML reads 7594 tests, 0 failures, 0 errors
 - **Could not determine:** the real card's height on the S22.
 - **Premises that were wrong:** my addendum 3 claims, both corrected above.
 - **Decided beyond scope:** none. The landscape fullscreen case is left for the owner.
+
+---
+
+# Addendum 6: the owner's N1 and N2, and the planner's O1 to O3
+
+The dispatch's Amendments N and O (on `records-after-173`, `041f2cd82`). Nothing above this line was rewritten. Addendum 5's
+"Landscape and tablet, fullscreen while navigating: the banner is absent ... a stop for the owner" is answered here.
+
+The owner's words:
+- N1 **"Show it there too"**. The option read: "fullscreen + navigating + landscape or tablet + list search fails > banner
+  shows on the map just above the 'Search failed' notice, wherever that notice sits in that layout".
+- N2 **"Keep as it is"**. The option read: "notice goes > the cluster stays where you left it; same as the old banner today;
+  no change". Nothing was changed for N2.
+
+## N1 (commit `ed5730109`)
+
+`searchBannerPlaced` in `ScaffoldMapTabCall.kt` decides when the search-error banner is placed with the search-failed notice
+rather than in the search bar's column:
+- navigating in portrait (J1, L1), as before;
+- now also navigating in fullscreen in a landscape window, where the notice is placed at the map's top as in C6. The banner
+  is placed first, so it sits just above the notice.
+
+Unchanged (O2):
+- Portrait.
+- Fullscreen when not navigating: the banner is not shown there; this is not ruled.
+- N2.
+
+## O1: proof
+
+The M1 probe's two landscape classes are now on the branch: `MapsTabSearchNavigatingFullscreenShortLandscapeTest` and
+`...LandscapeTabletTest`, in `MapsTabSearchNavigatingFullscreenTest.kt`. In those windows the position check is "the banner
+is just above the notice", within 1 px; portrait keeps "just below the card". The rail is added to what nothing may cover.
+
+Through the real screen, navigating and recording, in fullscreen, in both landscape windows:
+- the banner is just above the notice;
+- neither covers the other, the compass strip, the navigation card, the rail or the icon cluster;
+- both fills are at 0.8 and both texts are opaque;
+- five real touches across "Try again" each run the search, with the banner still showing after each;
+- long-presses at several points below and beside both reach the map.
+
+Results:
+- **Forward:** all 6 pass (2 tests × 3 windows), run
+  [43135759338](https://github.com/slayer8366/Forager/actions/runs/43135759338), build log clean.
+- **Revert** (`|| (fullscreen && navigation.isNavigating)` removed, one edit), branch `mtsf-revert7-n1-landscape-banner`,
+  run [43135785195](https://github.com/slayer8366/Forager/actions/runs/43135785195), build log clean: 4 of 4 fail in the two
+  landscape windows, `fullscreen while navigating: the banner is not shown`. The file was restored from a saved copy, and the
+  forward line was confirmed present afterwards.
+- One test's name still reads "the banner is just below the card and above the notice". In the landscape classes it checks
+  "just above the notice", as stated above. The name was left as it is.
+
+Nothing in landscape needed placing that would cover or move something not ruled. The overlap checks above passed.
+
+## Full CI at `ed5730109`
+
+The pull request's run [43135766334](https://github.com/slayer8366/Forager/actions/runs/43135766334). Every job passed and the
+build log has 0 `e:` lines. The JUnit XML reads 7598 tests, 0 failures, 0 errors, 24 skipped: 7594 plus the 4 landscape tests.
+No existing test failed.
+
+## On the phone (S22), added (O3)
+
+22. Turn the phone to landscape, start navigating, then airplane mode on. Search, then mistype a coordinate in the search's own
+    boxes so the banner has a line, then enter fullscreen. **Pass:**
+    - the banner shows on the map just above the "Search failed" notice;
+    - neither is under the navigation card, the strip or the icon cluster;
+    - "Try again" works at either end.
+
+## Disclosure
+
+- **Confirmed by CI:** N1 in short landscape and on a landscape tablet.
+- **Not tested:**
+  - a landscape window at a large font with both stacked;
+  - the slide into fullscreen, where the bar's column and the placed pair both show for its length (already left as it is,
+    as ruled earlier).
+- **Decided beyond scope:** none.
