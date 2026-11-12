@@ -181,7 +181,7 @@ internal fun PlacedSearchNotices(
     modifier: Modifier = Modifier,
 ) {
     Column(modifier = modifier.onSizeChanged { onHeightMeasured(it.height) }.padding(top = top)) {
-        bannerState?.let { SearchNotice(it, overMap = true) }
+        bannerState?.let { Box(Modifier.padding(vertical = 40.dp)) { SearchNotice(it, overMap = true) } }
         if (showFailed) SearchFailedNotice(retrying = retrying, onTryAgain = onTryAgain)
     }
 }
