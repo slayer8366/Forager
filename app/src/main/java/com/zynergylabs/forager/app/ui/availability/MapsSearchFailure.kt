@@ -193,7 +193,7 @@ internal fun PlacedSearchNotices(
  */
 @Suppress("UNUSED_PARAMETER")
 internal fun placedBannerShows(uiState: AvailabilityUiState, underCard: Boolean, fullscreen: Boolean): Boolean =
-    underCard && searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null
+    underCard && !fullscreen && searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null
 
 /** C6 and G1: the search-failed notice is placed, in fullscreen or below the navigation card, when it shows. */
 internal fun placedFailedShows(uiState: AvailabilityUiState, underCard: Boolean, fullscreen: Boolean): Boolean =
