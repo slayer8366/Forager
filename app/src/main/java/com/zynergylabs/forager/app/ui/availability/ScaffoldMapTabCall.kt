@@ -24,6 +24,7 @@ package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -45,6 +46,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
@@ -332,7 +334,7 @@ internal fun ScaffoldMapTabCall(
                                             visible = !isMapFullscreen(),
                                             enter = slideInVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
                                             exit = slideOutVertically(animationSpec = MotionTokens.panelMotionSpec()) { fullHeight -> -(fullHeight + statusBarTopPx) },
-                                            modifier = searchColumnModifier,
+                                            modifier = Modifier.fillMaxWidth().pointerInput(Unit) { detectTapGestures(onLongPress = {}) }.then(searchColumnModifier),
                                         ) {
                                         Column(modifier = Modifier.mapKeepOut(MapKeepOutIds.SEARCH_BAR).onSizeChanged { measurements.searchChromeHeightPx = it.height }) {
                                             // Dispatch 2026-11-11-01, C2: the bar in a Box, so the loading line can be drawn along its bottom edge (MapsSearchFailure.kt).
