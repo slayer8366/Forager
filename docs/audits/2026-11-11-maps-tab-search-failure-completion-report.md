@@ -1461,3 +1461,150 @@ build log has 0 `e:` lines. JUnit XML: 7666 tests, 0 failures, 0 errors, 24 skip
   - A test tag on the ladder's `BoxWithConstraints`.
   - `tryAgainButtonWidthPx` extracted so the check reads the app's copy.
   - Neither changes behaviour.
+
+---
+
+# Addendum 11: Amendment V (dispatch records-after-173 commit `5c13e121e`)
+
+There is no new owner ruling. The rulings served, verbatim: "3 tries, then wait for me"; "Growing: 3, then 10"; "Same as the map's
+half (Recommended)". Sorrel's VA1 and VA2 are traces from the code; I treated them as premises and saw them fail before the fix.
+
+## What landed
+
+| Commit | What |
+|---|---|
+| `386ae091a` | VA1 and VA2 tests alone, first: `MapsTabSearchAutoRetryHalvesTest` (new file). |
+| `76f07a40c` | The fix: `listStillLoading` in `SearchRetryWiring.kt`. Also VA4: the unused imports removed, and the short-line test in both units with its widths. |
+
+## VA1 and VA2: seen failing first, as traced
+
+The tests run through the real screen, the real ViewModel and the real signal flow (portrait):
+- both orderings of one automatic try that runs both halves;
+- for each ordering, "the 3 s and 10 s tries follow, three in all" and "one failed search never gets more than three automatic
+  tries";
+- VA2: a return of signal while only the list loads.
+
+Run [43455596609](https://github.com/slayer8366/Forager/actions/runs/43455596609), at `386ae091a` with no fix, 0 `e:` lines. The
+results match Sorrel's trace exactly:
+- **Map back first, then the list fails:** both tests failed.
+  - `VA1 (map back first): no timed try of the list 3 s after the first automatic try's list failed expected:<3> but was:<2>`
+  - `VA1 (map back first): one failed search got 4 automatic tries, more than three`
+- **The list fails first, then the map comes back:** both tests **passed** before the fix. Her trace predicts no fault in this
+  order. While the map's half is still retrying, `listOnlySearchFailed` reads false (`isRetryingSearch`), so the gate does not
+  reset. When the map comes back, the list's failure is seen with the automatic try still in flight, and the timed tries follow.
+  These two tests are kept as guards for that order; they cannot show the fix working.
+- **VA2:** `the return of signal while the list loaded was not run once when the list failed expected:<2> but was:<1>`.
+
+## The fix
+
+`SearchRetryWiring.kt` adds one term to the gate's "running": `listStillLoading`, which is the list's own `isLoading` while the
+map's half has not failed.
+- **VA1:** after the map's half comes back first, the list still loading reads as running, so the gate does not reset. The
+  list's failure then arrives with the automatic try still in flight, the 3 s and 10 s tries follow, and the count stays within
+  three.
+- **VA2:** a return of signal while only the list loads is held (`SearchAutoRetry.onSignalReturn`), and runs once if the list
+  fails (`onStateChanged`, F2's path). If the list works, the held return is dropped by the reset, as for the map's half.
+
+I left the list's loading out while the map's half has failed, so that case behaves as before: a return of signal tries the
+map's half at once, without waiting for the list. Counting it there too would have changed when the map's half retries, which
+nobody asked for.
+
+Nothing the user sees changes besides when the automatic tries run: no new text and no new state in the bar.
+
+Forward run [43456823243](https://github.com/slayer8366/Forager/actions/runs/43456823243) (`*MapsTabSearch*` and
+`*SearchAutoRetry*`): 137 tests, 0 failures, 0 `e:` lines.
+
+## VA3: reverts
+
+| Behaviour | Edit | Run | Failures |
+|---|---|---|---|
+| VA1 and VA2 | `|| listStillLoading(uiState)` dropped from "running" (`mtsf-v-r1`) | [43456914490](https://github.com/slayer8366/Forager/actions/runs/43456914490) | the three messages above, word for word; the other 19 tests in the AutoRetry and ListOnly classes passed |
+| VA4, the bar line's own opaque-colour check | the field's unfocused placeholder colour at alpha 0.5 (`mtsf-v-r2`) | [43456920760](https://github.com/slayer8366/Forager/actions/runs/43456920760) | `the bar's failure line is not drawn opaque expected:<1.0> but was:<0.5019608>`, in portrait, short landscape and tablet |
+
+**VA1 and VA2 share one revert.** They have one cause, the list's own fetch missing from "running", and one line fixes both. A
+separate edit for each would need the wiring to tell a first search from an automatic try. That is code written only to make two
+reverts, not a fix, so I did not add it. The single revert fails both, each with its own message.
+
+The revert procedure was the same as before:
+- each branch was cut in its own worktree from `76f07a40c`, so the PR branch was never edited;
+- each build log was clean;
+- each file was restored from the copy saved before the edit;
+- each forward line was confirmed present on the PR branch afterwards (`grep`, 1 each).
+
+**No test leaves a try pending:**
+- Each VA test ends with its three tries spent (60 s passed after the third), or with its gates completed in a `finally`.
+- These tests use the Compose test clock, not `runTest`, so the poll-loop hang in CLAUDE.md does not apply.
+- No run stalled.
+
+## VA4
+
+- **The failure line's own colour check has a revert** (the table above). UB3's revert covered "Try again" only.
+- **`MapsTabSearchBarShortLineTest`** now runs in kilometres ("May · 1 km") and in miles ("May · 1 mi"). Each selects its unit
+  through the ViewModel, so neither depends on a default.
+  - Its messages carry the bar's width, the field's text room and the measured width of "Search failed.".
+  - Both pass.
+  - Before this, it ran in kilometres only: the rig's unit repository is metric, and my positive control's `replace(" mi", "
+    km")` would have hidden which unit it was. That control is gone; each test now asserts its exact line.
+  - The app's own default unit is miles.
+- **Unused imports removed:** 35 from `SearchBarFailure.kt` and 43 from `SearchRetryOnSignal.kt`. They were copied over by the UB6
+  split, and their removal is part of `76f07a40c`.
+- **Runs 43444438727 and 43446866017 conclude "cancelled".**
+  - The only job cancelled in each was "The app builds and its tests pass with the Street map deleted", which is not the job
+    whose results were cited.
+  - It was cancelled by the workflow's concurrency when the next push to the same branch arrived. Its completion times, 14:52:30
+    and 15:05:22, fall seconds after the pushes that started runs 43446866017 (14:52:13) and 43448986725 (15:05:05).
+  - In each run, the job the results come from, "Build, test, publish APK", had already finished and uploaded its JUnit XML:
+    failure in the first run, as intended, and success in the second.
+  - The XML I read was that run's own artifact, built from that run's commit (`65f2fb21c` and `b01b8f426`), with no compile
+    errors in that job's log.
+  - So the results are those runs' own, not carried over. Run 43455596609 above is the same case.
+
+## VA5, report only: automatic tries while another tab shows
+
+From the code, not run:
+- **The tries run whichever tab shows.**
+  - `RetryFailedSearchByItself` is called at the end of `AvailabilityScreen` (`AvailabilityScreen.kt:762`), outside any tab's
+    branch.
+  - `AvailabilityScreen` is the one screen `MainActivity` composes (`MainActivity.kt:492`).
+  - The gate's inputs (`mapsSearchFailed`, `listOnlySearchFailed`, the loading flags) do not read the tab.
+- **What a try fetches off the Maps tab:**
+  - **A map-only failure** runs `onMapTabSelected()` directly from `retryFailedSearch`. It fetches the sightings whatever tab
+    shows.
+  - **A list-only failure** fetches the list.
+  - **Both halves failed:** the try runs `refresh`, which fetches the list at once. The map's half is fetched only by the screen's
+    `LaunchedEffect` when the Maps tab is selected (`AvailabilityScreen.kt:507-508`). Until then `isRetryingSearch` stays set,
+    and the gate reads it as running.
+  - So off the Maps tab, a both-halves try runs the list's half and then waits. It spends one try, and no timed try follows until
+    the Maps tab shows and the map's fetch ends.
+- **Off screen** (not resumed), returns are held, and timed tries wait for the app to come back (E2). This is as before and is
+  not tab-specific.
+
+## Full CI at `76f07a40c`
+
+FULLCI11
+
+## On the phone (S22), added
+
+41. **VA1, cannot be staged by hand reliably.** The case needs one automatic try in which the map's half succeeds and the list's
+    half fails, with the list ending after the map. Airplane mode or Wi-Fi off fails both halves together. With signal back,
+    both usually succeed. Nothing on the phone fails one request and not the other, and nothing orders them. **Observation only,
+    if it happens:** if after a return of signal the markers come back while the bar still reads "Search failed." for the list,
+    watch for a try of the list about 3 s later and another about 10 s after that, and no more than three in all. The test
+    `MapsTabSearchAutoRetryHalvesTest` is the evidence for this case.
+
+## Disclosure
+
+- **Confirmed by CI:**
+  - VA1, map back first: fails before the fix, passes after, fails on the revert.
+  - VA1, the list failing first: passes before and after. This order was never at fault, as the trace predicted.
+  - VA2: fails before the fix, passes after, fails on the revert.
+  - VA4's colour revert.
+  - The short-line test in both units.
+- **Inferred, from the code:** all of VA5. Also that the map-failed case is unchanged: the new term is false whenever the map's
+  half has failed.
+- **Could not determine:** VA1 on the phone (step 41).
+- **Premises that were wrong:** none of Sorrel's. Mine: the UB2 test's positive control hid its unit, and the test ran in
+  kilometres only.
+- **Decided beyond scope:**
+  - One revert for VA1 and VA2 together, as explained above.
+  - The list's loading left out of "running" while the map's half has failed.
