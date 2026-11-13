@@ -1610,3 +1610,160 @@ report only (`[skip ci]`).
 - **Decided beyond scope:**
   - One revert for VA1 and VA2 together, as explained above.
   - The list's loading left out of "running" while the map's half has failed.
+
+---
+
+# Addendum 12: Amendment W (dispatch records-after-173 commit `9e7cad3fc`)
+
+There is no new owner ruling. The ruling served, verbatim: "3 tries, then wait for me". The rule under it (`SearchAutoRetry.kt`):
+the count starts again on "Try again", on a new search and on a success. Sorrel's WA1 and WA2 are traces; both were seen failing
+before any fix.
+
+## What landed
+
+| Commit | What |
+|---|---|
+| `fb50290c5` | WA1, WA2 and WA4 tests alone, first: `MapsTabSearchNewSearchCountTest` (new file). |
+| `a87490a8a` | The WA2 test moved onto the 10 s wait (why below). Test only. |
+| `e6da77a61` | The fix (WA3) and WA5's comment, plus the short-line test printing its widths to the run's XML. |
+
+## WA1 and WA2: seen failing first
+
+**WA1**, run [43462846623](https://github.com/slayer8366/Forager/actions/runs/43462846623), at `fb50290c5`, 0 `e:` lines. The
+setup: three tries spent; then a new search whose list is held by `availabilityGate` while its map's half fails; then five returns
+of signal. Every entry the rig reaches failed with `WA1 (<entry>): after a new search that failed, returns of signal did not make
+three more automatic tries expected:<8> but was:<5>`:
+- **BAR:** the bar's coordinates, by real touches.
+- **LOCATE:** Search.
+- **MONTH:** the Month menu.
+- **RECENT:** a recent search.
+- **List failed first:** the WA4 variant, where the new search's list fails at once, before its map's half.
+
+The month menu is a popup, which the rig's root touch does not reach. So MONTH, RECENT and LOCATE are clicked semantically; the
+claim under test is the count, not where a finger lands.
+
+**WA2**, same run. Its positive control failed instead (`expected:<3> but was:<4>`). I did not take that as the trace confirmed,
+because the check that failed was not the one under test. The cause, found from the rig: `RealSearchScreenRig.settle()` advances
+the clock 2 s on every touch, so the 3 s wait ran out while the new search was being typed. I moved the test onto the 10 s wait
+after the second try (`a87490a8a`) and ran it again: run
+[43464226809](https://github.com/slayer8366/Forager/actions/runs/43464226809), 0 `e:` lines. It then failed as traced:
+`WA2: the old search's timed try ran on the new search with no return of signal (fetches at [45.3736, 45.3736, 45.3736, 45.5000,
+45.5000]) expected:<4> but was:<5>`. The fifth fetch is at the new search's latitude.
+
+**WA4**, the map's half failing while the list still loads, with a return of signal then: passed before the fix, as the code says
+it should. The map's half is tried at once.
+
+## WA3: accepted, and how
+
+I accepted the planner's reading. The gate is now told of a new search directly, and no longer works it out from what is
+loading.
+- **The serial.** `AvailabilityUiState.newSearchSerial` is counted by `beginSearch`, in a new file,
+  `AvailabilityViewModelNewSearch.kt`. `beginSearch` counts, then calls `refresh`.
+- **Who calls it.** The four user entries that ran `refresh` now call `beginSearch` instead: month, coordinates, the current
+  location, and a recent search (`AvailabilityViewModel.kt`, the same four lines). `AvailabilityViewModel.kt` stays at 795 lines.
+- **A failed search run again is not a new search.** `retryFailedSearch` still calls `refresh` directly, because the owner's
+  three tries are the tries of one failed search.
+- **The gate.** `SearchAutoRetry.onSearch(serial)` starts the count again on a serial it has not seen. It also drops a waiting
+  timed try, a held return and a try in flight.
+- **When the gate is told.** `RetryFailedSearchOnSignalReturn` tells the gate the serial before it reads the state (its state
+  effect is now keyed on the serial too), and before each return of signal.
+- **Nothing the user sees changes**, besides the count being right.
+
+Amendment V's tests and reverts still hold:
+- The forward run (below) passes V's tests.
+- V's revert, run again on the W head (`mtsf-w-r4`, run
+  [43465813612](https://github.com/slayer8366/Forager/actions/runs/43465813612)), fails with V's same three messages, word for word.
+
+## Reverts
+
+Each revert branch was cut in its own worktree from `e6da77a61`. The procedure was the same as before:
+- each build log had 0 `e:` lines;
+- each file was restored from the copy saved before the edit;
+- each forward line was confirmed present on the PR branch afterwards.
+
+| Behaviour | Edit | Run | Result |
+|---|---|---|---|
+| WA1 | `tries = 0` dropped from `onSearch` (`mtsf-w-r1`) | [43465800016](https://github.com/slayer8366/Forager/actions/runs/43465800016) | the five WA1 tests fail, `expected:<8> but was:<5>`; WA2 and the rest pass |
+| WA2, first try | `awaitingTimed = false` dropped from `onSearch` (`mtsf-w-r2`) | [43465805118](https://github.com/slayer8366/Forager/actions/runs/43465805118) | **20 of 20 passed: did not bite** (why below) |
+| WA2 | both lines dropped (`mtsf-w-r5`) | [43467721100](https://github.com/slayer8366/Forager/actions/runs/43467721100) | WA2 fails, `the old search's timed try ran on the new search with no return of signal (fetches at [45.3736, 45.3736, 45.3736, 45.5000, 45.5000]) expected:<4> but was:<5>`, and the five WA1 tests fail as above |
+| V on W | `listStillLoading` dropped (`mtsf-w-r4`) | [43465813612](https://github.com/slayer8366/Forager/actions/runs/43465813612) | V's three messages, as in addendum 11 |
+| Short-line test, by the floor | the landscape floor leaves out "Try again"'s width (`mtsf-w-r3`) | [43465809317](https://github.com/slayer8366/Forager/actions/runs/43465809317) | **2 of 2 passed: did not bite** (why below) |
+| Short-line test, by the line's room | the bar's side padding made 450 dp (`mtsf-w-r6`) | [43467726354](https://github.com/slayer8366/Forager/actions/runs/43467726354) | both units fail, `UB2: the bar's line in short landscape at font 1 ("May · 1 km": bar 1417.0 px, field's text room 909 px, "Search failed." 254 px) expected:<[Search failed.]> but was:<[]>` (and the same for "1 mi") |
+
+**Why WA2's first revert did not bite.** Either line in `onSearch` alone stops the old timer:
+- With `tries = 0`, the wait is looked up as the delay for try 0 (`timedTryDelayMs`, `getOrNull(tries - 1)`). There is none, so
+  no timed try is due.
+- With `awaitingTimed = false`, nothing is due either.
+
+So the WA2 behaviour is held by two lines, each enough on its own. A revert of only one cannot show it. The revert that does
+show it removes both (`mtsf-w-r5`); it also fails WA1, since `tries = 0` is one of the two. I kept both lines: the first is the
+rule ("a new search drops what the old one had waiting"), and the second must stay for WA1.
+
+## WA5
+
+**The comment.** It now says `isLoading` is also true while Search (the current location) looks for a fix
+(`AvailabilityViewModel.useCurrentLocation`, which also clears `errorMessage`). It says what the gate does then, from the code:
+- **After a search whose map's half failed:** the term is false and the map's failure still shows, so a return of signal during
+  the fix tries the old search's map's half. This is as before Amendment V.
+- **Otherwise:** nothing has failed and the term reads as running, so a return is held.
+  - When the fix ends, the new search starts, and `onSearch` drops the held return.
+  - When the fix fails ("couldn't find" is not the list's failure), nothing has failed and nothing runs, so the count starts
+    again.
+
+**The short-line test, on record.** Each run prints the measured widths into its JUnit XML. Forward run 43465635302:
+- `"May · 1 km": bar 1417.0 px, field's text room 909 px, "Search failed." 254 px`
+- `"May · 1 mi": bar 1417.0 px, field's text room 909 px, "Search failed." 254 px`
+
+**What these widths show (`w823dp-h384dp-land`, xxhdpi, font 1.0).** The bar is 1417 px wide, about 472 dp, and the line needs
+254 px of a 909 px room. The landscape floor is nowhere near binding in this window:
+- The bar sits far above its floor, which is why the floor revert (`mtsf-w-r3`) could not bite.
+- So UB2's check is not a check of the floor in this window. It checks that the bar shows "Search failed." whole there. The
+  `mtsf-w-r6` revert shows the test does fail when the line's room is wrong.
+- From these widths, the floor would bind at font 1.0 only on a landscape window narrower than about 580 dp. That is an
+  inference: the floor (about 230 dp) plus the strip's share at this width (about 270 dp) plus the rail. I know of no phone that
+  narrow in landscape.
+- I did not add a window to find where the floor binds. That needs a choice of window; it is the planner's call whether one is
+  wanted.
+
+## WA6, report only: another tab while both halves have failed
+
+From the code, not run:
+- **The other tabs (List, Seasonal, Journal)** show the solid search pill from `ScaffoldHeaderSearch.kt`.
+  - The pill is given no failure (`failure` defaults to null; only `ScaffoldMapTabCall.kt` passes one), so it reads the resting
+    line with Clear.
+  - Under it, `SearchNotice(uiState)` shows the list's failure as the banner: "Request failed. Check your connection and try
+    again."
+  - Nothing on those tabs shows the map's half's failure, or that it is waiting.
+- **During an automatic try off the Maps tab:**
+  - `refresh` clears the list's message, so the banner goes, and the List tab shows its spinner (`isLoading`).
+  - If the list fails again, the banner comes back.
+  - The map's half is not fetched until the Maps tab is selected (`AvailabilityScreen.kt:507-508`). Meanwhile `isRetryingSearch`
+    stays set, so on returning to Maps the bar reads "Trying again…" while that fetch runs.
+
+## Full CI at `e6da77a61`
+
+FULLCI12
+
+## On the phone (S22), added
+
+42. **WA1.** Fail a search with Wi-Fi off. Bring Wi-Fi back while the connection is still unvalidated, so that three automatic
+    tries run and fail; or turn Wi-Fi on and off five times about 15 s apart. After the third, nothing more runs. Then, with
+    Wi-Fi still off, search again (the bar, Search, or another month). It fails too. Turn Wi-Fi back on. **Pass:** the new search
+    is tried again at once, then about 3 s and 10 s later, three in all. Before this fix, nothing ran. The list's half must still
+    be loading when the map's half fails; on the phone, with no signal, both usually fail at once, which the "list failed first"
+    test covers.
+
+## Disclosure
+
+- **Confirmed by CI:**
+  - WA1 by all four entries, and with the list failing first: fails before the fix, passes after, fails on its revert.
+  - WA2: fails before the fix, passes after, fails on the two-line revert.
+  - WA4.
+  - V's reverts still biting on W.
+- **Inferred, from the code:** WA5's behaviour of the gate during locate; WA6; the window under which the landscape floor would
+  bind.
+- **Could not determine:** WA1 on the phone.
+- **Premises that were wrong:**
+  - My first WA2 test: the rig's 2 s settles ran out the 3 s wait.
+  - UB2 as a check of the floor: the floor is not binding in short landscape at font 1.0.
+- **Decided beyond scope:** none. WA3's design is the planner's reading, which I accepted.
