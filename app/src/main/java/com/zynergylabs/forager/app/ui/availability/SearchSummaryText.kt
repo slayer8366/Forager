@@ -31,6 +31,12 @@ internal fun rememberLandscapeBarFloorPx(uiState: AvailabilityUiState, distanceU
     val clearStyle = MaterialTheme.typography.labelLarge
     fun widthOf(text: String, style: androidx.compose.ui.text.TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
     return with(density) {
+        // SC4 probe (not for merge): with a failed search, the floor holds "Search failed." and "Try again" whole.
+        if (mapsSearchNoticeShows(uiState)) {
+            val f = Spacing.lg.roundToPx() + 18.dp.roundToPx() + 2 * LANDSCAPE_BAR_FIELD_SIDE_PADDING.roundToPx() + maxOf(widthOf(SEARCH_BAR_FAILED_TEXT, fieldStyle), widthOf(SEARCH_RETRYING_NOTICE_TEXT, fieldStyle))
+            val t = maxOf(LANDSCAPE_BAR_CLEAR_MIN_WIDTH.roundToPx(), widthOf(SEARCH_FAILED_TRY_AGAIN_TEXT, clearStyle) + 2 * Spacing.md.roundToPx()) + Spacing.xs.roundToPx()
+            return@with f + t
+        }
         val field = Spacing.lg.roundToPx() + 18.dp.roundToPx() + 2 * LANDSCAPE_BAR_FIELD_SIDE_PADDING.roundToPx() + widthOf(activeSearchSummary(uiState, distanceUnit), fieldStyle)
         val clear = if (uiState.region != null) {
             maxOf(LANDSCAPE_BAR_CLEAR_MIN_WIDTH.roundToPx(), widthOf("Clear", clearStyle) + 2 * Spacing.md.roundToPx()) + Spacing.xs.roundToPx()
