@@ -286,7 +286,7 @@ internal fun SearchEntryBar(
                 if (failure != null) {
                     // Amendment S, SB1, the owner: "\"Try again\" takes Clear's place (Recommended)". Clear's size and place.
                     TryAgainInBar(failure, rowFieldHeight, contentColor)
-                } else if (uiState.region != null) {
+                }; if (uiState.region != null) {
                     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
                         TextButton(
                             onClick = onClearSearch,
