@@ -90,7 +90,7 @@ internal fun mapsSearchFailed(uiState: AvailabilityUiState): Boolean = uiState.s
  * location permission) shows as it did. When only the ranked list failed, nothing changes (the dispatch's D3).
  */
 internal fun mapsTabSearchNoticeState(uiState: AvailabilityUiState): AvailabilityUiState =
-    if ((mapsSearchFailed(uiState) || uiState.isRetryingSearch) && uiState.errorMessage == LIST_SEARCH_FAILED_MESSAGE) uiState.copy(errorMessage = null) else uiState
+    if (mapsSearchFailed(uiState) && uiState.errorMessage == LIST_SEARCH_FAILED_MESSAGE) uiState.copy(errorMessage = null) else uiState
 
 /**
  * Whether the search-failed notice shows: the map's half has failed, or a failed search is running again (E4, the owner: "Notice
