@@ -50,6 +50,24 @@ abstract class MapsTabSearchBarLargeFontTests(private val expected: String, priv
     private fun assertBarLine(where: String, candidates: List<String>, want: String) {
         val shown = shownLines(candidates)
         assertEquals("$where: the bar's line", listOfNotNull(want.takeIf { it.isNotEmpty() }), shown)
+        // UB4: the ladder's room comes from copied paddings (SEARCH_BAR_FIELD_SIDE_PADDING). The field's own laid-out text room is the
+        // text field's constraint; the rung chosen must fit it and the next longer one must not, so a drifted constant fails here.
+        val field = mutableListOf<TextLayoutResult>()
+        composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG, useUnmergedTree = true).fetchSemanticsNode()
+            .config[SemanticsActions.GetTextLayoutResult].action?.invoke(field)
+        val input = field.single().layoutInput
+        val room = input.constraints.maxWidth
+        val box = composeRule.onNodeWithTag(SEARCH_BAR_FIELD_ROOM_TAG, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.width
+        val ladderRoom = box - 2 * with(composeRule.density) { SEARCH_BAR_FIELD_SIDE_PADDING.toPx() }
+        assertEquals("$where: the ladder's room ($box px less SEARCH_BAR_FIELD_SIDE_PADDING each side) is not the field's laid-out text room", room.toFloat(), ladderRoom, 1.5f)
+        val measurer = TextMeasurer(input.fontFamilyResolver, input.density, input.layoutDirection)
+        fun widthOf(text: String) = measurer.measure(text, input.style, maxLines = 1, softWrap = false).size.width
+        val index = if (want.isEmpty()) candidates.size else candidates.indexOf(want)
+        if (want.isNotEmpty()) assertTrue("$where: \"$want\" (${widthOf(want)} px) does not fit the field's laid-out room $room px", widthOf(want) <= room)
+        if (index > 0) {
+            val longer = candidates[index - 1]
+            assertTrue("$where: \"$longer\" (${widthOf(longer)} px) fits the field's laid-out room $room px, so the ladder chose too short", widthOf(longer) > room)
+        }
         if (want.isEmpty()) return
         val node = composeRule.onNode(hasText(want), useUnmergedTree = true).fetchSemanticsNode()
         val layouts = mutableListOf<TextLayoutResult>()

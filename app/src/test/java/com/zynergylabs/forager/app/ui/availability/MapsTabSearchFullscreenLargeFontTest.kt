@@ -82,6 +82,23 @@ abstract class MapsTabSearchFullscreenLargeFontTests(private val navigating: Boo
         val tryAgain = bounds(SEARCH_FAILED_TRY_AGAIN_TAG)
         val words = text.boundsInRoot
         assertEquals("at font 2 words of the notice break inside (text box ${layout.size.width} px, notice ${notice.d()})", emptyList<Int>(), broken)
+        // UB4: tryAgainGoesBelowTheWords copies Material's button paddings (58 dp minimum, 12 dp each side). Its decision held to the
+        // laid-out widths: the notice's width, less the words' start padding and the drawn "Try again", against the longest word.
+        val measurer = androidx.compose.ui.text.TextMeasurer(layout.layoutInput.fontFamilyResolver, layout.layoutInput.density, layout.layoutInput.layoutDirection)
+        val longestWord = (SEARCH_FAILED_NOTICE_TEXT.split(" ") + SEARCH_RETRYING_NOTICE_TEXT.split(" "))
+            .maxOf { measurer.measure(it, layout.layoutInput.style, maxLines = 1, softWrap = false).size.width }
+        val besideRoom = notice.width - with(composeRule.density) { com.zynergylabs.forager.app.ui.theme.Spacing.lg.toPx() } - tryAgain.width
+        assertEquals(
+            "UB4: Try again stacked=$stacked, but beside it the words' laid-out room is $besideRoom px against the longest word $longestWord px",
+            besideRoom < longestWord, stacked,
+        )
+        // And the copied button width itself against the drawn one, so a drift shows at any width, not only near the edge.
+        val tryAgainLayouts = mutableListOf<TextLayoutResult>()
+        composeRule.onNode(hasText(SEARCH_FAILED_TRY_AGAIN_TEXT), useUnmergedTree = true).fetchSemanticsNode()
+            .config[SemanticsActions.GetTextLayoutResult].action?.invoke(tryAgainLayouts)
+        val buttonWord = tryAgainLayouts.single().layoutInput.let { measurer.measure(SEARCH_FAILED_TRY_AGAIN_TEXT, it.style, maxLines = 1, softWrap = false).size.width }
+        val copied = with(composeRule.density) { maxOf(58f * density, buttonWord + 24f * density) }
+        assertEquals("UB4: tryAgainGoesBelowTheWords' button width (58 dp minimum, its word and 24 dp) is not the drawn Try again", tryAgain.width, copied, 1.5f)
         if (stacked) {
             assertTrue("TC3: Try again ${tryAgain.d()} is not under the words ${words.d()}", tryAgain.top >= words.bottom - 1f)
         } else {

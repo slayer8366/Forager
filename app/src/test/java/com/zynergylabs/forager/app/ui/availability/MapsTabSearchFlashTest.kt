@@ -25,9 +25,7 @@ import org.robolectric.annotation.Config
  * Here the map's refetch is held, so that window lasts and can be checked. Seen failing first on the probe branch mtsf-q-probe
  * (run 43372930723): `QC4: the list's failure line shows above "Trying again…"`. Fullscreen while navigating, portrait.
  */
-@RunWith(RobolectricTestRunner::class)
-@Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
-class MapsTabSearchFlashTest {
+abstract class MapsTabSearchFlashTests {
 
     private val composeRule = createAndroidComposeRule<ComponentActivity>()
 
@@ -65,3 +63,16 @@ class MapsTabSearchFlashTest {
         }
     }
 }
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w384dp-h823dp-xxhdpi")
+class MapsTabSearchFlashTest : MapsTabSearchFlashTests()
+
+// UB5: short landscape and landscape tablet too.
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
+class MapsTabSearchFlashShortLandscapeTest : MapsTabSearchFlashTests()
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w1318dp-h824dp-land")
+class MapsTabSearchFlashLandscapeTabletTest : MapsTabSearchFlashTests()

@@ -140,6 +140,12 @@ abstract class MapsTabSearchFailureTests(private val landscape: Boolean) {
         val whole = androidx.compose.ui.text.TextMeasurer(layout.layoutInput.fontFamilyResolver, layout.layoutInput.density, layout.layoutInput.layoutDirection)
             .measure(SEARCH_BAR_FAILED_TEXT, layout.layoutInput.style, maxLines = 1, softWrap = false).size.width
         assertTrue("the bar's line is cut short: drawn ${line.width} px of $whole px", line.width >= whole - 1f && !layout.isLineEllipsized(0))
+        // UB3: the line and "Try again" drawn with opaque content colour over the map (the claim the Step 2 notice test carried).
+        assertEquals("the bar's failure line is not drawn opaque", 1f, layout.layoutInput.style.color.alpha, 0.01f)
+        val tryAgainText = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        composeRule.onNode(hasText(SEARCH_FAILED_TRY_AGAIN_TEXT), useUnmergedTree = true).fetchSemanticsNode()
+            .config[androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult].action?.invoke(tryAgainText)
+        assertEquals("Try again in the bar is not drawn opaque", 1f, tryAgainText.single().layoutInput.style.color.alpha, 0.01f)
         val summary = activeSearchSummary(rig.viewModel.uiState.value, rig.viewModel.uiState.value.distanceUnit)
         assertTrue("the resting line <$summary> still shows beside the failure (RA4: the whole line)", !barLineShown(summary))
         val tryAgain = bounds(SEARCH_FAILED_TRY_AGAIN_TAG)

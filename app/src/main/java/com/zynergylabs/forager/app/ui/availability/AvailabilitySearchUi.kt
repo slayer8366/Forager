@@ -261,7 +261,7 @@ internal fun SearchEntryBar(
                     tint = contentColor,
                     modifier = Modifier.padding(start = Spacing.lg).size(18.dp),
                 )
-                BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                BoxWithConstraints(modifier = Modifier.weight(1f).testTag(SEARCH_BAR_FIELD_ROOM_TAG)) {
                     // Amendment T, TC1: the failure's line is the longest of its rungs that fits this room whole (MapsSearchFailure.kt).
                     val restingLine = failure?.let { rememberSearchBarFailureLine(it, maxWidth, SEARCH_BAR_FIELD_SIDE_PADDING) }
                         ?: activeSearchSummary(uiState, distanceUnit)
@@ -326,6 +326,9 @@ internal const val SEARCH_BAR_CLEAR_TAG = "search-bar-clear"
 
 /** [SearchEntryBar]'s own species query field — a stable trigger regardless of its current text, for tests that don't want to depend on exact query wording. Also the pre-redesign name for the old `ActiveSearchSummary`'s clickable row, kept unrenamed so existing tests that open the dropdown through this tag didn't all need retargeting for a purely mechanical rename. */
 internal const val ACTIVE_SEARCH_SUMMARY_TAG = "active-search-summary"
+
+/** Amendment U, UB4: the box whose width the bar's failure ladder measures from, so a test can hold its copied paddings to the field's laid-out room. */
+internal const val SEARCH_BAR_FIELD_ROOM_TAG = "search-bar-field-room"
 
 /** [SearchEntryBar]'s own outer bounds — the whole bar, chips/field/divider included, for tests that need "where does the top strip end" (e.g. `topStripBottom()`) rather than a click target on the field specifically ([ACTIVE_SEARCH_SUMMARY_TAG]). */
 internal const val SEARCH_ENTRY_BAR_TAG = "search-entry-bar"
