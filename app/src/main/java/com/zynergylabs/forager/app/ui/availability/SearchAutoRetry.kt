@@ -101,7 +101,6 @@ internal class SearchAutoRetry(private val maxTries: Int = SEARCH_AUTO_RETRY_MAX
     fun onSearch(serial: Int) {
         if (serial == search) return
         search = serial
-        tries = 0
         awaitingTimed = false
         returnHeld = false
         automaticInFlight = false
