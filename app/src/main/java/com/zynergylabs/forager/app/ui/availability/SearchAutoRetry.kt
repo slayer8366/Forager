@@ -71,7 +71,7 @@ internal class SearchAutoRetry(private val maxTries: Int = SEARCH_AUTO_RETRY_MAX
         if (failed && !running && automaticInFlight) {
             // QC1: the automatic try failed; the next is timed, while any of the three are left.
             automaticInFlight = false
-            awaitingTimed = tries < maxTries
+            awaitingTimed = false
         }
         if (failed && !running && onScreen && returnHeld) {
             returnHeld = false
