@@ -339,5 +339,10 @@ internal val MAP_PILL_BOTTOM_PADDING = 4.dp
 /** RECORD -943's floor, enforced by RECORD -951: the Maps tab's pill is never under 40 dp tall, so it stays easy to tap. */
 internal val MAP_PILL_MIN_HEIGHT = 40.dp
 
-/** OutlinedTextFieldDefaults' horizontal content padding, which the bar's field keeps (its own top and bottom only are set). */
-internal val SEARCH_BAR_FIELD_SIDE_PADDING = 16.dp
+/**
+ * The room the bar's field takes each side of its text: SpeciesSearchControls' ExposedDropdownMenuBox padding (Spacing.sm) and
+ * OutlinedTextFieldDefaults' horizontal content padding (16 dp), which the bar's field keeps (its own top and bottom only are set).
+ * Amendment T's ladder first left out the Spacing.sm, and so judged "Search failed." to fit at 360 dp, font 2.0, where it is drawn
+ * cut (423 px of 471): seen by printing the ladder's room on the probe branch mtsf-t-probe2 (run 43424665907).
+ */
+internal val SEARCH_BAR_FIELD_SIDE_PADDING = Spacing.sm + 16.dp
