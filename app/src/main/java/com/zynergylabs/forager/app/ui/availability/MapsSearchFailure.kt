@@ -205,7 +205,7 @@ internal fun tryAgainGoesBelowTheWords(width: Dp): Boolean {
         val longestWord = (SEARCH_FAILED_NOTICE_TEXT.split(" ") + SEARCH_RETRYING_NOTICE_TEXT.split(" ")).maxOf { widthOf(it, wordStyle) }
         val button = maxOf(58.dp.roundToPx(), widthOf(SEARCH_FAILED_TRY_AGAIN_TEXT, buttonStyle) + 24.dp.roundToPx())
         val room = width.roundToPx() - Spacing.lg.roundToPx() - button
-        room < longestWord
+        false
     }
 }
 
