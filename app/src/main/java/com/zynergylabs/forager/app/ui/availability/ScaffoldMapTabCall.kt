@@ -372,7 +372,7 @@ internal fun ScaffoldMapTabCall(
                                                 // only its bottom, its join and a side with room beside it, never its top.
                                                 pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
                                                 // Amendment R and S: a failed search in the bar itself, "Try again" in Clear's place (MapsSearchFailure.kt).
-                                                failure = searchBarFailure(uiState, LocalRetryFailedSearch.current),
+                                                failure = null,
                                             )
                                             if (uiState.isLoadingSightings) SearchBarLoadingLine(shape = barPillCorners.shape(), modifier = Modifier.matchParentSize())
                                             }
