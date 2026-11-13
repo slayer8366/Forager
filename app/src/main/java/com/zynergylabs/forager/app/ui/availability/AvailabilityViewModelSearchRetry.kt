@@ -24,6 +24,14 @@ import kotlinx.coroutines.flow.update
  */
 fun AvailabilityViewModel.retryFailedSearch() {
     val state = _uiState.value
+    if (listOnlySearchFailed(state)) {
+        // Amendment T, TB4 (the owner: "One line, in the bar"; option text "\"Try again\" is made to run the list's half again"):
+        // the ranked list alone failed; it is fetched again for the search showing, the map's loaded half left as it is.
+        val (region, month, filter) = searchRuns.activeSearch ?: return
+        _uiState.update { it.copy(isRetryingList = true) }
+        searchRuns.fetchAvailability(region, month, filter, speciesGroupToStore(filter))
+        return
+    }
     if (!mapsSearchFailed(state)) return
     val (region, month, filter) = searchRuns.activeSearch ?: return
     // E4: the notice reads "Trying again…" until the map's sightings fetch ends. Set after refresh, whose new search clears it.

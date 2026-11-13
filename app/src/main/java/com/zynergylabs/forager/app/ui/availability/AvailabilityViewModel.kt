@@ -708,7 +708,7 @@ class AvailabilityViewModel(
      * (dispatch 2026-09-28-695, amendment 1): the current selection's group when the selection is that
      * species, and null for a category (its group is in the filter) or a selection that is not [filter].
      */
-    private fun speciesGroupToStore(filter: TaxonFilter): String? =
+    internal fun speciesGroupToStore(filter: TaxonFilter): String? =
         _uiState.value.foragingSelection
             .takeIf { filter is TaxonFilter.SpecificTaxon && it.filter == filter }
             ?.iconicTaxonName

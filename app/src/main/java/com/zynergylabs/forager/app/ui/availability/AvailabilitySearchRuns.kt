@@ -86,7 +86,7 @@ internal class AvailabilitySearchRuns(
             // searchSerial: so the screen fetches the sightings again even when this search is the one
             // already showing (RECORD -723; see AvailabilityUiState.searchSerial).
             // isRetryingSearch: a new search is not a retry (dispatch 2026-11-11-01, E4); retryFailedSearch sets it after this.
-            it.copy(sightings = emptyList(), sightingsErrorMessage = null, isRetryingSearch = false, searchSerial = it.searchSerial + 1)
+            it.copy(sightings = emptyList(), sightingsErrorMessage = null, isRetryingSearch = false, isRetryingList = false, searchSerial = it.searchSerial + 1)
         }
 
         // Same invalidation for the Seasonal tab's own lazily-fetched, separately-keyed data.
@@ -107,6 +107,7 @@ internal class AvailabilitySearchRuns(
                         when (result) {
                             is AvailabilitySearchResult.Live -> state.copy(
                                 isLoading = false,
+                                isRetryingList = false,
                                 forecast = result.forecast,
                                 isShowingCachedResults = false,
                                 cachedResultsAsOfEpochMillis = null,
@@ -115,6 +116,7 @@ internal class AvailabilitySearchRuns(
                             // be shown without the age it is supposed to state.
                             is AvailabilitySearchResult.Cached -> state.copy(
                                 isLoading = false,
+                                isRetryingList = false,
                                 forecast = result.forecast,
                                 isShowingCachedResults = true,
                                 cachedResultsAsOfEpochMillis = result.cachedAtEpochMillis,
@@ -131,6 +133,7 @@ internal class AvailabilitySearchRuns(
                     updateState {
                         it.copy(
                             isLoading = false,
+                                isRetryingList = false,
                             isShowingCachedResults = false,
                             cachedResultsAsOfEpochMillis = null,
                             errorMessage = LIST_SEARCH_FAILED_MESSAGE,

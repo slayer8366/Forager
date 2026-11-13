@@ -76,6 +76,11 @@ data class AvailabilityUiState(
      * one that leaves the rest of this state as it was (an automatic try that fails at once with no signal).
      */
     val sightingsFailureSerial: Int = 0,
+    /**
+     * Dispatch 2026-11-11-01, Amendment T, TB4 (the owner: "One line, in the bar"): a list-only failure is running again from
+     * "Try again", so the bar reads "Trying again…". Cleared when the ranked list's fetch ends, on a new search and on Clear.
+     */
+    val isRetryingList: Boolean = false,
     val taxonFilter: TaxonFilter = TaxonFilter.FUNGI,
     val taxonSearchQuery: String = "",
     val taxonSearchResults: List<TaxonSearchResult> = emptyList(),

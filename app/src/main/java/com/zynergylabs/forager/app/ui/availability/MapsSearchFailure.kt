@@ -1,6 +1,10 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.material3.LocalMinimumInteractiveComponentSize
 import androidx.compose.foundation.layout.widthIn
@@ -89,8 +93,20 @@ internal fun mapsSearchFailed(uiState: AvailabilityUiState): Boolean = uiState.s
  * (Recommended)"). Only that failure is folded: anything else the banner says (a mistyped coordinate, a species lookup, the trips,
  * location permission) shows as it did. When only the ranked list failed, nothing changes (the dispatch's D3).
  */
-internal fun mapsTabSearchNoticeState(uiState: AvailabilityUiState): AvailabilityUiState =
-    if ((mapsSearchFailed(uiState) || uiState.isRetryingSearch) && uiState.errorMessage == LIST_SEARCH_FAILED_MESSAGE) uiState.copy(errorMessage = null) else uiState
+internal fun mapsTabSearchNoticeState(uiState: AvailabilityUiState, fullscreen: Boolean = false): AvailabilityUiState =
+    // Amendment T, TB4 (the owner: "One line, in the bar"): out of fullscreen, with a search showing, the list's failure is always
+    // the bar's one line, the map's half failed or not, so the banner never carries it there. In fullscreen, as before (P1: a
+    // list-only failure shows the banner alone). With no search showing (no region) there is no search to have failed; the line
+    // stays the banner's, as before this ruling.
+    if (((!fullscreen && uiState.region != null) || mapsSearchFailed(uiState) || uiState.isRetryingSearch) && uiState.errorMessage == LIST_SEARCH_FAILED_MESSAGE) {
+        uiState.copy(errorMessage = null)
+    } else {
+        uiState
+    }
+
+/** Amendment T, TB4: the ranked list alone failed for the search showing (its failure line is up; the map's half did not fail). */
+internal fun listOnlySearchFailed(uiState: AvailabilityUiState): Boolean =
+    uiState.region != null && uiState.errorMessage == LIST_SEARCH_FAILED_MESSAGE && !mapsSearchFailed(uiState) && !uiState.isRetryingSearch
 
 /**
  * Whether the search-failed notice shows: the map's half has failed, or a failed search is running again (E4, the owner: "Notice
@@ -100,9 +116,9 @@ internal fun mapsTabSearchNoticeState(uiState: AvailabilityUiState): Availabilit
 internal fun mapsSearchNoticeShows(uiState: AvailabilityUiState): Boolean = mapsSearchFailed(uiState) || uiState.isRetryingSearch
 
 /** Whether a line shows under the Maps tab's search bar: [SearchNotice]'s (since Amendment R the search-failed notice is in the bar). */
-internal fun mapsTabNoticeShows(uiState: AvailabilityUiState): Boolean =
+internal fun mapsTabNoticeShows(uiState: AvailabilityUiState, fullscreen: Boolean = false): Boolean =
     // Amendment R: the search-failed notice is no longer under the bar (it is in the bar), so only the banner's line counts here.
-    searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null
+    searchNoticeMessage(mapsTabSearchNoticeState(uiState, fullscreen)) != null
 
 /**
  * What "Try again" calls: [AvailabilityScreenSearchInputs.onRetryFailedSearch], provided by [AvailabilityScreen] so the notice, deep
@@ -133,24 +149,63 @@ internal fun SearchFailedNotice(retrying: Boolean, onTryAgain: () -> Unit, modif
             .testTag(SEARCH_FAILED_NOTICE_TAG)
             .mapChromeContainerColor(noticeColor),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+        // Amendment T, TC3 (the owner: "\"Try again\" below the words (Recommended)"; option text "When a word would break, \"Try
+        // again\" moves under the words inside the notice, which gives the words the notice's whole width"): measured at the current
+        // font against this notice's own width, never by window class.
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val stacked = tryAgainGoesBelowTheWords(maxWidth)
             // E4: both lines are always laid out in one space, the one not showing drawn at no alpha and left out of semantics, so
             // the space is the wider of the two and nothing moves when the words change (CLAUDE.md, "Changing info gets its own
             // window"; no text is shrunk). G2 (the owner: "Shown, greyed out"): "Try again" stays shown while the retry runs, in
             // the button's own disabled look (Material's, which the app uses for every disabled button), and does nothing.
-            Box(modifier = Modifier.weight(1f).padding(start = Spacing.lg, top = Spacing.sm, bottom = Spacing.sm)) {
-                NoticeLine(SEARCH_FAILED_NOTICE_TEXT, shown = !retrying)
-                NoticeLine(SEARCH_RETRYING_NOTICE_TEXT, shown = retrying)
+            val words: @Composable (Modifier) -> Unit = { m ->
+                Box(modifier = m) {
+                    NoticeLine(SEARCH_FAILED_NOTICE_TEXT, shown = !retrying)
+                    NoticeLine(SEARCH_RETRYING_NOTICE_TEXT, shown = retrying)
+                }
             }
-            TextButton(
-                onClick = onTryAgain,
-                enabled = !retrying,
-                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
-                modifier = Modifier.testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
-            ) {
-                Text(SEARCH_FAILED_TRY_AGAIN_TEXT)
+            val button: @Composable (Modifier) -> Unit = { m ->
+                TextButton(
+                    onClick = onTryAgain,
+                    enabled = !retrying,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
+                    modifier = m.testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
+                ) {
+                    Text(SEARCH_FAILED_TRY_AGAIN_TEXT)
+                }
+            }
+            if (stacked) {
+                Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
+                    words(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.sm))
+                    button(Modifier)
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    words(Modifier.weight(1f).padding(start = Spacing.lg, top = Spacing.sm, bottom = Spacing.sm))
+                    button(Modifier)
+                }
             }
         }
+    }
+}
+
+/**
+ * Amendment T, TC3: whether "Try again" goes under the words: when, beside it, the words' room is narrower than their longest word
+ * at the current font (either line's), so a word would break. The room is [width] less the words' start padding and the button's
+ * width (its word and Material's 12 dp each side, at least its 58 dp minimum).
+ */
+@Composable
+internal fun tryAgainGoesBelowTheWords(width: Dp): Boolean {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val wordStyle = MaterialTheme.typography.bodySmall
+    val buttonStyle = MaterialTheme.typography.labelLarge
+    fun widthOf(text: String, style: androidx.compose.ui.text.TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+    return with(density) {
+        val longestWord = (SEARCH_FAILED_NOTICE_TEXT.split(" ") + SEARCH_RETRYING_NOTICE_TEXT.split(" ")).maxOf { widthOf(it, wordStyle) }
+        val button = maxOf(58.dp.roundToPx(), widthOf(SEARCH_FAILED_TRY_AGAIN_TEXT, buttonStyle) + 24.dp.roundToPx())
+        val room = width.roundToPx() - Spacing.lg.roundToPx() - button
+        room < longestWord
     }
 }
 
@@ -199,7 +254,7 @@ internal fun PlacedSearchNotices(
  */
 @Suppress("UNUSED_PARAMETER")
 internal fun placedBannerShows(uiState: AvailabilityUiState, underCard: Boolean, fullscreen: Boolean): Boolean =
-    underCard && searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null
+    underCard && searchNoticeMessage(mapsTabSearchNoticeState(uiState, fullscreen)) != null
 
 /** C6 and G1: the search-failed notice is placed, in fullscreen or below the navigation card, when it shows. */
 @Suppress("UNUSED_PARAMETER")
@@ -294,12 +349,54 @@ internal const val SEARCH_BAR_FAILED_TEXT = "Search failed."
  * again" in place of Clear, greyed and doing nothing while [retrying] (G2, the owner: "Shown, greyed out"; SA1: while a try runs).
  */
 internal data class SearchBarFailure(val retrying: Boolean, val onTryAgain: () -> Unit) {
-    val line: String get() = if (retrying) SEARCH_RETRYING_NOTICE_TEXT else SEARCH_BAR_FAILED_TEXT
+    /**
+     * Amendment T, TC1 and TC2 (the owner: "Shorter word when tight (Recommended)"; "Button only when nothing fits
+     * (Recommended)"): the bar's line, longest first; the bar shows the first that fits whole, or none.
+     */
+    val lines: List<String> get() = if (retrying) {
+        listOf(SEARCH_RETRYING_NOTICE_TEXT, SEARCH_RETRYING_SHORT_TEXT)
+    } else {
+        listOf(SEARCH_BAR_FAILED_TEXT, SEARCH_BAR_FAILED_SHORT_TEXT)
+    }
 }
 
-/** The bar's failure, for the Maps tab out of fullscreen: while the map's half has failed, or a failed search runs again. */
+/**
+ * Amendment T, TC1: the bar's line for [failure] in [roomPx] of text room at the current font: "Search failed." if it fits whole,
+ * else "Failed.", else no words ("Try again" alone). [widthOf] measures a line, unwrapped, in the field's text style. TC2 (the
+ * planner's reading): the same while a try runs, "Trying again…", "Trying…", then none. Text size never changes.
+ */
+internal fun searchBarFailureLine(failure: SearchBarFailure, roomPx: Int, widthOf: (String) -> Int): String =
+    failure.lines.firstOrNull { widthOf(it) <= roomPx } ?: ""
+
+/** Amendment T, TB1: the shorter word when "Search failed." does not fit (option text: "the bar reads \"Failed.\""). */
+internal const val SEARCH_BAR_FAILED_SHORT_TEXT = "Failed."
+
+/** Amendment T, TC2 (the planner's reading): the shorter word while a try runs. */
+internal const val SEARCH_RETRYING_SHORT_TEXT = "Trying…"
+
+/**
+ * The bar's failure, for the Maps tab out of fullscreen: while the map's half has failed, or a failed search runs again; and,
+ * since Amendment T (TB4, the owner: "One line, in the bar"), while the ranked list alone has failed or runs again.
+ */
 internal fun searchBarFailure(uiState: AvailabilityUiState, onTryAgain: () -> Unit): SearchBarFailure? =
-    if (mapsSearchNoticeShows(uiState)) SearchBarFailure(retrying = uiState.isRetryingSearch, onTryAgain = onTryAgain) else null
+    if (mapsSearchNoticeShows(uiState) || listOnlySearchFailed(uiState) || uiState.isRetryingList) {
+        SearchBarFailure(retrying = uiState.isRetryingSearch || uiState.isRetryingList, onTryAgain = onTryAgain)
+    } else {
+        null
+    }
+
+/**
+ * Amendment T, TC1: the bar's line for [failure], measured against [maxWidth], the field's whole width beside "Try again", less
+ * the field's own side padding ([fieldSidePadding] each side). Measured in the field's text style ([LocalTextStyle]).
+ */
+@Composable
+internal fun rememberSearchBarFailureLine(failure: SearchBarFailure, maxWidth: Dp, fieldSidePadding: Dp): String {
+    val measurer = rememberTextMeasurer()
+    val style = LocalTextStyle.current
+    val density = LocalDensity.current
+    val room = with(density) { (maxWidth - fieldSidePadding * 2).roundToPx() }
+    return searchBarFailureLine(failure, room) { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width }
+}
 
 /**
  * "Try again" in the bar, at Clear's size and place (SB1, the owner: "\"Try again\" takes Clear's place (Recommended)"): the field's

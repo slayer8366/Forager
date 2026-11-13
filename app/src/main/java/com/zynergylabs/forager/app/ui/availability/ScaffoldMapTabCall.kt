@@ -244,7 +244,7 @@ internal fun ScaffoldMapTabCall(
                                     placedBannerShows(uiState, searchBannerPlaced(navigation, showRail, isMapFullscreen()), isMapFullscreen())
                                 ) {
                                     with(LocalDensity.current) { placedNoticeHeightPx.toDp() }
-                                } else if (mapsTabNoticeShows(uiState) && !isMapFullscreen()) {
+                                } else if (mapsTabNoticeShows(uiState, isMapFullscreen()) && !isMapFullscreen()) {
                                     with(LocalDensity.current) { measurements.searchChromeHeightPx.toDp() }
                                 } else {
                                     0.dp
@@ -379,7 +379,7 @@ internal fun ScaffoldMapTabCall(
                                             // Item 2 (owner, "Option A"): the notice sits just below the compass strip, which is drawn at the
                                             // bar's bottom over this column, so the notice starts where the strip's own measured height ends.
                                             // In a short landscape window the strip is in the other corner and the notice stays under the bar.
-                                            if (mapsTabNoticeShows(uiState) && !showRail) {
+                                            if (mapsTabNoticeShows(uiState, isMapFullscreen()) && !showRail) {
                                                 Spacer(Modifier.height(compassStripHeight))
                                             }
                                             // Dispatch 2026-11-11-01: the banner, less the ranked list's failure while the map's has failed too (C3, one line), then
@@ -388,7 +388,7 @@ internal fun ScaffoldMapTabCall(
                                             // the card with the notice (PlacedSearchNotices), not here.
                                             // Amendment R (the owner: "The try again notice for search should go into the search bar itself, in place of
                                             // the October text"): the search-failed notice is in the bar (SearchEntryBar's failure), not here.
-                                            if (!searchNoticeUnderCard(navigation, showRail)) SearchNotice(mapsTabSearchNoticeState(uiState), overMap = true)
+                                            if (!searchNoticeUnderCard(navigation, showRail)) SearchNotice(mapsTabSearchNoticeState(uiState, isMapFullscreen()), overMap = true)
                                         }
                                         }
                                         // Dispatch 2026-11-11-01, C6 ("Top of the map (Recommended)"): while fullscreen hides the bar, the same notice at the map's top,
@@ -399,7 +399,7 @@ internal fun ScaffoldMapTabCall(
                                         val placedFailed = placedFailedShows(uiState, underCard, isMapFullscreen())
                                         if (placedBanner || placedFailed) {
                                             PlacedSearchNotices(
-                                                bannerState = if (placedBanner) mapsTabSearchNoticeState(uiState) else null,
+                                                bannerState = if (placedBanner) mapsTabSearchNoticeState(uiState, isMapFullscreen()) else null,
                                                 showFailed = placedFailed,
                                                 retrying = uiState.isRetryingSearch,
                                                 top = safeAnimatedTopInset + when {

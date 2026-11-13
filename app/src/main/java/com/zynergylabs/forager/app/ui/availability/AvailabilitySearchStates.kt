@@ -29,6 +29,7 @@ internal fun AvailabilityUiState.withSearchCleared(): AvailabilityUiState =
         isLoadingSightings = false,
         sightingsErrorMessage = null,
         isRetryingSearch = false,
+        isRetryingList = false,
         conditions = null,
         isLoadingConditions = false,
         conditionsErrorMessage = null,

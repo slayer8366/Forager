@@ -15,6 +15,7 @@ package com.zynergylabs.forager.app.ui.availability
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -260,7 +261,10 @@ internal fun SearchEntryBar(
                     tint = contentColor,
                     modifier = Modifier.padding(start = Spacing.lg).size(18.dp),
                 )
-                Box(modifier = Modifier.weight(1f)) {
+                BoxWithConstraints(modifier = Modifier.weight(1f)) {
+                    // Amendment T, TC1: the failure's line is the longest of its rungs that fits this room whole (MapsSearchFailure.kt).
+                    val restingLine = failure?.let { rememberSearchBarFailureLine(it, maxWidth, SEARCH_BAR_FIELD_SIDE_PADDING) }
+                        ?: activeSearchSummary(uiState, distanceUnit)
                     SpeciesSearchControls(
                         uiState = uiState,
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
@@ -268,7 +272,7 @@ internal fun SearchEntryBar(
                         onDismissTaxonSuggestions = onDismissTaxonSuggestions,
                         queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(rowFieldHeight),
                         onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
-                        restingPlaceholder = failure?.line ?: activeSearchSummary(uiState, distanceUnit),
+                        restingPlaceholder = restingLine,
                         fieldColors = fieldColors,
                         contentPadding = fieldContentPadding,
                         suggestionsOverMap = overMap,
@@ -334,3 +338,6 @@ internal val MAP_PILL_BOTTOM_PADDING = 4.dp
 
 /** RECORD -943's floor, enforced by RECORD -951: the Maps tab's pill is never under 40 dp tall, so it stays easy to tap. */
 internal val MAP_PILL_MIN_HEIGHT = 40.dp
+
+/** OutlinedTextFieldDefaults' horizontal content padding, which the bar's field keeps (its own top and bottom only are set). */
+internal val SEARCH_BAR_FIELD_SIDE_PADDING = 16.dp

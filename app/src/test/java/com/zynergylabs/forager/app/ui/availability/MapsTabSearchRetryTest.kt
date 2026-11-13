@@ -156,15 +156,17 @@ class MapsTabSearchRetryTest {
     }
 
     @Test
-    fun `when only the list fails and the map's sightings load the Maps tab shows today's banner`() {
+    fun `when only the list fails and the map's sightings load the bar reads Search failed and no banner shows`() {
+        // Amendment T, TB4 (the owner: "One line, in the bar"): out of fullscreen a list-only failure is the bar's one line, no
+        // banner. Was: "when only the list fails and the map's sightings load the Maps tab shows today's banner" (D3).
         rig.setScreen()
         rig.availabilityFailure = IOException("no signal (test)")
         search()
         assertEquals("positive control: the ranked list failed", LIST_SEARCH_FAILED_MESSAGE, rig.viewModel.uiState.value.errorMessage)
 
-        assertTrue("only the list failed and its banner is gone from the Maps tab", textShown(LIST_SEARCH_FAILED_MESSAGE))
-        assertTrue("only the list failed and the search-failed notice shows", !shown(SEARCH_FAILED_NOTICE_TAG))
-        assertTrue("only the list failed and the bar reads \"$SEARCH_BAR_FAILED_TEXT\" (SC2 is not built)", !textShown(SEARCH_BAR_FAILED_TEXT))
+        assertTrue("only the list failed and its line still shows in the banner", !textShown(LIST_SEARCH_FAILED_MESSAGE))
+        assertTrue("only the list failed and a search-failed notice floats", !shown(SEARCH_FAILED_NOTICE_TAG))
+        assertTrue("only the list failed and the bar does not read \"$SEARCH_BAR_FAILED_TEXT\"", textShown(SEARCH_BAR_FAILED_TEXT))
     }
 
     @Test

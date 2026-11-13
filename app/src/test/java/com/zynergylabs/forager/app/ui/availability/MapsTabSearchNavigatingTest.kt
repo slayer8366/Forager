@@ -186,17 +186,23 @@ abstract class MapsTabSearchNavigatingTests(private val portrait: Boolean) {
         assertEquals("while navigating, a long-press at $at, below the banner, did not reach the map", before + 1, rig.mapLongPresses)
     }
 
-    /** J1: only the list fails while navigating: the banner alone, not covered (the H2 probe, run 43089700275, now on the branch). */
+    /**
+     * Amendment T, TB4 (the owner: "One line, in the bar"): only the list fails while navigating, out of fullscreen: the bar reads
+     * the failure and no banner shows. Was: "while navigating, the search-error banner alone is not covered by the navigation
+     * card" (the H2 probe, then J1, the banner below the card). In fullscreen the banner alone stays (P1,
+     * MapsTabSearchNavigatingFullscreenTest).
+     */
     @Test
-    fun `while navigating, the search-error banner alone is not covered by the navigation card`() {
+    fun `while navigating, a list-only failure reads in the bar and no banner shows`() {
         rig.setScreen()
         rig.availabilityFailure = IOException("no signal (test)")
         rig.searchCoordinates("45.3736", "-121.6959")
         assertEquals("positive control: the list failed", LIST_SEARCH_FAILED_MESSAGE, rig.viewModel.uiState.value.errorMessage)
-        assertTrue("positive control: the banner is composed", shown(SEARCH_NOTICE_TAG))
-        val banner = bounds(SEARCH_NOTICE_TAG)
+        assertTrue("while navigating, a list-only failure still shows a banner", !shown(SEARCH_NOTICE_TAG))
+        assertTrue("while navigating, a list-only failure does not read \"$SEARCH_BAR_FAILED_TEXT\" in the bar", barText(SEARCH_BAR_FAILED_TEXT))
+        val tryAgain = bounds(SEARCH_FAILED_TRY_AGAIN_TAG)
         for ((name, r) in chrome()) {
-            assertTrue("while navigating, the banner ${banner.d()} is covered by $name ${r.d()}", !banner.overlaps(r))
+            assertTrue("while navigating, Try again ${tryAgain.d()} is covered by $name ${r.d()}", !tryAgain.overlaps(r))
         }
     }
 
