@@ -167,6 +167,11 @@ class MapsTabSearchNewSearchCountTest {
         assertEquals("WA1 (list failed first): after a new search that failed, returns of signal did not make three more automatic tries", before + 1 + 3, rig.sightingsFetches.size)
     }
 
+    /**
+     * WA2. The wait used is the 10 s one, after the second try: the rig's touches each advance the clock 2 s ([RealSearchScreenRig.settle]),
+     * so a 3 s wait can run out while the new search is being typed (the first run of this test, 43462846623, saw that as a fourth
+     * fetch in its positive control).
+     */
     @Test
     fun `a timed try waiting from the old search is dropped by a new search`() {
         rig.setScreen()
@@ -175,15 +180,19 @@ class MapsTabSearchNewSearchCountTest {
         rig.searchCoordinates("45.3736", "-121.6959")
         signal(true)
         assertEquals("positive control: the return of signal ran the first automatic try", 2, rig.sightingsFetches.size)
-        // The first automatic try failed; its timed try is due 3 s later. A new search comes first, and fails too.
+        pass(3_500)
+        assertEquals("positive control: the second automatic try ran 3 s later", 3, rig.sightingsFetches.size)
+        // The second try failed; the third is due 10 s later. A new search comes first, and its map's half fails too.
         val gate = CompletableDeferred<Unit>()
         rig.availabilityGate = gate
         try {
             rig.searchCoordinates("45.5000", "-121.5000")
-            assertEquals("positive control: the new search fetched the map's half once", 3, rig.sightingsFetches.size)
-            pass(3_500)
-            pass(10_500)
-            assertEquals("WA2: the old search's timed try ran on the new search, with no return of signal", 3, rig.sightingsFetches.size)
+            val regions = rig.sightingsFetches.map { "%.4f".format(it.first.lat) }
+            assertEquals("positive control: the new search fetched the map's half once (fetches at $regions)", 4, rig.sightingsFetches.size)
+            pass(12_000)
+            pass(12_000)
+            val after = rig.sightingsFetches.map { "%.4f".format(it.first.lat) }
+            assertEquals("WA2: the old search's timed try ran on the new search with no return of signal (fetches at $after)", 4, rig.sightingsFetches.size)
         } finally {
             rig.availabilityGate = null
             gate.complete(Unit)
