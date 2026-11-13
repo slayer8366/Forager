@@ -1771,3 +1771,48 @@ From the code, not run:
   - My first WA2 test: the rig's 2 s settles ran out the 3 s wait.
   - UB2 as a check of the floor: the floor is not binding in short landscape at font 1.0.
 - **Decided beyond scope:** none. WA3's design is the planner's reading, which I accepted.
+
+### Corrections to Addendum 12 (2026-11-13, after Sorrel's eighth review; appended, the lines above are left as written)
+
+1. **WA2 has no revert of its own that bites.** `awaitingTimed = false` in `onSearch` is a second guard beside `tries = 0`. With the
+   count at 0, `timedTryDelayMs` finds no delay (`SearchAutoRetry.kt:84`, `getOrNull(tries - 1)`), so no test can tell
+   `awaitingTimed = false` from its absence: run 43465805118 passed 20 of 20 with it removed. Removing `tries = 0` alone does not
+   fail WA2 either: in run 43465800016 the WA2 test passed and only the five WA1 tests failed. WA2 fails only when both go (run
+   43467721100), so the "WA2" row above is a revert of the pair, not of WA2's own line. The same holds for `awaitingTimed = false` in
+   `onUserRetry`, which sits beside `tries = 0` there too.
+2. **The landscape-floor revert (`mtsf-w-r3`, run 43465809317) concluded "failure", and I reported it as not biting.** That was
+   wrong. The short-line tests did pass in its filtered job. Its other job, "The app builds and its tests pass with the Street map
+   deleted", runs the whole unit suite, and it failed 9 tests (`7625 tests completed, 9 failed, 24 skipped`, 0 `e:` lines):
+   - `HudLandscapeT11At780Test`: rotation 90 and 270, cluster punch-hole side and rail side, font 1.3 (four tests);
+   - `LandscapeBarStripJoin780Test` and `LandscapeBarStripJoin823Test`: "at ROTATION_90 a long search keeps the bar's floor and
+     the strip drops from the front, coordinates whole";
+   - `NavigationCardKindLineEveningTest` and `NavigationCardKindLineStackTest`: 780 x 360, font 1.0, "both beside, moved right";
+   - `RouteCardRecenterShortLandscapeTest`: "in the shortest landscape window, the ringed locate row stands in for Re-center,
+     clear of the card, peek and expanded".
+
+   **What the job's log gives.** It gives each failure's location only (`AssertionError at Assert.java:89` for the first six,
+   `NavigationCardKindLineEveningTest.kt:33`, `NavigationCardKindLineStackTest.kt:28`, `RouteCardRecenterTest.kt:273`). It gives no
+   messages, and that job uploads no JUnit XML. So **which assertion failed in each I could not read.**
+
+   **Why these failures belong to this edit.** The same job failed only edit-specific tests in every sibling revert from the same
+   base:
+   - `mtsf-w-r1`: the 5 WA1 tests;
+   - `mtsf-w-r4`: V's 3 tests;
+   - `mtsf-w-r5`: the 6 WA tests;
+   - `mtsf-w-r6`: the bar-line tests.
+
+   The job passed on the forward runs 43465635302 and 43465970907. None of the 9 failed anywhere else.
+
+   **What caught the edit.** The landscape floor is checked by those tests, above all the two `LandscapeBarStripJoin` tests,
+   whose subject is the bar's floor: they use a long search, which makes the floor bind at 780 and 823 dp. It is not checked by
+   `MapsTabSearchBarShortLineTest`, whose shortest line leaves the bar far above its floor.
+
+   My estimate above that the floor binds "only on a landscape window narrower than about 580 dp" holds, as an inference, for the
+   shortest resting line only. With a long search it binds at 780 and 823 dp, as these tests show.
+3. **Not tested, traced only:**
+   - a new search while an automatic try is in flight (`onSearch` clears `automaticInFlight`);
+   - a held return of signal dropped by a new search (`onSearch` clears `returnHeld`).
+
+   No test reaches either. Both are read from `SearchAutoRetry.onSearch`.
+
+No code or test changed for these corrections.
