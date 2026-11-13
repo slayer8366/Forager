@@ -40,6 +40,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
@@ -203,11 +204,18 @@ internal fun tryAgainGoesBelowTheWords(width: Dp): Boolean {
     fun widthOf(text: String, style: androidx.compose.ui.text.TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
     return with(density) {
         val longestWord = (SEARCH_FAILED_NOTICE_TEXT.split(" ") + SEARCH_RETRYING_NOTICE_TEXT.split(" ")).maxOf { widthOf(it, wordStyle) }
-        val button = maxOf(58.dp.roundToPx(), widthOf(SEARCH_FAILED_TRY_AGAIN_TEXT, buttonStyle) + 24.dp.roundToPx())
+        val button = tryAgainButtonWidthPx(this, widthOf(SEARCH_FAILED_TRY_AGAIN_TEXT, buttonStyle))
         val room = width.roundToPx() - Spacing.lg.roundToPx() - button
         room < longestWord
     }
 }
+
+/**
+ * The notice's "Try again" width as [tryAgainGoesBelowTheWords] reckons it: its word ([wordWidthPx]) and Material's 12 dp each side,
+ * at least Material's 58 dp minimum. Copies of Material's values, so Amendment U, UB4 holds them to the drawn button in a test.
+ */
+internal fun tryAgainButtonWidthPx(density: Density, wordWidthPx: Int): Int =
+    with(density) { maxOf(58.dp.roundToPx(), wordWidthPx + 24.dp.roundToPx()) }
 
 /** One of the notice's two lines, laid out whether it shows or not (see [SearchFailedNotice]). */
 @Composable

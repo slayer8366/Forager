@@ -97,8 +97,8 @@ abstract class MapsTabSearchFullscreenLargeFontTests(private val navigating: Boo
         composeRule.onNode(hasText(SEARCH_FAILED_TRY_AGAIN_TEXT), useUnmergedTree = true).fetchSemanticsNode()
             .config[SemanticsActions.GetTextLayoutResult].action?.invoke(tryAgainLayouts)
         val buttonWord = tryAgainLayouts.single().layoutInput.let { measurer.measure(SEARCH_FAILED_TRY_AGAIN_TEXT, it.style, maxLines = 1, softWrap = false).size.width }
-        val copied = with(composeRule.density) { maxOf(58f * density, buttonWord + 24f * density) }
-        assertEquals("UB4: tryAgainGoesBelowTheWords' button width (58 dp minimum, its word and 24 dp) is not the drawn Try again", tryAgain.width, copied, 1.5f)
+        val copied = tryAgainButtonWidthPx(composeRule.density, buttonWord).toFloat()
+        assertEquals("UB4: tryAgainGoesBelowTheWords' button width (tryAgainButtonWidthPx) is not the drawn Try again", tryAgain.width, copied, 1.5f)
         if (stacked) {
             assertTrue("TC3: Try again ${tryAgain.d()} is not under the words ${words.d()}", tryAgain.top >= words.bottom - 1f)
         } else {
