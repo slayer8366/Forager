@@ -203,7 +203,7 @@ internal fun tryAgainGoesBelowTheWords(width: Dp): Boolean {
     fun widthOf(text: String, style: androidx.compose.ui.text.TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
     return with(density) {
         val longestWord = (SEARCH_FAILED_NOTICE_TEXT.split(" ") + SEARCH_RETRYING_NOTICE_TEXT.split(" ")).maxOf { widthOf(it, wordStyle) }
-        val button = maxOf(58.dp.roundToPx(), widthOf(SEARCH_FAILED_TRY_AGAIN_TEXT, buttonStyle) + 24.dp.roundToPx())
+        val button = maxOf(58.dp.roundToPx(), widthOf(SEARCH_FAILED_TRY_AGAIN_TEXT, buttonStyle) + 16.dp.roundToPx())
         val room = width.roundToPx() - Spacing.lg.roundToPx() - button
         room < longestWord
     }
