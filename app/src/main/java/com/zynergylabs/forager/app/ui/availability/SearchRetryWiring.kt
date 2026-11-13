@@ -25,7 +25,7 @@ internal fun RetryFailedSearchByItself(
     RetryFailedSearchOnSignalReturn(
         networkValidated = networkValidated,
         failed = mapsSearchFailed(uiState) || listOnlySearchFailed(uiState),
-        running = uiState.isLoadingSightings || uiState.isRetryingSearch || uiState.isRetryingList || listStillLoading(uiState),
+        running = uiState.isLoadingSightings || uiState.isRetryingSearch || uiState.isRetryingList,
         failureSerial = uiState.sightingsFailureSerial + uiState.listFailureSerial,
         autoRetry = autoRetry,
         onRetry = onRetry,
