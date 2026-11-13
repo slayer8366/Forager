@@ -233,3 +233,26 @@ For each of QC1 to QC4: see it fail first, in a test through the real screen or 
 - **SC3.** The bar's button keeps `SEARCH_FAILED_TRY_AGAIN_TAG` and the notice's words. The tests in your RC5 (e) list change to the new ruling and are named in the report with what each asserted before and after; none is weakened. Read the one older test that refers to `activeSearchSummary` and say whether it changes.
 - **SC4. Measure and report, do not build:** (i) short landscape at font 2.0, where "Search failed." and "Try again" do not fit the bar: whether the compass strip's coordinates stay whole if the bar's floor grows to hold them, and what the options are if not; (ii) QC2 and QC3 in fullscreen (portrait at the S22's window size and short landscape, font 2.0, navigating and not), with your "too narrow" measure and where the notice could go with words whole. Both come back for the owner.
 - **SC5.** Rules and proof as Q-C and RC6. Push at every stopping point.
+
+## Amendment T (2026-11-13T11:50Z, planner; from Hazel's build of Q, R and S at head 2ec0fb243 and the owner's rulings on its stop)
+
+Verified by the planner: PR #516 open, head 2ec0fb243; CI run 43381543450 at 015010eb0 concludes failure (Hazel: one test, `MapsTabSearchBarLargeFontPortrait360Test`, left failing as the record of the stop). The rest of the build is as Hazel's Addendum 8 reports and has not been reviewed yet.
+
+### T-A. Correction (the planner's)
+
+- **TA1.** SB1's option text said "Fits in portrait at every font". It does not at 360 dp wide, font 2.0 (measured at 384 dp only in step 1). The owner has been told. SB1's ruling stands and is built.
+
+### T-B. The owner's rulings (2026-11-13)
+
+- **TB1.** Portrait, largest font, the S22's width, "Search failed." cut short in the bar. The owner: **"Shorter word when tight (Recommended)"** (option text as shown: "When \"Search failed.\" does not fit, the bar reads \"Failed.\" beside \"Try again\". Nothing changes at normal font sizes.").
+- **TB2.** Short landscape, largest font. The owner: **"Button only when nothing fits (Recommended)"** (option text as shown: "Same rule carried on: full words if they fit, the shorter word if that fits, otherwise only \"Try again\". Needs no change to the compass strip.").
+- **TB3.** Fullscreen, landscape, largest font, a word breaking in the floating notice. The owner: **"\"Try again\" below the words (Recommended)"** (option text as shown: "When a word would break, \"Try again\" moves under the words inside the notice, which gives the words the notice's whole width.").
+- **TB4.** A list-only failure. The owner, asked again with the ruling quoted: **"One line, in the bar"** (option text as shown: "As you ruled: that case also reads \"Search failed.\" in the bar, and \"Try again\" is made to run the list's half again. No banner.").
+
+### T-C. To the coder
+
+- **TC1.** From TB1 and TB2, one rule for the bar's line in every layout, decided by a text measurement at the current font against the room the bar really has, never by window class: "Search failed." if it fits whole beside "Try again"; else "Failed." if that fits whole; else no words, "Try again" alone. Text size never changes; no word is ever cut or broken. `MapsTabSearchBarLargeFontPortrait360Test` then passes by the app meeting it, with its assertion as strict as now.
+- **TC2.** The planner's reading, not the owner's words: while a try runs the same ladder holds with "Trying again…", then "Trying…", then the greyed button alone. If you see a reason that is wrong, report before building it.
+- **TC3.** From TB3: in fullscreen, when the notice's text box is narrower than its longest word at the current font (your measure), "Try again" goes under the words inside the notice. Otherwise the notice is as today. Still clear of the cluster, card, rail and strip; all of "Try again" tappable (real touches across it); 80% fill, opaque text; long-presses beside and below reach the map. If a word still breaks with the whole width (780×360 at font 2.0), report the measurement; do not pick.
+- **TC4.** From TB4: out of fullscreen, a list-only failure reads "Search failed." in the bar by the same ladder, no banner, and "Try again" runs the list's half again. See it fail first (today `retryFailedSearch` returns at its first line). Say what the automatic tries do in this state today and after; if making them cover it is more than follows from this ruling, report it and leave them. Fullscreen for a list-only failure stays as it is (the banner alone, P1).
+- **TC5.** Proof and rules as Q-C, RC6 and SC3: real screen, reverts on their own branches with clean logs and edit-specific messages, restored from saved copies; changed tests named with before and after; none weakened. Append to the completion report with S22 steps. Push at every stopping point.
