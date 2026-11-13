@@ -184,7 +184,7 @@ internal fun SearchEntryBar(
         focusedTextColor = contentColor,
         unfocusedTextColor = contentColor,
         focusedPlaceholderColor = contentColor,
-        unfocusedPlaceholderColor = contentColor,
+        unfocusedPlaceholderColor = contentColor.copy(alpha = 0.5f),
         cursorColor = contentColor,
     )
     // Surface, not a plain Column + background: on the Map tab this now composes as a real
