@@ -379,7 +379,7 @@ internal const val SEARCH_RETRYING_SHORT_TEXT = "Trying…"
  * since Amendment T (TB4, the owner: "One line, in the bar"), while the ranked list alone has failed or runs again.
  */
 internal fun searchBarFailure(uiState: AvailabilityUiState, onTryAgain: () -> Unit): SearchBarFailure? =
-    if (mapsSearchNoticeShows(uiState) || listOnlySearchFailed(uiState) || uiState.isRetryingList) {
+    if (mapsSearchNoticeShows(uiState) || uiState.isRetryingList) {
         SearchBarFailure(retrying = uiState.isRetryingSearch || uiState.isRetryingList, onTryAgain = onTryAgain)
     } else {
         null
