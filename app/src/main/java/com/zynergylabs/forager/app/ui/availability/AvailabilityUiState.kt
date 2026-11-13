@@ -83,6 +83,12 @@ data class AvailabilityUiState(
     val isRetryingList: Boolean = false,
     /** Amendment U, UB1: counts the ranked list's fetches that failed, as [sightingsFailureSerial] counts the map's, for the retry by itself. */
     val listFailureSerial: Int = 0,
+    /**
+     * Amendment W, WA3: counts the searches started by the user ([beginSearch]: the bar, Search, a month, a recent search), and not
+     * a failed search run again, so the retry by itself ([SearchAutoRetry.onSearch]) starts its count again on a new search by
+     * this, not by reading what is loading.
+     */
+    val newSearchSerial: Int = 0,
     val taxonFilter: TaxonFilter = TaxonFilter.FUNGI,
     val taxonSearchQuery: String = "",
     val taxonSearchResults: List<TaxonSearchResult> = emptyList(),

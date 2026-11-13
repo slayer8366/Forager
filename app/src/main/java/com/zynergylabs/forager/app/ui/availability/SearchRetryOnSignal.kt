@@ -28,6 +28,7 @@ internal fun RetryFailedSearchOnSignalReturn(
     failed: Boolean,
     running: Boolean,
     failureSerial: Int,
+    searchSerial: Int,
     autoRetry: SearchAutoRetry,
     onRetry: () -> Unit,
 ) {
@@ -37,16 +38,20 @@ internal fun RetryFailedSearchOnSignalReturn(
     val currentFailed by rememberUpdatedState(failed)
     val currentRunning by rememberUpdatedState(running)
     val currentOnScreen by rememberUpdatedState(onScreen)
+    val currentSearch by rememberUpdatedState(searchSerial)
     val retry by rememberUpdatedState(onRetry)
     LaunchedEffect(networkValidated, autoRetry) {
         signalReturns(networkValidated.onEach { latest.validated = it }).collect {
+            autoRetry.onSearch(currentSearch)
             if (autoRetry.onSignalReturn(currentFailed, currentRunning, currentOnScreen)) retry()
         }
     }
     // QC1: keyed on the failures' count too, so a failed automatic try is seen even when the state reads as it did before it.
     // A timed try waits in here; any change of state (a tap on "Try again", a success, a return of signal running a try) ends
     // this effect and so drops the wait, and Forager leaving the screen ends it and starts it again on coming back.
-    LaunchedEffect(failed, running, onScreen, failureSerial, autoRetry) {
+    // Amendment W: keyed on the search too, and told it first, so a new search starts the count before its state is read.
+    LaunchedEffect(failed, running, onScreen, failureSerial, searchSerial, autoRetry) {
+        autoRetry.onSearch(searchSerial)
         if (autoRetry.onStateChanged(failed, running, onScreen, latest.validated)) {
             retry()
             return@LaunchedEffect

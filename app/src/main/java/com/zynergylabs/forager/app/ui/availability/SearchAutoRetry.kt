@@ -15,6 +15,8 @@ package com.zynergylabs.forager.app.ui.availability
  *   "Try again" or a new search runs it. The count starts again on "Try again" ([onUserRetry]), on a new search and on a
  *   success (both seen as nothing failed and nothing running, [onStateChanged]).
  *
+ * Amendment W (WA3): a new search is told directly ([onSearch]), not worked out from what is loading.
+ *
  * And Sorrel's F2: a return that comes while the fetch is still running is held, and if that fetch then fails, the search runs
  * again once ([onStateChanged]); if it succeeds, the held return is dropped.
  *
@@ -90,6 +92,23 @@ internal class SearchAutoRetry(private val maxTries: Int = SEARCH_AUTO_RETRY_MAX
         if (!failed || running || !validated) return false
         return takeAutomatic()
     }
+
+    /**
+     * Amendment W (WA1, WA2, WA3): the search showing, by [AvailabilityUiState.newSearchSerial]. A new one starts the count again
+     * (WA1) and drops whatever the old one had waiting: a timed try (WA2), a held return and an automatic try in flight. Told
+     * directly, so the rule does not rest on the moment a new search reads as nothing failed and nothing running.
+     */
+    fun onSearch(serial: Int) {
+        if (serial == search) return
+        search = serial
+        tries = 0
+        awaitingTimed = false
+        returnHeld = false
+        automaticInFlight = false
+    }
+
+    /** The search [onSearch] last saw; none before the first. */
+    private var search: Int? = null
 
     /** "Try again": the user ran it, so the automatic tries start again, and a timed one waiting is dropped. */
     fun onUserRetry() {

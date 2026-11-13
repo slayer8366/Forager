@@ -61,6 +61,8 @@ class MapsTabSearchBarShortLineTest {
         val measurer = TextMeasurer(input.fontFamilyResolver, input.density, input.layoutDirection)
         val whole = measurer.measure(SEARCH_BAR_FAILED_TEXT, input.style, maxLines = 1, softWrap = false).size.width
         val widths = "\"$want\": bar ${bar.width} px, field's text room ${input.constraints.maxWidth} px, \"$SEARCH_BAR_FAILED_TEXT\" $whole px"
+        // WA5: the widths on record in the run's XML (system-out), pass or fail.
+        println("UB2-WIDTHS $widths")
         val shown = listOf(SEARCH_BAR_FAILED_TEXT, SEARCH_BAR_FAILED_SHORT_TEXT)
             .filter { composeRule.onAllNodesWithText(it, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
         assertEquals("UB2: the bar's line in short landscape at font 1 ($widths)", listOf(SEARCH_BAR_FAILED_TEXT), shown)
