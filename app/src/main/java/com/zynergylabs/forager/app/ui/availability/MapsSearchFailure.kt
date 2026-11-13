@@ -395,7 +395,9 @@ internal fun rememberSearchBarFailureLine(failure: SearchBarFailure, maxWidth: D
     val style = LocalTextStyle.current
     val density = LocalDensity.current
     val room = with(density) { (maxWidth - fieldSidePadding * 2).roundToPx() }
-    return searchBarFailureLine(failure, room) { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width }
+    val line = searchBarFailureLine(failure, room) { measurer.measure(it, style, maxLines = 1, softWrap = false).size.width }
+    println("T probe: maxWidth=$maxWidth room=$room style.fontSize=${style.fontSize} widths=" + failure.lines.map { it to measurer.measure(it, style, maxLines = 1, softWrap = false).size.width } + " chose <$line>")
+    return line
 }
 
 /**
