@@ -1117,3 +1117,136 @@ The pull request's run [43381543450](https://github.com/slayer8366/Forager/actio
   - My step-1 measurement at 384 dp, which led to SB1's "every font" option text.
   - My first "line is whole" check, which could not fail.
 - **Decided beyond scope:** none. SC2 is not built and SC4 is not built.
+
+---
+
+# Addendum 9: Amendment T, built
+
+This builds the dispatch's Amendment T (on `records-after-173`, `fb4ed0475`). Nothing above this line was rewritten. Addendum 8's
+stop is met: the 360 dp test now passes because the app meets it. Its assertion is as strict as before.
+
+The owner's words:
+- TB1 **"Shorter word when tight (Recommended)"**
+- TB2 **"Button only when nothing fits (Recommended)"**
+- TB3 **"\"Try again\" below the words (Recommended)"**
+- TB4 **"One line, in the bar"**
+
+## What was built (commits `5dc544e38`, `8d1dfb54f`)
+
+**TC1, the bar's line by room.** The bar's line is the first of "Search failed." and "Failed." that fits whole in the field's real
+text room at the current font. If neither fits, the bar shows no words and "Try again" stands alone. The choice is made by text
+measurement in the field's own style, never by window class. Text size never changes.
+- The room is the field's width beside "Try again", less its side padding on each side: the dropdown box's `Spacing.sm` plus the
+  decoration's 16 dp.
+- My first build left out the `Spacing.sm`. It then judged "Search failed." to fit at 360 dp, where it is drawn cut. I found
+  this by printing the room on the probe branch `mtsf-t-probe2` (run
+  [43424665907](https://github.com/slayer8366/Forager/actions/runs/43424665907)). The field was 189 dp wide, the computed room
+  471 px, the line 471 px, and the line as drawn 423 px. That fix is commit `8d1dfb54f`.
+
+| Window, font 2.0 | Text room | Rung |
+|---|---|---|
+| Portrait, 384 dp | 564 px | "Search failed." |
+| Portrait, 360 dp | 423 px | "Failed." (228 px) |
+| Short landscape | 171 px | No words, "Try again" alone |
+
+At font 1.0 every layout reads "Search failed.".
+
+**TC2, while a try runs.** I saw no reason against the planner's reading, so it is built as written: "Trying again…", then
+"Trying…", then the greyed button alone. At 360 dp, font 2.0, it reads "Trying…". In short landscape, font 2.0, it shows no words.
+The rung can differ between failing and trying ("Trying again…" is 4 px wider than "Search failed."). Nothing outside the
+field moves when it does.
+
+**TC3, "Try again" below the words.** In the floating notice (fullscreen), "Try again" goes under the words when the words' room
+beside it is narrower than their longest word at the current font. That room is the notice's width, less the words' start padding,
+less the button's width: its word plus Material's 12 dp each side, and at least 58 dp. Otherwise the notice is as it was.
+- Short landscape, font 2.0: the room beside the button was 363 px and the longest word ("connection.") is 402 px, so it now
+  stacks.
+- 780 × 360, font 2.0: the room was 234 px, so it stacks. With the whole width the words get 585 px, and no word breaks.
+- Portrait at 360 dp keeps the button beside the words.
+
+**TC4, a list-only failure.** Out of fullscreen, with a search showing, the list's failure is now always the bar's one line: no
+banner, "Search failed." by the same ladder, and "Try again" in Clear's place. "Try again" fetches the list's half again, through
+`fetchAvailability` with the search's own species group; the map's loaded half is not fetched. A new flag, `isRetryingList`, makes
+the bar read "Trying again…" while that runs. It returns to "Search failed." on another failure, and the resting line and Clear
+come back on success.
+- With no search showing (no region) the list's line stays the banner's, as before. That condition also keeps an existing test
+  passing: `MapChromeResumedTest` uses the list's failure text as its banner text with no search showing. I name it here so the
+  condition is not mistaken for a dodge; it matches the app, where that line only follows a search.
+- **What the automatic tries do here:** today and after, nothing. The retry-by-itself counts only the map's half as failed, so a
+  list-only failure is never retried by a return of signal. Covering it would mean giving the automatic tries a second kind of
+  failure. That is more than follows from TB4, so I left it.
+- Fullscreen for a list-only failure is as it was: the banner alone (P1).
+
+## TC4 seen failing first
+
+The new `MapsTabSearchListOnlyTest`, run on the head before T (probe branch `mtsf-t-probe`, run
+[43420836005](https://github.com/slayer8366/Forager/actions/runs/43420836005), clean build), fails both tests with:
+
+> `a list-only failure does not read "Search failed." in the bar`
+
+## Tests changed to the rulings (before and after)
+
+`MapsTabSearchBarLargeFontTest`:
+- **Before:** "Search failed." in every window.
+- **After:** each window states the rung it expects. 384 dp expects "Search failed." / "Trying again…"; 360 dp expects "Failed." /
+  "Trying…"; short landscape (new) expects no words.
+- The rung shown is checked drawn whole, its drawn width against its measured width, as strict as before.
+- New: a test while a try runs.
+
+`MapsTabSearchRetryTest`:
+- **Before:** "when only the list fails and the map's sightings load the Maps tab shows today's banner".
+- **After:** "...the bar reads Search failed and no banner shows".
+
+`MapsTabSearchNavigatingTest`:
+- **Before:** "while navigating, the search-error banner alone is not covered by the navigation card".
+- **After:** "while navigating, a list-only failure reads in the bar and no banner shows". "Try again" is checked as covered by
+  nothing.
+
+New: `MapsTabSearchListOnlyTest` (TC4), and `MapsTabSearchFullscreenLargeFontTest` (TC3), in short landscape (navigating and not),
+780 × 360 navigating, and portrait 360 navigating. The fullscreen tests check:
+- words whole;
+- "Try again" under or beside the words, as expected for the window;
+- the notice wholly on screen, overlapping none of the strip, card, rail or cluster;
+- 80% fill and opaque text;
+- real touches across "Try again";
+- long-presses below and beside the notice.
+
+## Revert checks
+
+Each is one edit on its own branch `mtsf-revert10-*`, cut from `8d1dfb54f`. Every build log was clean, every file was restored
+from a saved copy, and the forward lines are confirmed present on the branch.
+
+| Behaviour | Edit | Run | Failures |
+|---|---|---|---|
+| TC1/TC2 ladder | the line always the first rung | [43425855880](https://github.com/slayer8366/Forager/actions/runs/43425855880) | `failed: the bar's line expected:<[Failed.]> but was:<[Search failed.]>` (360 dp); `retrying: ... expected:<[Trying…]> but was:<[Trying again…]>`; short landscape `expected:<[]> but was:<[Search failed.]>` and `expected:<[]> but was:<[Trying again…]>` |
+| TC3 | never stacked | [43425870285](https://github.com/slayer8366/Forager/actions/runs/43425870285) | `at font 2 words of the notice break inside (text box 363 px, notice [336.0, 0.0][1146.0, 624.0]) expected:<[]> but was:<[4]>`; 780 × 360: `text box 234 px` |
+| TC4 retry | the list-only branch off | [43425884277](https://github.com/slayer8366/Forager/actions/runs/43425884277) | `Try again did not run the list's half again expected:<2> but was:<1>`; `the bar still reads "Search failed." after the list worked` |
+| TC4 bar | the list-only failure not in the bar | [43425897018](https://github.com/slayer8366/Forager/actions/runs/43425897018) | `a list-only failure does not read "Search failed." in the bar`; `only the list failed and the bar does not read "Search failed."` |
+
+## Full CI at `8d1dfb54f`
+
+The pull request's run [43425822710](https://github.com/slayer8366/Forager/actions/runs/43425822710): every job passed, and the
+build log has 0 `e:` lines. JUnit XML: 7632 tests, 0 failures, 0 errors, 24 skipped. The failing 360 dp test of addendum 8 now
+passes.
+
+## On the phone (S22), added
+
+29. **Font 2.0, portrait, at the S22's own width.** Fail a search. **Pass:** the bar reads "Failed." whole beside "Try again".
+    During a try it reads "Trying…".
+30. **Font 2.0, landscape.** Fail a search. **Pass:** "Try again" stands alone in the bar; no word is cut.
+31. **Font 2.0, landscape, fullscreen.** Fail a search. **Pass:** in the notice, "Try again" sits under the words, and no word
+    breaks.
+32. **List-only failure.** Hard to stage by hand, since airplane mode fails both halves. One way: search with signal, so the map's
+    half loads; then fail the list by changing the month with no signal. That is untested. **Pass:** the bar reads "Search
+    failed.", there is no banner, and "Try again" runs the list again.
+
+## Disclosure
+
+- **Confirmed by CI:** TC1 to TC4 in the windows named.
+- **Inferred:** "Trying again…" and "Trying…" fit wherever the failure's rungs do. At 384 dp, 360 dp and in short landscape that
+  is measured; elsewhere it is inferred.
+- **Could not determine:** why the S22 itself measures as it does. I tested at its window size only.
+- **Premises that were wrong:** my first room measurement (fixed above).
+- **Decided beyond scope:**
+  - The list-only fold needs a search showing (the region condition).
+  - The automatic tries are left out of the list-only case.
