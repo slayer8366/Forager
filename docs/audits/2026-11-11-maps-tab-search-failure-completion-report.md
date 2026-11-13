@@ -1581,7 +1581,9 @@ From the code, not run:
 
 ## Full CI at `76f07a40c`
 
-FULLCI11
+The pull request's run [43456834334](https://github.com/slayer8366/Forager/actions/runs/43456834334): every job passed, the Street-map job
+included, and the build log has 0 `e:` lines. JUnit XML: 7672 tests, 0 failures, 0 errors, 24 skipped. The commits after it are this
+report only (`[skip ci]`).
 
 ## On the phone (S22), added
 
