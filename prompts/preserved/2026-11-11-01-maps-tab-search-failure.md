@@ -186,3 +186,28 @@ For each of QC1 to QC4: see it fail first, in a test through the real screen or 
 - **QC4.** A bug, no ruling needed: no frame shows the "Request failed…" line above "Trying again…" when a coordinate search fails in fullscreen while navigating. Reproduce in a test first if it can be; if only a device shows it, say so, give the cause from the code with file and line, and say the fix is unverified off-device.
 - **QC5.** Everything carried from A to P still holds: 80% fill over the map with opaque text, long-presses beside and below reach the map, nothing covers the compass strip, navigation card, rail or cluster. No test is weakened or skipped to reach green; an unrelated failure is reported, not touched.
 - **QC6.** Report by appending to the completion report: what was done, what was verified and how, what was not; S22 steps for QC1 (signal back with the first try failing is hard to stage: say how it could be), QC2, QC3 and QC4. Push at every stopping point. Report before building if any premise above is wrong.
+
+## Amendment R (2026-11-13T05:38Z, planner; the owner moves the notice into the search bar)
+
+### R-A. The owner's rulings (2026-11-13)
+
+- **RA1.** The owner, unprompted, after Amendment Q: **"The try again notice for search should go into the search bar itself, in place of the October text"**.
+- **RA2.** Fullscreen, where the bar is off screen. Asked "Where does the notice go there?", with the standing ruling quoted, the owner: **"Under the card in fullscreen too"** (option text as shown: "As you ruled: in fullscreen the notice stays where it is today (under the navigation card, or at the top when not navigating). Only out of fullscreen does it go into the search bar.").
+- **RA3.** Asked "With the notice in the search bar, what do you tap to try again?", the owner: **"A \"Try again\" button in the bar"** (option text as shown: "\"Search failed.\" sits where the October text is, with a \"Try again\" button at the bar's right. A tap on the rest of the bar opens the search panel as usual.").
+- **RA4.** Asked "How much of the bar's line does the notice replace?", the owner: **"The whole line"** (option text as shown: "The notice replaces everything: species, month and distance. They return when the search works.").
+
+### R-B. What the planner read on head f025b3e16 (premises to re-check)
+
+- **RB1.** "The October text" is the bar's resting line from `activeSearchSummary` (`SearchSummaryText.kt:50-67`): species if one is chosen, the month, then the radius or "Search a location".
+- **RB2.** The Maps tab's bar is not on screen in fullscreen (`ScaffoldMapTabCall.kt:332`, `visible = !isMapFullscreen()`).
+- **RB3.** A tap on the bar focuses its field and opens the search panel (`onFieldFocused`, `ScaffoldMapTabCall.kt:357`). Clear shows at the bar's right while a search shows (RECORD -723).
+- **RB4.** In landscape the bar's floor is measured from the resting line (`rememberLandscapeBarFloorPx`, `SearchSummaryText.kt:27`), so a different line changes that floor.
+
+### R-C. To the coder (the planner's reading; where it goes past the owner's words it says so)
+
+- **RC1.** Out of fullscreen, on the Maps tab: search fails > the bar's line reads "Search failed." in place of the whole resting line, with a "Try again" button at the bar's right; the floating notice is not shown. A tap on the rest of the bar opens the search panel as today. Search works > the resting line returns. A new path, not a conditional threaded through the bar's existing working code where that can be avoided.
+- **RC2.** In fullscreen nothing moves: the notice is where it is on head f025b3e16, navigating or not.
+- **RC3.** Every state the notice has today carries into the bar unchanged in meaning: "Trying again…" while a try runs; "Try again" shown, greyed out, with no signal (the owner: "Shown, greyed out"); the automatic tries of Q (QC1). Text size is the bar's own and does not shrink.
+- **RC4.** Supersedes Q in part: QC2 and QC3 now apply in fullscreen only (out of fullscreen there is no floating notice to place). QA3, "Notice keeps clear, words whole", stands for fullscreen, and for the bar as far as it bears: no word broken, "Try again" wholly tappable at font 2.0. QC1, QC4, QC5 and QC6 stand.
+- **RC5.** Report before building, with the Q report: (a) whether "Search failed." and "Try again" fit the bar in portrait and landscape at font 1.0 and 2.0, and what the landscape floor becomes; (b) what happens to Clear while the notice shows (both at the right end); (c) where the old banner goes out of fullscreen now that the notice it sat above (L1, N1) is in the bar; (d) what the bar shows while its field is focused and the search has failed; (e) which existing tests assert the floating notice out of fullscreen and so change with this ruling, by name: those are changed to the new ruling, not weakened, and listed. Each of (a) to (d) that is a real choice goes to the owner; do not pick.
+- **RC6.** Proof as before: through the real screen; real touches sampled across the whole "Try again" button in the bar and on the rest of the bar (which must open the panel, not retry); 80% fill over the map with opaque text; one-line reverts on `mtsf-*` branches, clean build log, edit-specific message, restored from a saved copy. S22 steps appended to the report.
