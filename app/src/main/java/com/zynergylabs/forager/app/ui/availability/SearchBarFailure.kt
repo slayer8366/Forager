@@ -130,7 +130,7 @@ internal fun TryAgainInBar(failure: SearchBarFailure, height: Dp, contentColor: 
         TextButton(
             onClick = failure.onTryAgain,
             enabled = !failure.retrying,
-            colors = ButtonDefaults.textButtonColors(contentColor = contentColor),
+            colors = ButtonDefaults.textButtonColors(contentColor = contentColor.copy(alpha = 0.5f)),
             contentPadding = PaddingValues(horizontal = Spacing.md),
             modifier = Modifier.padding(end = Spacing.xs).height(height).widthIn(min = 48.dp).testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
         ) {
