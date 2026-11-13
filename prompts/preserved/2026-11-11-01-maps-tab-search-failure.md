@@ -211,3 +211,25 @@ For each of QC1 to QC4: see it fail first, in a test through the real screen or 
 - **RC4.** Supersedes Q in part: QC2 and QC3 now apply in fullscreen only (out of fullscreen there is no floating notice to place). QA3, "Notice keeps clear, words whole", stands for fullscreen, and for the bar as far as it bears: no word broken, "Try again" wholly tappable at font 2.0. QC1, QC4, QC5 and QC6 stand.
 - **RC5.** Report before building, with the Q report: (a) whether "Search failed." and "Try again" fit the bar in portrait and landscape at font 1.0 and 2.0, and what the landscape floor becomes; (b) what happens to Clear while the notice shows (both at the right end); (c) where the old banner goes out of fullscreen now that the notice it sat above (L1, N1) is in the bar; (d) what the bar shows while its field is focused and the search has failed; (e) which existing tests assert the floating notice out of fullscreen and so change with this ruling, by name: those are changed to the new ruling, not weakened, and listed. Each of (a) to (d) that is a real choice goes to the owner; do not pick.
 - **RC6.** Proof as before: through the real screen; real touches sampled across the whole "Try again" button in the bar and on the rest of the bar (which must open the panel, not retry); 80% fill over the map with opaque text; one-line reverts on `mtsf-*` branches, clean build log, edit-specific message, restored from a saved copy. S22 steps appended to the report.
+
+## Amendment S (2026-11-13T06:07Z, planner; from Hazel's step-1 report on Q and R, probes on `mtsf-q-probe` at afb70d6fa, and the owner's rulings on it)
+
+### S-A. Corrections to the planner's own text in Q and R (not owner rulings)
+
+- **SA1.** RC3 said "\"Try again\" shown, greyed out, with no signal (the owner: \"Shown, greyed out\")". Wrong scope. G2, the owner's "Shown, greyed out", is the button while Forager is trying again by itself. With no signal the button is enabled today and stays so. RC3 reads: greyed out while a try runs.
+- **SA2.** QA3's option text and Q-B said the landscape notice sits beside the navigation card and could go below it. Hazel's probe: in landscape the card is at the bottom of the screen, so below it is off screen. The owner's words "Notice keeps clear, words whole" stand; the option text's landscape placement cannot be built and QC3's "goes below the navigation card" is withdrawn. The owner has been told. How the ruling is met in landscape fullscreen goes to the owner after SC4's measurement.
+- **SA3.** QC1's premise gains: automatic tries are also started by a return held while a fetch ran or while Forager was off screen (through `onStateChanged`).
+
+### S-B. The owner's rulings (2026-11-13)
+
+- **SB1.** Clear while the search has failed. The owner: **"\"Try again\" takes Clear's place (Recommended)"** (option text as shown: "While the search has failed the bar shows \"Try again\" where Clear is. Clear returns when the search works. Fits in portrait at every font.").
+- **SB2.** The old banner out of fullscreen. The owner: **"One line, in the bar"** (option text as shown: "As already ruled for one line: the list's failure folds into the bar's \"Search failed.\" and no banner shows for it. The banner's other messages (a mistyped coordinate, a species lookup error, location permission) show where they do today.").
+- **SB3.** The bar focused after a failure, before typing. The owner: **"Still \"Search failed.\" (Recommended)"** (option text as shown: "Same as the resting line today: it stays while the bar is focused and goes when you type. \"Try again\" stays at the right.").
+
+### S-C. To the coder
+
+- **SC1. Go, build:** QC1 (as read in Q, with SA3; say in the build how a signal return during a timed wait is held); QC4 (the cause in your report; the held-fetch test is the proof); R out of fullscreen with SB1 to SB3, in portrait at font 1.0 and 2.0, short landscape at font 1.0, and landscape tablet.
+- **SC2.** The planner's reading of SB2, not the owner's words: out of fullscreen, a list failure alone (the map's half loaded) also reads "Search failed." in the bar with "Try again", and no banner. If "Try again" in that state does not run the list's half today, report before building that part.
+- **SC3.** The bar's button keeps `SEARCH_FAILED_TRY_AGAIN_TAG` and the notice's words. The tests in your RC5 (e) list change to the new ruling and are named in the report with what each asserted before and after; none is weakened. Read the one older test that refers to `activeSearchSummary` and say whether it changes.
+- **SC4. Measure and report, do not build:** (i) short landscape at font 2.0, where "Search failed." and "Try again" do not fit the bar: whether the compass strip's coordinates stay whole if the bar's floor grows to hold them, and what the options are if not; (ii) QC2 and QC3 in fullscreen (portrait at the S22's window size and short landscape, font 2.0, navigating and not), with your "too narrow" measure and where the notice could go with words whole. Both come back for the owner.
+- **SC5.** Rules and proof as Q-C and RC6. Push at every stopping point.
