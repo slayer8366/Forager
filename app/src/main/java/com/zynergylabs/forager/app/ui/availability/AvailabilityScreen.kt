@@ -758,13 +758,6 @@ fun AvailabilityScreen(
         findsLog = findsLog,
         journalEntries = journalEntries,
     )
-    // Dispatch 2026-11-11-01, C4: a failed search runs again when signal returns (MapsSearchFailure.kt). Last, so no slot above moves.
-    RetryFailedSearchOnSignalReturn(
-        networkValidated = searchInputs.networkValidated,
-        failed = mapsSearchFailed(uiState),
-        running = uiState.isLoadingSightings || uiState.isRetryingSearch,
-        failureSerial = uiState.sightingsFailureSerial,
-        autoRetry = searchAutoRetry,
-        onRetry = searchInputs.onRetryFailedSearch,
-    )
+    // Dispatch 2026-11-11-01, C4: a failed search runs again by itself (SearchRetryWiring.kt). Last, so no slot above moves.
+    RetryFailedSearchByItself(uiState, searchInputs.networkValidated, searchAutoRetry, searchInputs.onRetryFailedSearch)
 }

@@ -81,6 +81,8 @@ data class AvailabilityUiState(
      * "Try again", so the bar reads "Trying again…". Cleared when the ranked list's fetch ends, on a new search and on Clear.
      */
     val isRetryingList: Boolean = false,
+    /** Amendment U, UB1: counts the ranked list's fetches that failed, as [sightingsFailureSerial] counts the map's, for the retry by itself. */
+    val listFailureSerial: Int = 0,
     val taxonFilter: TaxonFilter = TaxonFilter.FUNGI,
     val taxonSearchQuery: String = "",
     val taxonSearchResults: List<TaxonSearchResult> = emptyList(),

@@ -137,6 +137,7 @@ internal class AvailabilitySearchRuns(
                             isShowingCachedResults = false,
                             cachedResultsAsOfEpochMillis = null,
                             errorMessage = LIST_SEARCH_FAILED_MESSAGE,
+                            listFailureSerial = it.listFailureSerial + 1,
                         )
                     }
                 },
