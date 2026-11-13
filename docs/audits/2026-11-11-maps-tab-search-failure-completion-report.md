@@ -959,3 +959,161 @@ Not in scope, and not touched: the unused `fullscreen` parameter, the test name,
 - **Not checked:** the banner alone at a large font. Step 23's "a list search failing" may be hard to stage by hand on the
   phone, since airplane mode fails both halves. Say what was staged.
 - **Decided beyond scope:** none.
+
+---
+
+# Addendum 8: Amendments Q, R and S, built where ruled; one stop
+
+The dispatch's Amendments Q, R and S (on `records-after-173`, at `997949e8f` for S). Nothing above this line was rewritten.
+
+The owner's words:
+- **QA1:** "3 tries, then wait for me".
+- **QA2:** "Growing: 3, then 10".
+- **QA3:** "Notice keeps clear, words whole".
+- **RA1:** "The try again notice for search should go into the search bar itself, in place of the October text".
+- **RA2:** "Under the card in fullscreen too".
+- **RA3:** "A \"Try again\" button in the bar".
+- **RA4:** "The whole line".
+- **SB1:** "\"Try again\" takes Clear's place (Recommended)".
+- **SB2:** "One line, in the bar".
+- **SB3:** "Still \"Search failed.\" (Recommended)".
+
+The step-1 report (read-only, before the build) went to the planner. Its probes are on `mtsf-q-probe`.
+
+## The stop: "Search failed." does not fit the bar at the S22's width at font 2.0
+
+SB1's option text said "Fits in portrait at every font". That came from my step-1 measurement, which I made at 384 dp wide only. At the S22's width (360 × 780 dp) at font scale 2.0, with "Try again" in Clear's place, the bar's line is cut short. The test `MapsTabSearchBarLargeFontPortrait360Test` fails on the branch with:
+
+> `at font 2 the bar's line "Search failed." is cut short: drawn 423.0 px of 471 px`
+
+That is in run [43381537358](https://github.com/slayer8366/Forager/actions/runs/43381537358), and again in the full run below. At 384 dp it fits (`MapsTabSearchBarLargeFontPortraitTest` passes). The test is left failing on the branch, as the record of the problem. What to do at 360 dp and font 2.0 is the owner's choice, for example the bar's line on two lines or another word. I picked nothing.
+
+## What was built (commits `e24f16740`, `015010eb0`)
+
+**QC1, timed automatic tries.**
+- In `SearchAutoRetry`, an automatic try that fails is now followed by a timed one: 3 s after the first and 10 s after the second, within the cap of three. After the third, it waits for "Try again".
+- Each failure is seen through `AvailabilityUiState.sightingsFailureSerial`. Without it, an automatic try that failed at once with no signal left the state looking as it did before, and nothing noticed the failure.
+- A timed try that falls due with no signal does not run. The next return of signal runs it, as before (the planner's reading).
+- A timed try that falls due with Forager off screen waits for it to come back.
+- "Try again", a success, or a return of signal that runs a try drops a waiting timed try. The waiting lives in the screen's effect, which ends on any change of state.
+- **A return of signal during a timed wait runs at once.** It counts as the next of the three tries and replaces the timed one. Returns still reach the retry at most once per 10 s, as D1 set.
+
+**QC4, the flash.** The cause, as reported in step 1:
+1. A retry of both halves starts a new search, and that clears the map's failure.
+2. Offline, the list fails again at once and puts its line back.
+3. The map's refetch only starts on the next composition. In between, the one-line fold in `mapsTabSearchNoticeState` (`MapsSearchFailure.kt`) was off, because it required the map's failure.
+
+The fold now also holds while a failed search runs again. `MapsTabSearchFlashTest` holds the map's refetch so that window lasts, and checks it. On the S22 the flash lasted about a frame; the fix there is unverified off the device.
+
+**R and S, the failure in the search bar.** Out of fullscreen, on the Maps tab:
+- The bar's line reads "Search failed." in place of the whole resting line ("Trying again…" while a try runs).
+- "Try again" takes Clear's place, at Clear's size. It is greyed and does nothing while a try runs (G2, as corrected in SA1).
+- Clear and the resting line come back when the search works.
+- No notice floats under the bar.
+- Focused before typing, the bar still reads "Search failed." with "Try again" at its right (SB3). This is the field's existing placeholder behaviour, which shows the placeholder whether or not the field is focused, so no new code was needed for it.
+- A tap on the rest of the bar opens the search panel and does not run the search.
+- The list's failure folds into the bar's line (SB2). The banner's other messages show where they did, including below the card while navigating in portrait (J1).
+- In fullscreen nothing moved (RC2).
+
+**SC2, not built.** With a list failure alone (the map's half loaded), "Try again" today does nothing. `retryFailedSearch` returns at its first line when the map's half has not failed (`AvailabilityViewModelSearchRetry.kt`). So that state still shows today's banner and no bar failure. This is reported, not built.
+
+## Tests changed to the rulings (SC3), with what each asserted before and after
+
+`MapsTabSearchFailureTest`, all three layouts:
+- "after a failed sightings fetch the notice says so under the search bar at the map chrome's fill" became "...the search bar reads Search failed with Try again in Clear's place, and no notice floats". It now checks: the bar's line whole, the resting line gone, "Try again" wholly in the bar, no Clear, no notice, and the bar's fill at 0.8.
+- "the notice's text is opaque and the notice clears the compass strip" became "when the search works again the resting line and Clear come back". The opacity claim has no subject now. The bar's text colour is the bar's own, unchanged code, so it is not asserted.
+- "real touches across Try again each run the search again" now also checks that no touch opens the panel. Its end check is the bar's line gone, where before it was the notice gone.
+- "a long-press on the map just below the notice reaches the map" became "with the search failed, a long-press on the map below the bar reaches the map".
+- New: "real touches on the rest of the bar open the search panel and do not run the search".
+- New: "focused after a failure, before typing, the bar still reads Search failed with Try again".
+
+`MapsTabSearchRetryTest`:
+- Its text lookups now use the unmerged tree, because the bar's words are inside the search field.
+- "when both the list and the map fail...": the bar's line now, not the notice.
+- "when only the list fails...": also asserts there is no bar failure, since SC2 is not built.
+- "when signal returns...", "a failure with good signal...": the bar's line, not the notice.
+- "a signal that flaps...": to QC1. Within 13 s the three tries are used, then none follow. Before, one ran when the interval ended and none after.
+- "while fullscreen hides the search bar...": now measured against the bar's bottom, not the notice under it.
+- "during a retry the notice keeps its place...": now on the bar, through a helper shared with the fullscreen case.
+- "a cluster dragged to its top limit is held below the notice..." became "with the failure in the bar, a cluster dragged to its top limit stays there".
+
+`MapsTabSearchAutoRetryTest`, to QC1:
+- "a return of signal while the fetch is still running...": after its one try, the timed ones make three in all. Before, nothing followed.
+- "a return while Forager is in the background...": the same.
+- "a turn of the phone keeps the count": one try, a turn, then five returns make three tries in all. Before: two returns, a turn, three returns.
+- New: "a failed automatic try is followed by a second 3 s later and a third 10 s after that, then none"; "a timed try that falls due with no signal waits for the signal's return"; "Try again drops a timed try that is waiting".
+
+Other files:
+- `SearchAutoRetryTest`: five new headless tests for the timed tries.
+- `MapsTabSearchRetryLargeFontTest`: now measured in fullscreen, where the notice with its two laid-out lines still is.
+- `MapsTabSearchNoticeTouchTest`: the under-the-bar test became "out of fullscreen no notice floats under the bar, and a long-press below and beside the bar reaches the map".
+- `MapsTabSearchClusterTest`: the navigating case is now fullscreen while navigating, the only place a placed notice remains.
+- `MapsTabSearchNavigatingTest`: all six reworked to the bar. The touches go to the bar's "Try again"; the failure is in the bar with nothing covering "Try again"; long-presses go below the bar and card; the banner's other line shows where it did, with the bar failure; the M4 touches and long-presses run with the banner showing. The banner-alone test is unchanged.
+- `MapsTabSearchChipTest`, `MapsTabSearchStaleFailureTest`: the bar's line and button in place of the notice.
+- New: `MapsTabSearchFlashTest` (QC4), and `MapsTabSearchBarLargeFontTest` at font 2.0 in portrait, 384 and 360 dp.
+
+No test outside this dispatch changed. Step 1 named "one older test" that refers to `activeSearchSummary`. That was my own miscount: no test on the branch refers to it.
+
+## Revert checks
+
+Each was one edit on its own branch `mtsf-revert9-*`, cut from `e24f16740`. The last of them, `sb1-clear-b`, was cut from `015010eb0`. Every build log was clean, every file was restored from a saved copy, and the forward lines are present on the branch.
+
+| Behaviour | Edit | Run | Failures |
+|---|---|---|---|
+| QC1 | `awaitingTimed = false` | [43380418474](https://github.com/slayer8366/Forager/actions/runs/43380418474) | `QC1: no second automatic try 3 s after the first failed expected:<3> but was:<2>`; two more screen tests, `...the timed tries did not make three in all expected:<4> but was:<2>`; two headless tests, `the wait after the first automatic try failed expected:<3000> but was:<null>` |
+| QC4 | the fold back to the map's failure only | [43380429848](https://github.com/slayer8366/Forager/actions/runs/43380429848) | `QC4: the list's failure line shows above "Trying again…"` |
+| R | the bar's `failure = null` | [43380441224](https://github.com/slayer8366/Forager/actions/runs/43380441224) | `the bar does not read "Search failed."`; `before the touch at (0.15, 0.25) there is no Try again`; `focused, the bar does not read "Search failed." (SB3)` |
+| SB1 | Clear shown beside "Try again" (`}; if (uiState.region != null) {`) | [43381547739](https://github.com/slayer8366/Forager/actions/runs/43381547739) | `Clear shows while the search has failed (SB1)` in all three layouts; at font 2, `the bar's line "Search failed." is cut short: drawn 225.0 px of 471 px` (384 dp) and `drawn 153.0 px of 471 px` (360 dp) |
+
+**A check that could not fail, found and fixed.** On the first SB1 revert ([43380452581](https://github.com/slayer8366/Forager/actions/runs/43380452581)), the font-2 "line is whole" check passed while Clear and "Try again" both showed. That cannot fit. `isLineEllipsized` reads false on the field's placeholder even when the line is cut. The check now compares the line's drawn width with its measured whole width (`015010eb0`), and the second SB1 revert shows it fails.
+
+## SC4: measured, not built, for the owner
+
+Probe branch `mtsf-s-probe`, run [43377459593](https://github.com/slayer8366/Forager/actions/runs/43377459593).
+
+**(i) Short landscape, font 2.0, in the bar.** On the probe I made the landscape bar's floor hold "Search failed." and "Try again" whole. The bar did not widen: it stayed 828 px wide in 823 × 384 dp, and 699 px in 780 × 360 dp. "Try again" sits at [417, 816] and leaves the line about 180 px of the 471 px it needs, so the line is cut. Two caveats:
+- The probe's line readings came from `isLineEllipsized`, which is unreliable (above). The bounds are what show the cut.
+- I could not find the strip's coordinates node in landscape at font 2.0, with or without the change. So whether its coordinates stay whole could not be measured.
+
+What caps the bar at 828 px beyond the floor (the landscape strip-fit code) I did not trace. Options for the owner:
+- the bar's line on two lines (the bar grows taller);
+- a shorter word;
+- the strip narrowing further to give the bar room, if its coordinates allow; not measured.
+
+**(ii) Fullscreen at font 2.0.**
+
+| Window | Notice | Result |
+|---|---|---|
+| Portrait 360 × 780, navigating | [0, 535][1080, 871] | Cluster at [912, 871], held just below. Words whole, 3 lines. QC2 does not reproduce in fullscreen. |
+| Portrait 360 × 780, not navigating | [0, 112][1080, 448] | Cluster at top 600. Clear. |
+| Short landscape 823 × 384, navigating or not | [336, 0][1146, 624] | Its text box is 363 px. The longest word, "connection.", is 402 px, so a word breaks (line 4 of 6). On screen, clear of the cluster and card. |
+| Landscape 780 × 360, navigating | [336, 0][1017, 624] | Text box 234 px. A word breaks. |
+
+**My "too narrow" measure:** the notice's text box is narrower than its longest word at the current font. For 823 × 384 at font 2.0 that is 363 px against 402 px. Where it could go with words whole:
+- "Try again" below the words inside the notice, which gives the words the notice's whole width (810 px there);
+- or the notice widened across the map below the strip, past the strip's left edge.
+
+Both are for the owner.
+
+## Full CI at `015010eb0`
+
+The pull request's run [43381543450](https://github.com/slayer8366/Forager/actions/runs/43381543450): 7618 tests, 1 failure (`MapsTabSearchBarLargeFontPortrait360Test`, the stop above), 0 errors, 24 skipped. The run before it, at `e24f16740` ([43377369049](https://github.com/slayer8366/Forager/actions/runs/43377369049)), passed all 7618 tests with the old, unreliable "whole" check.
+
+## On the phone (S22), added
+
+24. **QC1.** Search with Wi-Fi off. Turn Wi-Fi on and watch for about 15 s. **Pass:** if the first try fails (the name lookup not ready), a second runs about 3 s later and a third about 10 s after that; then it waits for "Try again". Staging a failing first try is hard by hand. One way is to turn Wi-Fi on while its connection is still unvalidated, such as a hotspot with no data; that is untested.
+25. **R/S, portrait, font 1.0.** Fail a search out of fullscreen. **Pass:** the bar reads "Search failed." with "Try again" where Clear was; no notice under the bar; tapping the line opens the panel; "Try again" retries; on success the resting line and Clear return.
+26. **The same at font 2.0.** **Observation for the owner:** whether "Search failed." is whole at the S22's width. The test says it is cut, 423 of 471 px.
+27. **QC4.** Fullscreen while navigating, both searches failing, tap "Try again". **Pass:** at no point does "Request failed…" show above "Trying again…". Use screenshot bursts, as in Q-B.
+28. **QC2 and QC3 in fullscreen at font 2.0, portrait and landscape.** Observation only, for the owner's ruling above.
+
+## Disclosure
+
+- **Confirmed by CI:** QC1, QC4, R and S at portrait font 1.0 and 2.0 (384 dp), short landscape at font 1.0 and the landscape tablet; the stop at 360 dp; the SC4 bounds.
+- **Inferred:** QC4's cause, from the code and from the held-fetch test reproducing it. SB3 works through the field's existing placeholder.
+- **Could not determine:** the landscape strip's coordinates at font 2.0; what caps the landscape bar's width beyond its floor.
+- **Premises that were wrong:**
+  - My step-1 note of an older test using `activeSearchSummary`.
+  - My step-1 measurement at 384 dp, which led to SB1's "every font" option text.
+  - My first "line is whole" check, which could not fail.
+- **Decided beyond scope:** none. SC2 is not built and SC4 is not built.
