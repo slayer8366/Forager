@@ -188,3 +188,13 @@ class QProbeLargeFontLandscapeTabletTest : QProbeLargeFontTests("QC3 landscape t
 @Config(sdk = [36], qualifiers = "w823dp-h384dp-land-xxhdpi")
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
 class QProbeFont1ShortLandscapeTest : QProbeLargeFontTests("reference short landscape font 1")
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w360dp-h780dp-xxhdpi", fontScale = 2.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class QProbeLargeFontPortrait360Test : QProbeLargeFontTests("QC2 portrait 360x780 font 2")
+
+@RunWith(RobolectricTestRunner::class)
+@Config(sdk = [36], qualifiers = "w780dp-h360dp-land-xxhdpi", fontScale = 2.0f)
+@GraphicsMode(GraphicsMode.Mode.NATIVE)
+class QProbeLargeFontLandscape780Test : QProbeLargeFontTests("QC3 landscape 780x360 font 2")
