@@ -1413,7 +1413,8 @@ The unused-parameter suppressions are untouched.
 
 ## Full CI at `414f5bd35`
 
-FULLCI
+The pull request's run [43448984035](https://github.com/slayer8366/Forager/actions/runs/43448984035): every job passed, and the
+build log has 0 `e:` lines. JUnit XML: 7666 tests, 0 failures, 0 errors, 24 skipped. The commits after it are this report only (`[skip ci]`).
 
 ## On the phone (S22), added (Sorrel's phone-only list)
 
