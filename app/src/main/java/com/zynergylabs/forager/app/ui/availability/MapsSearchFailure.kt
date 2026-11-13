@@ -215,7 +215,7 @@ internal fun tryAgainGoesBelowTheWords(width: Dp): Boolean {
  * at least Material's 58 dp minimum. Copies of Material's values, so Amendment U, UB4 holds them to the drawn button in a test.
  */
 internal fun tryAgainButtonWidthPx(density: Density, wordWidthPx: Int): Int =
-    with(density) { maxOf(58.dp.roundToPx(), wordWidthPx + 24.dp.roundToPx()) }
+    with(density) { maxOf(58.dp.roundToPx(), wordWidthPx + 16.dp.roundToPx()) }
 
 /** One of the notice's two lines, laid out whether it shows or not (see [SearchFailedNotice]). */
 @Composable
