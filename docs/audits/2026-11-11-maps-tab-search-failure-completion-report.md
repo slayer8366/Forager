@@ -1250,3 +1250,213 @@ passes.
 - **Decided beyond scope:**
   - The list-only fold needs a search showing (the region condition).
   - The automatic tries are left out of the list-only case.
+
+---
+
+# Addendum 10: Amendment U (dispatch records-after-173 commit `049d186a1`)
+
+The owner's ruling on UA1: "Same as the map's half (Recommended)". Its option text: "\"Search failed.\" always behaves the same:
+when signal returns it tries at once, then 3 seconds, then 10 seconds, three in all, then waits for \"Try again\"."
+
+## What landed
+
+| Commit | What |
+|---|---|
+| `0c8bfd441` | UB6: `MapsSearchFailure.kt` (419 lines) split along its seams, moved unchanged. `SearchBarFailure.kt` (140) takes the bar's failure line, its ladder and `TryAgainInBar`; `SearchRetryOnSignal.kt` (106) takes `RetryFailedSearchOnSignalReturn`; `MapsSearchFailure.kt` keeps the notice and the predicates (290). No behaviour change. |
+| `65f2fb21c` | UB1's test alone, first, and UB5 for the list-only tests. |
+| `2a64d80cf` | UB1: a list-only failure gets the same automatic tries. |
+| `b01b8f426` | UB2, UB3, UB4 checks, and UB5 for the flash test. |
+| `414f5bd35` | UB4: TC3's copied button width moved into one function, `tryAgainButtonWidthPx`, which the check reads (why below). No behaviour change. |
+
+## UB1, the list's automatic tries
+
+**Report before building:** I found no ambiguity in one cap across both halves. There is one gate, `SearchAutoRetry`, for each
+failed search, and its count of three covers both halves:
+- A list-only failure that becomes a both-failed one keeps its count. Nothing between them is "nothing failed and nothing
+  running", which is the gate's reset.
+- A new search resets it, as before.
+- An automatic try runs `retryFailedSearch()`, the same path as "Try again":
+  - a list-only failure runs the list's half only (`AvailabilityViewModelSearchRetry.kt`, the `listOnlySearchFailed` branch);
+  - a map failure runs as before.
+
+**The wiring.** It is in a new file, `SearchRetryWiring.kt` (`RetryFailedSearchByItself`). `AvailabilityScreen.kt` only calls
+it, in place of its earlier call to `RetryFailedSearchOnSignalReturn`. The gate's "failed" becomes `mapsSearchFailed ||
+listOnlySearchFailed`, and "running" also counts `isRetryingList`.
+
+**A new field.** `AvailabilityUiState.listFailureSerial` is counted up on each failed list fetch (`AvailabilitySearchRuns.kt`). Its
+reader is the gate's failure serial, as `sightingsFailureSerial` already is. With it, a failed automatic try of the list counts as
+a new failure, and that schedules the next timed try.
+
+**Nothing outlives the screen.** The timers are the same `LaunchedEffect`s in `RetryFailedSearchOnSignalReturn`, now with the
+list included. No new loop or timer was added.
+
+**Seen failing first.** Run [43444438727](https://github.com/slayer8366/Forager/actions/runs/43444438727), at `65f2fb21c` with no
+wiring. The build log has 0 `e:` lines. The new test failed in all three layouts:
+`UB1: no automatic try of the list at once when signal returned expected:<2> but was:<1>`. The test is in
+`MapsTabSearchListOnlyTest.kt`, named "a list-only failure is tried again by itself at once when signal returns, then 3 s and
+10 s later, three in all". It goes through the real screen, the real ViewModel and the real validated-network flow, and it checks:
+- one try at once;
+- a second 3 s later and a third 10 s after that;
+- no fourth;
+- no map refetch.
+
+## UB2, short landscape at font 1.0 with the shortest line
+
+`MapsTabSearchBarShortLineTest` covers short landscape, font 1.0 and native graphics. It sets the month to May and the radius to
+1 km through the ViewModel, so the resting line is "May · 1 km": the shortest month, the smallest radius, no species. Then it
+fails a search by real touches.
+
+It **passed on the first run**. The bar reads "Search failed." drawn whole (drawn width against measured width), and "Try again"
+is wholly in the bar. The landscape floor (`rememberLandscapeBarFloorPx`) is therefore **not changed**.
+
+A check that passed on its first run is suspect (CLAUDE.md). The case it could fail on is a floor below the failure line's width.
+That case does not arise at font 1.0, because `SearchSummaryText.kt:27-42` counts Clear's width, and Clear's slot is "Try
+again"'s. I did not build a revert for it: making the floor small enough to cut the line is a change to the floor, not a revert
+of anything this amendment added. At font 2.0 the same window shows no words, and `MapsTabSearchBarLargeFontShortLandscapeTest`
+expects that rung.
+
+## UB3, opaque content in the bar
+
+`MapsTabSearchFailureTest` (portrait, short landscape, tablet) now asserts that the failure line's resolved text colour and the
+"Try again" word's both have alpha 1. It reads `TextLayoutResult.layoutInput.style.color`, the colour the text was laid out
+with.
+
+Revert `mtsf-u-r3` set "Try again" in the bar to `contentColor.copy(alpha = 0.5f)`. Run
+[43447020083](https://github.com/slayer8366/Forager/actions/runs/43447020083): 0 `e:` lines, and all three layouts failed with
+`Try again in the bar is not drawn opaque expected:<1.0> but was:<0.5019608>`.
+
+## UB4, the copied paddings: a check, not measuring from layout
+
+**Chosen: a check that fails when they drift.** Measuring from layout would mean reading the field's room after it is laid out,
+which takes one frame. In that frame the line would be measured against a stale room and could show the wrong rung, then change:
+the movement "Changing info gets its own window" rules out. The check costs nothing at run time.
+
+Each check compares the copy against the **app's own constant**, not a copy held in the test:
+- **The bar** (`MapsTabSearchBarLargeFontTest`, 384 dp, 360 dp and short landscape, failed and retrying):
+  - The ladder's room is the box's width less `SEARCH_BAR_FIELD_SIDE_PADDING` each side. The box is the `BoxWithConstraints`,
+    now tagged `SEARCH_BAR_FIELD_ROOM_TAG`; a tag only.
+  - That room must equal the field's laid-out text room (`layoutInput.constraints.maxWidth` on the field's own text layout),
+    within 1.5 px.
+  - The rung shown must fit that real room, and the next longer rung must not.
+  - The equality makes the check independent of how near a window is to a rung's edge, so a drift fails at 384 dp as at any
+    width.
+- **TC3** (`MapsTabSearchFullscreenLargeFontTest`, every window it has):
+  - `tryAgainButtonWidthPx` (58 dp minimum, word plus 24 dp) must equal the drawn "Try again", within 1.5 px.
+  - The stack decision must equal "the notice's width, less `Spacing.lg` and the drawn button, is narrower than the longest
+    word".
+
+**Revert checks:**
+- **`mtsf-u-r4a`** (side padding `Spacing.sm + 16.dp` changed to `+ 12.dp`). Run
+  [43447024476](https://github.com/slayer8366/Forager/actions/runs/43447024476): 0 `e:` lines, 6 of 6 failed. Example:
+  `the ladder's room (639.0 px less SEARCH_BAR_FIELD_SIDE_PADDING each side) is not the field's laid-out text room
+  expected:<495.0> but was:<519.0>`. The other windows read 423 against 447 at 360 dp and 171 against 195 in short landscape.
+- **`mtsf-u-r4b`** (TC3's 24 dp changed to 16 dp), as first built. Run
+  [43447030931](https://github.com/slayer8366/Forager/actions/runs/43447030931): **8 of 8 passed. The check did not bite.**
+  - The cause: the test compared the drawn button against its own copy of 58 dp and 24 dp, not the app's.
+  - The stack decision is far from its edge in every window, so it did not flip either.
+  - Fixed in `414f5bd35`: the app's formula is now `tryAgainButtonWidthPx`, which both `tryAgainGoesBelowTheWords` and the test
+    use.
+- **`mtsf-u-r4c`** (the same edit, made in `tryAgainButtonWidthPx`). Run
+  [43448978894](https://github.com/slayer8366/Forager/actions/runs/43448978894): 0 `e:` lines, 4 of 4 windows failed with
+  `UB4: tryAgainGoesBelowTheWords' button width (tryAgainButtonWidthPx) is not the drawn Try again expected:<399.0> but
+  was:<375.0>`. The forward run at `414f5bd35` ([43448986725](https://github.com/slayer8366/Forager/actions/runs/43448986725))
+  passed 8 of 8.
+
+## UB5
+
+- `MapsTabSearchFlashTest` is now abstract, with portrait, short landscape (`w823dp-h384dp-land-xxhdpi`) and landscape tablet
+  (`w1318dp-h824dp-land`).
+- `MapsTabSearchListOnlyTest` has the same three, from `65f2fb21c`.
+- All pass (forward run [43446866017](https://github.com/slayer8366/Forager/actions/runs/43446866017): `*MapsTabSearch*` and
+  `*SearchAutoRetry*`, 131 tests, 0 failures, 0 `e:` lines).
+- These subclasses are new layouts for existing tests, so there is no behaviour of their own to revert.
+
+## UB1 revert
+
+`mtsf-u-r1` dropped `|| listOnlySearchFailed(uiState)` from the gate's "failed". Run
+[43447015394](https://github.com/slayer8366/Forager/actions/runs/43447015394): 0 `e:` lines, and all three layouts failed with
+`UB1: no automatic try of the list at once when signal returned expected:<2> but was:<1>`. The other 14 tests in those classes and
+in `MapsTabSearchAutoRetryTest` passed.
+
+Every revert branch was cut in its own worktree from the forward commit, so the PR branch's files were never edited. Each forward
+line was confirmed present on the PR branch afterwards (`grep`, 1 each).
+
+## UB7, report only (nothing changed)
+
+**(a) "Try again" while the map's half still loads after the list failed:**
+- `listOnlySearchFailed` is true (`MapsSearchFailure.kt:108-109`: region set, the list's message, map not failed, not
+  retrying), so the tap takes the list-only branch (`AvailabilityViewModelSearchRetry.kt`).
+- That branch sets `isRetryingList` and calls `fetchAvailability` for the search showing. The map's fetch is left running,
+  untouched.
+- `fetchAvailability` launches on `viewModelScope`, which is `Main.immediate`, so `errorMessage` is cleared before the tap
+  returns (`AvailabilitySearchRuns.kt:101-103`). The bar's "Try again" is also disabled while `isRetryingList`
+  (`searchBarFailure`, `retrying`).
+- A second tap therefore starts nothing, and there is **no double fetch of either half**.
+- If the map then fails while the list's try runs, a tap goes to the map's branch: `listFailedQuery` was cleared when the list
+  fetch started, so the tap calls `onMapTabSelected` and fetches the map only. Each half is still fetched once.
+
+**(b) A list failure with no region is unreachable in production:**
+- `fetchAvailability` is called only from `refresh` and from the list-only retry, and the retry needs a region.
+- Every caller of `refresh` sets the region first.
+- `clearSearch` cancels `searchJobs`, and the repository uses `runCatchingCancellable`, which rethrows cancellation. So a
+  cancelled list fetch never reaches `onFailure` after the region is cleared.
+- Confirmed from the code; there is no test of it.
+
+**(c) Intrinsics:**
+- Nothing measures the bar's field by intrinsics. I found no `IntrinsicSize` or `.width(IntrinsicSize...)` above it.
+- If something did, it would throw: `BoxWithConstraints` is a `SubcomposeLayout`, which does not support intrinsic measurement.
+- It wraps the field on every tab, not only Maps. The full suite passing on every tab's screen tests is the evidence.
+
+## UB8
+
+The unused-parameter suppressions are untouched.
+
+## Full CI at `414f5bd35`
+
+FULLCI
+
+## On the phone (S22), added (Sorrel's phone-only list)
+
+33. **Insets in fullscreen.** Fail a search, enter fullscreen, in portrait and in landscape. **Pass:** the notice clears the
+    status bar, the cutout and the gesture bar, and the strip, card, rail and cluster. Robolectric reports zero insets, so only
+    the phone can show this.
+34. **The flash, by frames.** Fullscreen while navigating, both halves failing, tap "Try again" under a screen-recording at 60 fps.
+    **Pass:** in no frame does "Request failed…" show above "Trying again…" (step 27, by frames).
+35. **The word at the phone's own width, font 2.0.** As step 29, at the S22's own width. **Pass:** "Failed." whole beside "Try
+    again". **Observation:** note any frame where the rung changes after the bar is drawn.
+36. **Landscape, font 1.0, short line.** Set the month to May and the radius to its smallest, then fail a search. **Pass:** the bar
+    reads "Search failed." whole, with "Try again" wholly in the bar (UB2's case).
+37. **The 3 s and 10 s tries, by eye.** Search with Wi-Fi off, then turn it on while the network is not yet validated, as in
+    step 24. **Pass:** a try at once, a second about 3 s later, a third about 10 s after that, then nothing until "Try again". The
+    list-only case is the same; see step 39.
+38. **Leaving and returning during a wait.** After the first automatic try fails, leave the Maps tab before the 3 s try, wait
+    15 s, and come back; then repeat by backgrounding the app instead. **Pass:** across the whole search, no more than three
+    automatic tries ran (count the fetches by the loading line, or ask for a debug log). **Observation:** whether the 3 s and 10 s
+    tries ran while away, on another tab or in the background. The gate lives in the availability screen; I did not confirm whether
+    it stays composed on other tabs, and a composed screen's timers keep running while the app is in the background.
+39. **A list-only failure.** Staged as in step 32. **Pass:** the bar reads "Search failed.". When signal returns, the list is tried
+    at once, then 3 s and 10 s, three in all. The map's markers do not reload. On success the resting line and Clear return.
+40. **The slide with a failure showing.** Fail a search out of fullscreen, so the bar reads "Search failed.", then enter
+    fullscreen and watch the slide. **Observation only, no pass or fail:** what shows while the bar slides away. The fullscreen
+    notice appears at once, while the bar's failure line may still be drawn for the slide's length.
+
+## Disclosure
+
+- **Confirmed by CI:**
+  - UB1 in three layouts, with a fail-first run and a revert.
+  - UB2 in short landscape at font 1.0.
+  - UB3 in three layouts, with a revert.
+  - UB4's checks in every window they run in, with reverts for both copies (the second after a check that did not bite).
+  - UB5's layouts.
+  - UB6's split, by the full suite.
+- **Inferred:** step 38's pass. The gate's timers are `LaunchedEffect`s in the availability screen, so they end when it leaves
+  composition. Whether it leaves composition on a tab change I did not determine, and leaving and returning is not tested.
+- **Could not determine:**
+  - Insets, frames and real-time timing, by construction (steps 33 to 40).
+  - UB2 at font sizes between 1.0 and 2.0.
+- **Premises that were wrong:** my first TC3 drift check, which compared against its own copy (`mtsf-u-r4b`); fixed and
+  re-proved.
+- **Decided beyond scope:**
+  - A test tag on the ladder's `BoxWithConstraints`.
+  - `tryAgainButtonWidthPx` extracted so the check reads the app's copy.
+  - Neither changes behaviour.
