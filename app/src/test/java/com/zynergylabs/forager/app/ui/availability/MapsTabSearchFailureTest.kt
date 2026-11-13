@@ -136,7 +136,10 @@ abstract class MapsTabSearchFailureTests(private val landscape: Boolean) {
         assertTrue("the line ${line.d()} is not in the bar ${bar.d()}", line.top >= bar.top - 1f && line.bottom <= bar.bottom + 1f)
         val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
         lineNode().fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
-        assertTrue("the bar's line is cut short", !layouts.single().isLineEllipsized(0))
+        val layout = layouts.single()
+        val whole = androidx.compose.ui.text.TextMeasurer(layout.layoutInput.fontFamilyResolver, layout.layoutInput.density, layout.layoutInput.layoutDirection)
+            .measure(SEARCH_BAR_FAILED_TEXT, layout.layoutInput.style, maxLines = 1, softWrap = false).size.width
+        assertTrue("the bar's line is cut short: drawn ${line.width} px of $whole px", line.width >= whole - 1f && !layout.isLineEllipsized(0))
         val summary = activeSearchSummary(rig.viewModel.uiState.value, rig.viewModel.uiState.value.distanceUnit)
         assertTrue("the resting line <$summary> still shows beside the failure (RA4: the whole line)", !barLineShown(summary))
         val tryAgain = bounds(SEARCH_FAILED_TRY_AGAIN_TAG)

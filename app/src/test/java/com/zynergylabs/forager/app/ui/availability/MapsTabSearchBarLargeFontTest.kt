@@ -44,7 +44,12 @@ abstract class MapsTabSearchBarLargeFontTests {
         composeRule.onNode(hasText(SEARCH_BAR_FAILED_TEXT), useUnmergedTree = true).fetchSemanticsNode().config[SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
         val layout = layouts.single()
         assertTrue("positive control: the font is at scale 2", composeRule.activity.resources.configuration.fontScale >= 2f)
-        assertTrue("at font 2 the bar's line \"$SEARCH_BAR_FAILED_TEXT\" is cut short", !layout.isLineEllipsized(0) && layout.lineCount == 1)
+        // The line's own drawn width against the whole line's measured width: isLineEllipsized alone read false on the placeholder
+        // even where it could not fit (seen on revert run 43380452581, where Clear and Try again both showed at font 2).
+        val whole = androidx.compose.ui.text.TextMeasurer(layout.layoutInput.fontFamilyResolver, layout.layoutInput.density, layout.layoutInput.layoutDirection)
+            .measure(SEARCH_BAR_FAILED_TEXT, layout.layoutInput.style, maxLines = 1, softWrap = false).size.width
+        val drawn = composeRule.onNode(hasText(SEARCH_BAR_FAILED_TEXT), useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.width
+        assertTrue("at font 2 the bar's line \"$SEARCH_BAR_FAILED_TEXT\" is cut short: drawn $drawn px of $whole px", drawn >= whole - 1f && layout.lineCount == 1 && !layout.isLineEllipsized(0))
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
         val tryAgain = bounds(SEARCH_FAILED_TRY_AGAIN_TAG)
         assertTrue("at font 2 Try again $tryAgain is not wholly in the bar $bar", tryAgain.left >= bar.left - 1f && tryAgain.right <= bar.right + 1f && tryAgain.top >= bar.top - 1f && tryAgain.bottom <= bar.bottom + 1f)
