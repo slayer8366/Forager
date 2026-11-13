@@ -366,7 +366,7 @@ internal data class SearchBarFailure(val retrying: Boolean, val onTryAgain: () -
  * planner's reading): the same while a try runs, "Trying again…", "Trying…", then none. Text size never changes.
  */
 internal fun searchBarFailureLine(failure: SearchBarFailure, roomPx: Int, widthOf: (String) -> Int): String =
-    failure.lines.firstOrNull { widthOf(it) <= roomPx } ?: ""
+    failure.lines.first()
 
 /** Amendment T, TB1: the shorter word when "Search failed." does not fit (option text: "the bar reads \"Failed.\""). */
 internal const val SEARCH_BAR_FAILED_SHORT_TEXT = "Failed."
