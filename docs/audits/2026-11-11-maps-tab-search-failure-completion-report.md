@@ -1742,7 +1742,11 @@ From the code, not run:
 
 ## Full CI at `e6da77a61`
 
-FULLCI12
+- **Forward run, filtered** ([43465635302](https://github.com/slayer8366/Forager/actions/runs/43465635302), `*MapsTabSearch*` and
+  `*SearchAutoRetry*`): 144 tests, 0 failures, 0 `e:` lines.
+- **The pull request's run** ([43465970907](https://github.com/slayer8366/Forager/actions/runs/43465970907)): every job passed,
+  and the build log has 0 `e:` lines. JUnit XML: 7679 tests, 0 failures, 0 errors, 24 skipped.
+- The commits after it are this report only (`[skip ci]`).
 
 ## On the phone (S22), added
 
