@@ -56,7 +56,7 @@ abstract class QProbeBase {
     protected fun bounds(tag: String) = composeRule.onNodeWithTag(tag, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
     protected fun root() = composeRule.onAllNodes(isRoot()).onFirst().fetchSemanticsNode().boundsInRoot
 
-    protected fun navigatingRig() = RealSearchScreenRig(
+    internal fun navigatingRig() = RealSearchScreenRig(
         composeRule,
         recording = AvailabilityScreenRecording(isRecording = true),
         navigation = AvailabilityScreenNavigation(isReturning = true),
