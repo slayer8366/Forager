@@ -32,7 +32,7 @@ internal fun rememberLandscapeBarFloorPx(uiState: AvailabilityUiState, distanceU
     fun widthOf(text: String, style: androidx.compose.ui.text.TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
     return with(density) {
         val field = Spacing.lg.roundToPx() + 18.dp.roundToPx() + 2 * LANDSCAPE_BAR_FIELD_SIDE_PADDING.roundToPx() + widthOf(activeSearchSummary(uiState, distanceUnit), fieldStyle)
-        val clear = if (uiState.region != null) {
+        val clear = if (uiState.region == null) {
             maxOf(LANDSCAPE_BAR_CLEAR_MIN_WIDTH.roundToPx(), widthOf("Clear", clearStyle) + 2 * Spacing.md.roundToPx()) + Spacing.xs.roundToPx()
         } else {
             0
