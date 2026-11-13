@@ -763,6 +763,7 @@ fun AvailabilityScreen(
         networkValidated = searchInputs.networkValidated,
         failed = mapsSearchFailed(uiState),
         running = uiState.isLoadingSightings || uiState.isRetryingSearch,
+        failureSerial = uiState.sightingsFailureSerial,
         autoRetry = searchAutoRetry,
         onRetry = searchInputs.onRetryFailedSearch,
     )

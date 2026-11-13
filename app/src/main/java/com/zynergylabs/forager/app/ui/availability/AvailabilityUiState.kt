@@ -71,6 +71,11 @@ data class AvailabilityUiState(
      * the map's sightings fetch ends, on a new search and on Clear.
      */
     val isRetryingSearch: Boolean = false,
+    /**
+     * Dispatch 2026-11-11-01, QC1: counts the map's sightings fetches that failed, so the retry by itself sees each failure, even
+     * one that leaves the rest of this state as it was (an automatic try that fails at once with no signal).
+     */
+    val sightingsFailureSerial: Int = 0,
     val taxonFilter: TaxonFilter = TaxonFilter.FUNGI,
     val taxonSearchQuery: String = "",
     val taxonSearchResults: List<TaxonSearchResult> = emptyList(),

@@ -140,6 +140,13 @@ internal fun SearchEntryBar(
      * them: its bottom in portrait, where the strip tucks under it, and its inner side in landscape. `null` draws none.
      */
     pillOutlineSides: MapChromeOutlineSides? = null,
+    /**
+     * Dispatch 2026-11-11-01, Amendment R and S: on the Maps tab out of fullscreen, a failed search shown in the bar itself (the
+     * owner: "The try again notice for search should go into the search bar itself, in place of the October text"). Its line
+     * takes the resting line's place, whole, focused or not until the user types (SB3), and "Try again" takes Clear's place
+     * (SB1). `null` everywhere else: the bar is as it was. See [SearchBarFailure].
+     */
+    failure: SearchBarFailure? = null,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val contentColor = mapChromeContentColor(isDarkTheme)
@@ -261,7 +268,7 @@ internal fun SearchEntryBar(
                         onDismissTaxonSuggestions = onDismissTaxonSuggestions,
                         queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(rowFieldHeight),
                         onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
-                        restingPlaceholder = activeSearchSummary(uiState, distanceUnit),
+                        restingPlaceholder = failure?.line ?: activeSearchSummary(uiState, distanceUnit),
                         fieldColors = fieldColors,
                         contentPadding = fieldContentPadding,
                         suggestionsOverMap = overMap,
@@ -276,7 +283,10 @@ internal fun SearchEntryBar(
                 // ask (twice the compass row, see fieldHeight above), and a 48 dp Clear grew the bar from 45 to 61 dp while a
                 // search showed, which moved the landscape L and cluster (LandscapeLRulingsTest and others, full suite at
                 // the build). The target is therefore the field's height tall and the button's width wide (reported).
-                if (uiState.region != null) {
+                if (failure != null) {
+                    // Amendment S, SB1, the owner: "\"Try again\" takes Clear's place (Recommended)". Clear's size and place.
+                    TryAgainInBar(failure, rowFieldHeight, contentColor)
+                } else if (uiState.region != null) {
                     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
                         TextButton(
                             onClick = onClearSearch,

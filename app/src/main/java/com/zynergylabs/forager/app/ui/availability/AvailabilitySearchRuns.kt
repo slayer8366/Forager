@@ -225,6 +225,7 @@ internal class AvailabilitySearchRuns(
                             isLoadingSightings = false,
                             isRetryingSearch = false,
                             sightingsErrorMessage = "Couldn't load sightings for the map.",
+                            sightingsFailureSerial = it.sightingsFailureSerial + 1,
                         )
                     }
                 },

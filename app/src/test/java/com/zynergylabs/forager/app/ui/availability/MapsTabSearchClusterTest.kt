@@ -58,18 +58,32 @@ class MapsTabSearchClusterTest {
         assertTrue("$where: the cluster ${held.d()} is not held below the notice ${notice.d()}", held.top >= notice.bottom - 1f)
     }
 
+    /**
+     * Amendment R: out of fullscreen the failure is in the search bar, so a placed notice below the navigation card is only in
+     * fullscreen (RA2, the owner: "Under the card in fullscreen too"). Was: "navigating in portrait, a cluster dragged to the top
+     * is held below the notice under the navigation card", out of fullscreen.
+     */
     @Test
-    fun `navigating in portrait, a cluster dragged to the top is held below the notice under the navigation card`() {
+    fun `fullscreen while navigating in portrait, a cluster dragged to the top is held below the notice under the navigation card`() {
         val rig = RealSearchScreenRig(
             composeRule,
             recording = AvailabilityScreenRecording(isRecording = true),
             navigation = AvailabilityScreenNavigation(isReturning = true),
         )
         rig.setScreen()
+        val gate = CompletableDeferred<Unit>()
+        rig.sightingsGate = gate
+        rig.searchCoordinates("45.3736", "-121.6959")
+        rig.touch(composeRule.onAllNodesWithContentDescription("Fullscreen").onFirst())
+        rig.settle()
+        assertTrue("positive control: fullscreen hid the search bar", !shown(SEARCH_ENTRY_BAR_TAG))
         val limit = clusterLimit()
         rig.sightingsFailure = IOException("no signal (test)")
-        rig.searchCoordinates("45.3736", "-121.6959")
-        assertHeldBelowThePlacedNotice(limit, "navigating")
+        rig.sightingsGate = null
+        gate.complete(Unit)
+        rig.settle()
+        assertTrue("positive control: the notice shows", shown(SEARCH_FAILED_NOTICE_TAG))
+        assertHeldBelowThePlacedNotice(limit, "fullscreen while navigating")
     }
 
     @Test

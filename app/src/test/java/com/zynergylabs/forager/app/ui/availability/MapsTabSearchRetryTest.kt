@@ -55,7 +55,8 @@ class MapsTabSearchRetryTest {
 
     private fun shown(tag: String) = composeRule.onAllNodes(hasTestTag(tag), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 
-    private fun textShown(text: String) = composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+    // Unmerged since Amendment R: out of fullscreen the failure's words are the search field's placeholder, inside the field.
+    private fun textShown(text: String) = composeRule.onAllNodesWithText(text, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 
     private fun search() = rig.searchCoordinates("45.3736", "-121.6959")
 
@@ -73,12 +74,13 @@ class MapsTabSearchRetryTest {
     }
 
     /**
-     * E4 (the owner: "Notice stays, shows it's trying (Recommended)"): a retry held running, then failing, then succeeding. The
-     * notice keeps its place and size and reads "Trying again…" while it runs; the icon cluster does not move; the loading line
-     * of C2 shows; the notice reads "Search failed" again when it fails, and goes when it works.
+     * E4 (the owner: "Notice stays, shows it's trying (Recommended)"): a retry held running, then failing, then succeeding. What
+     * carries the failure ([holderTag]: the search bar out of fullscreen since Amendment R, the placed notice in fullscreen) keeps
+     * its place and size and reads "Trying again…" while it runs; the icon cluster does not move; the notice reads [failedText]
+     * again when it fails, and the failure goes when it works.
      */
-    private fun assertRetryKeepsTheNotice(where: String) {
-        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
+    private fun assertRetryKeepsTheFailure(where: String, holderTag: String, failedText: String) {
+        val holder = bounds(holderTag)
         val cluster = bounds(MAP_ICON_CLUSTER_TAG)
         val button = bounds(SEARCH_FAILED_TRY_AGAIN_TAG)
         val gate = CompletableDeferred<Unit>()
@@ -86,30 +88,30 @@ class MapsTabSearchRetryTest {
         try {
             rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
             assertTrue("$where: positive control: the retry is running", rig.viewModel.uiState.value.isLoadingSightings)
-            assertTrue("$where: the notice went away during the retry", shown(SEARCH_FAILED_NOTICE_TAG))
-            assertTrue("$where: the notice does not read \"$SEARCH_RETRYING_NOTICE_TEXT\" during the retry", textShown(SEARCH_RETRYING_NOTICE_TEXT))
-            assertTrue("$where: the notice still reads \"$SEARCH_FAILED_NOTICE_TEXT\" during the retry", !textShown(SEARCH_FAILED_NOTICE_TEXT))
+            assertTrue("$where: what carries the failure went away during the retry", shown(holderTag))
+            assertTrue("$where: it does not read \"$SEARCH_RETRYING_NOTICE_TEXT\" during the retry", textShown(SEARCH_RETRYING_NOTICE_TEXT))
+            assertTrue("$where: it still reads \"$failedText\" during the retry", !textShown(failedText))
             // G2 (the owner: "Shown, greyed out"): Try again stays, disabled, in the disabled look. I4 (Sorrel's second review): a
             // touch-and-count check was here and could not fail (the error is already cleared during a retry, so the retry
             // returns at its first line either way); removed. That it does nothing rests on its being disabled, asserted here.
             assertTrue("$where: Try again is not shown during the retry", shown(SEARCH_FAILED_TRY_AGAIN_TAG))
             composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true).assertIsNotEnabled()
             assertSameRect("$where: Try again moved or changed size when the retry started", button, bounds(SEARCH_FAILED_TRY_AGAIN_TAG))
-            assertSameRect("$where: the notice moved or changed size when the retry started", notice, bounds(SEARCH_FAILED_NOTICE_TAG))
+            assertSameRect("$where: what carries the failure moved or changed size when the retry started", holder, bounds(holderTag))
             assertSameRect("$where: the icon cluster moved when the retry started", cluster, bounds(MAP_ICON_CLUSTER_TAG))
         } finally {
             rig.sightingsGate = null
             gate.complete(Unit)
             rig.settle()
         }
-        assertTrue("$where: after the retry failed the notice does not read \"$SEARCH_FAILED_NOTICE_TEXT\"", textShown(SEARCH_FAILED_NOTICE_TEXT))
-        assertSameRect("$where: the notice moved or changed size when the retry failed", notice, bounds(SEARCH_FAILED_NOTICE_TAG))
+        assertTrue("$where: after the retry failed it does not read \"$failedText\"", textShown(failedText))
+        assertSameRect("$where: what carries the failure moved or changed size when the retry failed", holder, bounds(holderTag))
         assertSameRect("$where: the icon cluster moved when the retry failed", cluster, bounds(MAP_ICON_CLUSTER_TAG))
         composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true).assertIsEnabled()
         assertSameRect("$where: Try again moved or changed size when the retry failed", button, bounds(SEARCH_FAILED_TRY_AGAIN_TAG))
         rig.sightingsFailure = null
         rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
-        assertTrue("$where: the notice stays after the retry works", !shown(SEARCH_FAILED_NOTICE_TAG))
+        assertTrue("$where: the failure stays after the retry works", !textShown(failedText))
     }
 
     /** The raw signal changes, and the screen and the ViewModel are let run, without moving the clock. */
@@ -137,7 +139,8 @@ class MapsTabSearchRetryTest {
         assertEquals("positive control: the ranked list failed", LIST_SEARCH_FAILED_MESSAGE, state.errorMessage)
         assertTrue("positive control: the map's sightings failed", state.sightingsErrorMessage != null)
 
-        assertTrue("both failed and there is no search-failed notice", shown(SEARCH_FAILED_NOTICE_TAG))
+        // Amendment R: out of fullscreen the one line is the bar's (was: the floating notice shown).
+        assertTrue("both failed and the bar does not read \"$SEARCH_BAR_FAILED_TEXT\"", textShown(SEARCH_BAR_FAILED_TEXT))
         assertTrue("both failed and the list's own failure line shows beside the notice", !textShown(LIST_SEARCH_FAILED_MESSAGE))
 
         rig.availabilityFailure = null
@@ -148,7 +151,7 @@ class MapsTabSearchRetryTest {
 
         assertEquals("Try again did not run the ranked list again", lists + 1, rig.availabilityFetches.size)
         assertEquals("Try again did not run the map's sightings again", maps + 1, rig.sightingsFetches.size)
-        assertTrue("the notice stays after both succeed", !shown(SEARCH_FAILED_NOTICE_TAG))
+        assertTrue("the failure stays in the bar after both succeed", !textShown(SEARCH_BAR_FAILED_TEXT))
         assertEquals("the map is handed the search's observations", listOf(RealSearchScreenRig.sightingAt(region)), rig.mapSightings)
     }
 
@@ -161,6 +164,7 @@ class MapsTabSearchRetryTest {
 
         assertTrue("only the list failed and its banner is gone from the Maps tab", textShown(LIST_SEARCH_FAILED_MESSAGE))
         assertTrue("only the list failed and the search-failed notice shows", !shown(SEARCH_FAILED_NOTICE_TAG))
+        assertTrue("only the list failed and the bar reads \"$SEARCH_BAR_FAILED_TEXT\" (SC2 is not built)", !textShown(SEARCH_BAR_FAILED_TEXT))
     }
 
     @Test
@@ -176,7 +180,7 @@ class MapsTabSearchRetryTest {
 
         assertEquals("the search did not run again when signal returned", 2, rig.sightingsFetches.size)
         rig.settle()
-        assertTrue("the notice stays after the search succeeds", !shown(SEARCH_FAILED_NOTICE_TAG))
+        assertTrue("the failure stays in the bar after the search succeeds", !textShown(SEARCH_BAR_FAILED_TEXT))
         assertEquals("the map is handed the search's observations", listOf(RealSearchScreenRig.sightingAt(region)), rig.mapSightings)
     }
 
@@ -190,7 +194,7 @@ class MapsTabSearchRetryTest {
         pass(60_000)
 
         assertEquals("a failure with good signal ran again by itself", 1, rig.sightingsFetches.size)
-        assertTrue("the notice went away by itself", shown(SEARCH_FAILED_NOTICE_TAG))
+        assertTrue("the failure went from the bar by itself", textShown(SEARCH_BAR_FAILED_TEXT))
     }
 
     @Test
@@ -210,11 +214,14 @@ class MapsTabSearchRetryTest {
         }
         assertEquals("five returns in a second ran the search more than once", 2, rig.sightingsFetches.size)
 
+        // Amendment Q, QC1 (the owner: "3 tries, then wait for me"; "Growing: 3, then 10"): the failed first try is followed by a
+        // timed one 3 s later, and the returns held back run the third when their interval ends; then the three are spent. Was:
+        // one more run when the interval ended and none after, before a failed try was followed by a timed one.
         signal(true)
-        pass(SIGNAL_RETURN_MIN_INTERVAL_MS)
-        assertEquals("the returns held back did not run the search once when the interval ended", 3, rig.sightingsFetches.size)
+        pass(13_000)
+        assertEquals("within 13 s the failed search did not use its three automatic tries", 4, rig.sightingsFetches.size)
         pass(3 * SIGNAL_RETURN_MIN_INTERVAL_MS)
-        assertEquals("with no new return the search ran again", 3, rig.sightingsFetches.size)
+        assertEquals("after its three automatic tries the search ran again by itself", 4, rig.sightingsFetches.size)
     }
 
     @Test
@@ -222,7 +229,9 @@ class MapsTabSearchRetryTest {
         rig.setScreen()
         rig.sightingsFailure = IOException("no signal (test)")
         search()
-        val underBar = composeRule.onNodeWithTag(SEARCH_FAILED_NOTICE_TAG, useUnmergedTree = true).fetchSemanticsNode().boundsInRoot
+        // Amendment R: out of fullscreen the failure is in the bar; the fullscreen notice goes where the bar was (was: measured
+        // against the notice under the bar).
+        val underBar = bounds(SEARCH_ENTRY_BAR_TAG).let { androidx.compose.ui.geometry.Rect(it.left, it.bottom, it.right, it.bottom) }
 
         rig.touch(composeRule.onAllNodesWithContentDescription("Fullscreen").onFirst())
         rig.settle()
@@ -243,7 +252,7 @@ class MapsTabSearchRetryTest {
         rig.setScreen()
         rig.sightingsFailure = IOException("no signal (test)")
         search()
-        assertRetryKeepsTheNotice("under the bar")
+        assertRetryKeepsTheFailure("in the bar", SEARCH_ENTRY_BAR_TAG, SEARCH_BAR_FAILED_TEXT)
     }
 
     @Test
@@ -252,7 +261,7 @@ class MapsTabSearchRetryTest {
         rig.sightingsFailure = IOException("no signal (test)")
         search()
         enterFullscreen()
-        assertRetryKeepsTheNotice("fullscreen")
+        assertRetryKeepsTheFailure("fullscreen", SEARCH_FAILED_NOTICE_TAG, SEARCH_FAILED_NOTICE_TEXT)
     }
 
     @Test
@@ -286,8 +295,14 @@ class MapsTabSearchRetryTest {
         }
     }
 
+    /**
+     * Amendment R: out of fullscreen the failure is in the bar, so the cluster has nothing to keep below. A cluster dragged to its
+     * top limit stays there while the search has failed. Was: "a cluster dragged to its top limit is held below the notice while
+     * it shows, and returns when it goes" (the notice under the bar); the hold below a placed notice is now tested in fullscreen
+     * (MapsTabSearchClusterTest).
+     */
     @Test
-    fun `a cluster dragged to its top limit is held below the notice while it shows, and returns when it goes`() {
+    fun `with the failure in the bar, a cluster dragged to its top limit stays there`() {
         rig.setScreen()
         val handle = composeRule.onNodeWithTag("map-icon-bar-minimize-handle", useUnmergedTree = true).getUnclippedBoundsInRoot()
         composeRule.longPressDrag((handle.left + handle.right) / 2, (handle.top + handle.bottom) / 2, 0.dp, (-800).dp)
@@ -295,14 +310,9 @@ class MapsTabSearchRetryTest {
 
         rig.sightingsFailure = IOException("no signal (test)")
         search()
-        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
-        val cluster = bounds(MAP_ICON_CLUSTER_TAG)
-        assertTrue("positive control: the cluster's limit $limit is above the notice's bottom ${notice.bottom}", limit < notice.bottom)
-        assertTrue("the cluster ${cluster.d()} is not held below the notice ${notice.d()}", cluster.top >= notice.bottom - 1f)
-
-        rig.sightingsFailure = null
-        rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
-        assertEquals("the cluster did not return to its limit when the notice went", limit, bounds(MAP_ICON_CLUSTER_TAG).top, 1f)
+        assertTrue("positive control: the bar reads \"$SEARCH_BAR_FAILED_TEXT\"", textShown(SEARCH_BAR_FAILED_TEXT))
+        assertEquals("the cluster moved for a failure that is in the bar", limit, bounds(MAP_ICON_CLUSTER_TAG).top, 1f)
+        assertTrue("the cluster ${bounds(MAP_ICON_CLUSTER_TAG).d()} overlaps the bar ${bounds(SEARCH_ENTRY_BAR_TAG).d()}", !bounds(MAP_ICON_CLUSTER_TAG).overlaps(bounds(SEARCH_ENTRY_BAR_TAG)))
     }
 
     @Test

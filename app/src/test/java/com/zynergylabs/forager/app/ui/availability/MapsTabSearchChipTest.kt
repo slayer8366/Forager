@@ -51,17 +51,18 @@ class MapsTabSearchChipTest {
 
         rig.sightingsFailure = IOException("no signal (test)")
         rig.searchCoordinates("45.3736", "-121.6959")
-        assertTrue("positive control: the notice shows", shown(SEARCH_FAILED_NOTICE_TAG))
+        // Amendment R: out of fullscreen the failure and its "Try again" are in the bar (was: the notice under the bar).
+        assertTrue("positive control: Try again shows", shown(SEARCH_FAILED_TRY_AGAIN_TAG))
         assertTrue("positive control: the chip still shows", shown(CHIP_TAG))
 
         val chip = bounds(CHIP_TAG)
         val tryAgain = bounds(SEARCH_FAILED_TRY_AGAIN_TAG)
-        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
+        val notice = bounds(SEARCH_ENTRY_BAR_TAG)
         val before = rig.sightingsFetches.size
         rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
         val ran = rig.sightingsFetches.size == before + 1
         assertTrue(
-            "the taxon chip ${chip.d()} overlaps Try again ${tryAgain.d()} (notice ${notice.d()}); a touch on Try again ran the search: $ran",
+            "the taxon chip ${chip.d()} overlaps Try again ${tryAgain.d()} (bar ${notice.d()}); a touch on Try again ran the search: $ran",
             !chip.overlaps(tryAgain),
         )
         assertEquals("a real touch on Try again did not run the search again", before + 1, rig.sightingsFetches.size)

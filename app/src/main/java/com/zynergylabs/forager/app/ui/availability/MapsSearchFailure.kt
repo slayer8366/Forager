@@ -1,6 +1,10 @@
 package com.zynergylabs.forager.app.ui.availability
 
 import androidx.compose.foundation.layout.Box
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.absolutePadding
@@ -43,6 +47,7 @@ import com.zynergylabs.forager.app.ui.theme.mapChromeContentColor
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.currentStateAsState
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.onEach
 
@@ -85,7 +90,7 @@ internal fun mapsSearchFailed(uiState: AvailabilityUiState): Boolean = uiState.s
  * location permission) shows as it did. When only the ranked list failed, nothing changes (the dispatch's D3).
  */
 internal fun mapsTabSearchNoticeState(uiState: AvailabilityUiState): AvailabilityUiState =
-    if (mapsSearchFailed(uiState) && uiState.errorMessage == LIST_SEARCH_FAILED_MESSAGE) uiState.copy(errorMessage = null) else uiState
+    if ((mapsSearchFailed(uiState) || uiState.isRetryingSearch) && uiState.errorMessage == LIST_SEARCH_FAILED_MESSAGE) uiState.copy(errorMessage = null) else uiState
 
 /**
  * Whether the search-failed notice shows: the map's half has failed, or a failed search is running again (E4, the owner: "Notice
@@ -94,9 +99,10 @@ internal fun mapsTabSearchNoticeState(uiState: AvailabilityUiState): Availabilit
  */
 internal fun mapsSearchNoticeShows(uiState: AvailabilityUiState): Boolean = mapsSearchFailed(uiState) || uiState.isRetryingSearch
 
-/** Whether a line shows under the Maps tab's search bar: [SearchNotice]'s, the search-failed notice, or both. */
+/** Whether a line shows under the Maps tab's search bar: [SearchNotice]'s (since Amendment R the search-failed notice is in the bar). */
 internal fun mapsTabNoticeShows(uiState: AvailabilityUiState): Boolean =
-    searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null || mapsSearchNoticeShows(uiState)
+    // Amendment R: the search-failed notice is no longer under the bar (it is in the bar), so only the banner's line counts here.
+    searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null
 
 /**
  * What "Try again" calls: [AvailabilityScreenSearchInputs.onRetryFailedSearch], provided by [AvailabilityScreen] so the notice, deep
@@ -196,8 +202,11 @@ internal fun placedBannerShows(uiState: AvailabilityUiState, underCard: Boolean,
     underCard && searchNoticeMessage(mapsTabSearchNoticeState(uiState)) != null
 
 /** C6 and G1: the search-failed notice is placed, in fullscreen or below the navigation card, when it shows. */
+@Suppress("UNUSED_PARAMETER")
 internal fun placedFailedShows(uiState: AvailabilityUiState, underCard: Boolean, fullscreen: Boolean): Boolean =
-    (underCard || fullscreen) && mapsSearchNoticeShows(uiState)
+    // Amendment R, RC2: out of fullscreen the notice is in the search bar (RA1); placed only in fullscreen, where the bar is off
+    // screen (RA2, the owner: "Under the card in fullscreen too"). Was `(underCard || fullscreen)`: G1's place below the card.
+    fullscreen && mapsSearchNoticeShows(uiState)
 
 /**
  * The thin moving line along the search bar's bottom edge while the map's sightings load (C2, the owner: "Thin line on the
@@ -238,6 +247,7 @@ internal fun RetryFailedSearchOnSignalReturn(
     networkValidated: Flow<Boolean>,
     failed: Boolean,
     running: Boolean,
+    failureSerial: Int,
     autoRetry: SearchAutoRetry,
     onRetry: () -> Unit,
 ) {
@@ -253,12 +263,60 @@ internal fun RetryFailedSearchOnSignalReturn(
             if (autoRetry.onSignalReturn(currentFailed, currentRunning, currentOnScreen)) retry()
         }
     }
-    LaunchedEffect(failed, running, onScreen, autoRetry) {
-        if (autoRetry.onStateChanged(failed, running, onScreen, latest.validated)) retry()
+    // QC1: keyed on the failures' count too, so a failed automatic try is seen even when the state reads as it did before it.
+    // A timed try waits in here; any change of state (a tap on "Try again", a success, a return of signal running a try) ends
+    // this effect and so drops the wait, and Forager leaving the screen ends it and starts it again on coming back.
+    LaunchedEffect(failed, running, onScreen, failureSerial, autoRetry) {
+        if (autoRetry.onStateChanged(failed, running, onScreen, latest.validated)) {
+            retry()
+            return@LaunchedEffect
+        }
+        val wait = autoRetry.timedTryDelayMs() ?: return@LaunchedEffect
+        delay(wait)
+        if (autoRetry.onTimedTryDue(currentFailed, currentRunning, currentOnScreen, latest.validated)) retry()
     }
 }
 
 /** The signal's last value, as [RetryFailedSearchOnSignalReturn] last saw it; no signal until the first value comes. */
 private class LatestSignal {
     var validated: Boolean = false
+}
+
+/**
+ * Dispatch 2026-11-11-01, Amendment R and S: the bar's line while the search has failed (RA3's option text: "\"Search failed.\"
+ * sits where the October text is, with a \"Try again\" button at the bar's right"), in place of the whole resting line (RA4, the
+ * owner: "The whole line").
+ */
+internal const val SEARCH_BAR_FAILED_TEXT = "Search failed."
+
+/**
+ * What the Maps tab's search bar shows for a failed search out of fullscreen: [line] in place of the resting line, and "Try
+ * again" in place of Clear, greyed and doing nothing while [retrying] (G2, the owner: "Shown, greyed out"; SA1: while a try runs).
+ */
+internal data class SearchBarFailure(val retrying: Boolean, val onTryAgain: () -> Unit) {
+    val line: String get() = if (retrying) SEARCH_RETRYING_NOTICE_TEXT else SEARCH_BAR_FAILED_TEXT
+}
+
+/** The bar's failure, for the Maps tab out of fullscreen: while the map's half has failed, or a failed search runs again. */
+internal fun searchBarFailure(uiState: AvailabilityUiState, onTryAgain: () -> Unit): SearchBarFailure? =
+    if (mapsSearchNoticeShows(uiState)) SearchBarFailure(retrying = uiState.isRetryingSearch, onTryAgain = onTryAgain) else null
+
+/**
+ * "Try again" in the bar, at Clear's size and place (SB1, the owner: "\"Try again\" takes Clear's place (Recommended)"): the field's
+ * height tall, the word and its padding wide, no 48 dp minimum touch height, as Clear (RECORD -728). Disabled, in the button's own
+ * disabled colour, while a try runs (G2).
+ */
+@Composable
+internal fun TryAgainInBar(failure: SearchBarFailure, height: Dp, contentColor: Color) {
+    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        TextButton(
+            onClick = failure.onTryAgain,
+            enabled = !failure.retrying,
+            colors = ButtonDefaults.textButtonColors(contentColor = contentColor),
+            contentPadding = PaddingValues(horizontal = Spacing.md),
+            modifier = Modifier.padding(end = Spacing.xs).height(height).widthIn(min = 48.dp).testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
+        ) {
+            Text(SEARCH_FAILED_TRY_AGAIN_TEXT)
+        }
+    }
 }

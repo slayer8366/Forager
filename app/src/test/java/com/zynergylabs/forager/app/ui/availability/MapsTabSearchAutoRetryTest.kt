@@ -104,8 +104,12 @@ class MapsTabSearchAutoRetryTest {
         rig.settle()
 
         assertEquals("a return during the running fetch was lost when the fetch failed", 2, rig.sightingsFetches.size)
+        // Amendment Q, QC1 (the owner: "3 tries, then wait for me"; "Growing: 3, then 10"): the held return runs one try, and when
+        // it fails the timed ones follow, within the three. Was: the held return ran the search once and nothing followed.
+        pass(500)
+        assertEquals("the held return ran the search more than once at once", 2, rig.sightingsFetches.size)
         pass(3 * SIGNAL_RETURN_MIN_INTERVAL_MS)
-        assertEquals("the held return ran the search more than once", 2, rig.sightingsFetches.size)
+        assertEquals("after the held return's try failed, the timed tries did not make three in all", 4, rig.sightingsFetches.size)
     }
 
     @Test
@@ -119,10 +123,13 @@ class MapsTabSearchAutoRetryTest {
 
         lifecycle(Lifecycle.State.RESUMED)
         assertEquals("coming back after a return did not run the search", 2, rig.sightingsFetches.size)
+        // QC1: that try failed, so the timed ones follow, within the three (was: nothing followed it).
         pass(3 * SIGNAL_RETURN_MIN_INTERVAL_MS)
+        assertEquals("after the try on coming back failed, the timed tries did not make three in all", 4, rig.sightingsFetches.size)
         lifecycle(Lifecycle.State.STARTED)
         lifecycle(Lifecycle.State.RESUMED)
-        assertEquals("coming back again with no new return ran the search again", 2, rig.sightingsFetches.size)
+        pass(3 * SIGNAL_RETURN_MIN_INTERVAL_MS)
+        assertEquals("coming back again with no new return ran the search again", 4, rig.sightingsFetches.size)
     }
 
     @Test
@@ -156,13 +163,66 @@ class MapsTabSearchAutoRetryTest {
     @Test
     fun `a turn of the phone keeps the count of automatic tries`() {
         failedWithNoSignal()
-        repeat(2) { returnOfSignal() }
-        assertEquals("positive control: two automatic tries", 3, rig.sightingsFetches.size)
+        // QC1: one return runs the first try at once; the turn comes before its timed follower (3 s). A count started again by
+        // the turn would allow three more tries after it, five or more in all. Was: two returns, then a turn, then three.
+        signal(false)
+        signal(true)
+        assertEquals("positive control: one automatic try", 2, rig.sightingsFetches.size)
 
         composeRule.activityRule.scenario.onActivity { RuntimeEnvironment.setQualifiers("w823dp-h384dp-land-xxhdpi") }
         rig.settle()
-        repeat(3) { returnOfSignal() }
+        repeat(5) { returnOfSignal() }
 
         assertEquals("after a turn the count of automatic tries started again", 4, rig.sightingsFetches.size)
+    }
+
+    /**
+     * Amendment Q, QC1 (the owner: "3 tries, then wait for me", option text "the app tries again by itself a few seconds later, up
+     * to 3 tries in all, then waits for \"Try again\""; "Growing: 3, then 10"): signal back, the first automatic try at once; it
+     * fails, the second 3 s later; it fails, the third 10 s after that; it fails, no more. Seen failing first on the probe branch
+     * mtsf-q-probe (run 43372930723): `no second automatic try 3 s after the first failed expected:<3> but was:<2>`.
+     */
+    @Test
+    fun `a failed automatic try is followed by a second 3 s later and a third 10 s after that, then none`() {
+        failedWithNoSignal()
+        signal(true)
+        assertEquals("positive control: the first automatic try ran at once", 2, rig.sightingsFetches.size)
+        pass(2_500)
+        assertEquals("the second automatic try ran sooner than 3 s after the first failed", 2, rig.sightingsFetches.size)
+        pass(1_000)
+        assertEquals("QC1: no second automatic try 3 s after the first failed", 3, rig.sightingsFetches.size)
+        pass(9_000)
+        assertEquals("the third automatic try ran sooner than 10 s after the second failed", 3, rig.sightingsFetches.size)
+        pass(1_500)
+        assertEquals("QC1: no third automatic try 10 s after the second failed", 4, rig.sightingsFetches.size)
+        pass(60_000)
+        assertEquals("QC1: a fourth automatic try ran", 4, rig.sightingsFetches.size)
+    }
+
+    /** QC1, the planner's reading: a timed try that falls due with the signal down does not run; the next return of signal runs it. */
+    @Test
+    fun `a timed try that falls due with no signal waits for the signal's return`() {
+        failedWithNoSignal()
+        signal(true)
+        assertEquals("positive control: the first automatic try ran at once", 2, rig.sightingsFetches.size)
+        signal(false)
+        pass(4_000)
+        assertEquals("a timed try ran with the signal down", 2, rig.sightingsFetches.size)
+        pass(SIGNAL_RETURN_MIN_INTERVAL_MS)
+        signal(true)
+        assertEquals("the signal's return after a timed try fell due did not run the search", 3, rig.sightingsFetches.size)
+    }
+
+    /** QC1, the planner's reading: "Try again" drops a timed try waiting; the count starts again. */
+    @Test
+    fun `Try again drops a timed try that is waiting`() {
+        failedWithNoSignal()
+        signal(true)
+        assertEquals("positive control: the first automatic try ran at once", 2, rig.sightingsFetches.size)
+        pass(1_000)
+        rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
+        assertEquals("positive control: Try again ran the search", 3, rig.sightingsFetches.size)
+        pass(20_000)
+        assertEquals("a timed try waiting before Try again still ran after it", 3, rig.sightingsFetches.size)
     }
 }

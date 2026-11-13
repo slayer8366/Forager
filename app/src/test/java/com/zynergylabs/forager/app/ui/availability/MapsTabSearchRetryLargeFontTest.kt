@@ -7,7 +7,9 @@ import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
@@ -48,6 +50,10 @@ class MapsTabSearchRetryLargeFontTest {
         rig.setScreen()
         rig.sightingsFailure = IOException("no signal (test)")
         rig.searchCoordinates("45.3736", "-121.6959")
+        // Amendment R: out of fullscreen the failure is in the search bar, one line; the notice with its two laid-out lines is the
+        // fullscreen one (RA2), so this is measured in fullscreen. Was measured on the notice under the bar.
+        rig.touch(composeRule.onAllNodesWithContentDescription("Fullscreen").onFirst())
+        rig.settle()
         val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
         // The case this test exists for: the failure line wraps here. Without it the size check below cannot fail.
         val layouts = mutableListOf<TextLayoutResult>()

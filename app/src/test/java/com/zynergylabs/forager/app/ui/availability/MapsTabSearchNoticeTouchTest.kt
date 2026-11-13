@@ -65,13 +65,31 @@ abstract class MapsTabSearchNoticeTouchTests {
         rig.setScreen()
         rig.sightingsFailure = IOException("no signal (test)")
         rig.searchCoordinates("45.3736", "-121.6959")
-        assertTrue("positive control: the notice shows", boundsOrNull(SEARCH_FAILED_NOTICE_TAG) != null)
+        assertTrue("positive control: the search failed", rig.viewModel.uiState.value.sightingsErrorMessage != null)
     }
 
+    /**
+     * Amendment R: out of fullscreen the failure is in the search bar and no notice floats under it, so the map below and beside
+     * the bar takes long-presses where the notice used to be. Was: "a long-press on the map beside the notice under the bar
+     * reaches the map".
+     */
     @Test
-    fun `a long-press on the map beside the notice under the bar reaches the map`() {
+    fun `out of fullscreen no notice floats under the bar, and a long-press below and beside the bar reaches the map`() {
         searchThatFails()
-        assertLongPressesBesideReachTheMap("under the bar")
+        assertTrue("a notice floats under the bar out of fullscreen", boundsOrNull(SEARCH_FAILED_NOTICE_TAG) == null)
+        val bar = boundsOrNull(SEARCH_ENTRY_BAR_TAG) ?: error("no search bar")
+        val root = composeRule.onAllNodes(isRoot()).onFirst().fetchSemanticsNode().boundsInRoot
+        val chrome = listOf(SEARCH_ENTRY_BAR_TAG, "compass-elevation-strip", MAP_ICON_CLUSTER_TAG, COMPACT_NAVIGATION_RAIL_TAG).mapNotNull { boundsOrNull(it) }
+        val y = bar.bottom + 60f
+        val points = listOf(Offset(bar.left - 40f, y), Offset(bar.center.x, y), Offset(bar.right + 40f, y))
+            .filter { p -> root.contains(p) && chrome.none { it.contains(p) } }
+        assertTrue("positive control: there is map below or beside the bar ${bar.d()}", points.isNotEmpty())
+        for (at in points) {
+            val before = rig.mapLongPresses
+            composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { longClick(at) }
+            rig.settle()
+            assertEquals("a long-press at $at, by the bar ${bar.d()}, did not reach the map", before + 1, rig.mapLongPresses)
+        }
     }
 
     @Test
@@ -80,6 +98,7 @@ abstract class MapsTabSearchNoticeTouchTests {
         rig.touch(composeRule.onAllNodesWithContentDescription("Fullscreen").onFirst())
         rig.settle()
         assertTrue("positive control: fullscreen hid the search bar", boundsOrNull(SEARCH_ENTRY_BAR_TAG) == null)
+        assertTrue("positive control: the notice shows", boundsOrNull(SEARCH_FAILED_NOTICE_TAG) != null)
         assertLongPressesBesideReachTheMap("fullscreen")
     }
 }

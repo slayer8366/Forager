@@ -38,7 +38,8 @@ class MapsTabSearchStaleFailureTest {
 
     private val regionB = Region(44.0521, -123.0868, 8)
 
-    private fun textShown(text: String) = composeRule.onAllNodesWithText(text).fetchSemanticsNodes().isNotEmpty()
+    // Unmerged since Amendment R: out of fullscreen the failure's words are the search field's placeholder.
+    private fun textShown(text: String) = composeRule.onAllNodesWithText(text, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
 
     @Test
     fun `after an older search fails late over a newer one's map, Try again does not leave the notice reading Trying again`() {
@@ -55,7 +56,7 @@ class MapsTabSearchStaleFailureTest {
         rig.sightingsFailure = IOException("no signal (test)")
         gateA.complete(Unit)
         rig.settle()
-        assertTrue("positive control (M13, left as it is): A's late failure shows its notice", textShown(SEARCH_FAILED_NOTICE_TEXT))
+        assertTrue("positive control (M13, left as it is): A's late failure shows its notice", textShown(SEARCH_BAR_FAILED_TEXT))
 
         val fetches = rig.sightingsFetches.size
         rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
@@ -90,7 +91,7 @@ class MapsTabSearchStaleFailureTest {
         rig.sightingsFailure = IOException("no signal (test)")
         gateA.complete(Unit)
         rig.settle()
-        assertTrue("positive control (M13, not changed): A's late failure shows its notice", textShown(SEARCH_FAILED_NOTICE_TEXT))
+        assertTrue("positive control (M13, not changed): A's late failure shows its notice", textShown(SEARCH_BAR_FAILED_TEXT))
     }
 
     private lateinit var showingQuery: Triple<Region, Int, com.zynergylabs.forager.app.domain.model.TaxonFilter>
@@ -119,10 +120,11 @@ class MapsTabSearchStaleFailureTest {
         assertEquals("$where: more than one fetch", before + 1, rig.sightingsFetches.size)
         assertTrue("$where: the map is gone after the fetch", shown(LAYOUT_FIXES_MAP_TAG))
         if (succeed) {
-            assertTrue("$where: the notice stays after the fetch worked", !shown(SEARCH_FAILED_NOTICE_TAG))
+            // Amendment R: the failure is in the bar out of fullscreen (was: the floating notice gone).
+            assertTrue("$where: the failure stays in the bar after the fetch worked", !textShown(SEARCH_BAR_FAILED_TEXT))
             assertEquals("$where: the map is not handed B's observations", listOf(RealSearchScreenRig.sightingAt(regionB)), rig.mapSightings)
         } else {
-            assertTrue("$where: after the fetch failed the notice does not read \"$SEARCH_FAILED_NOTICE_TEXT\"", textShown(SEARCH_FAILED_NOTICE_TEXT))
+            assertTrue("$where: after the fetch failed the bar does not read \"$SEARCH_BAR_FAILED_TEXT\"", textShown(SEARCH_BAR_FAILED_TEXT))
             assertEquals("$where: the showing search's observations left the map after the fetch failed", listOf(RealSearchScreenRig.sightingAt(regionB)), rig.mapSightings)
         }
     }

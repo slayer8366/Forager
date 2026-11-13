@@ -15,7 +15,6 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.zynergylabs.forager.app.domain.model.Region
 import com.zynergylabs.forager.app.ui.map.MAP_CHROME_OVER_MAP_ALPHA
 import com.zynergylabs.forager.app.ui.map.MapChromeContainerColor
-import com.zynergylabs.forager.app.ui.map.MapChromeContentColor
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
@@ -120,20 +119,32 @@ abstract class MapsTabSearchFailureTests(private val landscape: Boolean) {
 
     // ── Step 2 (dispatch 2026-11-11-01, the owner's rulings C1 to C7) ──
 
-    @Test
-    fun `after a failed sightings fetch the notice says so under the search bar at the map chrome's fill`() {
-        searchThatFails()
+    // ── Amendment R and S (the owner: "The try again notice for search should go into the search bar itself, in place of the
+    // October text"; "\"Try again\" takes Clear's place (Recommended)"; "The whole line"; "Still \"Search failed.\""). These
+    // replace the Step 2 tests of the notice under the bar (named in the report's addendum). ──
 
-        assertTrue("after a failed sightings fetch there is no search-failed notice", shown(SEARCH_FAILED_NOTICE_TAG))
-        assertTrue(
-            "the notice does not say \"$SEARCH_FAILED_NOTICE_TEXT\"",
-            composeRule.onAllNodesWithText(SEARCH_FAILED_NOTICE_TEXT).fetchSemanticsNodes().isNotEmpty(),
-        )
-        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
+    private fun lineNode() = composeRule.onNode(hasText(SEARCH_BAR_FAILED_TEXT), useUnmergedTree = true)
+
+    private fun barLineShown(text: String) = composeRule.onAllNodesWithText(text, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty()
+
+    @Test
+    fun `after a failed sightings fetch the search bar reads Search failed with Try again in Clear's place, and no notice floats`() {
+        searchThatFails()
         val bar = bounds(SEARCH_ENTRY_BAR_TAG)
-        assertTrue("the notice ${notice.d()} is under the search bar ${bar.d()}", notice.top >= bar.bottom - 1f)
-        val fill = composeRule.onNodeWithTag(SEARCH_FAILED_NOTICE_TAG, useUnmergedTree = true).fetchSemanticsNode().config[MapChromeContainerColor]
-        assertEquals("the notice's fill is at the map chrome's alpha", MAP_CHROME_OVER_MAP_ALPHA, fill.alpha, 0.01f)
+        assertTrue("the bar does not read \"$SEARCH_BAR_FAILED_TEXT\"", barLineShown(SEARCH_BAR_FAILED_TEXT))
+        val line = lineNode().fetchSemanticsNode().boundsInRoot
+        assertTrue("the line ${line.d()} is not in the bar ${bar.d()}", line.top >= bar.top - 1f && line.bottom <= bar.bottom + 1f)
+        val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        lineNode().fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult].action?.invoke(layouts)
+        assertTrue("the bar's line is cut short", !layouts.single().isLineEllipsized(0))
+        val summary = activeSearchSummary(rig.viewModel.uiState.value, rig.viewModel.uiState.value.distanceUnit)
+        assertTrue("the resting line <$summary> still shows beside the failure (RA4: the whole line)", !barLineShown(summary))
+        val tryAgain = bounds(SEARCH_FAILED_TRY_AGAIN_TAG)
+        assertTrue("Try again ${tryAgain.d()} is not wholly in the bar ${bar.d()}", tryAgain.left >= bar.left - 1f && tryAgain.right <= bar.right + 1f && tryAgain.top >= bar.top - 1f && tryAgain.bottom <= bar.bottom + 1f)
+        assertTrue("Clear shows while the search has failed (SB1)", !shown(SEARCH_BAR_CLEAR_TAG))
+        assertTrue("a notice floats under the bar out of fullscreen", !shown(SEARCH_FAILED_NOTICE_TAG))
+        val fill = composeRule.onNodeWithTag(SEARCH_ENTRY_BAR_TAG, useUnmergedTree = true).fetchSemanticsNode().config[MapChromeContainerColor]
+        assertEquals("the bar's fill is not at the map chrome's alpha", MAP_CHROME_OVER_MAP_ALPHA, fill.alpha, 0.01f)
         assertTrue(
             "the old full-tab text still shows",
             composeRule.onAllNodesWithText("Couldn't load sightings for the map.").fetchSemanticsNodes().isEmpty(),
@@ -141,43 +152,75 @@ abstract class MapsTabSearchFailureTests(private val landscape: Boolean) {
     }
 
     @Test
-    fun `the notice's text is opaque and the notice clears the compass strip`() {
+    fun `when the search works again the resting line and Clear come back`() {
         searchThatFails()
-        val text = composeRule.onNode(hasText(SEARCH_FAILED_NOTICE_TEXT), useUnmergedTree = true).fetchSemanticsNode().config[MapChromeContentColor]
-        assertEquals("the notice's text is not opaque", 1f, text.alpha, 0.01f)
-        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
-        val strip = bounds("compass-elevation-strip")
-        assertTrue("the notice ${notice.d()} overlaps the compass strip ${strip.d()}", !notice.overlaps(strip))
+        rig.sightingsFailure = null
+        rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
+        val summary = activeSearchSummary(rig.viewModel.uiState.value, rig.viewModel.uiState.value.distanceUnit)
+        assertTrue("the bar still reads \"$SEARCH_BAR_FAILED_TEXT\" after the search worked", !barLineShown(SEARCH_BAR_FAILED_TEXT))
+        assertTrue("the resting line <$summary> did not come back", barLineShown(summary))
+        assertTrue("Clear did not come back", shown(SEARCH_BAR_CLEAR_TAG))
+        assertTrue("Try again stays after the search worked", !shown(SEARCH_FAILED_TRY_AGAIN_TAG))
     }
 
     @Test
     fun `real touches across Try again each run the search again`() {
         searchThatFails()
-        // The fetch keeps failing, so the notice comes back after each touch and the next point can be touched.
+        // The fetch keeps failing, so the failure comes back after each touch and the next point can be touched.
         val points = listOf(0.15f to 0.25f, 0.85f to 0.25f, 0.5f to 0.5f, 0.15f to 0.75f, 0.85f to 0.75f)
         for ((fx, fy) in points) {
             assertTrue("before the touch at ($fx, $fy) there is no Try again", shown(SEARCH_FAILED_TRY_AGAIN_TAG))
             val before = rig.sightingsFetches.size
             rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true), fx, fy)
             assertEquals("a real touch at ($fx, $fy) of Try again did not run the search again", before + 1, rig.sightingsFetches.size)
+            assertTrue("a touch on Try again opened the search panel", !rig.dropdownShown())
         }
         rig.sightingsFailure = null
         rig.touch(composeRule.onNodeWithTag(SEARCH_FAILED_TRY_AGAIN_TAG, useUnmergedTree = true))
         assertEquals("Try again's search hands the map its observations", listOf(RealSearchScreenRig.sightingAt(region)), rig.mapSightings)
-        assertTrue("the notice stays after the search succeeds", !shown(SEARCH_FAILED_NOTICE_TAG))
+        assertTrue("the bar still reads \"$SEARCH_BAR_FAILED_TEXT\" after the search succeeds", !barLineShown(SEARCH_BAR_FAILED_TEXT))
     }
 
     @Test
-    fun `a long-press on the map just below the notice reaches the map`() {
+    fun `real touches on the rest of the bar open the search panel and do not run the search`() {
         searchThatFails()
-        val notice = bounds(SEARCH_FAILED_NOTICE_TAG)
-        val below = 40f
-        for (fx in listOf(0.3f, 0.5f)) {
-            val at = Offset(notice.left + notice.width * fx, notice.bottom + below)
+        for (fx in listOf(0.1f, 0.5f, 0.9f)) {
+            val before = rig.sightingsFetches.size
+            rig.touch(composeRule.onNodeWithTag(ACTIVE_SEARCH_SUMMARY_TAG, useUnmergedTree = true), fx, 0.5f)
+            assertTrue("a real touch at $fx across the bar's line did not open the search panel", rig.dropdownShown())
+            assertEquals("a real touch at $fx across the bar's line ran the search", before, rig.sightingsFetches.size)
+            composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+            rig.settle()
+            if (rig.dropdownShown()) {
+                composeRule.runOnUiThread { composeRule.activity.onBackPressedDispatcher.onBackPressed() }
+                rig.settle()
+            }
+        }
+    }
+
+    @Test
+    fun `focused after a failure, before typing, the bar still reads Search failed with Try again`() {
+        searchThatFails()
+        rig.tapBar()
+        assertTrue("positive control: the bar's field is focused, its panel open", rig.dropdownShown())
+        assertTrue("focused, the bar does not read \"$SEARCH_BAR_FAILED_TEXT\" (SB3)", barLineShown(SEARCH_BAR_FAILED_TEXT))
+        assertTrue("focused, Try again is gone (SB3: it stays at the right)", shown(SEARCH_FAILED_TRY_AGAIN_TAG))
+    }
+
+    @Test
+    fun `with the search failed, a long-press on the map below the bar reaches the map`() {
+        searchThatFails()
+        val bar = bounds(SEARCH_ENTRY_BAR_TAG)
+        val strip = bounds("compass-elevation-strip")
+        val top = maxOf(bar.bottom, if (strip.left < bar.right && strip.right > bar.left) strip.bottom else bar.bottom)
+        val cluster = bounds(MAP_ICON_CLUSTER_TAG)
+        val points = listOf(0.3f, 0.5f).map { Offset(bar.left + bar.width * it, top + 40f) }.filter { !cluster.contains(it) }
+        assertTrue("positive control: points below the bar", points.isNotEmpty())
+        for (at in points) {
             val before = rig.mapLongPresses
             composeRule.onAllNodes(isRoot()).onFirst().performTouchInput { longClick(at) }
             rig.settle()
-            assertEquals("a long-press at $at, just below the notice ${notice.d()}, did not reach the map", before + 1, rig.mapLongPresses)
+            assertEquals("a long-press at $at, below the bar ${bar.d()}, did not reach the map", before + 1, rig.mapLongPresses)
         }
     }
 

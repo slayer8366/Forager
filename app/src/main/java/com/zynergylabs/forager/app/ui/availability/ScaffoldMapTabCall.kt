@@ -371,6 +371,8 @@ internal fun ScaffoldMapTabCall(
                                                 // between them, drawn by the pill (the strip leaves that side open). Until -988 landscape drew
                                                 // only its bottom, its join and a side with room beside it, never its top.
                                                 pillOutlineSides = MapChromeOutlineSides(left = true, top = true, right = true, bottom = true),
+                                                // Amendment R and S: a failed search in the bar itself, "Try again" in Clear's place (MapsSearchFailure.kt).
+                                                failure = searchBarFailure(uiState, LocalRetryFailedSearch.current),
                                             )
                                             if (uiState.isLoadingSightings) SearchBarLoadingLine(shape = barPillCorners.shape(), modifier = Modifier.matchParentSize())
                                             }
@@ -384,10 +386,9 @@ internal fun ScaffoldMapTabCall(
                                             // the search-failed notice with "Try again" (C1).
                                             // J1 (the owner: "Under the navigation card too"): navigating in portrait, the banner is placed below
                                             // the card with the notice (PlacedSearchNotices), not here.
+                                            // Amendment R (the owner: "The try again notice for search should go into the search bar itself, in place of
+                                            // the October text"): the search-failed notice is in the bar (SearchEntryBar's failure), not here.
                                             if (!searchNoticeUnderCard(navigation, showRail)) SearchNotice(mapsTabSearchNoticeState(uiState), overMap = true)
-                                            if (mapsSearchNoticeShows(uiState) && !searchNoticeUnderCard(navigation, showRail)) {
-                                                SearchFailedNotice(retrying = uiState.isRetryingSearch, onTryAgain = LocalRetryFailedSearch.current)
-                                            }
                                         }
                                         }
                                         // Dispatch 2026-11-11-01, C6 ("Top of the map (Recommended)"): while fullscreen hides the bar, the same notice at the map's top,

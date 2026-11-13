@@ -87,4 +87,73 @@ class SearchAutoRetryTest {
         gate.onSignalReturn(failed = true, running = false, onScreen = false)
         assertFalse("coming back with no signal ran the search", gate.onStateChanged(failed = true, running = false, onScreen = true, validated = false))
     }
+
+    // ── Amendment Q, QC1 (the owner: "3 tries, then wait for me"; "Growing: 3, then 10") ──
+
+    /** An automatic try started by a return, then failed. */
+    private fun automaticTryFails() {
+        assertTrue(gate.onSignalReturn(failed = true, running = false, onScreen = true))
+        gate.onStateChanged(failed = false, running = true, onScreen = true, validated = true)
+        gate.onStateChanged(failed = true, running = false, onScreen = true, validated = true)
+    }
+
+    @Test
+    fun `a failed automatic try is followed by timed ones, 3 s then 10 s, within the three`() {
+        failedOnScreen()
+        automaticTryFails()
+        assertEquals("the wait after the first automatic try failed", 3_000L, gate.timedTryDelayMs())
+        assertTrue("the timed try did not run", gate.onTimedTryDue(failed = true, running = false, onScreen = true, validated = true))
+        gate.onStateChanged(failed = false, running = true, onScreen = true, validated = true)
+        gate.onStateChanged(failed = true, running = false, onScreen = true, validated = true)
+        assertEquals("the wait after the second failed", 10_000L, gate.timedTryDelayMs())
+        assertTrue(gate.onTimedTryDue(failed = true, running = false, onScreen = true, validated = true))
+        gate.onStateChanged(failed = false, running = true, onScreen = true, validated = true)
+        gate.onStateChanged(failed = true, running = false, onScreen = true, validated = true)
+        assertEquals("a wait after the third failed", null, gate.timedTryDelayMs())
+        assertEquals(3, gate.tries)
+    }
+
+    @Test
+    fun `a manual try that fails is not followed by a timed one`() {
+        failedOnScreen()
+        gate.onUserRetry()
+        gate.onStateChanged(failed = false, running = true, onScreen = true, validated = true)
+        gate.onStateChanged(failed = true, running = false, onScreen = true, validated = true)
+        assertEquals("a timed try after a manual one failed", null, gate.timedTryDelayMs())
+    }
+
+    @Test
+    fun `a timed try due with no signal does not run, and the next return does`() {
+        failedOnScreen()
+        automaticTryFails()
+        assertTrue("a timed try ran with no signal", !gate.onTimedTryDue(failed = true, running = false, onScreen = true, validated = false))
+        assertEquals("still waiting after it fell due with no signal", null, gate.timedTryDelayMs())
+        assertTrue("the return after it did not run the search", gate.onSignalReturn(failed = true, running = false, onScreen = true))
+    }
+
+    @Test
+    fun `a timed try due off screen waits for Forager to come back`() {
+        failedOnScreen()
+        automaticTryFails()
+        assertTrue("a timed try ran off screen", !gate.onTimedTryDue(failed = true, running = false, onScreen = false, validated = true))
+        assertEquals("the timed try was dropped off screen", 3_000L, gate.timedTryDelayMs())
+    }
+
+    @Test
+    fun `Try again, a success or a return of signal drops a timed try that is waiting`() {
+        failedOnScreen()
+        automaticTryFails()
+        gate.onUserRetry()
+        assertEquals("Try again did not drop the timed try", null, gate.timedTryDelayMs())
+
+        failedOnScreen()
+        automaticTryFails()
+        gate.onStateChanged(failed = false, running = false, onScreen = true, validated = true)
+        assertEquals("a success did not drop the timed try", null, gate.timedTryDelayMs())
+
+        failedOnScreen()
+        automaticTryFails()
+        assertTrue(gate.onSignalReturn(failed = true, running = false, onScreen = true))
+        assertEquals("a return of signal running a try did not drop the timed one", null, gate.timedTryDelayMs())
+    }
 }
