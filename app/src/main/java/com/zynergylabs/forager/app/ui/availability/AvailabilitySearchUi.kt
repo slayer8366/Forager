@@ -348,4 +348,4 @@ internal val MAP_PILL_MIN_HEIGHT = 40.dp
  * Amendment T's ladder first left out the Spacing.sm, and so judged "Search failed." to fit at 360 dp, font 2.0, where it is drawn
  * cut (423 px of 471): seen by printing the ladder's room on the probe branch mtsf-t-probe2 (run 43424665907).
  */
-internal val SEARCH_BAR_FIELD_SIDE_PADDING = Spacing.sm + 16.dp
+internal val SEARCH_BAR_FIELD_SIDE_PADDING = Spacing.sm + 450.dp
