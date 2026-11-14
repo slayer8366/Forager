@@ -1,0 +1,298 @@
+package com.zynergylabs.forager.app.ui.availability
+
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.LocalMinimumInteractiveComponentSize
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.absolutePadding
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.contentColorFor
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.compositionLocalOf
+import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import com.zynergylabs.forager.app.ui.map.mapChromeContainerColor
+import com.zynergylabs.forager.app.ui.map.mapChromeContentColor
+import com.zynergylabs.forager.app.ui.map.mapChromeFill
+import com.zynergylabs.forager.app.ui.theme.LocalForagerDarkTheme
+import com.zynergylabs.forager.app.ui.theme.Spacing
+import com.zynergylabs.forager.app.ui.theme.mapChromeContentColor
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.compose.currentStateAsState
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.onEach
+
+/*
+ * Dispatch 2026-11-11-01 (known bug 30, audit finding H1): a failed or loading sightings search no longer replaces the Maps tab.
+ * The owner's rulings, verbatim (the dispatch's Amendments, C1 to C7): "Under the search bar (Recommended)"; "Thin line on the
+ * search bar (Recommended)"; "One line (Recommended)"; "At once (Recommended)"; "\"Search failed. Check your connection.\"
+ * (Recommended)"; "Top of the map (Recommended)"; "Notice stays, no auto retry (Recommended)". This file holds what the Maps tab
+ * draws for them; ScaffoldMapTabCall places it, and AvailabilityScreen watches the signal.
+ */
+
+/** The notice's words (C5, the owner: "\"Search failed. Check your connection.\" (Recommended)"). */
+internal const val SEARCH_FAILED_NOTICE_TEXT = "Search failed. Check your connection."
+
+/** The notice's words while a failed search runs again (E4; "The words are the owner's to change"). */
+internal const val SEARCH_RETRYING_NOTICE_TEXT = "Trying again…"
+
+/** The notice's control (C1: "\"Try again\" at its right end"). */
+internal const val SEARCH_FAILED_TRY_AGAIN_TEXT = "Try again"
+
+/** [SearchFailedNotice], for tests. */
+internal const val SEARCH_FAILED_NOTICE_TAG = "search-failed-notice"
+
+/** [SearchFailedNotice]'s "Try again", for tests. */
+internal const val SEARCH_FAILED_TRY_AGAIN_TAG = "search-failed-try-again"
+
+/** [SearchBarLoadingLine]'s moving line, for tests. */
+internal const val SEARCH_BAR_LOADING_LINE_TAG = "search-bar-loading-line"
+
+/** How thick [SearchBarLoadingLine] is: "a thin moving line" (C2). */
+internal val SEARCH_BAR_LOADING_LINE_HEIGHT: Dp = 2.dp
+
+/** Whether the map's sightings fetch failed for the search showing: what the notice, "Try again" and the retry on signal follow. */
+internal fun mapsSearchFailed(uiState: AvailabilityUiState): Boolean = uiState.sightingsErrorMessage != null
+
+/**
+ * The state [SearchNotice] reads on the Maps tab. While the map's sightings have failed, the ranked list's own failure line is left
+ * out, so a search whose two halves both failed shows one line, the [SearchFailedNotice] (C3, the owner: "One line
+ * (Recommended)"). Only that failure is folded: anything else the banner says (a mistyped coordinate, a species lookup, the trips,
+ * location permission) shows as it did. When only the ranked list failed, nothing changes (the dispatch's D3).
+ */
+internal fun mapsTabSearchNoticeState(uiState: AvailabilityUiState, fullscreen: Boolean = false): AvailabilityUiState =
+    // Amendment T, TB4 (the owner: "One line, in the bar"): out of fullscreen, with a search showing, the list's failure is always
+    // the bar's one line, the map's half failed or not, so the banner never carries it there. In fullscreen, as before (P1: a
+    // list-only failure shows the banner alone). With no search showing (no region) there is no search to have failed; the line
+    // stays the banner's, as before this ruling.
+    if (((!fullscreen && uiState.region != null) || mapsSearchFailed(uiState) || uiState.isRetryingSearch) && uiState.errorMessage == LIST_SEARCH_FAILED_MESSAGE) {
+        uiState.copy(errorMessage = null)
+    } else {
+        uiState
+    }
+
+/** Amendment T, TB4: the ranked list alone failed for the search showing (its failure line is up; the map's half did not fail). */
+internal fun listOnlySearchFailed(uiState: AvailabilityUiState): Boolean =
+    uiState.region != null && uiState.errorMessage == LIST_SEARCH_FAILED_MESSAGE && !mapsSearchFailed(uiState) && !uiState.isRetryingSearch
+
+/**
+ * Whether the search-failed notice shows: the map's half has failed, or a failed search is running again (E4, the owner: "Notice
+ * stays, shows it's trying (Recommended)"; its option read "Retry starts > the notice stays where it is and reads 'Trying
+ * again…' > it goes only when the search works, or returns to 'Search failed' if it doesn't. Nothing jumps").
+ */
+internal fun mapsSearchNoticeShows(uiState: AvailabilityUiState): Boolean = mapsSearchFailed(uiState) || uiState.isRetryingSearch
+
+/** Whether a line shows under the Maps tab's search bar: [SearchNotice]'s (since Amendment R the search-failed notice is in the bar). */
+internal fun mapsTabNoticeShows(uiState: AvailabilityUiState, fullscreen: Boolean = false): Boolean =
+    // Amendment R: the search-failed notice is no longer under the bar (it is in the bar), so only the banner's line counts here.
+    searchNoticeMessage(mapsTabSearchNoticeState(uiState, fullscreen)) != null
+
+/**
+ * What "Try again" calls: [AvailabilityScreenSearchInputs.onRetryFailedSearch], provided by [AvailabilityScreen] so the notice, deep
+ * in the Maps tab's call, is reached without a parameter through the frame (the pattern of `LocalDownloadMapsForTrip`).
+ */
+internal val LocalRetryFailedSearch = staticCompositionLocalOf<() -> Unit> { {} }
+
+/**
+ * Dispatch 2026-11-11-01, G1 (the owner: "Under the navigation card"): the height of the navigation card hanging below the search
+ * bar while navigating in portrait, else 0. Provided by [CompactMapTab] around the search-bar slot, as [LocalSearchNoticeInset] is.
+ */
+internal val LocalNavigationCardHeight = compositionLocalOf { 0.dp }
+
+/**
+ * The one-line notice for a failed search (C1): the existing search-error banner's spot and look ([SearchNotice]: the error
+ * container at the map chrome's 80% fill, its text opaque), with "Try again" at its right end. Over the map only. A [Surface],
+ * so it takes every touch inside its own bounds and none outside them.
+ */
+@Composable
+internal fun SearchFailedNotice(retrying: Boolean, onTryAgain: () -> Unit, modifier: Modifier = Modifier) {
+    val noticeColor = mapChromeFill(MaterialTheme.colorScheme.errorContainer, true)
+    val noticeContentColor = contentColorFor(MaterialTheme.colorScheme.errorContainer)
+    Surface(
+        color = noticeColor,
+        contentColor = noticeContentColor,
+        modifier = modifier
+            .absolutePadding(left = LocalSearchNoticeInset.current.left, right = LocalSearchNoticeInset.current.right)
+            .testTag(SEARCH_FAILED_NOTICE_TAG)
+            .mapChromeContainerColor(noticeColor),
+    ) {
+        // Amendment T, TC3 (the owner: "\"Try again\" below the words (Recommended)"; option text "When a word would break, \"Try
+        // again\" moves under the words inside the notice, which gives the words the notice's whole width"): measured at the current
+        // font against this notice's own width, never by window class.
+        BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
+            val stacked = tryAgainGoesBelowTheWords(maxWidth)
+            // E4: both lines are always laid out in one space, the one not showing drawn at no alpha and left out of semantics, so
+            // the space is the wider of the two and nothing moves when the words change (CLAUDE.md, "Changing info gets its own
+            // window"; no text is shrunk). G2 (the owner: "Shown, greyed out"): "Try again" stays shown while the retry runs, in
+            // the button's own disabled look (Material's, which the app uses for every disabled button), and does nothing.
+            val words: @Composable (Modifier) -> Unit = { m ->
+                Box(modifier = m) {
+                    NoticeLine(SEARCH_FAILED_NOTICE_TEXT, shown = !retrying)
+                    NoticeLine(SEARCH_RETRYING_NOTICE_TEXT, shown = retrying)
+                }
+            }
+            val button: @Composable (Modifier) -> Unit = { m ->
+                TextButton(
+                    onClick = onTryAgain,
+                    enabled = !retrying,
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onErrorContainer),
+                    modifier = m.testTag(SEARCH_FAILED_TRY_AGAIN_TAG),
+                ) {
+                    Text(SEARCH_FAILED_TRY_AGAIN_TEXT)
+                }
+            }
+            if (stacked) {
+                Column(horizontalAlignment = Alignment.End, modifier = Modifier.fillMaxWidth()) {
+                    words(Modifier.fillMaxWidth().padding(start = Spacing.lg, end = Spacing.lg, top = Spacing.sm))
+                    button(Modifier)
+                }
+            } else {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                    words(Modifier.weight(1f).padding(start = Spacing.lg, top = Spacing.sm, bottom = Spacing.sm))
+                    button(Modifier)
+                }
+            }
+        }
+    }
+}
+
+/**
+ * Amendment T, TC3: whether "Try again" goes under the words: when, beside it, the words' room is narrower than their longest word
+ * at the current font (either line's), so a word would break. The room is [width] less the words' start padding and the button's
+ * width (its word and Material's 12 dp each side, at least its 58 dp minimum).
+ */
+@Composable
+internal fun tryAgainGoesBelowTheWords(width: Dp): Boolean {
+    val measurer = rememberTextMeasurer()
+    val density = LocalDensity.current
+    val wordStyle = MaterialTheme.typography.bodySmall
+    val buttonStyle = MaterialTheme.typography.labelLarge
+    fun widthOf(text: String, style: androidx.compose.ui.text.TextStyle) = measurer.measure(text, style, maxLines = 1, softWrap = false).size.width
+    return with(density) {
+        val longestWord = (SEARCH_FAILED_NOTICE_TEXT.split(" ") + SEARCH_RETRYING_NOTICE_TEXT.split(" ")).maxOf { widthOf(it, wordStyle) }
+        val button = tryAgainButtonWidthPx(this, widthOf(SEARCH_FAILED_TRY_AGAIN_TEXT, buttonStyle))
+        val room = width.roundToPx() - Spacing.lg.roundToPx() - button
+        room < longestWord
+    }
+}
+
+/**
+ * The notice's "Try again" width as [tryAgainGoesBelowTheWords] reckons it: its word ([wordWidthPx]) and Material's 12 dp each side,
+ * at least Material's 58 dp minimum. Copies of Material's values, so Amendment U, UB4 holds them to the drawn button in a test.
+ */
+internal fun tryAgainButtonWidthPx(density: Density, wordWidthPx: Int): Int =
+    with(density) { maxOf(58.dp.roundToPx(), wordWidthPx + 24.dp.roundToPx()) }
+
+/** One of the notice's two lines, laid out whether it shows or not (see [SearchFailedNotice]). */
+@Composable
+private fun NoticeLine(text: String, shown: Boolean) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onErrorContainer,
+        modifier = if (shown) Modifier.mapChromeContentColor(LocalContentColor.current) else Modifier.alpha(0f).clearAndSetSemantics {},
+    )
+}
+
+/**
+ * The notices placed at [top] rather than in the search bar's column.
+ * - While fullscreen hides the search bar (C6, the owner: "Top of the map (Recommended)"; its option read "the same one-line
+ *   notice shows at the top of the map, where the bar would be"): the search-failed notice, below the compass strip where the
+ *   strip is there.
+ * - While navigating in portrait, below the navigation card: the search-failed notice (G1, the owner: "Under the navigation
+ *   card"), and the search-error banner from before this dispatch, [bannerState] (J1, the owner: "Under the navigation card
+ *   too"), in the order they have under the search bar: the banner, then the notice.
+ * [onHeightMeasured] reports the height with [top], so the icon cluster can be kept below it, as it is below the notices under the
+ * bar. Composed only while something in it shows, so it takes no touch otherwise.
+ */
+@Composable
+internal fun PlacedSearchNotices(
+    top: Dp,
+    bannerState: AvailabilityUiState?,
+    showFailed: Boolean,
+    retrying: Boolean,
+    onTryAgain: () -> Unit,
+    onHeightMeasured: (Int) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier.onSizeChanged { onHeightMeasured(it.height) }.padding(top = top)) {
+        bannerState?.let { SearchNotice(it, overMap = true) }
+        if (showFailed) SearchFailedNotice(retrying = retrying, onTryAgain = onTryAgain)
+    }
+}
+
+/**
+ * J1 (the owner: "Under the navigation card too") and L1 (the owner: "Under the card in fullscreen too"): the search-error banner
+ * is placed below the navigation card while navigating in portrait, the bar showing or fullscreen, when it has a line. [fullscreen]
+ * no longer narrows it (L1). Fullscreen and not navigating is not ruled: there the banner is not shown, as before.
+ */
+@Suppress("UNUSED_PARAMETER")
+internal fun placedBannerShows(uiState: AvailabilityUiState, underCard: Boolean, fullscreen: Boolean): Boolean =
+    underCard && searchNoticeMessage(mapsTabSearchNoticeState(uiState, fullscreen)) != null
+
+/** C6 and G1: the search-failed notice is placed, in fullscreen or below the navigation card, when it shows. */
+@Suppress("UNUSED_PARAMETER")
+internal fun placedFailedShows(uiState: AvailabilityUiState, underCard: Boolean, fullscreen: Boolean): Boolean =
+    // Amendment R, RC2: out of fullscreen the notice is in the search bar (RA1); placed only in fullscreen, where the bar is off
+    // screen (RA2, the owner: "Under the card in fullscreen too"). Was `(underCard || fullscreen)`: G1's place below the card.
+    fullscreen && mapsSearchNoticeShows(uiState)
+
+/**
+ * The thin moving line along the search bar's bottom edge while the map's sightings load (C2, the owner: "Thin line on the
+ * search bar (Recommended)"; its option read "Nothing in the bar moves"). Drawn over the bar, clipped to its [shape], with no
+ * track, so the bar keeps its own fill and nothing in it moves. Takes no touches: the bar under it keeps them.
+ */
+@Composable
+internal fun SearchBarLoadingLine(shape: Shape, modifier: Modifier = Modifier) {
+    Box(modifier = modifier.clip(shape)) {
+        // Tagged on a Box of its own: the indicator's own semantics bounds are padded taller than it draws (Material3's
+        // accessibility padding), so a test reading the indicator would measure 12 dp, not the line.
+        Box(
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .height(SEARCH_BAR_LOADING_LINE_HEIGHT)
+                .testTag(SEARCH_BAR_LOADING_LINE_TAG),
+        ) {
+            LinearProgressIndicator(
+                color = mapChromeContentColor(LocalForagerDarkTheme.current),
+                trackColor = Color.Transparent,
+                modifier = Modifier.fillMaxSize(),
+            )
+        }
+    }
+}

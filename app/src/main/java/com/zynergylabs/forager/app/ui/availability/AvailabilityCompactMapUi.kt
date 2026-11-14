@@ -26,9 +26,7 @@ import com.zynergylabs.forager.app.ui.map.LocalMapPosition
 import com.zynergylabs.forager.app.ui.map.WaypointNavigationOrigin
 import com.zynergylabs.forager.app.ui.map.rememberNavigationFacing
 import androidx.activity.compose.BackHandler
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.size
@@ -36,7 +34,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.material.icons.automirrored.filled.List
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -50,7 +47,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
@@ -369,21 +365,12 @@ internal fun CompactMapTab(
     // compactMapDisplayRegion), so this stays null rather than doubly panning the same fix through two different mechanisms.
     val focusOverride = compactMapLocateFocus(uiState)
 
+    // Dispatch 2026-11-11-01 (known bug 30): the map is drawn whatever the sightings fetch is doing. Until then a spinner while
+    // sightings loaded and a line of text when they failed replaced this whole tab, its map, search bar and tab bar or rail with it,
+    // leaving no way to search again. The owner: "Map stays, auto retry (Recommended)". The loading line and the failure notice are
+    // drawn with the search bar (MapsSearchFailure.kt, placed by ScaffoldMapTabCall). A `when` with its `else` only, kept so the
+    // map's block keeps its indentation and this change is these lines alone.
     when {
-        uiState.isLoadingSightings -> Column(
-            modifier = modifier.fillMaxSize(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
-        ) {
-            CircularProgressIndicator()
-        }
-
-        uiState.sightingsErrorMessage != null -> MapMessage(
-            uiState.sightingsErrorMessage,
-            modifier = modifier,
-            color = MaterialTheme.colorScheme.error,
-        )
-
         else -> {
             // The map's own viewport, never null (see compactMapDisplayRegion).
             val displayRegion = compactMapDisplayRegion(uiState)
@@ -563,7 +550,9 @@ internal fun CompactMapTab(
                 // CompactMapLayoutState.searchNoticeInset). Worked out here, in the body, as before.
                 val noticeInsetDp = layout.noticeInsetDp(cluster.clusterWidthPx, compassStripDensity)
                 val searchNoticeInset = layout.searchNoticeInset(landscapeCluster, cluster, punchHoleEdge, noticeInsetDp)
-                CompositionLocalProvider(LocalSearchNoticeInset provides searchNoticeInset) {
+                // Dispatch 2026-11-11-01, G1: the navigating card's height, for the search-failed notice placed below it (portrait only).
+                val navigationCardHeight = with(compassStripDensity) { (if (railPortEdge == null) layout.navigationCardHeightPx else 0).toDp() }
+                CompositionLocalProvider(LocalSearchNoticeInset provides searchNoticeInset, LocalNavigationCardHeight provides navigationCardHeight) {
                     searchBarSlot(with(compassStripDensity) { layout.compassStripHeightPx.toDp() })
                 }
                 // The tapped thing's bubble (RECORD -741: CompactMapBubble, moved out unchanged; its comments are there).

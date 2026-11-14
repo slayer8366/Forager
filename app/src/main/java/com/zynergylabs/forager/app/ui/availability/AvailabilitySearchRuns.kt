@@ -69,6 +69,14 @@ internal class AvailabilitySearchRuns(
     var activeSearch: Triple<Region, Int, TaxonFilter>? = null
         private set
 
+    /**
+     * Dispatch 2026-11-11-01, F7: the search whose ranked list last failed, or null. Kept apart from the failure's line in
+     * `errorMessage`, which a mistyped coordinate or a failed locate can replace, so "Try again" still runs both halves of a
+     * search whose two halves failed (C3, the owner: "One line (Recommended)": "tapping it runs both again").
+     */
+    var listFailedQuery: Triple<Region, Int, TaxonFilter>? = null
+        private set
+
     /** A new search, before its fetches: [AvailabilityViewModel.refresh]'s opening lines, moved unchanged. */
     fun startNewSearch(region: Region, month: Int, filter: TaxonFilter) {
         activeSearch = Triple(region, month, filter)
@@ -77,7 +85,8 @@ internal class AvailabilitySearchRuns(
         updateState {
             // searchSerial: so the screen fetches the sightings again even when this search is the one
             // already showing (RECORD -723; see AvailabilityUiState.searchSerial).
-            it.copy(sightings = emptyList(), sightingsErrorMessage = null, searchSerial = it.searchSerial + 1)
+            // isRetryingSearch: a new search is not a retry (dispatch 2026-11-11-01, E4); retryFailedSearch sets it after this.
+            it.copy(sightings = emptyList(), sightingsErrorMessage = null, isRetryingSearch = false, isRetryingList = false, searchSerial = it.searchSerial + 1)
         }
 
         // Same invalidation for the Seasonal tab's own lazily-fetched, separately-keyed data.
@@ -90,6 +99,7 @@ internal class AvailabilitySearchRuns(
     /** The ranked list's fetch, launched in [searchJobs]: [AvailabilityViewModel.refresh] decides and calls it. */
     fun fetchAvailability(region: Region, month: Int, filter: TaxonFilter, speciesGroup: String?) {
         scope().launch(searchJobs) {
+            listFailedQuery = null
             updateState { it.copy(isLoading = true, errorMessage = null) }
             getAvailability(region, month, filter, speciesGroup).fold(
                 onSuccess = { result ->
@@ -97,6 +107,7 @@ internal class AvailabilitySearchRuns(
                         when (result) {
                             is AvailabilitySearchResult.Live -> state.copy(
                                 isLoading = false,
+                                isRetryingList = false,
                                 forecast = result.forecast,
                                 isShowingCachedResults = false,
                                 cachedResultsAsOfEpochMillis = null,
@@ -105,6 +116,7 @@ internal class AvailabilitySearchRuns(
                             // be shown without the age it is supposed to state.
                             is AvailabilitySearchResult.Cached -> state.copy(
                                 isLoading = false,
+                                isRetryingList = false,
                                 forecast = result.forecast,
                                 isShowingCachedResults = true,
                                 cachedResultsAsOfEpochMillis = result.cachedAtEpochMillis,
@@ -117,12 +129,15 @@ internal class AvailabilitySearchRuns(
                     // results on screen at all: the cached-results flags are cleared rather than
                     // left over from a previous search the banner would then mislabel.
                     errorLog.w(TAG, "Search failed.", error)
+                    listFailedQuery = Triple(region, month, filter)
                     updateState {
                         it.copy(
                             isLoading = false,
+                                isRetryingList = false,
                             isShowingCachedResults = false,
                             cachedResultsAsOfEpochMillis = null,
-                            errorMessage = "Request failed. Check your connection and try again.",
+                            errorMessage = LIST_SEARCH_FAILED_MESSAGE,
+                            listFailureSerial = it.listFailureSerial + 1,
                         )
                     }
                 },
@@ -204,7 +219,7 @@ internal class AvailabilitySearchRuns(
                 onSuccess = { page ->
                     loadedSightingsQuery = query
                     updateState {
-                        it.copy(isLoadingSightings = false, sightings = page.sightings)
+                        it.copy(isLoadingSightings = false, isRetryingSearch = false, sightings = page.sightings)
                     }
                 },
                 onFailure = { error ->
@@ -212,7 +227,9 @@ internal class AvailabilitySearchRuns(
                     updateState {
                         it.copy(
                             isLoadingSightings = false,
+                            isRetryingSearch = false,
                             sightingsErrorMessage = "Couldn't load sightings for the map.",
+                            sightingsFailureSerial = it.sightingsFailureSerial + 1,
                         )
                     }
                 },
@@ -258,5 +275,13 @@ internal class AvailabilitySearchRuns(
         activeSearch = null
         loadedSightingsQuery = null
         loadedSeasonalPatternQuery = null
+        listFailedQuery = null
     }
 }
+
+/**
+ * The ranked list's failure line (the text it always had). Named so the Maps tab can tell this failure from the other things
+ * `errorMessage` carries, a coordinate the user mistyped, say: when the map's sightings fail too, the Maps tab shows one line for
+ * both (dispatch 2026-11-11-01, C3, the owner: "One line (Recommended)"); see [mapsTabSearchNoticeState].
+ */
+internal const val LIST_SEARCH_FAILED_MESSAGE = "Request failed. Check your connection and try again."

@@ -716,7 +716,11 @@ fun AvailabilityScreen(
     // Phase 2.6, PR 4: the composition locals, the Tools drawer and the frame it slides over (AvailabilityScreenDrawerHost.kt),
     // composed here, unconditionally, at the line this tree was; InAppCameraHost stays below it. Dispatch 2026-11-05-08: a trip's
     // Download Maps reaches the Trip Planner's rows through LocalDownloadMapsForTrip (TripDownloadMapsUi.kt), so the host is unchanged.
-    CompositionLocalProvider(LocalDownloadMapsForTrip provides openTripOfflineMaps) {
+    // Dispatch 2026-11-11-01: the Maps tab's "Try again" reaches its notice through LocalRetryFailedSearch (MapsSearchFailure.kt) the same way.
+    // E3: the automatic tries' count, which "Try again" starts again (SearchAutoRetry.kt).
+    val searchAutoRetry = remember { SearchAutoRetry() }
+    val onTryAgain = remember(searchInputs.onRetryFailedSearch) { { searchAutoRetry.onUserRetry(); searchInputs.onRetryFailedSearch() } }
+    CompositionLocalProvider(LocalDownloadMapsForTrip provides openTripOfflineMaps, LocalRetryFailedSearch provides onTryAgain) {
     AvailabilityScreenDrawerHost(
         state = screenState,
         drawerState = drawerState,
@@ -754,4 +758,6 @@ fun AvailabilityScreen(
         findsLog = findsLog,
         journalEntries = journalEntries,
     )
+    // Dispatch 2026-11-11-01, C4: a failed search runs again by itself (SearchRetryWiring.kt). Last, so no slot above moves.
+    RetryFailedSearchByItself(uiState, searchInputs.networkValidated, searchAutoRetry, searchInputs.onRetryFailedSearch)
 }

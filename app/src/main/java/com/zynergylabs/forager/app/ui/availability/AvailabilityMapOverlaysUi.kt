@@ -373,19 +373,3 @@ internal fun TaxonMapFilterChip(label: String, onClear: () -> Unit, modifier: Mo
         }
     }
 }
-
-@Composable
-internal fun MapMessage(
-    text: String,
-    modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.onSurface,
-) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodyMedium,
-        color = color,
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(Spacing.lg),
-    )
-}

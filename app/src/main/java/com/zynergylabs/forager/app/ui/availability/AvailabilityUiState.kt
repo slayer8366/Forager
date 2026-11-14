@@ -65,6 +65,30 @@ data class AvailabilityUiState(
     val searchFrameSerial: Int = 0,
     val isLoadingSightings: Boolean = false,
     val sightingsErrorMessage: String? = null,
+    /**
+     * Dispatch 2026-11-11-01, E4 (the owner: "Notice stays, shows it's trying (Recommended)"): a failed search is running again,
+     * from "Try again" or by itself ([retryFailedSearch]), so the Maps tab's notice stays and reads "Trying again…". Cleared when
+     * the map's sightings fetch ends, on a new search and on Clear.
+     */
+    val isRetryingSearch: Boolean = false,
+    /**
+     * Dispatch 2026-11-11-01, QC1: counts the map's sightings fetches that failed, so the retry by itself sees each failure, even
+     * one that leaves the rest of this state as it was (an automatic try that fails at once with no signal).
+     */
+    val sightingsFailureSerial: Int = 0,
+    /**
+     * Dispatch 2026-11-11-01, Amendment T, TB4 (the owner: "One line, in the bar"): a list-only failure is running again from
+     * "Try again", so the bar reads "Trying again…". Cleared when the ranked list's fetch ends, on a new search and on Clear.
+     */
+    val isRetryingList: Boolean = false,
+    /** Amendment U, UB1: counts the ranked list's fetches that failed, as [sightingsFailureSerial] counts the map's, for the retry by itself. */
+    val listFailureSerial: Int = 0,
+    /**
+     * Amendment W, WA3: counts the searches started by the user ([beginSearch]: the bar, Search, a month, a recent search), and not
+     * a failed search run again, so the retry by itself ([SearchAutoRetry.onSearch]) starts its count again on a new search by
+     * this, not by reading what is loading.
+     */
+    val newSearchSerial: Int = 0,
     val taxonFilter: TaxonFilter = TaxonFilter.FUNGI,
     val taxonSearchQuery: String = "",
     val taxonSearchResults: List<TaxonSearchResult> = emptyList(),

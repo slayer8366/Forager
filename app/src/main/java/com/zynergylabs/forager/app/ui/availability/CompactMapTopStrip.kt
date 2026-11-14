@@ -135,7 +135,7 @@ internal fun BoxScope.CompactMapTopStrip(
                 // The strip's own height (item 2), for what sits below it, as before only while not navigating: navigating, the
                 // card grows down by the navigation info, and what sat below the strip keeps the clearance it had while the
                 // navigation display replaced the strip (dispatch 2026-10-12-08 changes none of it).
-                .onSizeChanged { if (!isNavigating) layout.compassStripHeightPx = it.height }
+                .onSizeChanged { if (!isNavigating) layout.compassStripHeightPx = it.height else layout.navigationCardHeightPx = it.height }
         }.mapKeepOut(MapKeepOutIds.TOP_STRIP),
         contentWidth = false,
         // RECORD -735: the crossed-out compass for no compass or an unreliable one in a short landscape window; portrait keeps the
@@ -169,6 +169,9 @@ internal fun BoxScope.CompactMapTopStrip(
     DisposableEffect(Unit) { onDispose { layout.compassStripHeightPx = 0; layout.landscapeStripHeightPx = 0; layout.landscapeStripWidthPx = 0 } }
     // The portrait strip's measured height goes the moment navigation starts, as it did when the strip left then (see above).
     LaunchedEffect(isNavigating) { if (isNavigating) layout.compassStripHeightPx = 0 }
+    // Dispatch 2026-11-11-01, G1: and the navigating card's height goes when navigation ends, and when this strip leaves.
+    LaunchedEffect(isNavigating) { if (!isNavigating) layout.navigationCardHeightPx = 0 }
+    DisposableEffect(Unit) { onDispose { layout.navigationCardHeightPx = 0 } }
     // RECORD -754 (the owner's S26 on 1.0.3103: after a turn from portrait the bar kept a portrait-sized box, taller than the
     // strip and reaching the window's centre): out of landscape the landscape strip's measures go too. They are reported up only
     // when they change (below), and the scaffold zeroes its own copy whenever the bar stops meeting the strip, so a measure left

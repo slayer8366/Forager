@@ -197,13 +197,18 @@ class SearchClearAndFrameTest {
     }
 
     /**
-     * RECORD -1525: a search on the Maps tab puts the sightings spinner in place of the map, and the map that comes back must
-     * not take a locate-me from before the search as its pan target, which panned the searched map away to the GPS fix on
-     * the S22 (2026-10-21, frames 5 and 6). The locate-me target (`focusOverride`) is held above the spinner, so returning
-     * from it does not replay an earlier Located status.
+     * RECORD -1525: the map of a new search must not take a locate-me from before the search as its pan target, which panned
+     * the searched map away to the GPS fix on the S22 (2026-10-21, frames 5 and 6). The locate-me target (`focusOverride`) is
+     * worked out from the state (compactMapLocateFocus), so it does not replay an earlier Located status.
+     *
+     * Renamed by dispatch 2026-11-11-01, E1 (the owner: "Keep it, and prove it (Recommended)"): it was "a locate from before a
+     * search is not the pan target of the map that returns from the spinner". There is no spinner since that dispatch (the map
+     * stays while sightings load), so its positive control was turned to that, without stopping first, which broke the
+     * dispatch's stop and CLAUDE.md's rule that such a test is reported, not touched; the owner ruled the change stays. Its two
+     * final assertions are unchanged, and a revert of the searchFrameSerial comparison in compactMapLocateFocus fails them.
      */
     @Test
-    fun `a locate from before a search is not the pan target of the map that returns from the spinner`() {
+    fun `a locate from before a search is not the pan target of the map while the new search's sightings load and after`() {
         rig.setScreen()
         rig.searchCoordinates("45.3736", "-121.6959")
         rig.settle()
@@ -216,9 +221,14 @@ class SearchClearAndFrameTest {
         rig.sightingsGate = gate
         rig.searchCoordinates("-41.2865", "174.7762")
         rig.settle()
+        // Dispatch 2026-11-11-01 (the owner: "Map stays, auto retry (Recommended)"): there is no spinner in place of the map any
+        // more, so this positive control is turned to what the owner ruled: the map stays while the new search's sightings load.
+        // It read "the spinner has replaced the map" (isEmpty) until then. The claim below, that the earlier locate is not the
+        // new search's pan target, is unchanged.
         assertTrue(
-            "positive control: the spinner has replaced the map",
-            composeRule.onAllNodes(hasTestTag(LAYOUT_FIXES_MAP_TAG), useUnmergedTree = true).fetchSemanticsNodes().isEmpty(),
+            "positive control: the map stays while the new search's sightings load",
+            rig.viewModel.uiState.value.isLoadingSightings &&
+                composeRule.onAllNodes(hasTestTag(LAYOUT_FIXES_MAP_TAG), useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty(),
         )
         rig.sightingsGate = null
         gate.complete(Unit)

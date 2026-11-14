@@ -351,7 +351,7 @@ class AvailabilityViewModel(
      * stay in this class's functions: [refresh], [onMapTabSelected], [onSeasonalTabSelected] and [clearSearch].
      * It writes this screen's state through the setter here and launches in this ViewModel's own scope.
      */
-    private val searchRuns = AvailabilitySearchRuns(
+    internal val searchRuns = AvailabilitySearchRuns(
         updateState = { transform -> _uiState.update(transform) },
         scope = { viewModelScope },
         getAvailability = getAvailability,
@@ -517,7 +517,7 @@ class AvailabilityViewModel(
 
     fun onMonthSelected(month: Int) {
         _uiState.update { it.copy(selectedMonth = month) }
-        _uiState.value.region?.let { refresh(it, month, _uiState.value.taxonFilter) }
+        _uiState.value.region?.let { beginSearch(it, month, _uiState.value.taxonFilter) }
     }
 
     fun onTaxonSearchQueryChanged(query: String) {
@@ -578,7 +578,7 @@ class AvailabilityViewModel(
         }
         val region = Region(lat, lng, state.radiusKm)
         _uiState.update { it.copy(region = region, locationPermissionDenied = false, searchFrameSerial = it.searchFrameSerial + 1) }
-        refresh(region, state.selectedMonth, state.taxonFilter)
+        beginSearch(region, state.selectedMonth, state.taxonFilter)
     }
 
     fun useCurrentLocation() {
@@ -596,7 +596,7 @@ class AvailabilityViewModel(
                             searchFrameSerial = it.searchFrameSerial + 1,
                         )
                     }
-                    refresh(region, _uiState.value.selectedMonth, _uiState.value.taxonFilter)
+                    beginSearch(region, _uiState.value.selectedMonth, _uiState.value.taxonFilter)
                 }
                 LocationResult.PermissionDenied -> _uiState.update {
                     it.copy(isLoading = false, locationPermissionDenied = true)
@@ -673,7 +673,7 @@ class AvailabilityViewModel(
         searchRuns.fetchSeasonalPattern(query, region, month, filter)
     }
 
-    private fun refresh(region: Region, month: Int, filter: TaxonFilter) {
+    internal fun refresh(region: Region, month: Int, filter: TaxonFilter) {
         searchRuns.startNewSearch(region, month, filter)
 
         // Read now, while the selection is the one this search was started for.
@@ -708,7 +708,7 @@ class AvailabilityViewModel(
      * (dispatch 2026-09-28-695, amendment 1): the current selection's group when the selection is that
      * species, and null for a category (its group is in the filter) or a selection that is not [filter].
      */
-    private fun speciesGroupToStore(filter: TaxonFilter): String? =
+    internal fun speciesGroupToStore(filter: TaxonFilter): String? =
         _uiState.value.foragingSelection
             .takeIf { filter is TaxonFilter.SpecificTaxon && it.filter == filter }
             ?.iconicTaxonName
@@ -758,7 +758,7 @@ class AvailabilityViewModel(
     fun onRecentSearchSelected(summary: CachedSearchSummary) {
         val region = summary.region
         _uiState.update { it.withRecentSearch(region, summary) }
-        refresh(region, summary.month, summary.filter)
+        beginSearch(region, summary.month, summary.filter)
     }
 
     /** The trip-planning flow's confirmed pin: see [AvailabilityPlannedTrips.onPlaceTripPin]. */

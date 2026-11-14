@@ -15,6 +15,7 @@ package com.zynergylabs.forager.app.ui.availability
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -140,6 +141,13 @@ internal fun SearchEntryBar(
      * them: its bottom in portrait, where the strip tucks under it, and its inner side in landscape. `null` draws none.
      */
     pillOutlineSides: MapChromeOutlineSides? = null,
+    /**
+     * Dispatch 2026-11-11-01, Amendment R and S: on the Maps tab out of fullscreen, a failed search shown in the bar itself (the
+     * owner: "The try again notice for search should go into the search bar itself, in place of the October text"). Its line
+     * takes the resting line's place, whole, focused or not until the user types (SB3), and "Try again" takes Clear's place
+     * (SB1). `null` everywhere else: the bar is as it was. See [SearchBarFailure].
+     */
+    failure: SearchBarFailure? = null,
 ) {
     val isDarkTheme = LocalForagerDarkTheme.current
     val contentColor = mapChromeContentColor(isDarkTheme)
@@ -253,7 +261,10 @@ internal fun SearchEntryBar(
                     tint = contentColor,
                     modifier = Modifier.padding(start = Spacing.lg).size(18.dp),
                 )
-                Box(modifier = Modifier.weight(1f)) {
+                BoxWithConstraints(modifier = Modifier.weight(1f).testTag(SEARCH_BAR_FIELD_ROOM_TAG)) {
+                    // Amendment T, TC1: the failure's line is the longest of its rungs that fits this room whole (MapsSearchFailure.kt).
+                    val restingLine = failure?.let { rememberSearchBarFailureLine(it, maxWidth, SEARCH_BAR_FIELD_SIDE_PADDING) }
+                        ?: activeSearchSummary(uiState, distanceUnit)
                     SpeciesSearchControls(
                         uiState = uiState,
                         onTaxonSearchQueryChanged = onTaxonSearchQueryChanged,
@@ -261,7 +272,7 @@ internal fun SearchEntryBar(
                         onDismissTaxonSuggestions = onDismissTaxonSuggestions,
                         queryFieldModifier = Modifier.testTag(ACTIVE_SEARCH_SUMMARY_TAG).height(rowFieldHeight),
                         onQueryFieldFocusChanged = { focused -> if (focused) onFieldFocused() },
-                        restingPlaceholder = activeSearchSummary(uiState, distanceUnit),
+                        restingPlaceholder = restingLine,
                         fieldColors = fieldColors,
                         contentPadding = fieldContentPadding,
                         suggestionsOverMap = overMap,
@@ -276,7 +287,10 @@ internal fun SearchEntryBar(
                 // ask (twice the compass row, see fieldHeight above), and a 48 dp Clear grew the bar from 45 to 61 dp while a
                 // search showed, which moved the landscape L and cluster (LandscapeLRulingsTest and others, full suite at
                 // the build). The target is therefore the field's height tall and the button's width wide (reported).
-                if (uiState.region != null) {
+                if (failure != null) {
+                    // Amendment S, SB1, the owner: "\"Try again\" takes Clear's place (Recommended)". Clear's size and place.
+                    TryAgainInBar(failure, rowFieldHeight, contentColor)
+                } else if (uiState.region != null) {
                     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
                         TextButton(
                             onClick = onClearSearch,
@@ -313,6 +327,9 @@ internal const val SEARCH_BAR_CLEAR_TAG = "search-bar-clear"
 /** [SearchEntryBar]'s own species query field — a stable trigger regardless of its current text, for tests that don't want to depend on exact query wording. Also the pre-redesign name for the old `ActiveSearchSummary`'s clickable row, kept unrenamed so existing tests that open the dropdown through this tag didn't all need retargeting for a purely mechanical rename. */
 internal const val ACTIVE_SEARCH_SUMMARY_TAG = "active-search-summary"
 
+/** Amendment U, UB4: the box whose width the bar's failure ladder measures from, so a test can hold its copied paddings to the field's laid-out room. */
+internal const val SEARCH_BAR_FIELD_ROOM_TAG = "search-bar-field-room"
+
 /** [SearchEntryBar]'s own outer bounds — the whole bar, chips/field/divider included, for tests that need "where does the top strip end" (e.g. `topStripBottom()`) rather than a click target on the field specifically ([ACTIVE_SEARCH_SUMMARY_TAG]). */
 internal const val SEARCH_ENTRY_BAR_TAG = "search-entry-bar"
 
@@ -324,3 +341,11 @@ internal val MAP_PILL_BOTTOM_PADDING = 4.dp
 
 /** RECORD -943's floor, enforced by RECORD -951: the Maps tab's pill is never under 40 dp tall, so it stays easy to tap. */
 internal val MAP_PILL_MIN_HEIGHT = 40.dp
+
+/**
+ * The room the bar's field takes each side of its text: SpeciesSearchControls' ExposedDropdownMenuBox padding (Spacing.sm) and
+ * OutlinedTextFieldDefaults' horizontal content padding (16 dp), which the bar's field keeps (its own top and bottom only are set).
+ * Amendment T's ladder first left out the Spacing.sm, and so judged "Search failed." to fit at 360 dp, font 2.0, where it is drawn
+ * cut (423 px of 471): seen by printing the ladder's room on the probe branch mtsf-t-probe2 (run 43424665907).
+ */
+internal val SEARCH_BAR_FIELD_SIDE_PADDING = Spacing.sm + 16.dp
